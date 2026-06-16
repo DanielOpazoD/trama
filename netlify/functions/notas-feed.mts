@@ -62,6 +62,7 @@ type RecorteRow = {
   captured_at: string | null
   created_at: string
   updated_at: string
+  images?: Array<{ storage_key: string }> | null
 }
 
 export default withObservability(
@@ -77,7 +78,10 @@ export default withObservability(
     const url = new URL(req.url)
     const parsed = parseFeedParams(url.searchParams)
     if (!parsed.success) {
-      return ApiErrors.validation(requestId, parsed.error.issues[0]?.message ?? 'parámetros inválidos')
+      return ApiErrors.validation(
+        requestId,
+        parsed.error.issues[0]?.message ?? 'parámetros inválidos',
+      )
     }
     const plan = buildFeedPlan(parsed.data)
     if (!plan) return ApiErrors.validation(requestId, 'cursor inválido')
@@ -169,7 +173,12 @@ export default withObservability(
         ? sqlTyped<RecorteRow>(sql`
             SELECT id, text, source_url, source_title, source_author, note,
               image_url, image_key, capture_mode, status, promoted_target,
-              promoted_id, source, captured_at, created_at, updated_at
+              promoted_id, source, captured_at, created_at, updated_at,
+              COALESCE((
+                SELECT jsonb_agg(jsonb_build_object('storage_key', ri.storage_key) ORDER BY ri.position)
+                FROM recorte_images ri
+                WHERE ri.recorte_id = recortes.id AND ri.user_id = ${userId}
+              ), '[]'::jsonb) AS images
             FROM recortes
             WHERE deleted_at IS NULL AND user_id = ${userId}
               AND id = ANY(${recorteIds}::uuid[])
@@ -192,7 +201,8 @@ export default withObservability(
     for (const row of page) {
       if (row.kind === 'note') {
         const note = noteById.get(row.id)
-        if (note) items.push({ type: 'note', id: row.id, createdAt: row.created_at, note })
+        if (note)
+          items.push({ type: 'note', id: row.id, createdAt: row.created_at, note })
       } else {
         const recorte = recorteById.get(row.id)
         if (recorte)

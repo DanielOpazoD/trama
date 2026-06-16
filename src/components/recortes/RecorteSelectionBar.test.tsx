@@ -23,6 +23,7 @@ function recorte(over: Partial<Recorte> = {}): Recorte {
     note: null,
     imageUrl: null,
     imageKey: null,
+    images: [],
     captureMode: 'citation',
     status: 'pending',
     promotedTarget: null,

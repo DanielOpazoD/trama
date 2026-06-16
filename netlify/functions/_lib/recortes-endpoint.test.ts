@@ -328,6 +328,7 @@ describe('recortes endpoint', () => {
     })
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ status: 'pending', image_key: 'u/origen.webp' }]) // SELECT status,image_key
+    mockSqlResponses.push([]) // SELECT recorte_images (vacío → cae a image_key)
     mockSqlResponses.push([
       { ...imageRow, status: 'promoted', promoted_target: 'momento' },
     ]) // CTE insert momentos
@@ -363,6 +364,53 @@ describe('recortes endpoint', () => {
     expect(payloadValue).toContain('"caption":"mi gato"')
     // El storageKey copiado NO es la image_key del recorte (vive en otro store).
     expect(payloadValue).not.toContain('u/origen.webp')
+  })
+
+  it('promote momento foto de un recorte-evento → copia TODAS las imágenes a items[]', async () => {
+    const imageRow = { ...ROW, capture_mode: 'image', image_key: 'u/portada.webp' }
+    blobStore.getWithMetadata.mockResolvedValue({
+      data: new ArrayBuffer(8),
+      metadata: { mime: 'image/webp', size: '8' },
+    })
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ status: 'pending', image_key: 'u/portada.webp' }]) // SELECT status,image_key
+    mockSqlResponses.push([
+      { storage_key: 'u/portada.webp' },
+      { storage_key: 'u/segunda.webp' },
+      { storage_key: 'u/tercera.webp' },
+    ]) // SELECT recorte_images (evento de 3 fotos)
+    mockSqlResponses.push([
+      { ...imageRow, status: 'promoted', promoted_target: 'momento' },
+    ]) // CTE insert momentos
+
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: 'momento',
+          momento: { kind: 'foto', payload: { caption: 'mi gato' } },
+        }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    expect(res.status).toBe(200)
+    // Copió los 3 blobs (uno por imagen del evento) a momentos-media.
+    expect(blobStore.getWithMetadata).toHaveBeenCalledTimes(3)
+    expect(blobStore.set).toHaveBeenCalledTimes(3)
+    // El payload del momento usa items[] (episodio), no storageKey suelto.
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    const payloadValue = insert?.values.find(
+      (v): v is string => typeof v === 'string' && v.includes('"items"'),
+    )
+    expect(payloadValue).toBeTruthy()
+    expect(payloadValue).toContain('"caption":"mi gato"')
+    // Tres items, ninguno con las storage_key originales (viven en otro store).
+    expect((payloadValue?.match(/"storageKey"/g) ?? []).length).toBe(3)
+    expect(payloadValue).not.toContain('u/portada.webp')
   })
 
   it('promote momento foto sin imagen propia → 400 (no se puede armar la foto)', async () => {

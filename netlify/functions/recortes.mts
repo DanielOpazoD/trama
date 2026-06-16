@@ -16,7 +16,7 @@ import { askLLMForJson } from './_lib/llm.js'
 import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 import { momentoEmbedText, validatePayloadForKind } from './_lib/momento-embed.js'
-import { copyRecorteImageToMomentos } from './_lib/recorte-to-momento.js'
+import { copyRecorteImageToMomentos, removeBlob } from './_lib/recorte-to-momento.js'
 import { normalizeOrigin } from './_lib/origin.js'
 import {
   embedSafe,
@@ -56,6 +56,8 @@ type RecorteRow = {
   captured_at: string | null
   created_at: string
   updated_at: string
+  /** Imágenes del recorte-evento (multi-imagen). Solo lo trae el GET/list. */
+  images?: Array<{ storage_key: string }> | null
 }
 
 export default withObservability(
@@ -349,14 +351,38 @@ export default withObservability(
               'La captura no tiene una imagen propia para promover como foto',
             )
           }
-          const copied = await copyRecorteImageToMomentos(rec.image_key, userId)
-          if (!copied) {
-            return ApiErrors.validation(
-              requestId,
-              'No se pudo leer la imagen de la captura',
-            )
+          // Todas las imágenes del recorte-evento (recorte_images por posición);
+          // si no hay filas, la image_key legacy como única imagen. Copiamos
+          // cada blob a momentos-media para preservar el evento completo al
+          // promover (un recorte de varias fotos → un Momento foto episódico).
+          const imgRows = await sqlTyped<{ storage_key: string }>(sql`
+            SELECT storage_key
+            FROM recorte_images
+            WHERE recorte_id = ${id} AND user_id = ${userId}
+            ORDER BY position ASC
+          `)
+          const sourceKeys =
+            imgRows.length > 0 ? imgRows.map((r) => r.storage_key) : [rec.image_key]
+          const copiedKeys: string[] = []
+          for (const key of sourceKeys) {
+            const copied = await copyRecorteImageToMomentos(key, userId)
+            if (!copied) {
+              // Copia a media tanda: limpiamos las ya copiadas para no dejar
+              // blobs huérfanos en momentos-media y abortamos sin promover.
+              await Promise.all(copiedKeys.map((k) => removeBlob('momentos-media', k)))
+              return ApiErrors.validation(
+                requestId,
+                'No se pudo leer la imagen de la captura',
+              )
+            }
+            copiedKeys.push(copied.storageKey)
           }
-          payload = { ...payload, storageKey: copied.storageKey }
+          // Una sola imagen → storageKey legacy (compatibilidad de lectura);
+          // varias → items[] (episodio foto). El lector prefiere items[].
+          payload =
+            copiedKeys.length > 1
+              ? { ...payload, items: copiedKeys.map((storageKey) => ({ storageKey })) }
+              : { ...payload, storageKey: copiedKeys[0] }
         }
 
         const payloadError = validatePayloadForKind(kind, payload)
@@ -499,7 +525,12 @@ export default withObservability(
       const rows = await sqlTyped<RecorteRow>(sql`
         SELECT id, text, source_url, source_title, source_author, note,
           image_url, image_key, capture_mode, status, promoted_target,
-          promoted_id, source, captured_at, created_at, updated_at
+          promoted_id, source, captured_at, created_at, updated_at,
+          COALESCE((
+            SELECT jsonb_agg(jsonb_build_object('storage_key', ri.storage_key) ORDER BY ri.position)
+            FROM recorte_images ri
+            WHERE ri.recorte_id = recortes.id AND ri.user_id = ${userId}
+          ), '[]'::jsonb) AS images
         FROM recortes
         WHERE deleted_at IS NULL AND user_id = ${userId}
           AND (${statusFilter}::text IS NULL OR status = ${statusFilter})

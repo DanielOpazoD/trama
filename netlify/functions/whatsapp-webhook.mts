@@ -22,6 +22,7 @@ import { buildClassifyPrompt, validateClassification } from './_lib/whatsapp/int
 import { persistCapture } from './_lib/whatsapp/persist.js'
 import {
   persistImageRecorte,
+  persistImageRecorteEvent,
   persistImageMomentoEpisode,
   persistVoiceNoteAttachment,
 } from './_lib/whatsapp/persist-media.js'
@@ -47,6 +48,10 @@ import {
   recallHasResults,
 } from './_lib/whatsapp/recall.js'
 import { storeMedia } from './_lib/whatsapp/media-store.js'
+import {
+  reclassifyRecorteToMomento,
+  reclassifyRecorteToNote,
+} from './_lib/whatsapp/reclassify-media.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
 import {
@@ -471,6 +476,37 @@ async function recategorizeLast(
   if (last.kind === toKind) {
     return `Eso ya está guardado como ${NOUN_BY_KIND[toKind] ?? 'esa categoría'}.`
   }
+
+  // Reclasificación NO destructiva de un recorte CON imágenes: copiamos las
+  // fotos al destino (Momento foto episódico o Nota con adjuntos) en vez de
+  // arrastrar solo el texto. Si el recorte no tiene imágenes (texto/enlace), el
+  // helper devuelve null y caemos al camino de texto de abajo.
+  if (last.kind === 'recorte' && (toKind === 'momento' || toKind === 'note')) {
+    const caption = (await readCaptureText(sql, 'recorte', last.id, userId)) ?? ''
+    const result =
+      toKind === 'momento'
+        ? await reclassifyRecorteToMomento(sql, userId, last.id, caption)
+        : await reclassifyRecorteToNote(sql, userId, last.id, caption)
+    if (result.status === 'ok') {
+      // El destino quedó con TODAS las imágenes: recién ahora borramos el recorte.
+      await softDeleteCapture(sql, userId, last.kind, last.id)
+      await recordLastCapture(sql, phone, userId, toKind, result.id)
+      const link = captureDeepLink(origin, toKind)
+      const msg =
+        toKind === 'momento'
+          ? '🔄 Reclasificado como Momento con sus imágenes.'
+          : '🔄 Reclasificado como Nota con sus imágenes.'
+      return `${msg}\n🔗 Ábrelo en Trama: ${link}\n↩️ ¿No era así? Responde «deshacer».`
+    }
+    if (result.status === 'failed') {
+      // La copia falló a medias: el recorte sigue intacto con sus fotos, no lo
+      // borramos. No caemos al camino de texto (perdería las imágenes).
+      return 'No pude mover las imágenes ahora mismo. Tu recorte sigue en Recortes con sus fotos; vuelve a intentarlo en un momento.'
+    }
+    // result.status === 'no-images' → recorte de texto/enlace: sigue al camino
+    // de texto de abajo (ahí sí reusar el texto es correcto).
+  }
+
   const text = await readCaptureText(sql, last.kind, last.id, userId)
   if (!text) {
     return 'No pude leer esa captura para reclasificarla. Puedes recrearla con el prefijo correcto.'
@@ -573,7 +609,7 @@ async function handleInboundMedia(
   params: Record<string, string>,
   media: ReturnType<typeof parseInboundMedia>,
   origin: string,
-): Promise<{ message: string; saved: number }> {
+): Promise<{ message: string; saved: number; offerDestino: boolean }> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
@@ -584,6 +620,9 @@ async function handleInboundMedia(
   // Fotos del route 'momento': se acumulan y se persisten como UN solo momento
   // foto (episodio) tras el loop, en vez de N momentos sueltos.
   const momentoKeys: string[] = []
+  // Imágenes del route 'recorte' (default): se acumulan y, si son 2+, se
+  // guardan como UN recorte-evento (varias imágenes en una entrada).
+  const recorteKeys: Array<{ key: string; mime: string }> = []
 
   for (const item of media) {
     const cat = mediaCategory(item.contentType)
@@ -704,11 +743,10 @@ async function handleInboundMedia(
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         momentoKeys.push(key)
       } else {
+        // Tampoco persistimos aún: juntamos las imágenes y, tras el loop,
+        // creamos un recorte único (1 imagen) o un recorte-evento (2+).
         const key = await storeMedia('recortes-media', userId, buffer, contentType)
-        const r = await persistImageRecorte(sql, userId, key, caption)
-        lastId = r.id
-        lastKind = 'recorte'
-        saved += 1
+        recorteKeys.push({ key, mime: contentType })
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -731,6 +769,23 @@ async function handleInboundMedia(
     }
   }
 
+  // Recorte: una imagen → un recorte; varias → un recorte-evento.
+  if (recorteKeys.length > 0) {
+    try {
+      const r =
+        recorteKeys.length === 1
+          ? await persistImageRecorte(sql, userId, recorteKeys[0]!.key, caption)
+          : await persistImageRecorteEvent(sql, userId, recorteKeys, caption)
+      lastId = r.id
+      lastKind = 'recorte'
+      saved += recorteKeys.length
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      skipped.add('error')
+      logEvent({ event: 'whatsapp_media_failed', message: msg })
+    }
+  }
+
   if (saved > 0 && lastId) {
     await recordLastCapture(sql, phone, userId, lastKind, lastId)
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
@@ -745,15 +800,20 @@ async function handleInboundMedia(
   const lines: string[] = []
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
-    // Episodio foto: varias fotos en un SOLO momento (no N elementos sueltos).
+    // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
+    // recorte — no N elementos sueltos.
     const isPhotoEpisode =
       lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
+    const isRecorteEvent =
+      lastKind === 'recorte' && recorteKeys.length > 1 && saved === recorteKeys.length
     lines.push(
       saved === 1
         ? `✅ Guardado en ${dest}.`
         : isPhotoEpisode
           ? `✅ ${saved} fotos guardadas en un momento.`
-          : `✅ ${saved} elementos guardados.`,
+          : isRecorteEvent
+            ? `✅ ${saved} imágenes guardadas como un evento en Recortes.`
+            : `✅ ${saved} elementos guardados.`,
     )
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
@@ -790,7 +850,11 @@ async function handleInboundMedia(
     lines.push('No pude descargar el archivo. Vuelve a intentarlo en un momento.')
   }
   if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
-  return { message: lines.join('\n'), saved }
+  // Una captura de imagen guardada como Recorte (default) puede redirigirse sin
+  // pérdida a Momento o Nota con sus imágenes: ofrecemos esos botones de destino
+  // (además de Deshacer). Las fotos que ya fueron a Momentos no necesitan botón.
+  const offerDestino = saved > 0 && lastKind === 'recorte'
+  return { message: lines.join('\n'), saved, offerDestino }
 }
 
 /**
@@ -1034,7 +1098,7 @@ export default withObservability(
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
     if (media.length > 0) {
-      const { message, saved } = await handleInboundMedia(
+      const { message, saved, offerDestino } = await handleInboundMedia(
         req,
         requestId,
         sql,
@@ -1044,9 +1108,12 @@ export default withObservability(
         media,
         new URL(req.url).origin,
       )
-      // Con captura guardada, ofrecemos Deshacer (botón si hay plantilla, o
-      // texto). Sin nada guardado (todo descartado), solo el aviso, sin botón.
-      return saved > 0 ? replyWithCapture(params, message, false) : twimlResponse(message)
+      // Con captura guardada ofrecemos Deshacer (botón si hay plantilla, o
+      // texto). Si fue a Recortes, además ofrecemos redirigir a Momento / Nota
+      // con sus imágenes (botones de destino). Sin nada guardado, solo el aviso.
+      return saved > 0
+        ? replyWithCapture(params, message, offerDestino)
+        : twimlResponse(message)
     }
 
     // Acá ya no hay media (se devolvió arriba) y empty/help/link/undo también

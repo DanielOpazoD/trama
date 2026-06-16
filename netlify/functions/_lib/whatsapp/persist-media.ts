@@ -36,6 +36,53 @@ export async function persistImageRecorte(
   return { message: '📷 Imagen guardada en Recortes.', id }
 }
 
+/**
+ * Varias imágenes de un MISMO mensaje → UN recorte-evento con todas. La primera
+ * queda como `image_key` (portada, para lectores de una sola imagen) y TODAS
+ * van a `recorte_images`. Así "deshacer" borra el evento entero (una fila) y la
+ * tarjeta puede mostrar portada + contador + visor. Los blobs ya los subió el
+ * webhook al store `recortes-media`.
+ */
+export async function persistImageRecorteEvent(
+  sql: SqlClient,
+  userId: string,
+  images: Array<{ key: string; mime: string }>,
+  caption: string,
+): Promise<CaptureResult> {
+  const text =
+    caption.trim().length > 0
+      ? caption.trim()
+      : `📸 ${images.length} imágenes desde WhatsApp`
+  const cover = images[0]!.key
+  const keys = images.map((i) => i.key)
+  const mimes = images.map((i) => i.mime)
+  // Recorte (portada) + sus N imágenes en UN solo CTE: el driver Neon es HTTP
+  // (cada sentencia suelta sería su propia transacción), así que sin el CTE un
+  // fallo a media tanda dejaría un evento mutilado y sin "deshacer". `unnest …
+  // WITH ORDINALITY` empareja key↔mime y asigna `position` (0-based) de una.
+  const rows = await sqlTyped<{ id: string }>(sql`
+    WITH new_recorte AS (
+      INSERT INTO recortes (text, image_key, capture_mode, captured_at, status, source, user_id)
+      VALUES (${text}, ${cover}, 'image', NOW(), 'pending', 'whatsapp', ${userId})
+      RETURNING id
+    ),
+    imgs AS (
+      INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+      SELECT r.id, ${userId}, x.key, x.mime, (x.ord - 1)::int
+      FROM new_recorte r,
+        unnest(${keys}::text[], ${mimes}::text[]) WITH ORDINALITY AS x(key, mime, ord)
+      RETURNING 1
+    )
+    SELECT id FROM new_recorte
+  `)
+  const id = rows[0]?.id
+  if (!id) throw new Error('persistImageRecorteEvent: INSERT no devolvió id')
+  return {
+    message: `📸 ${images.length} imágenes guardadas como un evento en Recortes.`,
+    id,
+  }
+}
+
 export async function persistImageMomento(
   sql: SqlClient,
   userId: string,

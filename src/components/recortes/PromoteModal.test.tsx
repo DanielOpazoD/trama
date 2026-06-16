@@ -22,6 +22,7 @@ const baseRecorte: Recorte = {
   note: null,
   imageUrl: null,
   imageKey: null,
+  images: [],
   captureMode: 'image',
   status: 'pending',
   promotedTarget: null,

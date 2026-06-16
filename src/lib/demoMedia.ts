@@ -1,19 +1,33 @@
-const DEMO_PHOTO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Cuaderno abierto">
+// Paletas de la foto demo: la 0 es la histórica (no cambiar — un test fija su
+// aria-label). Las otras dan variedad para que un recorte-evento de varias fotos
+// no muestre tres imágenes idénticas en modo prueba.
+const DEMO_PHOTO_PALETTES = [
+  { bg: '#2f3c35', accent: '#b9824b' }, // verde + terracota (histórica)
+  { bg: '#33303c', accent: '#6f8faa' }, // gris violáceo + azul
+  { bg: '#3a3329', accent: '#8d9a6a' }, // tierra + sage
+] as const
+
+function demoPhotoSvg(variant = 0): string {
+  const { bg, accent } = DEMO_PHOTO_PALETTES[variant % DEMO_PHOTO_PALETTES.length]!
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-label="Cuaderno abierto">
   <defs>
     <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#f8f3e7"/>
       <stop offset="1" stop-color="#ded3bd"/>
     </linearGradient>
   </defs>
-  <rect width="1200" height="800" fill="#2f3c35"/>
+  <rect width="1200" height="800" fill="${bg}"/>
   <rect x="170" y="105" width="860" height="590" rx="22" fill="url(#paper)"/>
   <path d="M600 120v555" stroke="#b8aa8e" stroke-width="5"/>
   <g stroke="#81745e" stroke-width="5" stroke-linecap="round" opacity=".72">
     <path d="M250 210h260M250 275h210M250 340h245M250 405h185"/>
     <path d="M690 220h260M690 285h210M690 350h245M690 415h170"/>
   </g>
-  <circle cx="905" cy="550" r="58" fill="#b9824b" opacity=".82"/>
+  <circle cx="905" cy="550" r="58" fill="${accent}" opacity=".82"/>
 </svg>`
+}
+
+const DEMO_PHOTO_SVG = demoPhotoSvg(0)
 
 function silentWav(durationSeconds = 1): Uint8Array {
   const sampleRate = 8000
@@ -66,9 +80,11 @@ export function demoMediaResponse(url: string): Response | null {
   }
   // Imágenes propias de las capturas (recortes): igual que los anexos, en modo
   // prueba cualquier key sirve el placeholder para que la miniatura y el visor
-  // se vean en vez de quedar rotos.
+  // se vean en vez de quedar rotos. Si la key termina en `-N.svg` (las fotos de
+  // un recorte-evento demo), variamos la paleta para que no se vean idénticas.
   if (path.startsWith('/api/recortes-image/')) {
-    return new Response(DEMO_PHOTO_SVG, {
+    const variant = Number(/-(\d)\.svg$/.exec(path)?.[1] ?? 1) - 1
+    return new Response(demoPhotoSvg(Math.max(0, variant)), {
       headers: { 'Content-Type': 'image/svg+xml' },
     })
   }

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { ZoomIcon } from '../Icons'
 
 export function hostOf(url: string | null | undefined): string | null {
   if (!url) return null
@@ -33,6 +34,9 @@ type LinkMediaPreviewProps = {
   /** Si se pasa (y NO hay href), la miniatura abre el visor: doble clic con el
    *  mouse, Enter/Espacio con teclado. Para imágenes propias de la captura. */
   onOpenImage?: () => void
+  /** Insignia arriba a la derecha (ej. contador de un recorte multi-imagen).
+   *  Decorativa (aria-hidden): la semántica va en `ariaLabel`. */
+  badge?: ReactNode
   /** Avisa cuando la imagen no carga, para que el caller pueda ocultarla. */
   onImageError?: () => void
 }
@@ -54,6 +58,7 @@ export function LinkMediaPreview({
   className = '',
   size = 'grande',
   onOpenImage,
+  badge,
   onImageError,
 }: LinkMediaPreviewProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
@@ -85,6 +90,14 @@ export function LinkMediaPreview({
           <span className="truncate">{host}</span>
           {dateLabel && <span className="shrink-0 tabular-nums">{dateLabel}</span>}
         </div>
+      )}
+      {badge && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink-900/70 px-2 py-0.5 text-micro font-medium text-paper-50/95 tabular-nums"
+        >
+          {badge}
+        </span>
       )}
     </div>
   )
@@ -123,9 +136,18 @@ export function LinkMediaPreview({
             onOpenImage()
           }
         }}
-        className={`${frameClass} cursor-zoom-in`}
+        className={`group/zoom relative ${frameClass} cursor-zoom-in`}
       >
         {content}
+        {/* Pista visible de que la miniatura amplía (decorativa: la acción real
+            la dan el doble clic / Enter del marco). Aparece al pasar el mouse o
+            enfocar con teclado. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-2 left-2 inline-flex items-center justify-center rounded-full bg-ink-900/70 p-1.5 text-paper-50/95 opacity-0 transition-opacity duration-200 group-hover/zoom:opacity-100 group-focus-visible/zoom:opacity-100"
+        >
+          <ZoomIcon size={14} />
+        </span>
       </div>
     )
   }

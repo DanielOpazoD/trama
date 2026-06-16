@@ -30,6 +30,7 @@ function makeRecorte(over: Partial<Recorte> = {}): Recorte {
     note: null,
     imageUrl: null,
     imageKey: null,
+    images: [],
     captureMode: null,
     status: 'pending',
     promotedTarget: null,

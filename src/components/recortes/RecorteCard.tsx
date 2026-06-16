@@ -8,6 +8,7 @@ import { youtubeThumb } from '../../lib/youtubeThumb'
 import {
   ArrowRightIcon,
   ChevronDownIcon,
+  DuplicateIcon,
   EntitiesIcon,
   MomentosIcon,
   QuoteIcon,
@@ -20,6 +21,7 @@ import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { hostOf, LinkMediaPreview, type LinkMediaSize } from './LinkMediaPreview'
 import { RecorteLightbox } from './RecorteLightbox'
+import { recorteToLightboxEntries } from './recorteViewer'
 import type { PromoteSeed } from './PromoteModal'
 import { markdownToPreview } from './recorteMarkdownPreview'
 
@@ -96,6 +98,16 @@ function RecorteMediaPreview({
       host={host}
       dateLabel={formatStamp(r.capturedAt ?? r.createdAt)}
       size={size}
+      // Recorte-evento: insignia con ícono de «pila» + cantidad de imágenes.
+      // Decorativa: la cuenta se anuncia en el ariaLabel del visor.
+      badge={
+        r.images.length > 1 ? (
+          <>
+            <DuplicateIcon size={11} />
+            {r.images.length}
+          </>
+        ) : undefined
+      }
       // El visor solo aplica a la imagen propia (sin href). Para enlaces/OG el
       // clic sigue abriendo el original.
       onOpenImage={r.imageKey ? onOpenImage : undefined}
@@ -103,7 +115,15 @@ function RecorteMediaPreview({
         shown ?? (authedSrc ? TRANSPARENT_PX : (r.imageUrl ?? derivedThumb ?? ''))
       }
       imageLoading={status === 'loading'}
-      ariaLabel={r.sourceTitle ? `Abrir ${r.sourceTitle}` : undefined}
+      ariaLabel={
+        r.imageKey
+          ? r.images.length > 1
+            ? `Ampliar — ${r.images.length} imágenes`
+            : 'Ampliar imagen'
+          : r.sourceTitle
+            ? `Abrir ${r.sourceTitle}`
+            : undefined
+      }
       onImageError={derivedThumb ? () => setThumbFailed(true) : undefined}
     />
   )
@@ -199,10 +219,11 @@ export function RecorteCard({
   onDelete: () => void
 }) {
   const host = hostOf(r.sourceUrl)
-  // Visor de la imagen propia (doble clic en la miniatura) — misma sala oscura
-  // que Momentos. Solo aplica a capturas con imagen interna o externa.
+  // Visor de la(s) imagen(es) propia(s) (doble clic en la miniatura) — misma
+  // sala oscura que Momentos. Un recorte-evento abre TODAS sus imágenes.
   const [viewerOpen, setViewerOpen] = useState(false)
-  const viewerUrl = r.imageKey ? recorteImageUrl(r.imageKey) : r.imageUrl
+  const [viewerIndex, setViewerIndex] = useState(0)
+  const viewerEntries = recorteToLightboxEntries(r)
   const suggest = useSuggestRecorte()
   const update = useUpdateRecorte()
   const toast = useToast()
@@ -294,7 +315,14 @@ export function RecorteCard({
           recorte={r}
           host={host}
           size={thumbSize}
-          onOpenImage={viewerUrl ? () => setViewerOpen(true) : undefined}
+          onOpenImage={
+            viewerEntries.length > 0
+              ? () => {
+                  setViewerIndex(0)
+                  setViewerOpen(true)
+                }
+              : undefined
+          }
         />
       ) : (
         (host || dateLabel) && (
@@ -489,11 +517,11 @@ export function RecorteCard({
         </div>
       </div>
 
-      {viewerUrl && (
+      {viewerEntries.length > 0 && (
         <RecorteLightbox
-          entries={[{ url: viewerUrl, caption: r.sourceTitle ?? r.text }]}
-          index={0}
-          onIndexChange={() => {}}
+          entries={viewerEntries}
+          index={viewerIndex}
+          onIndexChange={setViewerIndex}
           open={viewerOpen}
           onClose={() => setViewerOpen(false)}
         />

@@ -1,4 +1,5 @@
 import { logEvent } from '../observability.js'
+import { fetchWithTimeout } from './fetch-timeout.js'
 
 /**
  * Envío SALIENTE de un mensaje de WhatsApp con un Content Template (botones)
@@ -32,7 +33,7 @@ export async function sendWhatsAppContent(opts: {
     ContentVariables: opts.contentVariables,
   })
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${auth}`,
@@ -41,7 +42,12 @@ export async function sendWhatsAppContent(opts: {
       body: form.toString(),
     })
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
+      // Acotamos también la lectura del body de error para no quedar colgados
+      // si Twilio transmite la respuesta de error lentamente.
+      const text = await Promise.race([
+        res.text().catch(() => ''),
+        new Promise<string>((resolve) => setTimeout(() => resolve(''), 3000)),
+      ])
       logEvent({
         event: 'whatsapp_send_failed',
         status: res.status,

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { CaptureItem, Recorte } from '../../api'
+import type { CaptureItem } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import type { RecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { EmptyMessage } from '../EmptyMessage'
+import { GalleryIcon } from '../Icons'
 import { RecorteLightbox } from './RecorteLightbox'
 
 // Densidad de la grilla según el tamaño elegido (mismo control que las
@@ -70,11 +71,46 @@ function useGalleryColumns(size: RecorteThumbSize): number {
   return getCapturasGalleryColumnCount(size, viewportWidth)
 }
 
+/** Una imagen de la galería: blob authed (storageKey) o URL externa. Un
+ *  recorte-evento aporta varias. */
+type GalleryImage = {
+  key: string
+  storageKey: string | null
+  imageUrl: string | null
+  alt: string
+}
+
+/** Aplana los recortes con imagen del feed en una imagen por celda. */
+export function flattenRecorteImages(items: CaptureItem[]): GalleryImage[] {
+  const out: GalleryImage[] = []
+  for (const it of items) {
+    if (it.type !== 'recorte') continue
+    const r = it.recorte
+    const alt = r.sourceTitle ?? r.text.slice(0, 60)
+    if (r.images.length > 0) {
+      r.images.forEach((img, i) =>
+        out.push({
+          key: `${r.id}:${i}`,
+          storageKey: img.storageKey,
+          imageUrl: null,
+          alt,
+        }),
+      )
+    } else if (r.imageUrl) {
+      out.push({ key: r.id, storageKey: null, imageUrl: r.imageUrl, alt })
+    }
+  }
+  return out
+}
+
 /** Celda de la galería: la imagen (authed o externa) recortada a un cuadrado. */
-function GalleryCell({ recorte: r }: { recorte: Recorte }) {
-  const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
+function GalleryCell({ cell }: { cell: GalleryImage }) {
+  const authedSrc = cell.storageKey ? recorteImageUrl(cell.storageKey) : null
   const { src, status } = useAuthenticatedMediaState(authedSrc)
-  const shown = authedSrc ? (src ?? TRANSPARENT_PX) : (r.imageUrl ?? TRANSPARENT_PX)
+  const [extError, setExtError] = useState(false)
+  // Imagen rota: blob authed que falló (status 'error') o externa con onError.
+  const failed = authedSrc ? status === 'error' : extError
+  const shown = authedSrc ? (src ?? TRANSPARENT_PX) : (cell.imageUrl ?? TRANSPARENT_PX)
   const loading = authedSrc ? status === 'loading' : false
   return (
     <div className="relative aspect-square overflow-hidden rounded-md bg-paper-100/60">
@@ -84,12 +120,24 @@ function GalleryCell({ recorte: r }: { recorte: Recorte }) {
           aria-hidden
         />
       )}
-      <img
-        src={shown}
-        alt={r.sourceTitle ?? r.text.slice(0, 60)}
-        loading="lazy"
-        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
-      />
+      {failed ? (
+        // Placeholder visible (no un píxel transparente que parece celda vacía).
+        <div
+          className="flex h-full w-full items-center justify-center bg-ink-100/50 text-ink-300"
+          title="No se pudo cargar la imagen"
+        >
+          <GalleryIcon size={22} />
+          <span className="sr-only">No se pudo cargar la imagen</span>
+        </div>
+      ) : (
+        <img
+          src={shown}
+          alt={cell.alt}
+          loading="lazy"
+          onError={() => setExtError(true)}
+          className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+        />
+      )}
     </div>
   )
 }
@@ -116,27 +164,19 @@ export function CapturasGalleryGrid({
   isFetchingNextPage: boolean
   onLoadMore: () => void
 }) {
-  const images = useMemo(
-    () =>
-      items
-        .filter(
-          (it): it is Extract<CaptureItem, { type: 'recorte' }> =>
-            it.type === 'recorte' && !!(it.recorte.imageKey || it.recorte.imageUrl),
-        )
-        .map((it) => it.recorte),
-    [items],
-  )
+  // Una celda por imagen: un recorte-evento aporta todas sus fotos.
+  const cells = useMemo(() => flattenRecorteImages(items), [items])
   const entries = useMemo(
     () =>
-      images.map((r) => ({
-        url: r.imageKey ? recorteImageUrl(r.imageKey) : (r.imageUrl ?? ''),
-        caption: r.sourceTitle ?? r.text,
+      cells.map((c) => ({
+        url: c.storageKey ? recorteImageUrl(c.storageKey) : (c.imageUrl ?? ''),
+        caption: c.alt,
       })),
-    [images],
+    [cells],
   )
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const columns = useGalleryColumns(size)
-  const rows = useMemo(() => chunkCapturasGalleryRows(images, columns), [images, columns])
+  const rows = useMemo(() => chunkCapturasGalleryRows(cells, columns), [cells, columns])
   const { listRef, virtualizer } = useMainScrollVirtualizer<HTMLDivElement>({
     count: rows.length,
     estimateSize: ESTIMATED_ROW_HEIGHT[size],
@@ -166,7 +206,7 @@ export function CapturasGalleryGrid({
             start: index * estimatedRowHeight,
           }))
 
-  if (images.length === 0) {
+  if (cells.length === 0) {
     return (
       <EmptyMessage
         title="Sin imágenes por aquí"
@@ -195,17 +235,17 @@ export function CapturasGalleryGrid({
                 transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
               }}
             >
-              {row.map((r, offset) => {
+              {row.map((cell, offset) => {
                 const imageIndex = virtualRow.index * columns + offset
                 return (
-                  <li key={r.id}>
+                  <li key={cell.key}>
                     <button
                       type="button"
                       onClick={() => setViewerIndex(imageIndex)}
-                      aria-label={`Ampliar ${r.sourceTitle ?? 'imagen'}`}
-                      className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+                      aria-label={`Ampliar ${cell.alt || 'imagen'}`}
+                      className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-primary)] focus-visible:ring-offset-1"
                     >
-                      <GalleryCell recorte={r} />
+                      <GalleryCell cell={cell} />
                     </button>
                   </li>
                 )

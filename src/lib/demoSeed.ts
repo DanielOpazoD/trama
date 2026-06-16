@@ -316,7 +316,33 @@ export function buildSeed(): Store {
     created_at: daysAgo(d),
     updated_at: daysAgo(d),
   })
+  // Recorte-evento: varias fotos de un mismo mensaje guardadas como una entrada.
+  // La portada es image_key; `images[]` trae todas (espejo de recorte_images).
+  const eventRecorte: Row = {
+    id: uid(),
+    text: '📸 3 imágenes desde WhatsApp',
+    source_url: null,
+    source_title: null,
+    source_author: null,
+    note: null,
+    image_url: null,
+    image_key: 'demo/captura.svg',
+    images: [
+      { storage_key: 'demo/captura.svg' },
+      { storage_key: 'demo/captura-2.svg' },
+      { storage_key: 'demo/captura-3.svg' },
+    ],
+    capture_mode: 'image',
+    status: 'pending',
+    promoted_target: null,
+    promoted_id: null,
+    source: 'whatsapp',
+    captured_at: daysAgo(0),
+    created_at: daysAgo(0),
+    updated_at: daysAgo(0),
+  }
   const recortes: Row[] = [
+    eventRecorte,
     imageRecorte('El dibujo del gato sobre la mesa', 0),
     imageRecorte('Boceto de la terraza', 1),
     imageRecorte('Página del cuaderno de viaje', 2),
