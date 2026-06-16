@@ -62,7 +62,9 @@ describe('pickCaptureContentSid', () => {
   })
 
   it('ambiguo sin lista → cae a la quick-reply de destino', () => {
-    expect(pickCaptureContentSid({ ...all, actionsSid: null }, 'ambiguous')).toBe('HXdest')
+    expect(pickCaptureContentSid({ ...all, actionsSid: null }, 'ambiguous')).toBe(
+      'HXdest',
+    )
   })
 
   it('simple → plantilla de solo Deshacer', () => {

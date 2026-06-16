@@ -23,7 +23,8 @@ describe('consumeAwaitingDescription', () => {
     // UPDATE para serializar y RETURNING para recuperar a quién aplicar (no un
     // SELECT-luego-clear, que permitiría que dos textos ganen el mismo puntero).
     const claim = mockSqlResponses.calls.find(
-      (c) => /UPDATE whatsapp_links/i.test(c.template) && /awaiting_desc/i.test(c.template),
+      (c) =>
+        /UPDATE whatsapp_links/i.test(c.template) && /awaiting_desc/i.test(c.template),
     )
     expect(claim?.template).toMatch(/FOR UPDATE/)
     expect(claim?.template).toMatch(/RETURNING/)

@@ -47,9 +47,7 @@ export const mockSqlResponses = {
   /** Encola un fallo: la próxima query del mock rechaza con este error (para
    *  ejercitar caminos de error/resiliencia, p. ej. un handler que lanza). */
   pushError(error: unknown) {
-    mockSqlState.responses.push(
-      error instanceof Error ? error : new Error(String(error)),
-    )
+    mockSqlState.responses.push(error instanceof Error ? error : new Error(String(error)))
   },
   get calls() {
     return mockSqlState.calls

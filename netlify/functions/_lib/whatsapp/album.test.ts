@@ -87,7 +87,9 @@ describe('appendImagesToRecorteEvent', () => {
 
   it('reintenta ante colisión de posición concurrente (23505) y converge', async () => {
     // Primer intento: choca con un append concurrente del mismo álbum.
-    mockSqlResponses.pushError(Object.assign(new Error('duplicate key'), { code: '23505' }))
+    mockSqlResponses.pushError(
+      Object.assign(new Error('duplicate key'), { code: '23505' }),
+    )
     // Segundo intento: snapshot fresco, ya hay 3 filas commiteadas → base 3 + 1.
     mockSqlResponses.push([{ found: true, existing_n: 3, had_cover: true }])
     const total = await appendImagesToRecorteEvent(getSql(), 'u1', 'r1', [
@@ -104,7 +106,9 @@ describe('appendImagesToRecorteEvent', () => {
   it('un error que NO es de UNIQUE se propaga sin reintentar', async () => {
     mockSqlResponses.pushError(Object.assign(new Error('boom'), { code: '42P01' }))
     await expect(
-      appendImagesToRecorteEvent(getSql(), 'u1', 'r1', [{ key: 'a', mime: 'image/jpeg' }]),
+      appendImagesToRecorteEvent(getSql(), 'u1', 'r1', [
+        { key: 'a', mime: 'image/jpeg' },
+      ]),
     ).rejects.toThrow('boom')
     const cte = mockSqlResponses.calls.filter((c) =>
       /INSERT INTO recorte_images/i.test(c.template),

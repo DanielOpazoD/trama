@@ -504,9 +504,9 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(200)
     expect(await res.text()).toContain('Reclasificado')
     // Creó la tarea y borró la nota original (reclasificación, no duplicado).
-    expect(mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template))).toBe(
-      true,
-    )
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template)),
+    ).toBe(true)
     expect(
       mockSqlResponses.calls.some(
         (c) => /UPDATE notes/i.test(c.template) && /deleted_at/i.test(c.template),
@@ -527,9 +527,9 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(200)
     expect(await res.text()).toContain('no se vuelve tarea')
     // No insertó ninguna tarea (la foto sigue intacta como Recorte).
-    expect(mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template))).toBe(
-      false,
-    )
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('palabra "momento" sobre un recorte con imágenes → reclasifica SIN perder fotos', async () => {
