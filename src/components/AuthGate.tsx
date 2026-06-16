@@ -46,7 +46,34 @@ const clerkAppearance = {
       backgroundColor: 'rgb(var(--paper-50) / 0.44)',
     },
     dividerLine: { backgroundColor: 'rgb(var(--ink-100) / 0.72)' },
-    footer: { background: 'transparent' },
+    footer: {
+      background: 'transparent',
+      borderTop: '1px solid rgb(var(--ink-100) / 0.44)',
+      boxShadow: 'none',
+      color: 'rgb(var(--ink-300))',
+      paddingTop: '1rem',
+    },
+    footerAction: {
+      color: 'rgb(var(--ink-300))',
+      fontSize: '0.78rem',
+    },
+    footerActionText: {
+      color: 'rgb(var(--ink-300))',
+    },
+    footerActionLink: {
+      color: 'rgb(var(--ink-600))',
+      fontWeight: '500',
+      textDecoration: 'none',
+    },
+    footerItem: {
+      opacity: '0.48',
+      filter: 'saturate(0.68)',
+    },
+    footerItemText: {
+      color: 'rgb(var(--ink-300))',
+      fontSize: '0.76rem',
+      letterSpacing: '0',
+    },
   },
 }
 

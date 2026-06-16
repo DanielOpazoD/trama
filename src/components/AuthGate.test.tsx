@@ -4,6 +4,10 @@ import { AuthGate } from './AuthGate'
 
 const clerkState = vi.hoisted(() => ({ signedIn: false }))
 
+type ClerkAppearance = {
+  elements?: Record<string, unknown>
+}
+
 vi.mock('@clerk/react', () => ({
   Show: ({
     children,
@@ -12,18 +16,38 @@ vi.mock('@clerk/react', () => ({
     children: React.ReactNode
     fallback?: React.ReactNode
   }) => (clerkState.signedIn ? <>{children}</> : <>{fallback}</>),
-  SignIn: ({ routing, signUpUrl }: { routing?: string; signUpUrl?: string }) => (
+  SignIn: ({
+    routing,
+    signUpUrl,
+    appearance,
+  }: {
+    routing?: string
+    signUpUrl?: string
+    appearance?: ClerkAppearance
+  }) => (
     <div
       data-testid="clerk-sign-in"
       data-routing={routing}
       data-sign-up-url={signUpUrl}
+      data-quiet-footer={String(Boolean(appearance?.elements?.footerItem))}
+      data-quiet-dev-mode={String(Boolean(appearance?.elements?.footerItemText))}
     />
   ),
-  SignUp: ({ routing, signInUrl }: { routing?: string; signInUrl?: string }) => (
+  SignUp: ({
+    routing,
+    signInUrl,
+    appearance,
+  }: {
+    routing?: string
+    signInUrl?: string
+    appearance?: ClerkAppearance
+  }) => (
     <div
       data-testid="clerk-sign-up"
       data-routing={routing}
       data-sign-in-url={signInUrl}
+      data-quiet-footer={String(Boolean(appearance?.elements?.footerItem))}
+      data-quiet-dev-mode={String(Boolean(appearance?.elements?.footerItemText))}
     />
   ),
 }))
@@ -75,6 +99,43 @@ describe('AuthGate', () => {
     )
     expect(screen.getByText('explorar sin cuenta')).toBeInTheDocument()
     expect(screen.queryByTestId('app-shell')).not.toBeInTheDocument()
+  })
+
+  it('passes a quieter Clerk footer appearance to the embedded auth widgets', () => {
+    vi.stubEnv('VITE_CLERK_PUBLISHABLE_KEY', 'pk_test_trama')
+
+    const { rerender } = render(
+      <AuthGate>
+        <div data-testid="app-shell">Trama app</div>
+      </AuthGate>,
+    )
+
+    expect(screen.getByTestId('clerk-sign-in')).toHaveAttribute(
+      'data-quiet-footer',
+      'true',
+    )
+    expect(screen.getByTestId('clerk-sign-in')).toHaveAttribute(
+      'data-quiet-dev-mode',
+      'true',
+    )
+
+    window.location.hash = '#sign-up'
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+
+    rerender(
+      <AuthGate>
+        <div data-testid="app-shell">Trama app</div>
+      </AuthGate>,
+    )
+
+    expect(screen.getByTestId('clerk-sign-up')).toHaveAttribute(
+      'data-quiet-footer',
+      'true',
+    )
+    expect(screen.getByTestId('clerk-sign-up')).toHaveAttribute(
+      'data-quiet-dev-mode',
+      'true',
+    )
   })
 
   it('renders embedded Clerk sign-up when the auth hash requests registration', () => {
