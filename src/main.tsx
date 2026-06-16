@@ -5,6 +5,7 @@ import App from './App'
 import { ApiAuthBridge } from './components/ApiAuthBridge'
 import './index.css'
 import { shouldUseClerk } from './lib/clerkRuntime'
+import { clerkLocalization } from './lib/clerkLocalization'
 import { installClientErrorTracking } from './lib/clientErrorTracking'
 import { initWebVitals } from './lib/webVitals'
 
@@ -31,7 +32,7 @@ const root = createRoot(document.getElementById('root')!)
 root.render(
   <StrictMode>
     {USE_CLERK ? (
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY} localization={clerkLocalization}>
         <ApiAuthBridge />
         <App />
       </ClerkProvider>

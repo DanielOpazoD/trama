@@ -1,0 +1,166 @@
+.trama-login-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: calc(var(--space-6) + env(safe-area-inset-top, 0px)) 1.5rem
+    calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  background:
+    radial-gradient(ellipse 72% 46% at 50% 4%, var(--accent-gold-soft), transparent 70%),
+    linear-gradient(180deg, rgb(var(--paper-50)) 0%, rgb(var(--paper-100)) 100%);
+}
+
+.trama-login-shell::before {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  z-index: -2;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 0 42%,
+      rgb(var(--ink-700) / 0.017) 49%,
+      transparent 56%
+    ),
+    radial-gradient(circle at 22% 22%, rgb(var(--ink-700) / 0.034), transparent 24%),
+    radial-gradient(circle at 82% 72%, var(--accent-gold-soft), transparent 28%);
+  filter: blur(18px);
+}
+
+.trama-login-thread-field {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.78;
+}
+
+.trama-login-content {
+  width: min(100%, 25rem);
+  animation: trama-login-enter 640ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.trama-login-brand {
+  position: relative;
+  margin-bottom: var(--space-5);
+  text-align: center;
+}
+
+.trama-login-brandTrace {
+  position: absolute;
+  left: 50%;
+  top: -1.85rem;
+  width: min(25rem, 92vw);
+  height: 8rem;
+  color: var(--accent-gold);
+  opacity: 0.22;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.trama-login-brandTrace path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: trama-login-trace 1500ms cubic-bezier(0.25, 1, 0.5, 1) 140ms both;
+}
+
+.trama-login-titleRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.trama-login-title {
+  font-size: clamp(3.65rem, 16vw, 4.95rem);
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+  text-shadow: 0 1px 0 rgb(var(--paper-50) / 0.7);
+}
+
+.trama-login-subtitle {
+  margin-top: var(--space-3);
+  color: rgb(var(--ink-400));
+}
+
+.trama-login-panel {
+  position: relative;
+  animation: trama-login-panel 720ms cubic-bezier(0.25, 1, 0.5, 1) 130ms both;
+}
+
+.trama-login-panel::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: 1.15rem;
+  background:
+    linear-gradient(135deg, rgb(var(--paper-50) / 0.72), rgb(var(--paper-50) / 0.44)),
+    radial-gradient(circle at 24% 0%, var(--accent-gold-soft), transparent 45%);
+  box-shadow:
+    0 18px 46px rgb(var(--ink-900) / 0.08),
+    0 1px 0 rgb(var(--paper-50) / 0.65) inset;
+  backdrop-filter: blur(18px);
+}
+
+.trama-login-demoAction {
+  margin-top: var(--space-4);
+}
+
+@keyframes trama-login-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes trama-login-panel {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes trama-login-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .trama-login-shell {
+    padding-inline: 1rem;
+  }
+
+  .trama-login-content {
+    width: min(100%, 22rem);
+  }
+
+  .trama-login-title {
+    font-size: clamp(3rem, 18vw, 4rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trama-login-content,
+  .trama-login-panel,
+  .trama-login-brandTrace path {
+    animation: none;
+  }
+}

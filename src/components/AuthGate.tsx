@@ -16,14 +16,17 @@ import { Show, SignIn } from '@clerk/react'
 import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
 import { shouldUseClerk } from '../lib/clerkRuntime'
 import { EyeIcon } from './Icons'
+import { LoginThreadField } from './LoginThreadField'
+import { TramaMascot } from './TramaMascot'
+import './AuthGate.css'
 
 const clerkAppearance = {
   variables: {
     colorPrimary: 'var(--accent-primary)',
     colorText: 'rgb(var(--ink-700))',
     colorTextSecondary: 'rgb(var(--ink-300))',
-    colorBackground: 'rgb(var(--paper-50))',
-    colorInputBackground: 'rgb(var(--paper-50))',
+    colorBackground: 'rgb(var(--paper-50) / 0.72)',
+    colorInputBackground: 'rgb(var(--paper-50) / 0.72)',
     colorInputText: 'rgb(var(--ink-700))',
     borderRadius: '0.625rem',
     fontFamily: 'inherit',
@@ -31,13 +34,17 @@ const clerkAppearance = {
   elements: {
     rootBox: { width: '100%' },
     card: {
-      boxShadow: 'var(--card-shadow)',
-      border: '1px solid rgb(var(--ink-100))',
-      backgroundColor: 'rgb(var(--paper-50))',
+      boxShadow: 'none',
+      border: '1px solid rgb(var(--ink-100) / 0.78)',
+      backgroundColor: 'rgb(var(--paper-50) / 0.72)',
+      backdropFilter: 'blur(18px)',
     },
     header: { display: 'none' },
-    socialButtonsBlockButton: { borderColor: 'rgb(var(--ink-100))' },
-    dividerLine: { backgroundColor: 'rgb(var(--ink-100))' },
+    socialButtonsBlockButton: {
+      borderColor: 'rgb(var(--ink-100) / 0.82)',
+      backgroundColor: 'rgb(var(--paper-50) / 0.44)',
+    },
+    dividerLine: { backgroundColor: 'rgb(var(--ink-100) / 0.72)' },
     footer: { background: 'transparent' },
   },
 }
@@ -95,24 +102,43 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     <Show
       when="signed-in"
       fallback={
-        <div
-          className="min-h-screen flex items-center justify-center px-6 py-12"
-          style={{
-            background:
-              'radial-gradient(ellipse 90% 55% at 50% -10%, var(--accent-gold-soft), transparent 70%), rgb(var(--paper-100))',
-          }}
-        >
-          <div className="w-full max-w-sm animate-fade-up">
-            <header className="text-center mb-9">
-              <h1 className="font-serif text-6xl text-ink-700 tracking-tight leading-none">
-                Trama
-              </h1>
-              <p className="mt-4 text-micro uppercase tracking-eyebrow text-ink-400">
-                tu catálogo personal
+        <div className="trama-login-shell">
+          <LoginThreadField />
+          <div className="trama-login-content">
+            <header className="trama-login-brand">
+              <svg
+                aria-hidden="true"
+                className="trama-login-brandTrace"
+                fill="none"
+                viewBox="0 0 420 130"
+              >
+                <path
+                  d="M18 75C72 22 112 111 164 64C214 20 246 104 303 58C340 28 370 39 402 23"
+                  pathLength="1"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.1"
+                />
+                <path
+                  d="M78 104C134 74 182 94 229 82C279 70 324 104 374 77"
+                  pathLength="1"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="0.8"
+                />
+              </svg>
+              <div className="trama-login-titleRow">
+                <h1 className="trama-login-title font-serif text-ink-700">Trama</h1>
+                <TramaMascot className="trama-mascot--wordmark" />
+              </div>
+              <p className="trama-login-subtitle text-micro uppercase tracking-eyebrow">
+                tu archivo vivo
               </p>
             </header>
-            <SignIn routing="hash" appearance={clerkAppearance} />
-            <div className="mt-6 flex justify-center">
+            <div className="trama-login-panel">
+              <SignIn routing="hash" appearance={clerkAppearance} />
+            </div>
+            <div className="trama-login-demoAction flex justify-center">
               <button
                 onClick={() => {
                   enterDemoMode()
