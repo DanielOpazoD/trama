@@ -58,6 +58,10 @@ import {
   appendImagesToRecorteEvent,
 } from './_lib/whatsapp/album.js'
 import { copyRecorteImageToStore, removeBlob } from './_lib/recorte-to-momento.js'
+import {
+  setAwaitingDescription,
+  consumeAwaitingDescription,
+} from './_lib/whatsapp/description.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
 import {
@@ -895,6 +899,18 @@ async function handleInboundMedia(
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
   }
 
+  // Si la foto quedó SIN pie, ofrecemos agregarle una descripción: el siguiente
+  // texto libre del número se aplicará a ESTA captura (estado conversacional).
+  // Solo cuando falta contexto (no preguntamos si ya vino un caption).
+  const wantsDescription =
+    saved > 0 &&
+    !!lastId &&
+    caption.trim() === '' &&
+    (lastKind === 'recorte' || lastKind === 'momento')
+  if (wantsDescription && lastId) {
+    await setAwaitingDescription(sql, phone, userId, lastKind, lastId)
+  }
+
   const DEST_BY_KIND: Record<string, string> = {
     momento: 'Momentos',
     recorte: 'Recortes',
@@ -934,6 +950,9 @@ async function handleInboundMedia(
       lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
     }
     lines.push(`🔗 Ábrelo en Trama: ${captureDeepLink(origin, lastKind)}`)
+    if (wantsDescription) {
+      lines.push('✍️ Respondé con una descripción y se la agrego.')
+    }
     // La afordancia de deshacer (botón o texto) la agrega el caller según haya
     // captura guardada (saved > 0) o no.
   }
@@ -1212,6 +1231,17 @@ export default withObservability(
 
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
+    // ¿Es la descripción que pedimos para la última foto sin pie? Un texto libre
+    // (sin prefijo) que llega poco después de una captura sin descripción se
+    // aplica a esa captura, en vez de clasificarse como una captura nueva.
+    if (parsed.kind === 'freeform' && media.length === 0) {
+      const desc = await consumeAwaitingDescription(sql, userId, phone, parsed.text)
+      if (desc) {
+        const link = captureDeepLink(new URL(req.url).origin, desc.kind)
+        return twimlResponse(`✍️ Descripción agregada.\n🔗 Ábrelo en Trama: ${link}`)
+      }
+    }
+
     if (media.length > 0) {
       const { message, saved, offerDestino } = await handleInboundMedia(
         req,

@@ -204,6 +204,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // consumeAwaitingDescription: sin descripción pendiente
     mockSqlResponses.push([]) // extraction_log (fire-and-forget)
     mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
     mockSqlResponses.push([]) // UPDATE last_capture (fire-and-forget)
@@ -250,6 +251,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMbtn' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // consumeAwaitingDescription: sin descripción pendiente
     mockSqlResponses.push([]) // extraction_log
     mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes
     mockSqlResponses.push([]) // recordLastCapture
@@ -314,6 +316,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMbtnfail' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // consumeAwaitingDescription: sin descripción pendiente
     mockSqlResponses.push([]) // extraction_log
     mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes
     mockSqlResponses.push([]) // recordLastCapture
@@ -927,6 +930,83 @@ describe('whatsapp-webhook', () => {
     expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
       true,
     )
+  })
+
+  it('foto sin pie → ofrece agregar una descripción (estado conversacional)', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMdesc1',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/z',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMdesc1' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
+    mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
+    mockSqlResponses.push([]) // recordLastCapture
+    mockSqlResponses.push([]) // setAwaitingDescription
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Respondé con una descripción')
+    // Marcó el estado conversacional para el próximo texto.
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /UPDATE whatsapp_links/i.test(c.template) &&
+          /awaiting_desc_kind/i.test(c.template),
+      ),
+    ).toBe(true)
+  })
+
+  it('texto libre tras una foto sin pie → se aplica como su descripción', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // consumeAwaitingDescription: SELECT awaiting
+    mockSqlResponses.push([{ id: 'r1' }]) // UPDATE recortes (aplica la descripción)
+    mockSqlResponses.push([]) // clearAwaitingDescription
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'una tarde de lluvia' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Descripción agregada')
+    // NO se clasificó como captura nueva (no INSERT de nota).
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO notes/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('foto con "nota:" → visión transcribe y guarda Nota', async () => {

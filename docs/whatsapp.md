@@ -109,6 +109,15 @@ crear otra (anexado reactivo, `_lib/whatsapp/album.ts`):
   suave («📸 +1 foto · tu momento ahora tiene 3»), y `recordLastCapture` extiende
   la ventana para la próxima foto del mismo álbum.
 
+**Pedir descripción (estado conversacional).** Cuando una foto queda SIN pie
+(recorte/momento), el bot ofrece agregar una descripción («✍️ Respondé con una
+descripción y se la agrego»). El siguiente **texto libre** (sin prefijo) del
+número, dentro de `AWAITING_DESC_WINDOW_SECONDS` (5 min), se aplica a ESA captura
+(recorte → su `text`; momento foto → `payload.caption`) en vez de clasificarse
+como captura nueva. El puntero vive en `whatsapp_links.awaiting_desc_*`: lo setea
+la captura sin pie, lo consume/limpia el texto siguiente, y vence por ventana
+(`_lib/whatsapp/description.ts`). Un prefijo (`nota:`…) o media NO lo consumen.
+
 **Visión (cita:/nota:/texto:/ocr:).** Estas rutas pasan la imagen por
 `askLLMForVision` (OpenAI/Gemini, mismos guards que `extract-from-image`:
 `checkMonthlyBudget` + `resolveAIInvocation('extract-image')`). El prompt y el
