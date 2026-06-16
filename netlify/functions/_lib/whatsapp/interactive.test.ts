@@ -3,6 +3,8 @@ import {
   readInteractiveConfig,
   pickCaptureContentSid,
   captureContentVariables,
+  cardContentVariables,
+  deepLinkSuffix,
 } from './interactive'
 
 describe('readInteractiveConfig', () => {
@@ -12,6 +14,7 @@ describe('readInteractiveConfig', () => {
       TWILIO_CONTENT_SID_CAPTURE_DESTINO: 'HXdest',
       TWILIO_CONTENT_SID_CAPTURE_FOTO: 'HXfoto',
       TWILIO_CONTENT_SID_CAPTURE_ACTIONS: 'HXacts',
+      TWILIO_CONTENT_SID_CAPTURE_CARD: 'HXcard',
       TWILIO_CONTENT_SID_MENU: 'HXmenu',
     }
     expect(readInteractiveConfig((k) => env[k])).toEqual({
@@ -19,6 +22,7 @@ describe('readInteractiveConfig', () => {
       destinoSid: 'HXdest',
       fotoSid: 'HXfoto',
       actionsSid: 'HXacts',
+      cardSid: 'HXcard',
       menuSid: 'HXmenu',
     })
   })
@@ -29,6 +33,7 @@ describe('readInteractiveConfig', () => {
       destinoSid: null,
       fotoSid: null,
       actionsSid: null,
+      cardSid: null,
       menuSid: null,
     })
   })
@@ -40,6 +45,7 @@ describe('pickCaptureContentSid', () => {
     destinoSid: 'HXdest',
     fotoSid: 'HXfoto',
     actionsSid: 'HXacts',
+    cardSid: 'HXcard',
     menuSid: 'HXmenu',
   }
 
@@ -87,6 +93,7 @@ describe('pickCaptureContentSid', () => {
           destinoSid: null,
           fotoSid: null,
           actionsSid: null,
+          cardSid: null,
           menuSid: null,
         },
         'foto',
@@ -100,5 +107,20 @@ describe('captureContentVariables', () => {
     expect(captureContentVariables('Hola\nlínea 2')).toBe(
       JSON.stringify({ '1': 'Hola\nlínea 2' }),
     )
+  })
+})
+
+describe('cardContentVariables / deepLinkSuffix', () => {
+  it('card: {{1}} cuerpo, {{2}} sufijo del deep link', () => {
+    expect(cardContentVariables('Guardado.', '/?world=notas')).toBe(
+      JSON.stringify({ '1': 'Guardado.', '2': '/?world=notas' }),
+    )
+  })
+
+  it('deepLinkSuffix devuelve path+query (sin dominio)', () => {
+    expect(deepLinkSuffix('https://tramadaod.netlify.app/?world=notas&x=1')).toBe(
+      '/?world=notas&x=1',
+    )
+    expect(deepLinkSuffix('no-es-url')).toBe('/')
   })
 })

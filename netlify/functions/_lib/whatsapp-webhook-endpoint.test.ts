@@ -338,6 +338,51 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('deshacer')
   })
 
+  it('captura explícita con plantilla Card → manda [Abrir en Trama] (deep link como botón)', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubEnv('TWILIO_CONTENT_SID_CAPTURE_CARD', 'HXcard')
+    const sendMock = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    vi.stubGlobal('fetch', sendMock)
+    const fields = {
+      MessageSid: 'SMcard',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: 'momento: hoy empecé algo nuevo',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMcard' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'm1' }]) // INSERT momentos
+    mockSqlResponses.push([]) // recordLastCapture
+    mockSqlResponses.push([]) // persistWhatsAppEvent
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const sendCall = sendMock.mock.calls.at(-1)!
+    const body = new URLSearchParams(sendCall[1].body)
+    expect(body.get('ContentSid')).toBe('HXcard')
+    // {{2}} = sufijo del deep link (lo que el botón URL anexa a su base).
+    const vars = JSON.parse(body.get('ContentVariables') ?? '{}')
+    expect(typeof vars['2']).toBe('string')
+    expect(vars['2'].startsWith('/')).toBe(true)
+  })
+
   it('deshacer → soft-deletea la última captura', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow

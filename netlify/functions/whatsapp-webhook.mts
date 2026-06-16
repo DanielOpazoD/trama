@@ -70,6 +70,8 @@ import {
   readInteractiveConfig,
   pickCaptureContentSid,
   captureContentVariables,
+  cardContentVariables,
+  deepLinkSuffix,
   type CaptureReplyVariant,
 } from './_lib/whatsapp/interactive.js'
 import { sendWhatsAppContent } from './_lib/whatsapp/send.js'
@@ -97,13 +99,18 @@ function readEnv(key: string): string | undefined {
   }
 }
 
+/** Línea de "abrir en Trama" a partir de una URL ya armada. */
+function openLinkText(url: string): string {
+  return `🔗 Ábrelo en Trama: ${url}`
+}
+
 /**
  * Línea de "abrir en Trama" de una confirmación. Centralizada porque se repite y
  * porque en el camino de botones (Card) este enlace se vuelve un botón [Abrir en
  * Trama] en vez de texto — un solo lugar para decidirlo.
  */
 function openInTramaLine(origin: string, kind: string): string {
-  return `🔗 Ábrelo en Trama: ${captureDeepLink(origin, kind)}`
+  return openLinkText(captureDeepLink(origin, kind))
 }
 
 /**
@@ -118,20 +125,44 @@ async function replyWithCapture(
   params: Record<string, string>,
   body: string,
   variant: CaptureReplyVariant,
+  opts: { openUrl?: string } = {},
 ): Promise<Response> {
-  const contentSid = pickCaptureContentSid(readInteractiveConfig(), variant)
+  const cfg = readInteractiveConfig()
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const from = params.To ?? params.to // número del bot (whatsapp:+…)
   const to = params.From ?? params.from // número del usuario
-  if (contentSid && accountSid && authToken && from && to) {
+  const hasCreds = !!(accountSid && authToken && from && to)
+
+  // Captura explícita (simple) con Card: el deep link va como botón [Abrir en
+  // Trama] (no como texto). El cuerpo {{1}} queda limpio; {{2}} = sufijo del link.
+  if (variant === 'simple' && cfg.cardSid && opts.openUrl && hasCreds) {
     const ok = await sendWhatsAppContent({
-      accountSid,
-      authToken,
-      from,
-      to,
+      accountSid: accountSid!,
+      authToken: authToken!,
+      from: from!,
+      to: to!,
+      contentSid: cfg.cardSid,
+      contentVariables: cardContentVariables(body, deepLinkSuffix(opts.openUrl)),
+    })
+    if (ok) {
+      logEvent({ event: 'whatsapp_interactive_sent', variant: 'card' })
+      return emptyTwimlResponse()
+    }
+  }
+
+  // Resto de plantillas (list/quick-reply): no tienen botón de URL, así que el
+  // link viaja como texto dentro del cuerpo.
+  const bodyWithLink = opts.openUrl ? `${body}\n${openLinkText(opts.openUrl)}` : body
+  const contentSid = pickCaptureContentSid(cfg, variant)
+  if (contentSid && hasCreds) {
+    const ok = await sendWhatsAppContent({
+      accountSid: accountSid!,
+      authToken: authToken!,
+      from: from!,
+      to: to!,
       contentSid,
-      contentVariables: captureContentVariables(body),
+      contentVariables: captureContentVariables(bodyWithLink),
     })
     if (ok) {
       logEvent({ event: 'whatsapp_interactive_sent', variant })
@@ -144,7 +175,7 @@ async function replyWithCapture(
       : variant === 'ambiguous'
         ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
         : '↩️ ¿No era así? Responde «deshacer».'
-  return twimlResponse(`${body}\n${fix}`)
+  return twimlResponse(`${bodyWithLink}\n${fix}`)
 }
 
 /**
@@ -694,6 +725,7 @@ async function handleInboundMedia(
   saved: number
   offerDestino: boolean
   offerDescription: boolean
+  openUrl?: string
 }> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
@@ -1024,12 +1056,11 @@ async function handleInboundMedia(
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto; guardé la imagen igual.)')
     }
-    lines.push(openInTramaLine(origin, lastKind))
     if (wantsDescription) {
       lines.push('✍️ Respondé con una descripción y se la agrego.')
     }
-    // La afordancia de deshacer (botón o texto) la agrega el caller según haya
-    // captura guardada (saved > 0) o no.
+    // El deep link (texto o botón [Abrir en Trama]) y el deshacer los agrega el
+    // caller (replyWithCapture) según haya plantillas/captura.
   }
   if (skipped.has('video')) {
     lines.push('🎬 El video todavía no lo proceso, pero muy pronto.')
@@ -1076,6 +1107,7 @@ async function handleInboundMedia(
     saved,
     offerDestino,
     offerDescription: wantsDescription,
+    openUrl: saved > 0 && lastId ? captureDeepLink(origin, lastKind) : undefined,
   }
 }
 
@@ -1342,26 +1374,28 @@ export default withObservability(
     }
 
     if (media.length > 0) {
-      const { message, saved, offerDestino, offerDescription } = await handleInboundMedia(
-        req,
-        requestId,
-        sql,
-        userId,
-        phone,
-        params,
-        media,
-        new URL(req.url).origin,
-      )
+      const { message, saved, offerDestino, offerDescription, openUrl } =
+        await handleInboundMedia(
+          req,
+          requestId,
+          sql,
+          userId,
+          phone,
+          params,
+          media,
+          new URL(req.url).origin,
+        )
       // Botones según el caso: foto sin pie → [Descripción · Momento · Nota];
       // recorte con pie → [Deshacer · Momento · Nota]; resto → [Deshacer]. Si no
-      // hay plantillas configuradas, cae a texto con la misma afordancia.
+      // hay plantillas configuradas, cae a texto con la misma afordancia. El deep
+      // link va como botón [Abrir en Trama] (Card) en el caso 'simple', o texto.
       const variant: CaptureReplyVariant = offerDescription
         ? 'foto'
         : offerDestino
           ? 'ambiguous'
           : 'simple'
       return saved > 0
-        ? replyWithCapture(params, message, variant)
+        ? replyWithCapture(params, message, variant, { openUrl })
         : twimlResponse(message)
     }
 
@@ -1393,15 +1427,13 @@ export default withObservability(
         ok: true,
       })
       if (!id) return twimlResponse(message)
-      // Reply accionable: confirmación + deep link + botón/atajo para corregir.
-      // Cuando lo clasificó la IA (texto libre = ambiguo), ofrecemos elegir el
-      // destino (Momento/Nota) además de Deshacer.
+      // Reply accionable: confirmación + deep link (botón [Abrir en Trama] en el
+      // Card de capturas explícitas; texto si no) + corregir. Texto libre = la IA
+      // clasificó (ambiguo): además se ofrece elegir destino.
       const link = captureDeepLink(new URL(req.url).origin, intent.kind)
-      return replyWithCapture(
-        params,
-        `${message}\n🔗 Ábrelo en Trama: ${link}`,
-        viaLLM ? 'ambiguous' : 'simple',
-      )
+      return replyWithCapture(params, message, viaLLM ? 'ambiguous' : 'simple', {
+        openUrl: link,
+      })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       logEvent({ event: 'whatsapp_capture_failed', kind: intent.kind, message: detail })

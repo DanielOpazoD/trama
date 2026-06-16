@@ -29,6 +29,10 @@ export type InteractiveConfig = {
    *  Momento · Nota (más prolijo que 3 botones; los títulos vuelven como
    *  comandos). Preferido sobre `fotoSid` cuando está. */
   actionsSid: string | null
+  /** Card para capturas explícitas (nota:/momento:/…): cuerpo `{{1}}` + botón
+   *  URL **[Abrir en Trama]** (`{{2}}` = sufijo del deep link) + [Deshacer]. El
+   *  link deja de ser texto y pasa a ser un botón. */
+  cardSid: string | null
   /** Menú de ayuda interactivo (list picker con acciones frecuentes). */
   menuSid: string | null
 }
@@ -51,6 +55,7 @@ export function readInteractiveConfig(
     destinoSid: read('TWILIO_CONTENT_SID_CAPTURE_DESTINO') || null,
     fotoSid: read('TWILIO_CONTENT_SID_CAPTURE_FOTO') || null,
     actionsSid: read('TWILIO_CONTENT_SID_CAPTURE_ACTIONS') || null,
+    cardSid: read('TWILIO_CONTENT_SID_CAPTURE_CARD') || null,
     menuSid: read('TWILIO_CONTENT_SID_MENU') || null,
   }
 }
@@ -81,4 +86,27 @@ export function pickCaptureContentSid(
 /** El cuerpo de la plantilla es `{{1}}`; le pasamos la confirmación como var 1. */
 export function captureContentVariables(body: string): string {
   return JSON.stringify({ '1': body })
+}
+
+/**
+ * Variables del Card: `{{1}}` = confirmación, `{{2}}` = sufijo del deep link que
+ * el botón URL [Abrir en Trama] anexa a su base fija (el dominio de Trama, en la
+ * plantilla). Pasamos solo el sufijo (path+query) para no acoplar el dominio.
+ */
+export function cardContentVariables(body: string, linkSuffix: string): string {
+  return JSON.stringify({ '1': body, '2': linkSuffix })
+}
+
+/**
+ * Sufijo (path + query) de un deep link para el botón URL del Card. La base
+ * (`https://<dominio>`) la fija la plantilla; acá va lo que se le anexa. Si la
+ * URL no parsea, devuelve '/' (el botón abre la home, nunca rompe).
+ */
+export function deepLinkSuffix(fullUrl: string): string {
+  try {
+    const u = new URL(fullUrl)
+    return `${u.pathname}${u.search}` || '/'
+  } catch {
+    return '/'
+  }
 }
