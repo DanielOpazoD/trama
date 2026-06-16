@@ -110,7 +110,7 @@ crear otra (anexado reactivo, `_lib/whatsapp/album.ts`):
   la ventana para la próxima foto del mismo álbum.
 
 **Pedir descripción (estado conversacional).** Cuando una foto queda SIN pie
-(recorte/momento), el bot ofrece agregar una descripción («✍️ Respondé con una
+(recorte/momento), el bot ofrece agregar una descripción («✍️ Responde con una
 descripción y se la agrego»). El siguiente **texto libre** (sin prefijo) del
 número, dentro de `AWAITING_DESC_WINDOW_SECONDS` (5 min), se aplica a ESA captura
 (recorte → su `text`; momento foto → `payload.caption`) en vez de clasificarse
@@ -151,7 +151,7 @@ download, routing) + `media-store.ts` (subida a Blobs) + `persist-media.ts`
 (inserts).
 
 **Límites (robustez):** solo se aceptan imágenes `image/jpeg|png|webp|gif`
-(otro formato → aviso "mandá JPG/PNG/WEBP/GIF"); el tope de tamaño es
+(otro formato → aviso "manda JPG/PNG/WEBP/GIF"); el tope de tamaño es
 `MAX_MEDIA_BYTES` = 16 MB, chequeado por `Content-Length` (corta sin transferir)
 y revalidado contra el buffer real. Pasarse → aviso "imagen muy pesada". No hay
 rate-limit por IP/número a propósito (regla de `AGENTS.md`: el cost-cap mensual
@@ -264,16 +264,18 @@ SID ya estaba, corta con TwiML vacío sin re-escribir. Es un ledger append-only
 
 ## Variables de entorno
 
-| Var                                  | Para qué                                                                                                                                                                    |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TWILIO_AUTH_TOKEN`                  | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                                              |
-| `TWILIO_ACCOUNT_SID`                 | Bajar la media entrante (fotos) de la URL privada de Twilio vía auth básica. Sin él, las imágenes no se procesan.                                                           |
-| `TWILIO_WEBHOOK_URL`                 | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                                            |
-| `VITE_WHATSAPP_NUMBER`               | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`.                           |
-| `TWILIO_CONTENT_SID_CAPTURE`         | Opcional. `ContentSid` de la plantilla con botón **[Deshacer]** (ver "Botones interactivos").                                                                               |
-| `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas.                                                                  |
-| `TWILIO_CONTENT_SID_CAPTURE_FOTO`    | Opcional. Plantilla con botones **[Descripción · Momento · Nota]** para fotos sin pie (el botón Descripción dispara el flujo de descripción). Cae a la de destino si falta. |
-| `TWILIO_CONTENT_SID_MENU`            | Opcional. `ContentSid` de un **list picker** de acciones frecuentes para «menú»/«ayuda». Cae al texto de ayuda si falta.                                                    |
+| Var                                  | Para qué                                                                                                                                                                                                                                                       |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TWILIO_AUTH_TOKEN`                  | Verificar la firma de los webhooks entrantes (consola Twilio).                                                                                                                                                                                                 |
+| `TWILIO_ACCOUNT_SID`                 | Bajar la media entrante (fotos) de la URL privada de Twilio vía auth básica. Sin él, las imágenes no se procesan.                                                                                                                                              |
+| `TWILIO_WEBHOOK_URL`                 | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                                                                                                                               |
+| `VITE_WHATSAPP_NUMBER`               | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`.                                                                                                              |
+| `TWILIO_CONTENT_SID_CAPTURE`         | Opcional. `ContentSid` de la plantilla con botón **[Deshacer]** (ver "Botones interactivos").                                                                                                                                                                  |
+| `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas (degradación si no está la lista «Acciones»).                                                                                                        |
+| `TWILIO_CONTENT_SID_CAPTURE_FOTO`    | Opcional. Plantilla con botones **[Descripción · Momento · Nota]** para fotos sin pie (degradación si no está la lista «Acciones»). Cae a la de destino si falta.                                                                                              |
+| `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` | Opcional (**recomendado**). **List Picker** «⚡ Acciones» (filas Deshacer · Momento · Nota · Tarea): **menú único** para fotos Y texto ambiguo. **Preferido** sobre las quick-replies. La descripción de una foto no va acá: se agrega respondiendo con texto. |
+| `TWILIO_CONTENT_SID_CAPTURE_CARD`    | Opcional. **Card** para capturas explícitas (`nota:`/`momento:`/…): cuerpo `{{1}}` + botón URL **[Abrir en Trama]** (base = dominio de Trama, sufijo `{{2}}`) + [Deshacer]. El deep link deja de ser texto. Cae a texto si falta.                              |
+| `TWILIO_CONTENT_SID_MENU`            | Opcional. `ContentSid` de un **list picker** de acciones frecuentes para «menú»/«ayuda». Cae al texto de ayuda si falta.                                                                                                                                       |
 
 ## Botones interactivos (opt-in)
 
@@ -292,14 +294,25 @@ Setup:
    - `TWILIO_CONTENT_SID_CAPTURE_DESTINO`: tres botones **`Deshacer`, `Momento`, `Nota`**.
    - `TWILIO_CONTENT_SID_CAPTURE_FOTO` (fotos sin pie): tres botones
      **`Descripción`, `Momento`, `Nota`**.
-   - `TWILIO_CONTENT_SID_MENU` (opcional): un **List Picker** «¿Qué querés hacer?»
+   - `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` (**recomendado**): un **List Picker** «⚡
+     Acciones», **menú único** para fotos Y texto ambiguo, con filas cuyos
+     **títulos** sean exactamente `Deshacer`, `Momento`, `Nota`, `Tarea` (la
+     descripción de cada fila es libre). El título vuelve como comando. La
+     descripción de una foto NO va en el menú: Trama la pide sola y se agrega
+     respondiendo con texto. Reemplaza a `_FOTO` y `_DESTINO` cuando está.
+   - `TWILIO_CONTENT_SID_CAPTURE_CARD` (opcional): una **Card** para capturas
+     explícitas, con cuerpo `{{1}}` y dos botones: un **URL** con título `Abrir en
+Trama` y URL `https://<tu-dominio>/{{2}}` (dinámica: base fija + variable de
+     sufijo), y un **Quick Reply** `Deshacer`. Trama pasa `{{2}}` = el path+query
+     del deep link; la base (dominio) la fijas tú en la plantilla.
+   - `TWILIO_CONTENT_SID_MENU` (opcional): un **List Picker** «¿Qué quieres hacer?»
      con filas cuyos títulos sean comandos que el parser entiende (p. ej.
      `Estado`, `Ayuda`, `Buscar`).
 2. Copiar el `ContentSid` (`HX…`) de cada una a su env var en Netlify, y **redeploy**.
 
 Por qué esos títulos: cuando el usuario toca un botón, Twilio reenvía el título
 como un mensaje entrante normal, así `Deshacer` cae en `deshacer` (undo),
-`Momento`/`Nota` en la **reclasificación**, y `Descripción` en el flujo de
+`Momento`/`Nota`/`Tarea` en la **reclasificación**, y `Descripción` en el flujo de
 **pedir descripción** de la última foto —sin agregar parsers nuevos—.
 
 **Reclasificación NO destructiva de fotos.** Cuando la última captura es un

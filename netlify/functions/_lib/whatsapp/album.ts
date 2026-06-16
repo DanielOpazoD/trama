@@ -1,4 +1,5 @@
 import { sqlTyped, type SqlClient } from '../db.js'
+import { copyRecorteImageToStore, removeBlob } from '../recorte-to-momento.js'
 
 /**
  * Álbum partido: WhatsApp/Twilio a veces parte un envío de varias fotos en
@@ -75,21 +76,32 @@ export async function appendImagesToMomento(
   return rows[0]?.total ?? null
 }
 
+/** ¿El error es una violación de UNIQUE (SQLSTATE 23505)? El driver Neon expone
+ *  el SQLSTATE de Postgres en `err.code`. */
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === '23505'
+  )
+}
+
 /**
- * Anexa imágenes a un recorte-evento existente. Si el recorte era de UNA sola
- * imagen (legacy: solo `image_key`, sin filas en `recorte_images`), primero lo
- * "promueve" a evento insertando su portada como posición 0, y luego agrega las
- * nuevas. Todo en un CTE para que las posiciones queden consistentes. Devuelve
- * el nuevo total de imágenes, o `null` si el recorte no existe.
+ * Una sola corrida del CTE de anexado a un recorte-evento. Si el recorte era de
+ * UNA sola imagen (legacy: solo `image_key`, sin filas en `recorte_images`),
+ * primero lo "promueve" a evento insertando su portada como posición 0, y luego
+ * agrega las nuevas. Todo en un CTE para que las posiciones queden consistentes.
+ * Devuelve el nuevo total, o `null` si el recorte no existe. Puede lanzar 23505
+ * si choca con un append concurrente del mismo álbum (lo resuelve el reintento).
  */
-export async function appendImagesToRecorteEvent(
+async function runRecorteAppend(
   sql: SqlClient,
   userId: string,
   recorteId: string,
-  images: Array<{ key: string; mime: string }>,
+  keys: string[],
+  mimes: string[],
 ): Promise<number | null> {
-  const keys = images.map((i) => i.key)
-  const mimes = images.map((i) => i.mime)
   const rows = await sqlTyped<{
     found: boolean
     existing_n: number
@@ -138,4 +150,93 @@ export async function appendImagesToRecorteEvent(
   if (!r?.found) return null
   const base = r.existing_n === 0 ? (r.had_cover ? 1 : 0) : r.existing_n
   return base + keys.length
+}
+
+/**
+ * Anexa imágenes a un recorte-evento, a prueba de concurrencia. Dos partes del
+ * MISMO álbum llegan casi simultáneas y pueden correr el anexado en paralelo:
+ * ambas leerían el mismo `MAX(position)` —o ambas intentarían la portada en
+ * position 0— y chocarían contra `UNIQUE(recorte_id, position)`. Ante esa
+ * colisión (23505) reintentamos: cada corrida nueva toma un snapshot fresco, ve
+ * las filas ya commiteadas y recomputa posiciones sin pisar. Si no converge en
+ * `MAX_ATTEMPTS`, propaga → el caller cae a un recorte aparte (degradación,
+ * nunca pérdida de la foto). Devuelve el nuevo total, o `null` si no existe.
+ */
+export async function appendImagesToRecorteEvent(
+  sql: SqlClient,
+  userId: string,
+  recorteId: string,
+  images: Array<{ key: string; mime: string }>,
+): Promise<number | null> {
+  const keys = images.map((i) => i.key)
+  const mimes = images.map((i) => i.mime)
+  const MAX_ATTEMPTS = 5
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await runRecorteAppend(sql, userId, recorteId, keys, mimes)
+    } catch (err) {
+      if (attempt < MAX_ATTEMPTS && isUniqueViolation(err)) continue
+      throw err
+    }
+  }
+}
+
+/**
+ * Operaciones de blobs que necesita {@link joinRecortePhotosToMomento},
+ * inyectables para test. Por defecto, las reales sobre Netlify Blobs.
+ */
+export type AlbumBlobOps = {
+  copy: (
+    destStore: string,
+    key: string,
+    userId: string,
+  ) => Promise<{ storageKey: string } | null>
+  remove: (store: string, key: string) => Promise<void>
+}
+
+const realBlobOps: AlbumBlobOps = { copy: copyRecorteImageToStore, remove: removeBlob }
+
+/**
+ * Une fotos sueltas —que venían como recorte (en `recortes-media`)— a un Momento
+ * foto reciente. La danza cross-store es DELICADA y antes perdía datos, así que
+ * el orden es estricto: **copy → append → remove**.
+ *
+ *  1. Copia TODOS los blobs a `momentos-media` (sin borrar nada todavía).
+ *  2. Anexa las copias al momento.
+ *  3a. Si el anexado CONFIRMA, recién entonces borra los originales en
+ *      `recortes-media` (ya están a salvo en su nuevo store).
+ *  3b. Si el anexado FALLA (el momento se borró entre medio → `null`), revierte
+ *      las copias huérfanas en `momentos-media` y NO toca los originales: el
+ *      caller crea un recorte de respaldo con esos blobs intactos.
+ *
+ * Nunca borra antes de confirmar: así no quedan recortes apuntando a blobs
+ * inexistentes (404) ni basura acumulada en `momentos-media`. Devuelve el nuevo
+ * total de fotos del momento, o `null` si no se anexó nada.
+ */
+export async function joinRecortePhotosToMomento(
+  sql: SqlClient,
+  userId: string,
+  momentoId: string,
+  recorteKeys: Array<{ key: string }>,
+  ops: AlbumBlobOps = realBlobOps,
+): Promise<number | null> {
+  const copied: Array<{ storageKey: string; originalKey: string }> = []
+  for (const rk of recorteKeys) {
+    const c = await ops.copy('momentos-media', rk.key, userId)
+    if (c) copied.push({ storageKey: c.storageKey, originalKey: rk.key })
+  }
+  if (copied.length === 0) return null
+
+  const total = await appendImagesToMomento(
+    sql,
+    userId,
+    momentoId,
+    copied.map((c) => c.storageKey),
+  )
+  if (total !== null) {
+    for (const c of copied) await ops.remove('recortes-media', c.originalKey)
+  } else {
+    for (const c of copied) await ops.remove('momentos-media', c.storageKey)
+  }
+  return total
 }

@@ -158,6 +158,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([{ message_sid: 'SMaudio' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
     mockSqlResponses.push([]) // INSERT extraction_log (registro de costo)
+    mockSqlResponses.push([]) // persistWhatsAppEvent: transcription ok (observabilidad)
     mockSqlResponses.push([{ id: 'n9' }]) // INSERT notes RETURNING id
     mockSqlResponses.push([]) // INSERT notas_attachments (audio re-escuchable)
     mockSqlResponses.push([]) // recordLastCapture
@@ -338,6 +339,51 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('deshacer')
   })
 
+  it('captura explícita con plantilla Card → manda [Abrir en Trama] (deep link como botón)', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubEnv('TWILIO_CONTENT_SID_CAPTURE_CARD', 'HXcard')
+    const sendMock = vi.fn().mockResolvedValue({ ok: true, status: 201 })
+    vi.stubGlobal('fetch', sendMock)
+    const fields = {
+      MessageSid: 'SMcard',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: 'momento: hoy empecé algo nuevo',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMcard' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'm1' }]) // INSERT momentos
+    mockSqlResponses.push([]) // recordLastCapture
+    mockSqlResponses.push([]) // persistWhatsAppEvent
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const sendCall = sendMock.mock.calls.at(-1)!
+    const body = new URLSearchParams(sendCall[1].body)
+    expect(body.get('ContentSid')).toBe('HXcard')
+    // {{2}} = sufijo del deep link (lo que el botón URL anexa a su base).
+    const vars = JSON.parse(body.get('ContentVariables') ?? '{}')
+    expect(typeof vars['2']).toBe('string')
+    expect(vars['2'].startsWith('/')).toBe(true)
+  })
+
   it('deshacer → soft-deletea la última captura', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
@@ -366,6 +412,23 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     expect(await res.text()).toContain('nada reciente')
+  })
+
+  it('comando que falla (hipo de DB) → 200 con disculpa, nunca deja al usuario sin respuesta', async () => {
+    // El MessageSid ya se reclamó: si el handler lanzara y propagáramos, el 500
+    // haría que Twilio reintente y el claim deduplicaría el reintento → silencio.
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.pushError(new Error('db hipo')) // undoLastCapture: la query falla
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'deshacer' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200) // no 500
+    expect(res.headers.get('content-type')).toContain('text/xml')
+    expect(await res.text()).toContain('No pude completar esa acción')
   })
 
   it('vincular con etiqueta de dispositivo → bienvenida con la etiqueta', async () => {
@@ -422,6 +485,51 @@ describe('whatsapp-webhook', () => {
       mockContext(),
     )
     expect(await res.text()).toContain('Reclasificado')
+  })
+
+  it('palabra suelta "tarea" → reclasifica la última nota a Tarea', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // readLastPointer
+    mockSqlResponses.push([{ t: 'comprar pan' }]) // readCaptureText (content)
+    mockSqlResponses.push([{ id: 't1' }]) // persistTask INSERT INTO tasks RETURNING
+    mockSqlResponses.push([{ id: 'n1' }]) // softDelete nota RETURNING
+    mockSqlResponses.push([]) // recordLastCapture UPDATE
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'tarea' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('Reclasificado')
+    // Creó la tarea y borró la nota original (reclasificación, no duplicado).
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template)),
+    ).toBe(true)
+    expect(
+      mockSqlResponses.calls.some(
+        (c) => /UPDATE notes/i.test(c.template) && /deleted_at/i.test(c.template),
+      ),
+    ).toBe(true)
+  })
+
+  it('"tarea" tras una FOTO no la convierte (evita perder la imagen)', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer → foto
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'tarea' }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('no se vuelve tarea')
+    // No insertó ninguna tarea (la foto sigue intacta como Recorte).
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO tasks/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('palabra "momento" sobre un recorte con imágenes → reclasifica SIN perder fotos', async () => {
@@ -811,6 +919,69 @@ describe('whatsapp-webhook', () => {
     expect(body.get('ContentVariables')).toContain('Recortes')
   })
 
+  it('foto sin pie + List Picker configurado → manda la lista «Acciones» (ContentSid actions)', async () => {
+    // Prueba de cableado de extremo a extremo del UX-2: con la plantilla List
+    // Picker encendida (env var), una foto sin pie hace que Trama MANDE la lista
+    // «⚡ Acciones» por la Content API (con la confirmación como {{1}}) en vez de
+    // los 3 botones o el texto. El List Picker se renderiza en WhatsApp; acá
+    // verificamos lo único verificable en local: que se elige y se manda bien.
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubEnv('TWILIO_CONTENT_SID_CAPTURE_ACTIONS', 'HXacts')
+    // El mismo mock baja la media (arrayBuffer) y acepta el envío del Content API.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      headers: { get: () => 'image/jpeg' },
+      arrayBuffer: async () => new ArrayBuffer(8),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const fields = {
+      MessageSid: 'SMlist1',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/z',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMlist1' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
+    mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
+    mockSqlResponses.push([]) // recordLastCapture
+    mockSqlResponses.push([]) // setAwaitingDescription
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    // Respondió TwiML vacío: la confirmación real va por el Content API, no texto.
+    const xml = await res.text()
+    expect(xml).not.toContain('Responde con una descripción')
+    // El último fetch es el envío del List Picker «Acciones».
+    const sendCall = fetchMock.mock.calls.at(-1)!
+    expect(String(sendCall[0])).toContain('/Messages.json') // Twilio Content API
+    const body = new URLSearchParams(sendCall[1].body)
+    expect(body.get('ContentSid')).toBe('HXacts') // ← la lista, NO los 3 botones
+    // {{1}} de la plantilla = la confirmación de la captura.
+    expect(body.get('ContentVariables')).toContain('Recortes')
+  })
+
   it('álbum partido: foto sin caption tras un recorte reciente → se ANEXA al evento', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
@@ -977,7 +1148,7 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     const xml = await res.text()
-    expect(xml).toContain('Respondé con una descripción')
+    expect(xml).toContain('Responde con una descripción')
     // Marcó el estado conversacional para el próximo texto.
     expect(
       mockSqlResponses.calls.some(
@@ -993,9 +1164,8 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // consumeAwaitingDescription: SELECT awaiting
-    mockSqlResponses.push([{ id: 'r1' }]) // UPDATE recortes (aplica la descripción)
-    mockSqlResponses.push([]) // clearAwaitingDescription
+    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // consumeAwaitingDescription: claim atómico (UPDATE...RETURNING)
+    mockSqlResponses.push([{ id: 'r1' }]) // applyDescription: UPDATE recortes
     const res = await webhookHandler(
       twilioRequest({ From: 'whatsapp:+56912345678', Body: 'una tarde de lluvia' }),
       mockContext(),
@@ -1022,7 +1192,7 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     const xml = await res.text()
-    expect(xml).toContain('mandame la descripción')
+    expect(xml).toContain('mándame la descripción')
     // Dejó el estado conversacional listo para el próximo texto.
     expect(
       mockSqlResponses.calls.some(
@@ -1104,6 +1274,8 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMocr' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // extractPhotoIntent: extraction_log (costo de visión al cost-cap)
+    mockSqlResponses.push([]) // persistWhatsAppEvent: vision ok (observabilidad)
     mockSqlResponses.push([{ id: 'n1' }]) // INSERT notes RETURNING id
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -1119,6 +1291,21 @@ describe('whatsapp-webhook', () => {
     )
     expect(res.status).toBe(200)
     expect(askLLMForVision).toHaveBeenCalledOnce()
+    // El costo de la visión se registra en extraction_log (cuenta al cost-cap).
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO extraction_log/i.test(c.template) &&
+          c.values.some((v) => typeof v === 'string' && v.includes('"vision":true')),
+      ),
+    ).toBe(true)
+    // Y su evento de observabilidad (visión ok) cuenta a la tasa de fallas honesta.
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO whatsapp_events/i.test(c.template) && c.values.includes('vision'),
+      ),
+    ).toBe(true)
     const xml = await res.text()
     expect(xml).toContain('Notas')
     expect(xml).toContain('world=notas')
@@ -1134,7 +1321,7 @@ describe('whatsapp-webhook', () => {
       usedRag: true,
     })
     askLLMForText.mockResolvedValue({
-      content: 'Tenés a Borges guardado como escritor.',
+      content: 'Tienes a Borges guardado como escritor.',
       usage: {
         provider: 'deepseek',
         model: 'x',
@@ -1156,6 +1343,14 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(200)
     expect(buildRagContext).toHaveBeenCalledOnce()
     expect(askLLMForText).toHaveBeenCalledOnce()
+    // Observabilidad honesta: el recall por IA registra su evento (cuenta a la
+    // tasa de fallas del panel, no solo las capturas).
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO whatsapp_events/i.test(c.template) && c.values.includes('recall'),
+      ),
+    ).toBe(true)
     const xml = await res.text()
     expect(xml).toContain('Borges')
     expect(xml).toContain('view=entidades')

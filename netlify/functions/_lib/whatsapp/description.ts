@@ -32,23 +32,6 @@ export async function setAwaitingDescription(
   }
 }
 
-async function clearAwaitingDescription(
-  sql: SqlClient,
-  phone: string,
-  userId: string,
-): Promise<void> {
-  try {
-    await sql`
-      UPDATE whatsapp_links
-      SET awaiting_desc_kind = NULL, awaiting_desc_id = NULL,
-          awaiting_desc_at = NULL, updated_at = NOW()
-      WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
-    `
-  } catch {
-    /* best-effort */
-  }
-}
-
 /** Aplica `text` como descripción de la captura. Devuelve si afectó una fila
  *  (false si la captura ya no existe). Recorte → su `text`; Momento foto →
  *  `payload.caption`. */
@@ -93,17 +76,31 @@ export async function consumeAwaitingDescription(
   phone: string,
   text: string,
 ): Promise<{ kind: string } | null> {
+  // Reclama-y-limpia el puntero en UN solo statement atómico. Dos textos del
+  // mismo número que llegan casi a la vez pasan ambos el claim por MessageSid
+  // (son mensajes distintos) y llegarían acá: sin atomicidad, los dos leerían el
+  // mismo puntero y el segundo se "comería" como descripción —perdiéndose como
+  // captura nueva—. Con `FOR UPDATE` solo uno gana el puntero; el otro lo ve
+  // vacío y su texto sigue su curso normal. La CTE captura los valores VIEJOS
+  // antes de limpiarlos, así el RETURNING devuelve a quién aplicar la descripción.
   const rows = await sqlTyped<{ kind: string | null; id: string | null }>(sql`
-    SELECT awaiting_desc_kind AS kind, awaiting_desc_id AS id
-    FROM whatsapp_links
-    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
-      AND awaiting_desc_id IS NOT NULL
-      AND awaiting_desc_at > NOW() - (${AWAITING_DESC_WINDOW_SECONDS} || ' seconds')::interval
-    LIMIT 1
+    WITH claimed AS (
+      SELECT awaiting_desc_kind AS kind, awaiting_desc_id AS id
+      FROM whatsapp_links
+      WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+        AND awaiting_desc_id IS NOT NULL
+        AND awaiting_desc_at > NOW() - (${AWAITING_DESC_WINDOW_SECONDS} || ' seconds')::interval
+      FOR UPDATE
+    )
+    UPDATE whatsapp_links w
+    SET awaiting_desc_kind = NULL, awaiting_desc_id = NULL,
+        awaiting_desc_at = NULL, updated_at = NOW()
+    FROM claimed
+    WHERE w.phone_e164 = ${phone} AND w.user_id = ${userId} AND w.deleted_at IS NULL
+    RETURNING claimed.kind AS kind, claimed.id AS id
   `)
   const r = rows[0]
   if (!r?.kind || !r.id) return null
   const applied = await applyDescription(sql, userId, r.kind, r.id, text)
-  await clearAwaitingDescription(sql, phone, userId)
   return applied ? { kind: r.kind } : null
 }

@@ -25,8 +25,9 @@ import { vi, type Mock } from 'vitest'
 
 // State del mock — accesible desde cualquier test que importe estos helpers.
 export const mockSqlState = {
-  /** Cola FIFO de respuestas que el sql mock va devolviendo. */
-  responses: [] as unknown[][],
+  /** Cola FIFO de respuestas que el sql mock va devolviendo. Cada entrada son
+   *  las filas a devolver, o un `Error` para simular que esa query falla. */
+  responses: [] as unknown[],
   /** Historial de queries ejecutadas (template + valores interpolados). */
   calls: [] as Array<{ template: string; values: unknown[] }>,
 }
@@ -42,6 +43,11 @@ export const mockSqlResponses = {
   },
   push(...rows: unknown[][]) {
     mockSqlState.responses.push(...rows)
+  },
+  /** Encola un fallo: la próxima query del mock rechaza con este error (para
+   *  ejercitar caminos de error/resiliencia, p. ej. un handler que lanza). */
+  pushError(error: unknown) {
+    mockSqlState.responses.push(error instanceof Error ? error : new Error(String(error)))
   },
   get calls() {
     return mockSqlState.calls
@@ -61,7 +67,11 @@ export const mockSqlResponses = {
  */
 export function setupMockSql() {
   function nextResponse(): unknown[] {
-    return mockSqlState.responses.shift() ?? []
+    const next = mockSqlState.responses.shift()
+    // Un Error encolado (via pushError) hace que esa query falle, igual que un
+    // hipo de DB real: el mock rechaza en vez de resolver.
+    if (next instanceof Error) throw next
+    return (next as unknown[] | undefined) ?? []
   }
 
   function sql(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]> {
@@ -69,7 +79,11 @@ export function setupMockSql() {
       template: strings.join('?'),
       values,
     })
-    return Promise.resolve(nextResponse())
+    try {
+      return Promise.resolve(nextResponse())
+    } catch (err) {
+      return Promise.reject(err)
+    }
   }
   sql.transaction = async (fn: (tx: typeof sql) => unknown[]) => {
     const tx = ((strings: TemplateStringsArray, ...values: unknown[]) => {

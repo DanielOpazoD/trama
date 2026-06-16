@@ -87,7 +87,7 @@ describe('buildRecallPrompt', () => {
 describe('formatRecallAnswer', () => {
   it('antepone 🔎 y agrega deep links según el contexto', () => {
     const out = formatRecallAnswer(
-      'Tenés a Borges y una cita suya.',
+      'Tienes a Borges y una cita suya.',
       ctx({
         entities: [
           { id: 'e1', name: 'Borges', type: 'escritor', year: null, description: null },
@@ -96,7 +96,7 @@ describe('formatRecallAnswer', () => {
       }),
       ORIGIN,
     )
-    expect(out).toContain('🔎 Tenés a Borges')
+    expect(out).toContain('🔎 Tienes a Borges')
     expect(out).toContain('view=entidades')
     expect(out).toContain('view=citas')
   })

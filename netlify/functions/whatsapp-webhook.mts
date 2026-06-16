@@ -56,8 +56,8 @@ import {
   readRecentMediaCapture,
   appendImagesToMomento,
   appendImagesToRecorteEvent,
+  joinRecortePhotosToMomento,
 } from './_lib/whatsapp/album.js'
-import { copyRecorteImageToStore, removeBlob } from './_lib/recorte-to-momento.js'
 import {
   setAwaitingDescription,
   consumeAwaitingDescription,
@@ -70,6 +70,8 @@ import {
   readInteractiveConfig,
   pickCaptureContentSid,
   captureContentVariables,
+  cardContentVariables,
+  deepLinkSuffix,
   type CaptureReplyVariant,
 } from './_lib/whatsapp/interactive.js'
 import { sendWhatsAppContent } from './_lib/whatsapp/send.js'
@@ -97,6 +99,20 @@ function readEnv(key: string): string | undefined {
   }
 }
 
+/** Línea de "abrir en Trama" a partir de una URL ya armada. */
+function openLinkText(url: string): string {
+  return `🔗 Ábrelo en Trama: ${url}`
+}
+
+/**
+ * Línea de "abrir en Trama" de una confirmación. Centralizada porque se repite y
+ * porque en el camino de botones (Card) este enlace se vuelve un botón [Abrir en
+ * Trama] en vez de texto — un solo lugar para decidirlo.
+ */
+function openInTramaLine(origin: string, kind: string): string {
+  return openLinkText(captureDeepLink(origin, kind))
+}
+
 /**
  * Responde la confirmación de una captura. Si hay plantillas de Content API
  * configuradas (env vars) y credenciales de Twilio, manda un mensaje SALIENTE
@@ -109,20 +125,44 @@ async function replyWithCapture(
   params: Record<string, string>,
   body: string,
   variant: CaptureReplyVariant,
+  opts: { openUrl?: string } = {},
 ): Promise<Response> {
-  const contentSid = pickCaptureContentSid(readInteractiveConfig(), variant)
+  const cfg = readInteractiveConfig()
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const from = params.To ?? params.to // número del bot (whatsapp:+…)
   const to = params.From ?? params.from // número del usuario
-  if (contentSid && accountSid && authToken && from && to) {
+  const hasCreds = !!(accountSid && authToken && from && to)
+
+  // Captura explícita (simple) con Card: el deep link va como botón [Abrir en
+  // Trama] (no como texto). El cuerpo {{1}} queda limpio; {{2}} = sufijo del link.
+  if (variant === 'simple' && cfg.cardSid && opts.openUrl && hasCreds) {
     const ok = await sendWhatsAppContent({
-      accountSid,
-      authToken,
-      from,
-      to,
+      accountSid: accountSid!,
+      authToken: authToken!,
+      from: from!,
+      to: to!,
+      contentSid: cfg.cardSid,
+      contentVariables: cardContentVariables(body, deepLinkSuffix(opts.openUrl)),
+    })
+    if (ok) {
+      logEvent({ event: 'whatsapp_interactive_sent', variant: 'card' })
+      return emptyTwimlResponse()
+    }
+  }
+
+  // Resto de plantillas (list/quick-reply): no tienen botón de URL, así que el
+  // link viaja como texto dentro del cuerpo.
+  const bodyWithLink = opts.openUrl ? `${body}\n${openLinkText(opts.openUrl)}` : body
+  const contentSid = pickCaptureContentSid(cfg, variant)
+  if (contentSid && hasCreds) {
+    const ok = await sendWhatsAppContent({
+      accountSid: accountSid!,
+      authToken: authToken!,
+      from: from!,
+      to: to!,
       contentSid,
-      contentVariables: captureContentVariables(body),
+      contentVariables: captureContentVariables(bodyWithLink),
     })
     if (ok) {
       logEvent({ event: 'whatsapp_interactive_sent', variant })
@@ -131,11 +171,11 @@ async function replyWithCapture(
   }
   const fix =
     variant === 'foto'
-      ? '↩️ Respondé con una descripción, o «deshacer» · «momento» · «nota».'
+      ? '↩️ Responde con una descripción, o «deshacer» · «momento» · «nota».'
       : variant === 'ambiguous'
-        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · entidad.'
+        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · tarea · entidad.'
         : '↩️ ¿No era así? Responde «deshacer».'
-  return twimlResponse(`${body}\n${fix}`)
+  return twimlResponse(`${bodyWithLink}\n${fix}`)
 }
 
 /**
@@ -153,15 +193,15 @@ async function describeLast(
 ): Promise<string> {
   const last = await readLastPointer(sql, userId, phone)
   if (!last || (last.kind !== 'recorte' && last.kind !== 'momento')) {
-    return 'No hay ninguna foto reciente para describir. Mandá una foto y después su descripción.'
+    return 'No hay ninguna foto reciente para describir. Manda una foto y después su descripción.'
   }
   if (text.trim()) {
     const ok = await applyDescription(sql, userId, last.kind, last.id, text)
     if (!ok) return 'No pude agregar la descripción (¿la borraste desde la app?).'
-    return `✍️ Descripción agregada.\n🔗 Ábrelo en Trama: ${captureDeepLink(origin, last.kind)}`
+    return `✍️ Descripción agregada.\n${openInTramaLine(origin, last.kind)}`
   }
   await setAwaitingDescription(sql, phone, userId, last.kind, last.id)
-  return '✍️ Perfecto, mandame la descripción y se la agrego.'
+  return '✍️ Perfecto, mándame la descripción y se la agrego.'
 }
 
 /**
@@ -183,7 +223,7 @@ async function replyWithMenu(params: Record<string, string>): Promise<Response> 
       from,
       to,
       contentSid: menuSid,
-      contentVariables: captureContentVariables('¿Qué querés hacer?'),
+      contentVariables: captureContentVariables('¿Qué quieres hacer?'),
     })
     if (ok) {
       logEvent({ event: 'whatsapp_interactive_sent', variant: 'menu' })
@@ -539,7 +579,7 @@ async function recategorizeLast(
   sql: ReturnType<typeof getSql>,
   userId: string,
   phone: string,
-  toKind: 'note' | 'momento' | 'entity',
+  toKind: 'note' | 'momento' | 'entity' | 'task',
   origin: string,
 ): Promise<string> {
   const last = await readLastPointer(sql, userId, phone)
@@ -578,6 +618,13 @@ async function recategorizeLast(
     // de texto de abajo (ahí sí reusar el texto es correcto).
   }
 
+  // Una tarea es texto/acción: no lleva imagen. Si la última captura es un
+  // recorte (foto), no la convertimos en tarea —perdería la imagen—; el menú
+  // «Tarea» vive en las capturas de texto, no en las fotos.
+  if (last.kind === 'recorte' && toKind === 'task') {
+    return 'Una foto no se vuelve tarea (perdería la imagen). Déjala en Recortes, pásala a Nota o Momento, o manda la tarea aparte con «tarea: …».'
+  }
+
   const text = await readCaptureText(sql, last.kind, last.id, userId)
   if (!text) {
     return 'No pude leer esa captura para reclasificarla. Puedes recrearla con el prefijo correcto.'
@@ -587,7 +634,9 @@ async function recategorizeLast(
       ? { kind: 'note', content: text }
       : toKind === 'momento'
         ? { kind: 'momento', bodyText: text }
-        : { kind: 'entity', name: text, entityType: 'concepto', description: null }
+        : toKind === 'task'
+          ? { kind: 'task', title: text, detail: null }
+          : { kind: 'entity', name: text, entityType: 'concepto', description: null }
   const { message, id } = await persistCapture(sql, userId, intent)
   if (!id) return 'No pude reclasificarla en este momento. Vuelve a intentarlo.'
   await softDeleteCapture(sql, userId, last.kind, last.id)
@@ -623,16 +672,29 @@ async function extractPhotoIntent(
   try {
     const { system, user } = buildPhotoPrompt(mode)
     const imageBase64 = Buffer.from(buffer).toString('base64')
-    const { content } = await askLLMForVision(system, user, imageBase64, mimeType, {
-      provider: invocation.provider,
-      model: invocation.model,
-    })
+    const { content, usage, fromCache } = await askLLMForVision(
+      system,
+      user,
+      imageBase64,
+      mimeType,
+      { provider: invocation.provider, model: invocation.model },
+    )
+    // Costo de la visión al cost-cap mensual. Antes NO se registraba → la visión
+    // por WhatsApp no contaba contra el presupuesto (hueco de costo: el usuario
+    // podía gastar sin tope). Awaited: en serverless un floating promise puede no
+    // alcanzar a escribir antes de que se congele la instancia.
+    await getSql()`
+      INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
+      VALUES (${'[imagen]'}, ${JSON.stringify({ vision: true, mode })}::jsonb, ${usage.provider}, ${usage.model}, ${usage.tokensIn}, ${usage.tokensOut}, ${fromCache ? 0 : usage.costCents}, ${usage.durationMs}, ${userId})
+    `.catch(() => {})
+    // Observabilidad: la visión SÍ se intentó y salió bien (cuenta a la tasa de
+    // fallas honesta del panel, no solo las capturas).
+    await persistWhatsAppEvent(getSql(), userId, { event: 'vision', ok: true })
     return validatePhotoExtraction(content, mode, caption)
   } catch (err) {
-    logEvent({
-      event: 'whatsapp_vision_failed',
-      message: err instanceof Error ? err.message : String(err),
-    })
+    const detail = err instanceof Error ? err.message : String(err)
+    logEvent({ event: 'whatsapp_vision_failed', message: detail })
+    await persistWhatsAppEvent(getSql(), userId, { event: 'vision', ok: false, detail })
     return null
   }
 }
@@ -655,18 +717,20 @@ async function transcribeAudioIntent(
   try {
     const fileName = `voz.${audioExtFromMime(mimeType)}`
     const { text, usage } = await askLLMForTranscription(buffer, mimeType, fileName)
-    // Registro best-effort del costo (Whisper cobra por minuto, estimado).
-    sql`
+    // Costo de la transcripción al cost-cap (Whisper cobra por minuto, estimado).
+    // Awaited para que quede registrado antes de responder (la instancia se
+    // congela tras el return y un floating promise podría no escribir).
+    await sql`
       INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
       VALUES (${'[nota de voz]'}, ${JSON.stringify({ transcribed: true })}::jsonb, ${usage.provider}, ${usage.model}, ${0}, ${0}, ${usage.costCents}, ${usage.durationMs}, ${userId})
     `.catch(() => {})
     logEvent({ event: 'whatsapp_transcription', chars: text.trim().length })
+    await persistWhatsAppEvent(sql, userId, { event: 'transcription', ok: true })
     return transcriptionToIntent(text)
   } catch (err) {
-    logEvent({
-      event: 'whatsapp_transcription_failed',
-      message: err instanceof Error ? err.message : String(err),
-    })
+    const detail = err instanceof Error ? err.message : String(err)
+    logEvent({ event: 'whatsapp_transcription_failed', message: detail })
+    await persistWhatsAppEvent(sql, userId, { event: 'transcription', ok: false, detail })
     return null
   }
 }
@@ -685,6 +749,7 @@ async function handleInboundMedia(
   saved: number
   offerDestino: boolean
   offerDescription: boolean
+  openUrl?: string
 }> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
@@ -889,21 +954,18 @@ async function handleInboundMedia(
             }
           } else {
             // El lote reciente era un momento: una foto sin caption se une a él.
-            // Copiamos los blobs a momentos-media y limpiamos los de recortes.
-            const copied: string[] = []
-            for (const rk of recorteKeys) {
-              const c = await copyRecorteImageToStore('momentos-media', rk.key, userId)
-              if (c) {
-                copied.push(c.storageKey)
-                await removeBlob('recortes-media', rk.key)
-              }
-            }
-            if (copied.length > 0) {
-              appendedTotal = await appendImagesToMomento(sql, userId, recent.id, copied)
-              if (appendedTotal !== null) {
-                lastId = recent.id
-                lastKind = 'momento'
-              }
+            // La danza cross-store (copy→append→remove, con rollback si el
+            // anexado falla) vive en el helper: atómica de cara al usuario y
+            // testeable. Sin borrar originales antes de confirmar el anexado.
+            appendedTotal = await joinRecortePhotosToMomento(
+              sql,
+              userId,
+              recent.id,
+              recorteKeys,
+            )
+            if (appendedTotal !== null) {
+              lastId = recent.id
+              lastKind = 'momento'
             }
           }
         }
@@ -1013,21 +1075,20 @@ async function handleInboundMedia(
       )
     }
     if (skipped.has('vision')) {
-      lines.push('(No pude leer el texto, así que guardé la imagen tal cual.)')
+      lines.push('(No pude leer el texto; guardé la imagen igual.)')
     }
-    lines.push(`🔗 Ábrelo en Trama: ${captureDeepLink(origin, lastKind)}`)
     if (wantsDescription) {
-      lines.push('✍️ Respondé con una descripción y se la agrego.')
+      lines.push('✍️ Responde con una descripción y se la agrego.')
     }
-    // La afordancia de deshacer (botón o texto) la agrega el caller según haya
-    // captura guardada (saved > 0) o no.
+    // El deep link (texto o botón [Abrir en Trama]) y el deshacer los agrega el
+    // caller (replyWithCapture) según haya plantillas/captura.
   }
   if (skipped.has('video')) {
     lines.push('🎬 El video todavía no lo proceso, pero muy pronto.')
   }
   if (skipped.has('audio_format')) {
     lines.push(
-      '🎤 Ese formato de audio no lo puedo transcribir (mandá una nota de voz normal).',
+      '🎤 Ese formato de audio no lo puedo transcribir (manda una nota de voz normal).',
     )
   }
   if (skipped.has('audio_ai')) {
@@ -1042,12 +1103,11 @@ async function handleInboundMedia(
     lines.push('📦 La imagen pesa demasiado (máximo 16 MB). Envíala más liviana.')
   }
   if (skipped.has('config')) {
-    lines.push(
-      'Para procesar imágenes falta configurar TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN en el servidor.',
-    )
+    // Falta config del servidor: no filtramos nombres de env vars al usuario.
+    lines.push('No puedo procesar imágenes en este momento.')
   }
   if (saved === 0 && skipped.has('error')) {
-    lines.push('No pude descargar el archivo. Vuelve a intentarlo en un momento.')
+    lines.push('No pude descargar el archivo. Prueba de nuevo en un momento.')
   }
   if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
   // Una captura de imagen guardada como Recorte (default) puede redirigirse sin
@@ -1068,6 +1128,7 @@ async function handleInboundMedia(
     saved,
     offerDestino,
     offerDescription: wantsDescription,
+    openUrl: saved > 0 && lastId ? captureDeepLink(origin, lastKind) : undefined,
   }
 }
 
@@ -1144,12 +1205,12 @@ async function handleQuery(
     const answer = typeof content === 'string' ? content.trim() : ''
     if (!answer) return formatRecallFallback(ctx, origin)
     logEvent({ event: 'whatsapp_recall', usedRag: ctx.usedRag, usedHyde: ctx.usedHyde })
+    await persistWhatsAppEvent(sql, userId, { event: 'recall', ok: true })
     return formatRecallAnswer(answer, ctx, origin)
   } catch (err) {
-    logEvent({
-      event: 'whatsapp_recall_failed',
-      message: err instanceof Error ? err.message : String(err),
-    })
+    const detail = err instanceof Error ? err.message : String(err)
+    logEvent({ event: 'whatsapp_recall_failed', message: detail })
+    await persistWhatsAppEvent(sql, userId, { event: 'recall', ok: false, detail })
     return formatRecallFallback(ctx, origin)
   }
 }
@@ -1172,15 +1233,42 @@ async function classifyFreeform(
       model: invocation.model,
     })
     const classified = validateClassification(content)
-    // Registro best-effort en extraction_log para que el cost-cap mensual
-    // contabilice el gasto (un cache hit no cobra: cost_cents = 0).
-    getSql()`
+    // Registro en extraction_log para que el cost-cap mensual contabilice el
+    // gasto (un cache hit no cobra: cost_cents = 0). Awaited para que quede
+    // escrito antes de responder (la instancia se congela tras el return).
+    await getSql()`
       INSERT INTO extraction_log (input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id)
       VALUES (${text}, ${JSON.stringify(classified ?? {})}::jsonb, ${usage.provider}, ${usage.model}, ${usage.tokensIn}, ${usage.tokensOut}, ${fromCache ? 0 : usage.costCents}, ${usage.durationMs}, ${userId})
     `.catch(() => {})
     return classified ?? fallback
   } catch {
     return fallback
+  }
+}
+
+/**
+ * Ejecuta un handler de comando y SIEMPRE devuelve un TwiML. El MessageSid ya
+ * fue reclamado (idempotencia), así que si el handler lanza —un hipo de DB, por
+ * ejemplo— y dejáramos propagar, withObservability respondería un 500: Twilio
+ * reintentaría, el claim deduplicaría el reintento y el usuario quedaría sin
+ * respuesta para siempre. En cambio respondemos una disculpa amable (200) y
+ * dejamos rastro en el log.
+ */
+async function commandReply(
+  command: string,
+  produce: () => Promise<string>,
+): Promise<Response> {
+  try {
+    return twimlResponse(await produce())
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_command_failed',
+      command,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    return twimlResponse(
+      'No pude completar esa acción ahora. Vuelve a intentarlo en unos segundos.',
+    )
   }
 }
 
@@ -1269,50 +1357,42 @@ export default withObservability(
     `.catch(() => {})
 
     if (parsed.kind === 'undo' && media.length === 0) {
-      return twimlResponse(await undoLastCapture(sql, userId, phone))
+      return commandReply('undo', () => undoLastCapture(sql, userId, phone))
     }
 
     if (parsed.kind === 'status' && media.length === 0) {
-      return twimlResponse(await buildStatusReply(sql, userId, phone))
+      return commandReply('status', () => buildStatusReply(sql, userId, phone))
     }
 
     if (parsed.kind === 'query' && media.length === 0) {
-      return twimlResponse(
-        await handleQuery(
-          req,
-          sql,
-          userId,
-          requestId,
-          parsed.text,
-          new URL(req.url).origin,
-        ),
+      const { text } = parsed
+      return commandReply('query', () =>
+        handleQuery(req, sql, userId, requestId, text, new URL(req.url).origin),
       )
     }
 
     if (parsed.kind === 'recategorize' && media.length === 0) {
-      return twimlResponse(
-        await recategorizeLast(
-          sql,
-          userId,
-          phone,
-          parsed.toKind,
-          new URL(req.url).origin,
-        ),
+      const { toKind } = parsed
+      return commandReply('recategorize', () =>
+        recategorizeLast(sql, userId, phone, toKind, new URL(req.url).origin),
       )
     }
 
     if (parsed.kind === 'retitle' && media.length === 0) {
-      return twimlResponse(await retitleLast(sql, userId, phone, parsed.title))
+      const { title } = parsed
+      return commandReply('retitle', () => retitleLast(sql, userId, phone, title))
     }
 
     if (parsed.kind === 'tag' && media.length === 0) {
-      return twimlResponse(await tagLast(sql, userId, phone, parsed.tags))
+      const { tags } = parsed
+      return commandReply('tag', () => tagLast(sql, userId, phone, tags))
     }
 
     // Botón [Descripción] (vuelve como "Descripción") → describe la última foto.
     if (parsed.kind === 'describe' && media.length === 0) {
-      return twimlResponse(
-        await describeLast(sql, userId, phone, parsed.text, new URL(req.url).origin),
+      const { text } = parsed
+      return commandReply('describe', () =>
+        describeLast(sql, userId, phone, text, new URL(req.url).origin),
       )
     }
 
@@ -1334,26 +1414,28 @@ export default withObservability(
     }
 
     if (media.length > 0) {
-      const { message, saved, offerDestino, offerDescription } = await handleInboundMedia(
-        req,
-        requestId,
-        sql,
-        userId,
-        phone,
-        params,
-        media,
-        new URL(req.url).origin,
-      )
+      const { message, saved, offerDestino, offerDescription, openUrl } =
+        await handleInboundMedia(
+          req,
+          requestId,
+          sql,
+          userId,
+          phone,
+          params,
+          media,
+          new URL(req.url).origin,
+        )
       // Botones según el caso: foto sin pie → [Descripción · Momento · Nota];
       // recorte con pie → [Deshacer · Momento · Nota]; resto → [Deshacer]. Si no
-      // hay plantillas configuradas, cae a texto con la misma afordancia.
+      // hay plantillas configuradas, cae a texto con la misma afordancia. El deep
+      // link va como botón [Abrir en Trama] (Card) en el caso 'simple', o texto.
       const variant: CaptureReplyVariant = offerDescription
         ? 'foto'
         : offerDestino
           ? 'ambiguous'
           : 'simple'
       return saved > 0
-        ? replyWithCapture(params, message, variant)
+        ? replyWithCapture(params, message, variant, { openUrl })
         : twimlResponse(message)
     }
 
@@ -1385,15 +1467,13 @@ export default withObservability(
         ok: true,
       })
       if (!id) return twimlResponse(message)
-      // Reply accionable: confirmación + deep link + botón/atajo para corregir.
-      // Cuando lo clasificó la IA (texto libre = ambiguo), ofrecemos elegir el
-      // destino (Momento/Nota) además de Deshacer.
+      // Reply accionable: confirmación + deep link (botón [Abrir en Trama] en el
+      // Card de capturas explícitas; texto si no) + corregir. Texto libre = la IA
+      // clasificó (ambiguo): además se ofrece elegir destino.
       const link = captureDeepLink(new URL(req.url).origin, intent.kind)
-      return replyWithCapture(
-        params,
-        `${message}\n🔗 Ábrelo en Trama: ${link}`,
-        viaLLM ? 'ambiguous' : 'simple',
-      )
+      return replyWithCapture(params, message, viaLLM ? 'ambiguous' : 'simple', {
+        openUrl: link,
+      })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       logEvent({ event: 'whatsapp_capture_failed', kind: intent.kind, message: detail })

@@ -59,33 +59,45 @@ export function WhatsAppMetricsCard() {
           Actividad · últimos {m.days} días
         </p>
         <p className="text-micro tabular-nums text-ink-300">
-          {m.total} {m.total === 1 ? 'captura' : 'capturas'}
+          {m.total} {m.total === 1 ? 'evento' : 'eventos'}
           {m.failed > 0 && (
             <span className="text-[color:var(--accent-clay)]"> · {failRate}% fallas</span>
           )}
         </p>
       </div>
 
-      {/* Capturas por ruta — barras discretas. */}
+      {/* Capturas por destino — barras discretas. El total de arriba cuenta
+          TODOS los eventos (captura/visión/voz/consulta); estas barras, solo lo
+          que se guardó, por destino. */}
       {m.byKind.length > 0 && (
-        <ul className="mt-3 space-y-1.5">
-          {m.byKind.map((k) => (
-            <li key={k.kind} className="flex items-center gap-2">
-              <span className="w-20 shrink-0 text-caption text-ink-600">
-                {KIND_LABEL[k.kind] ?? k.kind}
-              </span>
-              <span className="relative h-2 flex-1 overflow-hidden rounded-full bg-ink-100/50">
-                <span
-                  className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--accent-primary)] opacity-80"
-                  style={{ width: `${Math.round((k.count / maxKind) * 100)}%` }}
-                />
-              </span>
-              <span className="w-7 shrink-0 text-right text-micro tabular-nums text-ink-400">
-                {k.count}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3">
+          <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+            Capturas por destino
+          </p>
+          <ul className="space-y-1.5">
+            {m.byKind.map((k) => {
+              const label = KIND_LABEL[k.kind] ?? k.kind
+              return (
+                <li key={k.kind} className="flex items-center gap-2">
+                  <span className="w-20 shrink-0 text-caption text-ink-600">{label}</span>
+                  <span
+                    role="img"
+                    aria-label={`${label}: ${k.count}`}
+                    className="relative h-2 flex-1 overflow-hidden rounded-full bg-ink-100/50"
+                  >
+                    <span
+                      className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--accent-primary)] opacity-80"
+                      style={{ width: `${Math.round((k.count / maxKind) * 100)}%` }}
+                    />
+                  </span>
+                  <span className="w-7 shrink-0 text-right text-micro tabular-nums text-ink-400">
+                    {k.count}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       )}
 
       {/* Actividad reciente — feed breve. */}

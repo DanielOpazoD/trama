@@ -20,7 +20,7 @@ export type ParsedInbound =
   | { kind: 'status' }
   | { kind: 'query'; text: string }
   | { kind: 'link'; rawCode: string; label?: string }
-  | { kind: 'recategorize'; toKind: 'note' | 'momento' | 'entity' }
+  | { kind: 'recategorize'; toKind: 'note' | 'momento' | 'entity' | 'task' }
   | { kind: 'retitle'; title: string }
   | { kind: 'tag'; tags: string }
   // Botón [Descripción] (o «descripción …»): describe la última foto. Con texto
@@ -107,13 +107,17 @@ const KEYWORDS: Record<string, CaptureKind> = {
 
 /** Palabras sueltas que reclasifican la última captura. Cita queda fuera:
  *  necesita autor, así que para convertir a cita se usa el prefijo `cita:`. */
-const RECATEGORIZE: Record<string, 'note' | 'momento' | 'entity'> = {
+const RECATEGORIZE: Record<string, 'note' | 'momento' | 'entity' | 'task'> = {
   nota: 'note',
   note: 'note',
   momento: 'momento',
   moment: 'momento',
   entidad: 'entity',
   entity: 'entity',
+  tarea: 'task',
+  tareas: 'task',
+  task: 'task',
+  pendiente: 'task',
 }
 
 export function parseInboundMessage(raw: string): ParsedInbound {
