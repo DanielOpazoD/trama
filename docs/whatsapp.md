@@ -271,10 +271,9 @@ SID ya estaba, corta con TwiML vacío sin re-escribir. Es un ledger append-only
 | `TWILIO_WEBHOOK_URL`                 | Opcional. URL exacta configurada en Twilio si difiere del proxy.                                                                                                                                                                  |
 | `VITE_WHATSAPP_NUMBER`               | Número del bot (E164). Habilita el QR + botón "Abrir WhatsApp". Público (va al cliente). Sin él, el panel cae a copiar/pegar `vincular <código>`.                                                                                 |
 | `TWILIO_CONTENT_SID_CAPTURE`         | Opcional. `ContentSid` de la plantilla con botón **[Deshacer]** (ver "Botones interactivos").                                                                                                                                     |
-| `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas.                                                                                                                        |
-| `TWILIO_CONTENT_SID_CAPTURE_DESTINO_LIST` | Opcional. **List Picker** para capturas de texto ambiguas: filas **[Deshacer · Momento · Nota · Tarea]**. **Preferido** sobre `_CAPTURE_DESTINO` (cabe la 4ª acción, Tarea, que Quick Reply no admite). Cae a la quick-reply de destino si falta. |
-| `TWILIO_CONTENT_SID_CAPTURE_FOTO`    | Opcional. Plantilla con botones **[Descripción · Momento · Nota]** para fotos sin pie (el botón Descripción dispara el flujo de descripción). Cae a la de destino si falta.                                                       |
-| `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` | Opcional. **List Picker** «⚡ Acciones» (filas Deshacer · Descripción · Momento · Nota) para fotos sin pie. **Preferido** sobre la quick-reply de foto: más prolijo cuando hay >3 acciones. Cae a `_FOTO` si falta.               |
+| `TWILIO_CONTENT_SID_CAPTURE_DESTINO` | Opcional. `ContentSid` de la plantilla con botones **[Deshacer · Momento · Nota]** para capturas ambiguas (degradación si no está la lista «Acciones»).                                                                            |
+| `TWILIO_CONTENT_SID_CAPTURE_FOTO`    | Opcional. Plantilla con botones **[Descripción · Momento · Nota]** para fotos sin pie (degradación si no está la lista «Acciones»). Cae a la de destino si falta.                                                                 |
+| `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` | Opcional (**recomendado**). **List Picker** «⚡ Acciones» (filas Deshacer · Momento · Nota · Tarea): **menú único** para fotos Y texto ambiguo. **Preferido** sobre las quick-replies. La descripción de una foto no va acá: se agrega respondiendo con texto. |
 | `TWILIO_CONTENT_SID_CAPTURE_CARD`    | Opcional. **Card** para capturas explícitas (`nota:`/`momento:`/…): cuerpo `{{1}}` + botón URL **[Abrir en Trama]** (base = dominio de Trama, sufijo `{{2}}`) + [Deshacer]. El deep link deja de ser texto. Cae a texto si falta. |
 | `TWILIO_CONTENT_SID_MENU`            | Opcional. `ContentSid` de un **list picker** de acciones frecuentes para «menú»/«ayuda». Cae al texto de ayuda si falta.                                                                                                          |
 
@@ -293,18 +292,14 @@ Setup:
    plantillas tipo **Quick Reply**, todas con el cuerpo variable `{{1}}`:
    - `TWILIO_CONTENT_SID_CAPTURE`: un botón **`Deshacer`**.
    - `TWILIO_CONTENT_SID_CAPTURE_DESTINO`: tres botones **`Deshacer`, `Momento`, `Nota`**.
-   - `TWILIO_CONTENT_SID_CAPTURE_DESTINO_LIST` (opcional): un **List Picker** para
-     las capturas de texto ambiguas, con filas cuyos **títulos** sean exactamente
-     `Deshacer`, `Momento`, `Nota`, `Tarea` (descripción de cada fila libre).
-     Preferido sobre `_CAPTURE_DESTINO` porque cabe la 4ª acción (`Tarea`), que
-     Quick Reply no admite. El título vuelve como comando, igual que un botón.
    - `TWILIO_CONTENT_SID_CAPTURE_FOTO` (fotos sin pie): tres botones
      **`Descripción`, `Momento`, `Nota`**.
-   - `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` (opcional): un **List Picker** «⚡
-     Acciones» para fotos sin pie, con filas cuyos **títulos** sean exactamente
-     `Deshacer`, `Descripción`, `Momento`, `Nota` (la descripción de cada fila es
-     libre). El título vuelve como comando, igual que un botón. Es preferido
-     sobre `_FOTO` porque caben las 4 acciones con texto de ayuda.
+   - `TWILIO_CONTENT_SID_CAPTURE_ACTIONS` (**recomendado**): un **List Picker** «⚡
+     Acciones», **menú único** para fotos Y texto ambiguo, con filas cuyos
+     **títulos** sean exactamente `Deshacer`, `Momento`, `Nota`, `Tarea` (la
+     descripción de cada fila es libre). El título vuelve como comando. La
+     descripción de una foto NO va en el menú: Trama la pide sola y se agrega
+     respondiendo con texto. Reemplaza a `_FOTO` y `_DESTINO` cuando está.
    - `TWILIO_CONTENT_SID_CAPTURE_CARD` (opcional): una **Card** para capturas
      explícitas, con cuerpo `{{1}}` y dos botones: un **URL** con título `Abrir en
 Trama` y URL `https://<tu-dominio>/{{2}}` (dinámica: base fija + variable de

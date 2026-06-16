@@ -23,15 +23,13 @@
 export type InteractiveConfig = {
   captureSid: string | null
   destinoSid: string | null
-  /** List Picker para capturas de TEXTO ambiguas (clasificadas por la IA):
-   *  filas Deshacer · Momento · Nota · Tarea. Caben 4 acciones, a diferencia de
-   *  los 3 botones de `destinoSid`. Preferido sobre `destinoSid` cuando está. */
-  destinoListSid: string | null
   /** Plantilla para fotos SIN pie: botones [Descripción · Momento · Nota]. */
   fotoSid: string | null
-  /** List Picker post-captura: «⚡ Acciones» con filas Deshacer · Descripción ·
-   *  Momento · Nota (más prolijo que 3 botones; los títulos vuelven como
-   *  comandos). Preferido sobre `fotoSid` cuando está. */
+  /** List Picker post-captura «⚡ Acciones» (filas Deshacer · Momento · Nota ·
+   *  Tarea): ÚNICO menú, sirve para fotos Y para texto ambiguo. Los títulos
+   *  vuelven como comandos. La descripción de una foto NO va acá —se agrega
+   *  respondiendo con texto, que Trama pide sola—. Preferido sobre las
+   *  quick-replies cuando está. */
   actionsSid: string | null
   /** Card para capturas explícitas (nota:/momento:/…): cuerpo `{{1}}` + botón
    *  URL **[Abrir en Trama]** (`{{2}}` = sufijo del deep link) + [Deshacer]. El
@@ -57,7 +55,6 @@ export function readInteractiveConfig(
   return {
     captureSid: read('TWILIO_CONTENT_SID_CAPTURE') || null,
     destinoSid: read('TWILIO_CONTENT_SID_CAPTURE_DESTINO') || null,
-    destinoListSid: read('TWILIO_CONTENT_SID_CAPTURE_DESTINO_LIST') || null,
     fotoSid: read('TWILIO_CONTENT_SID_CAPTURE_FOTO') || null,
     actionsSid: read('TWILIO_CONTENT_SID_CAPTURE_ACTIONS') || null,
     cardSid: read('TWILIO_CONTENT_SID_CAPTURE_CARD') || null,
@@ -72,11 +69,10 @@ export type CaptureReplyVariant = 'foto' | 'ambiguous' | 'simple'
  * Plantilla a usar según la variante de la captura. Degrada con elegancia: si la
  * plantilla específica no está configurada, cae a una más genérica y, en última
  * instancia, a `null` → el webhook responde TwiML de texto.
- *   - `foto`      → List Picker «⚡ Acciones» (Deshacer · Descripción · Momento ·
- *                  Nota); cae a la quick-reply de foto, luego a destino/Deshacer.
- *   - `ambiguous` → List Picker [Deshacer · Momento · Nota · Tarea] (texto libre
- *                  clasificado por IA); cae a la quick-reply de destino, luego a
- *                  Deshacer.
+ *   - `foto`      → List Picker «⚡ Acciones» (Deshacer · Momento · Nota · Tarea);
+ *                  cae a la quick-reply de foto, luego a destino/Deshacer.
+ *   - `ambiguous` → la MISMA lista «⚡ Acciones» (texto libre clasificado por IA);
+ *                  cae a la quick-reply de destino, luego a Deshacer.
  *   - `simple`    → [Deshacer] (captura explícita).
  */
 export function pickCaptureContentSid(
@@ -87,7 +83,7 @@ export function pickCaptureContentSid(
     return cfg.actionsSid ?? cfg.fotoSid ?? cfg.destinoSid ?? cfg.captureSid ?? null
   }
   if (variant === 'ambiguous') {
-    return cfg.destinoListSid ?? cfg.destinoSid ?? cfg.captureSid ?? null
+    return cfg.actionsSid ?? cfg.destinoSid ?? cfg.captureSid ?? null
   }
   return cfg.captureSid ?? null
 }
