@@ -29,9 +29,16 @@ const buildRagContext = vi.fn()
 vi.mock('./rag-context.js', () => ({
   buildRagContext: (...args: unknown[]) => buildRagContext(...args),
 }))
-// Blobs mockeado: el upload de media no toca red real.
+// Blobs mockeado: el upload de media no toca red real. getWithMetadata sirve la
+// copia de blobs al reclasificar un recorte con imágenes (→ Momento / Nota).
 vi.mock('@netlify/blobs', () => ({
-  getStore: () => ({ set: vi.fn().mockResolvedValue(undefined) }),
+  getStore: () => ({
+    set: vi.fn().mockResolvedValue(undefined),
+    getWithMetadata: vi.fn().mockResolvedValue({
+      data: new ArrayBuffer(8),
+      metadata: { mime: 'image/jpeg', size: '8' },
+    }),
+  }),
 }))
 
 import webhookHandler from '../whatsapp-webhook'
@@ -356,6 +363,34 @@ describe('whatsapp-webhook', () => {
     expect(await res.text()).toContain('Reclasificado')
   })
 
+  it('palabra "momento" sobre un recorte con imágenes → reclasifica SIN perder fotos', async () => {
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer
+    mockSqlResponses.push([{ t: 'mi gato' }]) // readCaptureText (recorte.text)
+    mockSqlResponses.push([{ storage_key: 'u/a.jpg' }, { storage_key: 'u/b.jpg' }]) // readRecorteImageKeys (recorte_images)
+    mockSqlResponses.push([{ id: 'm1' }]) // persistImageMomentoEpisode INSERT
+    mockSqlResponses.push([{ id: 'r1' }]) // softDelete recorte RETURNING
+    mockSqlResponses.push([]) // recordLastCapture UPDATE
+    const res = await webhookHandler(
+      twilioRequest({ From: 'whatsapp:+56912345678', Body: 'momento' }),
+      mockContext(),
+    )
+    const xml = await res.text()
+    expect(xml).toContain('Reclasificado')
+    expect(xml).toContain('imágenes')
+    // El INSERT del momento foto usa items[] con las dos fotos copiadas.
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    const payload = insert?.values.find(
+      (v): v is string => typeof v === 'string' && v.includes('"items"'),
+    )
+    expect((payload?.match(/"storageKey"/g) ?? []).length).toBe(2)
+  })
+
   it('idempotencia: un MessageSid ya procesado no re-escribe (TwiML vacío)', async () => {
     mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
     mockSqlResponses.push([]) // ensureUserRow
@@ -513,6 +548,58 @@ describe('whatsapp-webhook', () => {
     // Una sola entrada-evento: confirma "2 imágenes" como un evento, no 2 sueltas.
     expect(xml).toContain('2 imágenes')
     expect(xml).toContain('evento')
+  })
+
+  it('foto → Recorte con plantilla de destino → ofrece botones Momento/Nota', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubEnv('TWILIO_CONTENT_SID_CAPTURE_DESTINO', 'HXdest')
+    // El mismo mock sirve para bajar la media (arrayBuffer) y para mandar el
+    // Content API (ok/status); el último fetch es el envío con botones.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      headers: { get: () => 'image/jpeg' },
+      arrayBuffer: async () => new ArrayBuffer(8),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const fields = {
+      MessageSid: 'SMmediabtn',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/abc',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMmediabtn' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    // El último fetch es el envío del Content API con la plantilla de destino.
+    const sendCall = fetchMock.mock.calls.at(-1)!
+    const body = new URLSearchParams(sendCall[1].body)
+    expect(body.get('ContentSid')).toBe('HXdest')
+    expect(body.get('ContentVariables')).toContain('Recortes')
   })
 
   it('foto con "nota:" → visión transcribe y guarda Nota', async () => {

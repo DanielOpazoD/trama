@@ -32,15 +32,20 @@ function randomKey(): string {
 }
 
 /**
- * Copia el blob de la imagen de un recorte (`recortes-media`) al store
- * `momentos-media`, devolviendo la nueva storageKey con namespace por usuario
- * (`${userId}/${random}.${ext}`) y el mime preservado. Devuelve `null` si el
- * blob origen no existe (captura sin imagen real → no se puede promover a foto).
+ * Copia el blob de la imagen de un recorte (`recortes-media`) a OTRO store,
+ * devolviendo la nueva storageKey con namespace por usuario
+ * (`${userId}/${random}.${ext}`), el mime preservado y el tamaño en bytes.
+ * Devuelve `null` si el blob origen no existe.
+ *
+ * Genérico para reusarse al reclasificar una captura: a `momentos-media` (→
+ * Momento foto) o a `notas-attachments` (→ Nota con imágenes), sin que el
+ * cliente toque Blobs (regla de AGENTS.md).
  */
-export async function copyRecorteImageToMomentos(
+export async function copyRecorteImageToStore(
+  destStoreName: string,
   imageKey: string,
   userId: string,
-): Promise<{ storageKey: string; mime: string } | null> {
+): Promise<{ storageKey: string; mime: string; size: number } | null> {
   const source = getStore('recortes-media')
   const blob = await source.getWithMetadata(imageKey, { type: 'arrayBuffer' })
   if (!blob) return null
@@ -49,10 +54,22 @@ export async function copyRecorteImageToMomentos(
   const buffer = blob.data
   const storageKey = `${userId}/${randomKey()}.${extFromMime(mime)}`
 
-  const dest = getStore('momentos-media')
+  const dest = getStore(destStoreName)
   await dest.set(storageKey, buffer, {
     metadata: { mime, size: String(buffer.byteLength) },
   })
 
-  return { storageKey, mime }
+  return { storageKey, mime, size: buffer.byteLength }
+}
+
+/**
+ * Copia el blob de la imagen de un recorte al store `momentos-media` (promoción
+ * a Momento foto). Envoltorio fino sobre `copyRecorteImageToStore`.
+ */
+export async function copyRecorteImageToMomentos(
+  imageKey: string,
+  userId: string,
+): Promise<{ storageKey: string; mime: string } | null> {
+  const copied = await copyRecorteImageToStore('momentos-media', imageKey, userId)
+  return copied ? { storageKey: copied.storageKey, mime: copied.mime } : null
 }

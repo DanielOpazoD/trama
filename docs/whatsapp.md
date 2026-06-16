@@ -80,11 +80,17 @@ texto. Hoy: **imágenes**.
   (página de libro, pantalla) y se guarda una **Cita**.
 - Con caption `nota:` / `texto:` / `ocr:` → **visión/OCR**: transcribe el texto
   visible y guarda una **Nota**.
-- Varias imágenes en un mensaje → una fila por imagen para Recortes/visión (la
-  última queda como "deshacer"). **Excepción**: en la ruta **Momento** (prefijo
-  `momento:` o lenguaje natural «a momentos»), todas las fotos del mismo mensaje
-  se agrupan en **un solo Momento foto** (un "episodio", `payload.items[]`), no
-  en N momentos sueltos — `deshacer` quita el episodio completo.
+- Varias imágenes en un mensaje → **un solo evento**, no N filas sueltas:
+  - Ruta **Recorte** (default): se crean como **un recorte-evento** con todas
+    las imágenes (`recortes.image_key` = portada + tabla `recorte_images` con
+    una fila por foto ordenada por `position`). El read-model expone `images[]`;
+    la tarjeta muestra portada + contador «▦ N» + visor de todas. `deshacer`
+    quita el evento entero (una fila).
+  - Ruta **Momento** (prefijo `momento:` o lenguaje natural «a momentos»): todas
+    las fotos se agrupan en **un solo Momento foto** (un "episodio",
+    `payload.items[]`).
+  - Una sola imagen sigue el camino simple de siempre (`image_key` /
+    `payload.storageKey`).
 
 **Visión (cita:/nota:/texto:/ocr:).** Estas rutas pasan la imagen por
 `askLLMForVision` (OpenAI/Gemini, mismos guards que `extract-from-image`:
@@ -250,7 +256,20 @@ Setup:
 Por qué esos títulos: cuando el usuario toca un botón, Twilio reenvía el título
 como un mensaje entrante normal, así `Deshacer` cae en el camino de `deshacer`
 (undo) y `Momento`/`Nota` en la **reclasificación** de la última captura —sin
-agregar un parser nuevo—. El envío saliente reusa `TWILIO_ACCOUNT_SID` +
+agregar un parser nuevo—.
+
+**Reclasificación NO destructiva de fotos.** Cuando la última captura es un
+recorte **con imágenes** (una foto o un recorte-evento), tocar `Momento` / `Nota`
+no arrastra solo el texto: **copia las imágenes** al destino
+(`_lib/whatsapp/reclassify-media.ts`). `Momento` arma un Momento foto episódico
+(`payload.items[]`, blobs a `momentos-media`); `Nota` crea una Nota con las fotos
+como **anexos** (`notas_attachments`, blobs a `notas-attachments`). El recorte
+original se soft-borra recién tras crear el destino, así `deshacer` sigue
+teniendo sentido. Por eso, tras guardar una foto en Recortes el webhook ofrece la
+plantilla de **destino** (botones Momento/Nota), no solo Deshacer. Si el recorte
+no tiene imágenes (texto/enlace), la reclasificación cae al camino de texto.
+
+El envío saliente reusa `TWILIO_ACCOUNT_SID` +
 `TWILIO_AUTH_TOKEN`; vive en `_lib/whatsapp/send.ts` (REST) + `interactive.ts`
 (elección de plantilla, puro). Si el envío falla, se cae a TwiML de texto: el
 usuario nunca se queda sin confirmación. Cada mensaje interactivo es un mensaje

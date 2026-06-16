@@ -48,6 +48,10 @@ import {
   recallHasResults,
 } from './_lib/whatsapp/recall.js'
 import { storeMedia } from './_lib/whatsapp/media-store.js'
+import {
+  reclassifyRecorteToMomento,
+  reclassifyRecorteToNote,
+} from './_lib/whatsapp/reclassify-media.js'
 import { captureDeepLink } from './_lib/whatsapp/deep-link.js'
 import { twimlResponse, emptyTwimlResponse } from './_lib/whatsapp/twiml.js'
 import {
@@ -472,6 +476,30 @@ async function recategorizeLast(
   if (last.kind === toKind) {
     return `Eso ya está guardado como ${NOUN_BY_KIND[toKind] ?? 'esa categoría'}.`
   }
+
+  // Reclasificación NO destructiva de un recorte CON imágenes: copiamos las
+  // fotos al destino (Momento foto episódico o Nota con adjuntos) en vez de
+  // arrastrar solo el texto. Si el recorte no tiene imágenes (texto/enlace), el
+  // helper devuelve null y caemos al camino de texto de abajo.
+  if (last.kind === 'recorte' && (toKind === 'momento' || toKind === 'note')) {
+    const caption = (await readCaptureText(sql, 'recorte', last.id, userId)) ?? ''
+    const newId =
+      toKind === 'momento'
+        ? await reclassifyRecorteToMomento(sql, userId, last.id, caption)
+        : await reclassifyRecorteToNote(sql, userId, last.id, caption)
+    if (newId) {
+      await softDeleteCapture(sql, userId, last.kind, last.id)
+      await recordLastCapture(sql, phone, userId, toKind, newId)
+      const link = captureDeepLink(origin, toKind)
+      const msg =
+        toKind === 'momento'
+          ? '🔄 Reclasificado como Momento con sus imágenes.'
+          : '🔄 Reclasificado como Nota con sus imágenes.'
+      return `${msg}\n🔗 Ábrelo en Trama: ${link}\n↩️ ¿No era así? Responde «deshacer».`
+    }
+    // newId === null → recorte sin imágenes: sigue al camino de texto.
+  }
+
   const text = await readCaptureText(sql, last.kind, last.id, userId)
   if (!text) {
     return 'No pude leer esa captura para reclasificarla. Puedes recrearla con el prefijo correcto.'
@@ -574,7 +602,7 @@ async function handleInboundMedia(
   params: Record<string, string>,
   media: ReturnType<typeof parseInboundMedia>,
   origin: string,
-): Promise<{ message: string; saved: number }> {
+): Promise<{ message: string; saved: number; offerDestino: boolean }> {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID')
   const authToken = readEnv('TWILIO_AUTH_TOKEN')
   const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
@@ -815,7 +843,11 @@ async function handleInboundMedia(
     lines.push('No pude descargar el archivo. Vuelve a intentarlo en un momento.')
   }
   if (lines.length === 0) lines.push('Recibí el archivo, pero no pude procesarlo.')
-  return { message: lines.join('\n'), saved }
+  // Una captura de imagen guardada como Recorte (default) puede redirigirse sin
+  // pérdida a Momento o Nota con sus imágenes: ofrecemos esos botones de destino
+  // (además de Deshacer). Las fotos que ya fueron a Momentos no necesitan botón.
+  const offerDestino = saved > 0 && lastKind === 'recorte'
+  return { message: lines.join('\n'), saved, offerDestino }
 }
 
 /**
@@ -1059,7 +1091,7 @@ export default withObservability(
     // Adjuntos (foto): se procesan antes que el texto. El caption decide
     // destino (default Recortes; `momento:` → Momentos).
     if (media.length > 0) {
-      const { message, saved } = await handleInboundMedia(
+      const { message, saved, offerDestino } = await handleInboundMedia(
         req,
         requestId,
         sql,
@@ -1069,9 +1101,12 @@ export default withObservability(
         media,
         new URL(req.url).origin,
       )
-      // Con captura guardada, ofrecemos Deshacer (botón si hay plantilla, o
-      // texto). Sin nada guardado (todo descartado), solo el aviso, sin botón.
-      return saved > 0 ? replyWithCapture(params, message, false) : twimlResponse(message)
+      // Con captura guardada ofrecemos Deshacer (botón si hay plantilla, o
+      // texto). Si fue a Recortes, además ofrecemos redirigir a Momento / Nota
+      // con sus imágenes (botones de destino). Sin nada guardado, solo el aviso.
+      return saved > 0
+        ? replyWithCapture(params, message, offerDestino)
+        : twimlResponse(message)
     }
 
     // Acá ya no hay media (se devolvió arriba) y empty/help/link/undo también
