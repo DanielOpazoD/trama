@@ -44,6 +44,16 @@ describe('pdfExportFeedback', () => {
     ).toMatch(/rasterizarse|contenido subyacente/i)
   })
 
+  it('explica chunks obsoletos como actualización de la app', () => {
+    expect(
+      describePdfExportError(
+        Object.assign(new Error('Failed to fetch dynamically imported module'), {
+          code: 'STALE_APP_ASSET',
+        }),
+      ),
+    ).toMatch(/actualizó|recargando/i)
+  })
+
   it('describe errores específicos al crear PDFs rellenables', () => {
     expect(
       describePdfExportError(

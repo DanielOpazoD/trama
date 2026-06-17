@@ -19,6 +19,7 @@
  */
 
 import { apiFetch } from '../api/request'
+import { requestReloadForStaleAsset } from './staleAssetRecovery'
 
 const POST_THROTTLE_MS = 60_000
 const recentlySent = new Map<string, number>()
@@ -112,6 +113,10 @@ export function installClientErrorTracking(): void {
 
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason
+    if (requestReloadForStaleAsset(reason)) {
+      event.preventDefault()
+      return
+    }
     const message =
       reason instanceof Error
         ? reason.message

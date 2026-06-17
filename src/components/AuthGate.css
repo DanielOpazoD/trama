@@ -72,10 +72,8 @@
 
 .trama-login-titleRow {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(1.55rem, 5vw, 2.45rem);
+  display: grid;
+  place-items: center;
 }
 
 .trama-login-lockup {
@@ -112,7 +110,9 @@
 }
 
 .trama-login-mascotSeal {
-  position: relative;
+  position: absolute;
+  top: 0.45rem;
+  left: calc(50% + clamp(6.9rem, 18vw, 9.3rem));
   display: inline-grid;
   place-items: center;
   width: 3.15rem;
@@ -125,7 +125,7 @@
   box-shadow:
     0 8px 28px rgb(var(--ink-900) / 0.07),
     0 1px 0 rgb(var(--paper-50) / 0.8) inset;
-  transform: translate(0.75rem, 1rem);
+  transform: translateY(-0.1rem);
 }
 
 .trama-login-mascotSeal::before,
@@ -218,13 +218,15 @@
   }
 
   .trama-login-titleRow {
-    gap: 1.15rem;
+    min-height: 8.2rem;
   }
 
   .trama-login-mascotSeal {
+    top: 0.4rem;
+    left: calc(50% + 5.9rem);
     width: 2.5rem;
     height: 2.5rem;
-    transform: translate(0.36rem, 0.76rem);
+    transform: translateY(-0.08rem);
   }
 
   .trama-login-wordmark {

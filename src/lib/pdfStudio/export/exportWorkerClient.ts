@@ -4,6 +4,7 @@ import {
   type PdfExportWorkerPayload,
   type PdfExportWorkerProgress,
 } from './exportWorkerContract'
+import { requestReloadForStaleAsset, staleAssetError } from '../../staleAssetRecovery'
 import type { PdfDoc } from '../model/model'
 
 type AssembleOptions = import('../assemble/assemble').AssembleOptions
@@ -47,6 +48,11 @@ export function assemblePdfInWorker(
     // siempre tiene canvas, así que reensamblamos ahí. No reintentamos si el
     // usuario canceló la exportación.
     if (options.signal?.aborted) throw err
-    return import('../assemble/assemble').then(({ assemble }) => assemble(doc, options))
+    return import('../assemble/assemble')
+      .then(({ assemble }) => assemble(doc, options))
+      .catch((fallbackErr: unknown) => {
+        if (requestReloadForStaleAsset(fallbackErr)) throw staleAssetError(fallbackErr)
+        throw fallbackErr
+      })
   })
 }
