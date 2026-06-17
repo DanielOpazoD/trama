@@ -52,4 +52,16 @@ describe('useModalOverlay', () => {
     expect(document.body.style.overflow).toBe('auto')
     expect(document.activeElement).toBe(trigger)
   })
+
+  it('leaves non-Escape keyboard shortcuts to the owning overlay', () => {
+    const onClose = vi.fn()
+
+    render(<Harness onClose={onClose} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir modal' }))
+
+    fireEvent.keyDown(document, { key: 'ArrowRight' })
+
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'Modal de prueba' })).toBeInTheDocument()
+  })
 })

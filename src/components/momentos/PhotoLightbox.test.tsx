@@ -46,7 +46,7 @@ describe('<PhotoLightbox />', () => {
   it('cierra con Escape y con clic en el fondo', () => {
     const onClose = vi.fn()
     render(<PhotoLightbox photos={photos} open onClose={onClose} />)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
     fireEvent.click(screen.getByLabelText('Cerrar visor'))
     expect(onClose).toHaveBeenCalledTimes(2)
   })

@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Quote } from '../types'
 import { useUpdateQuote, useToast } from '../state'
-import { useFocusTrap } from '../hooks/useFocusTrap'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 
 /**
  * AA-D: modal para editar una cita ya guardada.
@@ -33,8 +33,7 @@ export function QuoteEditModal({
   const [source, setSource] = useState(quote.source ?? '')
   const [link, setLink] = useState(quote.link ?? '')
   const [reflection, setReflection] = useState(quote.userReflection ?? '')
-  const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, open)
+  const overlay = useModalOverlay({ open, onClose, lockScroll: false })
 
   useEffect(() => {
     if (!open) return
@@ -43,15 +42,6 @@ export function QuoteEditModal({
     setLink(quote.link ?? '')
     setReflection(quote.userReflection ?? '')
   }, [open, quote])
-
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
 
   async function handleSave() {
     if (updateQuote.isPending) return
@@ -96,7 +86,7 @@ export function QuoteEditModal({
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
         <div
-          ref={dialogRef}
+          ref={overlay.dialogRef}
           role="dialog"
           aria-label="Editar cita"
           aria-modal="true"
