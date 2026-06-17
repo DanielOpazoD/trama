@@ -235,6 +235,40 @@ describe('useRecortes', () => {
     })
   })
 
+  it('captura un video: lo sube y crea un recorte de video con la media key', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL, init?: RequestInit) => {
+        const url = String(input)
+        const method = init?.method ?? 'GET'
+        calls.push({
+          url,
+          method,
+          body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
+        })
+        if (url.includes('recortes-image-upload')) {
+          return jsonResp({ imageKey: 'user-1/clip.mp4', mime: 'video/mp4', size: 42 })
+        }
+        if (method === 'POST' && url.endsWith('/api/recortes')) return jsonResp(ROW)
+        return jsonResp([ROW])
+      }),
+    )
+    const file = new File(['video'], 'clip.mp4', { type: 'video/mp4' })
+    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+
+    await act(async () => {
+      await result.current.mutateAsync({ kind: 'video', file })
+    })
+
+    expect(calls.some((c) => c.url.includes('recortes-image-upload'))).toBe(true)
+    const post = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/recortes'))
+    expect(post?.body).toMatchObject({
+      text: 'Video guardado',
+      imageKey: 'user-1/clip.mp4',
+      captureMode: 'video',
+    })
+  })
+
   it('unpromote revierte: postea a /unpromote y devuelve el recorte a pending', async () => {
     const { result } = renderHook(() => useUnpromoteRecorte(), { wrapper: makeWrapper() })
     await act(async () => {

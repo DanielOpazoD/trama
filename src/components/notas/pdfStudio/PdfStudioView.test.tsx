@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   deleteSavedDoc: vi.fn(),
   uploadPdfStudioSavedPdf: vi.fn(),
   editImage: vi.fn(),
+  imagesToSheetPdfFile: vi.fn(),
 }))
 vi.mock('../../../lib/pdfStudio/render/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
@@ -73,6 +74,9 @@ vi.mock('../../../api/pdfStudioSavedPdfs', () => ({
   uploadPdfStudioSavedPdf: mocks.uploadPdfStudioSavedPdf,
 }))
 vi.mock('../../../lib/imageEditor', () => ({ editImage: mocks.editImage }))
+vi.mock('../../../lib/pdfStudio/assemble/imagesToSheetPdfFile', () => ({
+  imagesToSheetPdfFile: mocks.imagesToSheetPdfFile,
+}))
 
 import { PdfStudioView } from './PdfStudioView'
 import {
@@ -171,6 +175,9 @@ beforeEach(() => {
     updatedAt: '2026-06-11T00:00:00.000Z',
   })
   mocks.editImage.mockResolvedValue(imageFile('scan-recortada.webp'))
+  mocks.imagesToSheetPdfFile.mockResolvedValue(
+    new File(['%PDF-1.4'], 'imagenes.pdf', { type: 'application/pdf' }),
+  )
 })
 
 describe('<PdfStudioView />', () => {
@@ -314,12 +321,14 @@ describe('<PdfStudioView />', () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
 
+    await user.click(
+      screen.getByRole('button', { name: /4 imágenes por hoja al importar/i }),
+    )
     await user.upload(fileInput(), imageFile())
     await screen.findByAltText('Página 1')
-    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.click(screen.getByRole('button', { name: /Ajustes de página/i }))
     await user.type(screen.getByLabelText('Encabezado'), 'Clínica Norte')
     await user.type(screen.getByLabelText('Pie de página'), 'Uso interno')
-    await user.selectOptions(screen.getByLabelText('Imágenes por página'), '4')
     await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
 
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
@@ -362,6 +371,9 @@ describe('<PdfStudioView />', () => {
 
   it('mueve Recortar a la barra de hojas y elimina la galería lateral de imágenes', async () => {
     const user = userEvent.setup()
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(new Blob(['jpg'], { type: 'image/jpeg' })))
     renderWithProviders(<PdfStudioView />)
 
     await user.upload(fileInput(), imageFile())
@@ -376,10 +388,14 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: /Recortar imagen/i }))
 
-    expect(mocks.editImage).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'scan.png' }),
-      expect.objectContaining({ outputType: 'image/webp' }),
+    await waitFor(() =>
+      expect(mocks.editImage).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'pagina-1.jpg' }),
+        expect.objectContaining({ outputType: 'image/webp' }),
+      ),
     )
+    expect(fetchSpy).toHaveBeenCalledWith('blob:bg')
+    fetchSpy.mockRestore()
   })
 
   it('permite recortar una hoja PDF marcada rasterizándola como imagen', async () => {
@@ -1050,7 +1066,7 @@ describe('<PdfStudioView />', () => {
     await user.upload(fileInput(), img)
 
     expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Imágenes/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Imágenes$/i })).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: /Agregar esta imagen al documento/i }),
     ).not.toBeInTheDocument()

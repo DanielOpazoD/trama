@@ -62,6 +62,7 @@ export function useRecortesQuery() {
 export type CaptureInput =
   | { kind: 'link'; url: string; title?: string | null }
   | { kind: 'image'; file: File; note?: string | null }
+  | { kind: 'video'; file: File; note?: string | null }
 
 /**
  * Enriquecimiento diferido de un recorte-enlace: pide los metadatos OG y, si
@@ -128,7 +129,15 @@ export function useCreateRecorte() {
           captureMode: 'html',
         })
       }
-      const { imageKey } = await api.uploadRecorteImage(input.file)
+      const { imageKey } = await api.uploadRecorteMedia(input.file)
+      if (input.kind === 'video') {
+        return api.createRecorte({
+          text: 'Video guardado',
+          imageKey,
+          note: input.note ?? null,
+          captureMode: 'video',
+        })
+      }
       return api.createRecorte({
         text: 'Imagen guardada',
         imageKey,

@@ -5,11 +5,16 @@ import { usePdfStudioImport } from './usePdfStudioImport'
 
 const mocks = vi.hoisted(() => ({
   getPdfPageCount: vi.fn(),
+  imagesToSheetPdfFile: vi.fn(),
   toastShow: vi.fn(),
 }))
 
 vi.mock('../../../../lib/pdfStudio/render/pdfRender', () => ({
   getPdfPageCount: mocks.getPdfPageCount,
+}))
+
+vi.mock('../../../../lib/pdfStudio/assemble/imagesToSheetPdfFile', () => ({
+  imagesToSheetPdfFile: mocks.imagesToSheetPdfFile,
 }))
 
 vi.mock('../../../../state', () => ({
@@ -24,6 +29,9 @@ describe('usePdfStudioImport', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.getPdfPageCount.mockResolvedValue(1)
+    mocks.imagesToSheetPdfFile.mockResolvedValue(
+      new File(['%PDF-1.4'], 'imagenes.pdf', { type: 'application/pdf' }),
+    )
   })
 
   it('bloquea importaciones sin archivos soportados antes de procesarlas', async () => {
@@ -64,14 +72,47 @@ describe('usePdfStudioImport', () => {
     expect(commit).toHaveBeenCalledWith(
       expect.objectContaining({ pages: expect.arrayContaining([expect.any(Object)]) }),
     )
-    expect(onImageAssets).toHaveBeenCalledWith([
-      expect.objectContaining({ file: expect.objectContaining({ name: 'scan.png' }) }),
-    ])
+    expect(onImageAssets).toHaveBeenCalledWith([])
     expect(mocks.toastShow).toHaveBeenCalledWith(
       expect.objectContaining({
         message: expect.stringMatching(/pesadas|notas\.txt/i),
         tone: 'default',
       }),
     )
+  })
+
+  it('convierte imagenes importadas en hojas PDF editables con el layout configurado', async () => {
+    const commit = vi.fn()
+    const onImageAssets = vi.fn()
+    const doc = {
+      ...emptyDoc(),
+      settings: { imageLayout: { imagesPerPage: 4 as const } },
+    }
+    const { result } = renderHook(() =>
+      usePdfStudioImport({ commit, doc, onImageAssets }),
+    )
+
+    const files = [
+      file('a.png', 1200, 'image/png'),
+      file('b.webp', 1200, 'image/webp'),
+      file('c.jpg', 1200, 'image/jpeg'),
+    ]
+    await act(async () => {
+      await result.current.addFiles(files)
+    })
+
+    expect(mocks.imagesToSheetPdfFile).toHaveBeenCalledWith(files, {
+      imagesPerPage: 4,
+    })
+    expect(mocks.getPdfPageCount).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'imagenes.pdf', type: 'application/pdf' }),
+    )
+    expect(commit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sources: [expect.objectContaining({ kind: 'pdf' })],
+        pages: [expect.objectContaining({ kind: 'pdf', pageIndex: 0 })],
+      }),
+    )
+    expect(onImageAssets).toHaveBeenCalledWith([])
   })
 })

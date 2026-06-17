@@ -36,6 +36,23 @@ export async function persistImageRecorte(
   return { message: '📷 Imagen guardada en Recortes.', id }
 }
 
+export async function persistVideoRecorte(
+  sql: SqlClient,
+  userId: string,
+  videoKey: string,
+  caption: string,
+): Promise<CaptureResult> {
+  const text = caption.trim().length > 0 ? caption.trim() : '🎬 Video desde WhatsApp'
+  const rows = await sqlTyped<{ id: string }>(sql`
+    INSERT INTO recortes (text, image_key, capture_mode, captured_at, status, source, user_id)
+    VALUES (${text}, ${videoKey}, 'video', NOW(), 'pending', 'whatsapp', ${userId})
+    RETURNING id
+  `)
+  const id = rows[0]?.id
+  if (!id) throw new Error('persistVideoRecorte: INSERT no devolvió id')
+  return { message: '🎬 Video guardado en Recortes.', id }
+}
+
 /**
  * Varias imágenes de un MISMO mensaje → UN recorte-evento con todas. La primera
  * queda como `image_key` (portada, para lectores de una sola imagen) y TODAS

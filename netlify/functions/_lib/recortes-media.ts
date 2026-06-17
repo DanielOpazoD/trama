@@ -20,6 +20,18 @@ export const RECORTE_IMAGE_MIMES: Record<string, string> = {
   'image/gif': 'gif',
 }
 
+/** Tipos de video livianos que aceptamos como captura en Recortes. */
+export const RECORTE_VIDEO_MIMES: Record<string, string> = {
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/quicktime': 'mov',
+}
+
+export const RECORTE_MEDIA_MIMES: Record<string, string> = {
+  ...RECORTE_IMAGE_MIMES,
+  ...RECORTE_VIDEO_MIMES,
+}
+
 /** Hash hex aleatorio de 16 bytes — la parte inmutable e inadivinable de la key. */
 export function randomBlobName(): string {
   const arr = new Uint8Array(16)
@@ -28,17 +40,17 @@ export function randomBlobName(): string {
 }
 
 /**
- * Escribe los bytes de una imagen en `recortes-media` bajo el namespace del
+ * Escribe los bytes de un medio en `recortes-media` bajo el namespace del
  * usuario y devuelve la `imageKey` resultante. `mime` debe ser uno de
- * RECORTE_IMAGE_MIMES (el caller valida). Mime + size quedan en metadata, como
+ * RECORTE_MEDIA_MIMES (el caller valida). Mime + size quedan en metadata, como
  * el endpoint de subida — el servido los lee de ahí.
  */
-export async function storeRecorteImage(
+export async function storeRecorteMedia(
   userId: string,
   bytes: ArrayBuffer,
   mime: string,
 ): Promise<string> {
-  const ext = RECORTE_IMAGE_MIMES[mime] ?? 'jpg'
+  const ext = RECORTE_MEDIA_MIMES[mime] ?? 'bin'
   const key = `${userId}/${randomBlobName()}.${ext}`
   const store = getStore(RECORTES_MEDIA_STORE)
   await store.set(key, bytes, {
@@ -46,3 +58,5 @@ export async function storeRecorteImage(
   })
   return key
 }
+
+export const storeRecorteImage = storeRecorteMedia

@@ -9,6 +9,7 @@ import {
   isVisionRoute,
   downloadTwilioMedia,
   isAllowedImageMime,
+  isAllowedVideoMime,
   isTranscribableAudioMime,
   audioExtFromMime,
   MEDIA_TOO_LARGE,
@@ -56,6 +57,8 @@ describe('mediaCategory / extFromMime', () => {
   it('extensión por MIME (con parámetros)', () => {
     expect(extFromMime('image/jpeg')).toBe('jpg')
     expect(extFromMime('image/png; charset=binary')).toBe('png')
+    expect(extFromMime('video/mp4')).toBe('mp4')
+    expect(extFromMime('video/quicktime; charset=binary')).toBe('mov')
     expect(extFromMime('application/zip')).toBe('bin')
   })
 })
@@ -192,6 +195,16 @@ describe('isAllowedImageMime', () => {
     expect(isAllowedImageMime('IMAGE/WEBP')).toBe(true)
     expect(isAllowedImageMime('image/heic')).toBe(false)
     expect(isAllowedImageMime('application/pdf')).toBe(false)
+  })
+})
+
+describe('isAllowedVideoMime', () => {
+  it('acepta los formatos de video reproducibles y rechaza el resto', () => {
+    expect(isAllowedVideoMime('video/mp4')).toBe(true)
+    expect(isAllowedVideoMime('video/webm; codecs=vp9')).toBe(true)
+    expect(isAllowedVideoMime('VIDEO/QUICKTIME')).toBe(true)
+    expect(isAllowedVideoMime('video/avi')).toBe(false)
+    expect(isAllowedVideoMime('image/jpeg')).toBe(false)
   })
 })
 

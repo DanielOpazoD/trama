@@ -49,6 +49,7 @@ const CAPTURE_MODE_LABEL: Record<NonNullable<Recorte['captureMode']>, string> = 
   html: 'página',
   region: 'región',
   image: 'imagen',
+  video: 'video',
 }
 
 // Alto (px) a partir del cual el texto de una captura se colapsa con un botón
@@ -86,6 +87,7 @@ function RecorteMediaPreview({
 }) {
   const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
   const { src, status } = useAuthenticatedMediaState(authedSrc)
+  const isVideo = r.captureMode === 'video'
   // Miniatura derivada de YouTube si el recorte no trae imagen propia.
   const derivedThumb = !r.imageKey && !r.imageUrl ? youtubeThumb(r.sourceUrl ?? '') : null
   const [thumbFailed, setThumbFailed] = useState(false)
@@ -93,6 +95,28 @@ function RecorteMediaPreview({
 
   // Sin imagen real (ni propia ni derivada que cargue) → no se monta el marco.
   if (!authedSrc && !r.imageUrl && (!derivedThumb || thumbFailed)) return null
+
+  if (isVideo && authedSrc) {
+    return (
+      <div
+        className={`mb-3 overflow-hidden rounded-md border border-ink-100/70 bg-ink-950/90 ${size === 'grande' ? '' : size === 'mediana' ? 'max-w-[260px]' : 'max-w-[150px]'}`}
+      >
+        {status === 'ready' && src ? (
+          <video
+            src={src}
+            controls
+            preload="metadata"
+            aria-label="Video del recorte"
+            className="block aspect-video w-full bg-ink-950 object-contain"
+          />
+        ) : (
+          <div className="flex aspect-video items-center justify-center text-caption text-paper-50/70">
+            {status === 'error' ? 'No se pudo cargar el video' : 'cargando video…'}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <LinkMediaPreview
@@ -234,11 +258,12 @@ export function RecorteCard({
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
   const [ocrBusy, setOcrBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const hasImage = !!(r.imageKey || r.imageUrl)
-  const hasInternalImage = !!(r.imageKey || r.images.length > 0)
+  const hasVideo = r.captureMode === 'video' && !!r.imageKey
+  const hasImage = !hasVideo && !!(r.imageKey || r.imageUrl)
+  const hasInternalImage = !!(r.imageKey || r.images.length > 0) && !hasVideo
   // ¿Hay alguna imagen (propia o derivada de YouTube) que muestre el marco?
   // Si no, el origen se anuncia como eyebrow discreto sobre el título.
-  const hasPreview = hasImage || youtubeThumb(r.sourceUrl ?? '') !== null
+  const hasPreview = hasImage || hasVideo || youtubeThumb(r.sourceUrl ?? '') !== null
   const dateLabel = formatStamp(r.capturedAt ?? r.createdAt)
 
   // Colapso del cuerpo: igual que NoteCard, las capturas largas se recortan a

@@ -30,6 +30,14 @@ export function isAllowedImageMime(contentType: string): boolean {
   return ALLOWED_IMAGE_MIME.has(contentType.split(';')[0]!.trim().toLowerCase())
 }
 
+/** MIME de video que guardamos como Recorte reproducible en la app. */
+const ALLOWED_VIDEO_MIME = new Set(['video/mp4', 'video/webm', 'video/quicktime'])
+
+/** ¿Es un tipo de video soportado para Recortes? */
+export function isAllowedVideoMime(contentType: string): boolean {
+  return ALLOWED_VIDEO_MIME.has(contentType.split(';')[0]!.trim().toLowerCase())
+}
+
 /**
  * Formatos de audio que Whisper transcribe. WhatsApp manda ogg/opus; otros
  * (amr, 3gpp) NO los acepta OpenAI, así que quedan fuera (se avisa al usuario).
@@ -105,15 +113,18 @@ export function mediaCategory(contentType: string): MediaCategory {
   return 'other'
 }
 
-/** Extensión de archivo por MIME (solo imágenes por ahora; el resto → bin). */
+/** Extensión de archivo por MIME para media guardada en Blob Storage. */
 export function extFromMime(mime: string): string {
   const map: Record<string, string> = {
     'image/jpeg': 'jpg',
     'image/png': 'png',
     'image/webp': 'webp',
     'image/gif': 'gif',
+    'video/mp4': 'mp4',
+    'video/webm': 'webm',
+    'video/quicktime': 'mov',
   }
-  return map[mime.split(';')[0]!.trim()] ?? 'bin'
+  return map[mime.split(';')[0]!.trim().toLowerCase()] ?? 'bin'
 }
 
 /**

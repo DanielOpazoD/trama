@@ -104,6 +104,28 @@ describe('recortes-image-upload', () => {
       metadata: { mime: 'image/webp', size: '3' },
     })
   })
+
+  it('sube videos de recortes al mismo store de media', async () => {
+    const res = await uploadHandler(
+      new Request('http://localhost/api/recortes-image-upload', {
+        method: 'POST',
+        body: formWithFile(
+          new File([new Uint8Array([1, 2, 3, 4])], 'clip.mp4', {
+            type: 'video/mp4',
+          }),
+        ),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toMatchObject({ mime: 'video/mp4', size: 4 })
+    expect(body.imageKey).toMatch(/^legacy-single-user\/[a-f0-9]{32}\.mp4$/)
+    expect(blobMocks.set).toHaveBeenCalledWith(body.imageKey, expect.any(ArrayBuffer), {
+      metadata: { mime: 'video/mp4', size: '4' },
+    })
+  })
 })
 
 describe('recortes-image (servir)', () => {

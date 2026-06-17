@@ -15,6 +15,10 @@ vi.mock('../../state', async (importActual) => {
   }
 })
 
+vi.mock('../momentos/AuthenticatedMedia', () => ({
+  useAuthenticatedMediaState: () => ({ src: 'blob:recorte', status: 'ready' }),
+}))
+
 const LONG_TEXT = Array.from(
   { length: 36 },
   (_, i) => `Linea extensa ${i + 1}: una captura larga que no debe ocupar toda la lista.`,
