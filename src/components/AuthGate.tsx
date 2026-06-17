@@ -36,19 +36,21 @@ const clerkAppearance = {
     rootBox: { width: '100%' },
     card: {
       boxShadow: 'none',
-      border: '1px solid rgb(var(--ink-100) / 0.78)',
-      backgroundColor: 'rgb(var(--paper-50) / 0.72)',
-      backdropFilter: 'blur(18px)',
+      border: '1px solid rgb(var(--ink-100) / 0.56)',
+      backgroundColor: 'rgb(var(--paper-50) / 0.6)',
+      backdropFilter: 'blur(22px) saturate(1.08)',
     },
     header: { display: 'none' },
     socialButtonsBlockButton: {
-      borderColor: 'rgb(var(--ink-100) / 0.82)',
-      backgroundColor: 'rgb(var(--paper-50) / 0.44)',
+      borderColor: 'rgb(var(--ink-100) / 0.66)',
+      backgroundColor: 'rgb(var(--paper-50) / 0.52)',
+      boxShadow:
+        '0 1px 0 rgb(var(--paper-50) / 0.8) inset, 0 10px 24px rgb(var(--ink-900) / 0.035)',
     },
     dividerLine: { backgroundColor: 'rgb(var(--ink-100) / 0.72)' },
     footer: {
       background: 'transparent',
-      borderTop: '1px solid rgb(var(--ink-100) / 0.44)',
+      borderTop: '1px solid rgb(var(--ink-100) / 0.32)',
       boxShadow: 'none',
       color: 'rgb(var(--ink-300))',
       paddingTop: '1rem',

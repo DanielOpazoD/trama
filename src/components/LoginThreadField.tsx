@@ -8,11 +8,11 @@ type ThreadPoint = {
   phase: number
 }
 
-const POINT_COUNT = 34
-const LINK_DISTANCE = 210
+const POINT_COUNT = 38
+const LINK_DISTANCE = 184
 const POINTER_FORCE = 0.0007
-const THREAD_ALPHA = 0.07
-const POINT_ALPHA = 0.08
+const THREAD_ALPHA = 0.045
+const POINT_ALPHA = 0.055
 
 function prefersReducedMotion() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -25,11 +25,15 @@ function readCssColor(name: string, fallback: string) {
 
 function makePoints(width: number, height: number): ThreadPoint[] {
   return Array.from({ length: POINT_COUNT }, (_, index) => {
-    const column = (index % 9) / 8
-    const row = Math.floor(index / 9) / 3
+    const side = index % 2 === 0 ? 'left' : 'right'
+    const sideIndex = Math.floor(index / 2)
+    const column = (sideIndex % 5) / 4
+    const row = Math.floor(sideIndex / 5) / 4
+    const xStart = side === 'left' ? 0.02 : 0.64
+    const xRange = side === 'left' ? 0.28 : 0.34
     return {
-      x: width * (0.08 + column * 0.84) + Math.sin(index * 2.1) * 24,
-      y: height * (0.08 + row * 0.8) + Math.cos(index * 1.7) * 22,
+      x: width * (xStart + column * xRange) + Math.sin(index * 2.1) * 26,
+      y: height * (0.04 + row * 0.86) + Math.cos(index * 1.7) * 24,
       vx: Math.sin(index * 1.9) * 0.018,
       vy: Math.cos(index * 2.3) * 0.016,
       phase: index * 0.8,
@@ -60,6 +64,7 @@ export function LoginThreadField() {
     const reducedMotion = prefersReducedMotion()
     const ink = readCssColor('--ink-700', '24 24 27')
     const gold = readCssColor('--accent-gold', '#a07900')
+    const cyan = readCssColor('--accent-cyan', '#2a9aa6')
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect()
@@ -121,18 +126,52 @@ export function LoginThreadField() {
         ctx.fill()
       }
 
+      const centerX = width * 0.5
+      const centerY = height * 0.255
+      const clearRadius = Math.min(width * 0.18, 190)
+      const fade = ctx.createRadialGradient(
+        centerX,
+        centerY,
+        clearRadius * 0.58,
+        centerX,
+        centerY,
+        clearRadius,
+      )
+      fade.addColorStop(0, 'rgb(255 255 255 / 0.54)')
+      fade.addColorStop(1, 'rgb(255 255 255 / 0)')
+      ctx.fillStyle = fade
+      ctx.fillRect(
+        centerX - clearRadius,
+        centerY - clearRadius,
+        clearRadius * 2,
+        clearRadius * 2,
+      )
+
       ctx.strokeStyle = gold
-      ctx.globalAlpha = reducedMotion ? 0.09 : 0.055 + Math.sin(frame * 0.035) * 0.018
-      ctx.lineWidth = 1
+      ctx.globalAlpha = reducedMotion ? 0.08 : 0.045 + Math.sin(frame * 0.035) * 0.014
+      ctx.lineWidth = 0.95
       ctx.beginPath()
-      ctx.moveTo(width * 0.38, height * 0.32)
+      ctx.moveTo(width * 0.32, height * 0.23)
       ctx.bezierCurveTo(
-        width * 0.47,
-        height * 0.22,
-        width * 0.55,
-        height * 0.45,
-        width * 0.66,
-        height * 0.34,
+        width * 0.42,
+        height * 0.14,
+        width * 0.52,
+        height * 0.33,
+        width * 0.64,
+        height * 0.23,
+      )
+      ctx.stroke()
+      ctx.strokeStyle = cyan
+      ctx.globalAlpha = reducedMotion ? 0.045 : 0.026 + Math.sin(frame * 0.028) * 0.01
+      ctx.beginPath()
+      ctx.moveTo(width * 0.25, height * 0.37)
+      ctx.bezierCurveTo(
+        width * 0.38,
+        height * 0.28,
+        width * 0.58,
+        height * 0.42,
+        width * 0.77,
+        height * 0.29,
       )
       ctx.stroke()
       ctx.globalAlpha = 1
