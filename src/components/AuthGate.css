@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.85rem;
+  gap: clamp(1.55rem, 5vw, 2.45rem);
 }
 
 .trama-login-lockup {
@@ -125,7 +125,7 @@
   box-shadow:
     0 8px 28px rgb(var(--ink-900) / 0.07),
     0 1px 0 rgb(var(--paper-50) / 0.8) inset;
-  transform: translateY(0.9rem);
+  transform: translate(0.75rem, 1rem);
 }
 
 .trama-login-mascotSeal::before,
@@ -218,13 +218,13 @@
   }
 
   .trama-login-titleRow {
-    gap: 0.58rem;
+    gap: 1.15rem;
   }
 
   .trama-login-mascotSeal {
     width: 2.5rem;
     height: 2.5rem;
-    transform: translateY(0.72rem);
+    transform: translate(0.36rem, 0.76rem);
   }
 
   .trama-login-wordmark {
