@@ -68,6 +68,24 @@ async function setupRecorteImage(page: Page) {
 }
 
 test.describe('Recortes → Imprenta', () => {
+  test('envía una imagen a Imprenta desde el menú del recorte', async ({ page }) => {
+    await setupRecorteImage(page)
+    await page.goto('/?world=notas&section=notas&segment=capturas')
+
+    await expect(
+      page.getByTestId('notas-world-content').getByRole('heading', { name: 'Notas' }),
+    ).toBeVisible()
+    await expect(page.getByText('Recibo WhatsApp')).toBeVisible()
+    await page.getByRole('button', { name: 'Acciones del recorte' }).first().click()
+    await page.getByRole('menuitem', { name: /Imprenta/i }).click()
+
+    await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible()
+    await expect(page.getByAltText('Página 1').first()).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.getByText(/imagen enviada a Imprenta/i)).toBeVisible()
+  })
+
   test('envía una imagen seleccionada a Imprenta y la importa como página', async ({
     page,
   }) => {

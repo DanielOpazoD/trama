@@ -1132,6 +1132,11 @@ export function NotasFeedView({
                                   })
                                 }
                                 onDelete={() => deleteRecorte.mutate(item.id)}
+                                onSendImagesToPdf={
+                                  onSendImagesToPdf
+                                    ? (recorte) => onSendImagesToPdf([recorte])
+                                    : undefined
+                                }
                               />
                             </ul>
                           </SelectableRecorte>
