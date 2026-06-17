@@ -3,6 +3,7 @@ import {
   isPdfTemplate,
   type DocSettings,
   type PdfDoc,
+  type PdfImageGridCount,
 } from '../../../lib/pdfStudio/model/model'
 import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
 import { canRedo, canUndo, redo, undo } from '../../../lib/pdfStudio/model/history'
@@ -39,6 +40,10 @@ import { usePdfStudioWorkspace } from './workspace/usePdfStudioWorkspace'
 import { pdfStudioPageInteractionMode as pageMode } from './shell/pdfStudioPageInteractionMode'
 import { usePdfStudioDocumentHistory } from './shell/usePdfStudioDocumentHistory'
 import { useToast } from '../../../state'
+import {
+  PDF_STUDIO_RECORTE_EVENT,
+  takePdfStudioRecorteFiles,
+} from '../../../lib/pdfStudio/recorteBridge'
 const ACCEPT = 'application/pdf,image/*'
 export type PdfStudioMode = 'editor' | 'templates'
 type PdfStudioViewProps = { topBar?: ReactNode; studioMode?: PdfStudioMode }
@@ -104,6 +109,16 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     doc,
     onImageAssets: workspace.addAssets,
   })
+  useEffect(() => {
+    const importQueuedRecortes = () => {
+      const files = takePdfStudioRecorteFiles()
+      if (files.length > 0) void addFiles(files)
+    }
+    importQueuedRecortes()
+    window.addEventListener(PDF_STUDIO_RECORTE_EVENT, importQueuedRecortes)
+    return () =>
+      window.removeEventListener(PDF_STUDIO_RECORTE_EVENT, importQueuedRecortes)
+  }, [addFiles])
   const { applyForms, clearForms, formSummary, forms, inspectForms, updateFormValue } =
     usePdfStudioForms(doc, commit)
   const {
@@ -202,6 +217,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   )
   const pageNumbers = doc.settings?.pageNumbers
   const watermarkText = doc.settings?.watermark?.text ?? ''
+  const headerText = doc.settings?.header?.text ?? ''
+  const footerText = doc.settings?.footer?.text ?? ''
+  const imagesPerPage = doc.settings?.imageLayout?.imagesPerPage ?? 1
   const setPageNumbers = (next: DocSettings['pageNumbers']) =>
     updateSettings({ ...doc.settings, pageNumbers: next })
   const setWatermark = (text: string) =>
@@ -209,6 +227,12 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       ...doc.settings,
       watermark: text.trim() ? { text } : undefined,
     })
+  const setHeader = (text: string) =>
+    updateSettings({ ...doc.settings, header: text.trim() ? { text } : undefined })
+  const setFooter = (text: string) =>
+    updateSettings({ ...doc.settings, footer: text.trim() ? { text } : undefined })
+  const setImagesPerPage = (next: PdfImageGridCount) =>
+    updateSettings({ ...doc.settings, imageLayout: { imagesPerPage: next } })
   return (
     <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
       <PdfStudioWorkspacePanelHost
@@ -262,6 +286,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               exportCompression={exportCompression}
               formsEnabled={templatesEnabled}
               pageNumbers={pageNumbers}
+              headerText={headerText}
+              footerText={footerText}
+              imagesPerPage={imagesPerPage}
               redoable={redoable}
               saving={saving}
               studioMode={studioMode}
@@ -288,6 +315,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               onStartSaveTemplate={startTemplateSave}
               onSetExportCompression={setExportCompression}
               onSetPageNumbers={setPageNumbers}
+              onSetHeader={setHeader}
+              onSetFooter={setFooter}
+              onSetImagesPerPage={setImagesPerPage}
               onSetWatermark={setWatermark}
             />
             {(!empty || workspace.autosaveState.kind !== 'idle') && (

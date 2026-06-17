@@ -5,6 +5,7 @@ import {
 import {
   BoldIcon,
   ChevronDownIcon,
+  ItalicIcon,
   OpacityIcon,
   RotateIcon,
   TextSizeIcon,
@@ -32,6 +33,7 @@ export function EditorToolbarStyleMenu({
   activeFont,
   activeSize,
   activeBold,
+  activeItalic,
   activeColor,
   activeOpacity,
   activeRotation,
@@ -40,6 +42,7 @@ export function EditorToolbarStyleMenu({
   activeFont: PdfFontKind
   activeSize: number
   activeBold: boolean
+  activeItalic: boolean
   activeColor: string
   activeOpacity: number
   activeRotation: number
@@ -110,20 +113,32 @@ export function EditorToolbarStyleMenu({
             incDisabled={activeSize >= SIZE_MAX - 1e-6}
           />
 
-          <div className="flex items-center justify-between px-1">
-            <span className="text-caption text-ink-700">Negrita</span>
+          <div className="grid grid-cols-2 gap-2 px-1">
             <button
               type="button"
               onClick={() => onApplyStyle({ bold: !activeBold })}
               aria-pressed={activeBold}
               aria-label="Negrita"
-              className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
+              className={`h-7 inline-flex items-center justify-center gap-1 rounded-md text-caption transition-colors ${focusRing} ${
                 activeBold
                   ? 'bg-ink-100/60 text-ink-800'
                   : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'
               }`}
             >
-              <BoldIcon size={14} />
+              <BoldIcon size={14} /> Negrita
+            </button>
+            <button
+              type="button"
+              onClick={() => onApplyStyle({ italic: !activeItalic })}
+              aria-pressed={activeItalic}
+              aria-label="Cursiva"
+              className={`h-7 inline-flex items-center justify-center gap-1 rounded-md text-caption transition-colors ${focusRing} ${
+                activeItalic
+                  ? 'bg-ink-100/60 text-ink-800'
+                  : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'
+              }`}
+            >
+              <ItalicIcon size={14} /> Cursiva
             </button>
           </div>
 

@@ -9,7 +9,9 @@ export async function applyDocumentSettings(
 ) {
   const settings = doc.settings
   const wmText = settings?.watermark?.text?.trim()
-  if (!settings?.pageNumbers && !wmText) return
+  const headerText = settings?.header?.text?.trim()
+  const footerText = settings?.footer?.text?.trim()
+  if (!settings?.pageNumbers && !wmText && !headerText && !footerText) return
 
   const outPages = out.getPages()
   const helv = await out.embedFont('Helvetica')
@@ -17,6 +19,19 @@ export async function applyDocumentSettings(
   outPages.forEach((p, i) => {
     const w = p.getWidth()
     const h = p.getHeight()
+    if (headerText || footerText) {
+      const size = Math.max(8, Math.min(w, h) * 0.018)
+      const margin = Math.max(18, Math.min(w, h) * 0.04)
+      const color = rgb(0.28, 0.28, 0.32)
+      if (headerText) {
+        const tw = helv.widthOfTextAtSize(headerText, size)
+        p.drawText(headerText, { x: (w - tw) / 2, y: h - margin - size, size, font: helv, color })
+      }
+      if (footerText) {
+        const tw = helv.widthOfTextAtSize(footerText, size)
+        p.drawText(footerText, { x: (w - tw) / 2, y: margin, size, font: helv, color })
+      }
+    }
     if (settings?.pageNumbers) {
       const label = `${i + 1} / ${total}`
       const size = Math.max(8, Math.min(w, h) * 0.018)

@@ -10,6 +10,7 @@ import {
   makeTextAnnotation,
   rotatePage,
   setPageAnnotations,
+  setDocSettings,
 } from '../model/model'
 
 // pdf-lib es browser-only (canvas/DOMMatrix) → se mockea. Este test guarda el
@@ -203,6 +204,46 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.drawImage).toHaveBeenCalledTimes(1)
     expect(blob.type).toBe('application/pdf')
     expect(skipped).toEqual([])
+  })
+
+  it('agrupa páginas de imagen limpias según imagesPerPage', async () => {
+    let doc = emptyDoc()
+    for (let i = 0; i < 5; i += 1) doc = addImageSource(doc, png(`foto-${i}.png`))
+    doc = setDocSettings(doc, { imageLayout: { imagesPerPage: 2 } })
+
+    await assemble(doc)
+
+    expect(calls.addPage).toHaveBeenCalledTimes(3)
+    expect(calls.addPage).toHaveBeenCalledWith([595.28, 841.89])
+    expect(calls.drawImage).toHaveBeenCalledTimes(5)
+  })
+
+  it('no agrupa imágenes que tienen anotaciones para no perder edición por página', async () => {
+    let doc = addImageSource(emptyDoc(), png('foto-1.png'))
+    doc = addImageSource(doc, png('foto-2.png'))
+    doc = setDocSettings(doc, { imageLayout: { imagesPerPage: 2 } })
+    doc = setPageAnnotations(doc, 1, [
+      makeTextAnnotation({
+        text: 'nota',
+        xRatio: 0.1,
+        yRatio: 0.1,
+        wRatio: 0.2,
+        hRatio: 0.08,
+        sizeRatio: 0.03,
+        color: '#222222',
+        font: 'sans',
+        bold: false,
+      }),
+    ])
+
+    await assemble(doc)
+
+    expect(calls.addPage).toHaveBeenCalledTimes(2)
+    expect(calls.drawImage).toHaveBeenCalledTimes(2)
+    expect(calls.drawText).toHaveBeenCalledWith(
+      'nota',
+      expect.objectContaining({ maxWidth: expect.any(Number) }),
+    )
   })
 
   it('emite progreso por fases del pipeline de exportación', async () => {

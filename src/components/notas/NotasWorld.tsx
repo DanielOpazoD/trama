@@ -13,6 +13,7 @@ import { LoadingHint } from '../LoadingHint'
 import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
+import { PDF_STUDIO_RECORTE_EVENT } from '../../lib/pdfStudio/recorteBridge'
 
 // Lazy: pdf.js (~1MB) y pdf-lib sólo se bajan al entrar a la sección PDF.
 const loadPdfStudioView = () =>
@@ -67,6 +68,12 @@ export function NotasWorld({
   // estar declarada ANTES de este filter — el callback corre síncrono y, con
   // alguna sección oculta, evalúa `s.id === section` (TDZ si viene después).
   const visibleSections = SECTIONS.filter((s) => isVisible(s.id) || s.id === section)
+
+  useEffect(() => {
+    const onRecorteToPrint = () => setSection('pdf')
+    window.addEventListener(PDF_STUDIO_RECORTE_EVENT, onRecorteToPrint)
+    return () => window.removeEventListener(PDF_STUDIO_RECORTE_EVENT, onRecorteToPrint)
+  }, [setSection])
 
   useEffect(() => {
     if (!searchOpen) return

@@ -1,6 +1,11 @@
 import { pdfCommandTooltip } from '../../../../lib/pdfStudio/model/commands'
 import type { AssembleOptions } from '../../../../lib/pdfStudio/assemble/assemble'
-import type { DocSettings } from '../../../../lib/pdfStudio/model/model'
+import {
+  PDF_IMAGE_GRID_COUNTS,
+  parsePdfImageGridCount,
+  type DocSettings,
+  type PdfImageGridCount,
+} from '../../../../lib/pdfStudio/model/model'
 import type { PdfTemplateMode } from '../planillas/design/PdfTemplateModeBanner'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 import { WaitingVoice } from '../../../WaitingVoice'
@@ -27,6 +32,9 @@ export function PdfStudioDocumentToolbar({
   exportStatus,
   formsEnabled,
   pageNumbers,
+  headerText,
+  footerText,
+  imagesPerPage,
   redoable,
   saving,
   studioMode,
@@ -46,6 +54,9 @@ export function PdfStudioDocumentToolbar({
   onStartSaveTemplate,
   onSetExportCompression,
   onSetPageNumbers,
+  onSetHeader,
+  onSetFooter,
+  onSetImagesPerPage,
   onSetWatermark,
   onUndo,
 }: {
@@ -56,6 +67,9 @@ export function PdfStudioDocumentToolbar({
   exportStatus: string | null
   formsEnabled: boolean
   pageNumbers: DocSettings['pageNumbers']
+  headerText: string
+  footerText: string
+  imagesPerPage: PdfImageGridCount
   redoable: boolean
   saving: boolean
   studioMode: 'editor' | 'templates'
@@ -75,6 +89,9 @@ export function PdfStudioDocumentToolbar({
   onStartSaveTemplate: () => void
   onSetExportCompression: (next: AssembleOptions['compression']) => void
   onSetPageNumbers: (next: DocSettings['pageNumbers']) => void
+  onSetHeader: (text: string) => void
+  onSetFooter: (text: string) => void
+  onSetImagesPerPage: (next: PdfImageGridCount) => void
   onSetWatermark: (text: string) => void
   onUndo: () => void
 }) {
@@ -316,6 +333,55 @@ export function PdfStudioDocumentToolbar({
                     placeholder="Ej: BORRADOR"
                     className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
                   />
+
+                  <label
+                    className="mt-2 block text-caption text-ink-700"
+                    htmlFor="pdf-header-menu"
+                  >
+                    Encabezado
+                  </label>
+                  <input
+                    id="pdf-header-menu"
+                    type="text"
+                    value={headerText}
+                    onChange={(e) => onSetHeader(e.target.value)}
+                    placeholder="Texto en todas las hojas"
+                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                  />
+                  <label
+                    className="mt-2 block text-caption text-ink-700"
+                    htmlFor="pdf-footer-menu"
+                  >
+                    Pie de página
+                  </label>
+                  <input
+                    id="pdf-footer-menu"
+                    type="text"
+                    value={footerText}
+                    onChange={(e) => onSetFooter(e.target.value)}
+                    placeholder="Texto inferior en todas las hojas"
+                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                  />
+                  <label
+                    className="mt-2 block text-caption text-ink-700"
+                    htmlFor="pdf-images-per-page-menu"
+                  >
+                    Imágenes por página
+                  </label>
+                  <select
+                    id="pdf-images-per-page-menu"
+                    value={imagesPerPage}
+                    onChange={(e) =>
+                      onSetImagesPerPage(parsePdfImageGridCount(e.currentTarget.value))
+                    }
+                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                  >
+                    {PDF_IMAGE_GRID_COUNTS.map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
                   <label
                     className="mt-2 block text-caption text-ink-700"
                     htmlFor="pdf-compression-menu"

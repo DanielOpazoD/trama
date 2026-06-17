@@ -107,7 +107,7 @@ export async function applyPdfAnnotations({
   out: PDFDocument
   outPage: PDFPage
   annotations: Annotation[]
-  fontFor: (font: PdfFontKind, bold: boolean) => Promise<PDFFont>
+  fontFor: (font: PdfFontKind, bold: boolean, italic?: boolean) => Promise<PDFFont>
   rgb: RgbFn
   degrees: DegreesFn
   skipped: SkippedSource[]
@@ -118,7 +118,7 @@ export async function applyPdfAnnotations({
     try {
       if (ann.kind === 'text') {
         if (!ann.text.trim()) continue
-        const font = await fontFor(ann.font, ann.bold)
+        const font = await fontFor(ann.font, ann.bold, ann.italic)
         const layout = textBoxLayout(ann, w, h)
         const size = Math.max(1, layout.size)
         const c = hexToRgb(ann.color)

@@ -30,6 +30,7 @@ import {
   normalizeDoc,
   pageHasAnnotations,
   pageThumbKey,
+  parsePdfImageGridCount,
   previewFontFamily,
   replacePageWithImage,
   replacePdfSourceFile,
@@ -450,6 +451,13 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(standardFontName('serif', true)).toBe('Times-Bold')
     expect(standardFontName('mono', false)).toBe('Courier')
     expect(standardFontName('mono', true)).toBe('Courier-Bold')
+  })
+
+  it('parsePdfImageGridCount acepta sólo grillas soportadas', () => {
+    expect(parsePdfImageGridCount('1')).toBe(1)
+    expect(parsePdfImageGridCount('6')).toBe(6)
+    expect(parsePdfImageGridCount('5')).toBe(1)
+    expect(parsePdfImageGridCount('foo')).toBe(1)
   })
 
   it('previewFontFamily usa la fuente REAL embebible (Inter/Spectral), Courier para mono', () => {

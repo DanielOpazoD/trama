@@ -1,5 +1,15 @@
 export type PdfSourceKind = 'pdf' | 'image'
 
+export const PDF_IMAGE_GRID_COUNTS = [1, 2, 3, 4, 6] as const
+export type PdfImageGridCount = (typeof PDF_IMAGE_GRID_COUNTS)[number]
+
+export function parsePdfImageGridCount(value: string): PdfImageGridCount {
+  const n = Number(value)
+  return PDF_IMAGE_GRID_COUNTS.includes(n as PdfImageGridCount)
+    ? (n as PdfImageGridCount)
+    : 1
+}
+
 export type PdfSource = {
   id: string
   kind: PdfSourceKind
@@ -27,6 +37,7 @@ export type TextAnnotation = AnnotationBase & {
   color: string
   font: PdfFontKind
   bold: boolean
+  italic?: boolean
   rotation?: number
 }
 
@@ -121,6 +132,9 @@ export type PdfPage = {
 export type DocSettings = {
   pageNumbers?: { position: 'left' | 'center' | 'right' }
   watermark?: { text: string }
+  header?: { text: string }
+  footer?: { text: string }
+  imageLayout?: { imagesPerPage: PdfImageGridCount }
   /** Tamaño GLOBAL de las marcas X (lado como fracción del alto de página). Una
    *  sola medida para todo el documento: cambiarla redimensiona todas las X. */
   xMarkSize?: number

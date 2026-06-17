@@ -17,6 +17,7 @@ export type {
   PdfFormFieldKind,
   PdfFormValue,
   PdfFontKind,
+  PdfImageGridCount,
   PdfPage,
   PdfSource,
   PdfSourceKind,
@@ -25,6 +26,7 @@ export type {
   ShapeKind,
   TextAnnotation,
 } from './modelTypes'
+export { parsePdfImageGridCount, PDF_IMAGE_GRID_COUNTS } from './modelTypes'
 export {
   applyEdits,
   cloneAnnotation,

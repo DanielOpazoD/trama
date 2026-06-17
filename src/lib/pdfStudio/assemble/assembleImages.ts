@@ -1,4 +1,5 @@
-import type { PDFDocument, PDFPage } from 'pdf-lib'
+import type { PDFDocument, PDFImage, PDFPage } from 'pdf-lib'
+import type { PdfImageGridCount } from '../model/model'
 
 export type PdfImageCompressionMode = 'balanced' | 'compatibility'
 
@@ -124,6 +125,90 @@ async function toJpegBytes(
   }
 }
 
+const A4: [number, number] = [595.28, 841.89]
+const IMAGE_PAGE_MARGIN = 54
+
+type ImageBox = { x: number; y: number; w: number; h: number }
+type EmbeddedImage = { image: PDFImage; width: number; height: number }
+
+async function embedImage(
+  out: PDFDocument,
+  file: File,
+  policy: PdfImageCompressionPolicy,
+): Promise<EmbeddedImage> {
+  const buf = new Uint8Array(await file.arrayBuffer())
+  if (file.type === 'image/png' || isPngBytes(buf)) {
+    const size = readPngSize(buf)
+    if (!size || size.w * size.h <= policy.maxLosslessPngPixels) {
+      try {
+        const png = await out.embedPng(buf)
+        return { image: png, width: png.width, height: png.height }
+      } catch {
+        // PNG no soportado por pdf-lib → JPEG abajo.
+      }
+    }
+  }
+  const { bytes, width, height } = await toJpegBytes(file, policy)
+  const jpg = await out.embedJpg(bytes)
+  return { image: jpg, width, height }
+}
+
+export function fitImageInsideBox(srcW: number, srcH: number, box: ImageBox) {
+  const scale = Math.min(box.w / srcW, box.h / srcH)
+  const width = srcW * scale
+  const height = srcH * scale
+  return {
+    x: box.x + (box.w - width) / 2,
+    y: box.y + (box.h - height) / 2,
+    width,
+    height,
+  }
+}
+
+export function imageGridBoxes(count: PdfImageGridCount): ImageBox[] {
+  const [pageW, pageH] = A4
+  const gap = 24
+  const content = {
+    x: IMAGE_PAGE_MARGIN,
+    y: IMAGE_PAGE_MARGIN,
+    w: pageW - IMAGE_PAGE_MARGIN * 2,
+    h: pageH - IMAGE_PAGE_MARGIN * 2,
+  }
+  const cols = count === 1 ? 1 : count === 2 ? 1 : 2
+  const rows = count === 1 ? 1 : count === 2 ? 2 : count === 3 || count === 4 ? 2 : 3
+  const cellW = (content.w - gap * (cols - 1)) / cols
+  const cellH = (content.h - gap * (rows - 1)) / rows
+  return Array.from({ length: count }, (_, i) => {
+    const col = i % cols
+    const rowFromTop = Math.floor(i / cols)
+    return {
+      x: content.x + col * (cellW + gap),
+      y: content.y + (rows - 1 - rowFromTop) * (cellH + gap),
+      w: cellW,
+      h: cellH,
+    }
+  })
+}
+
+export async function addImageGridPage(
+  out: PDFDocument,
+  files: File[],
+  options: { compression?: PdfImageCompressionMode; imagesPerPage?: PdfImageGridCount } = {},
+): Promise<PDFPage> {
+  const policy = imageCompressionPolicy(options.compression)
+  const perPage = options.imagesPerPage ?? 1
+  const p = out.addPage(A4)
+  const boxes = imageGridBoxes(perPage)
+  for (const [i, file] of files.slice(0, perPage).entries()) {
+    const embedded = await embedImage(out, file, policy)
+    p.drawImage(
+      embedded.image,
+      fitImageInsideBox(embedded.width, embedded.height, boxes[i]!),
+    )
+  }
+  return p
+}
+
 /**
  * Embebe una imagen como una hoja. PNG → sin pérdida (`embedPng`, preserva
  * screenshots/line-art); el resto se re-encodea a JPEG. Si pdf-lib no soporta
@@ -134,24 +219,8 @@ export async function addImagePage(
   file: File,
   options: { compression?: PdfImageCompressionMode } = {},
 ): Promise<PDFPage> {
-  const policy = imageCompressionPolicy(options.compression)
-  const buf = new Uint8Array(await file.arrayBuffer())
-  if (file.type === 'image/png' || isPngBytes(buf)) {
-    const size = readPngSize(buf)
-    if (!size || size.w * size.h <= policy.maxLosslessPngPixels) {
-      try {
-        const png = await out.embedPng(buf)
-        const p = out.addPage([png.width, png.height])
-        p.drawImage(png, { x: 0, y: 0, width: png.width, height: png.height })
-        return p
-      } catch {
-        // PNG no soportado por pdf-lib → JPEG abajo.
-      }
-    }
-  }
-  const { bytes, width, height } = await toJpegBytes(file, policy)
-  const jpg = await out.embedJpg(bytes)
-  const p = out.addPage([width, height])
-  p.drawImage(jpg, { x: 0, y: 0, width, height })
-  return p
+  return addImageGridPage(out, [file], {
+    compression: options.compression,
+    imagesPerPage: 1,
+  })
 }

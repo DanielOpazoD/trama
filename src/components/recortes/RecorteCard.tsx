@@ -25,6 +25,7 @@ import { recorteToLightboxEntries } from './recorteViewer'
 import type { PromoteSeed } from './PromoteModal'
 import { markdownToPreview } from './recorteMarkdownPreview'
 import { AIThinkingLabel } from '../AIThinkingLabel'
+import { enqueuePdfStudioRecorteFiles } from '../../lib/pdfStudio/recorteBridge'
 
 function formatStamp(iso: string | null): string {
   if (!iso) return ''
@@ -134,13 +135,15 @@ function RecorteMediaPreview({
  * Baja la imagen del recorte como File para pasarla al OCR. Prefiere el blob
  * interno authed (imageKey, vía apiFetch con Bearer); si no, la URL externa.
  */
+async function fetchRecorteImageKeyFile(imageKey: string, index = 0): Promise<File> {
+  const res = await apiFetch(recorteImageUrl(imageKey))
+  if (!res.ok) throw new Error('No se pudo leer la imagen del recorte')
+  const blob = await res.blob()
+  return new File([blob], `recorte-${index + 1}`, { type: blob.type || 'image/webp' })
+}
+
 async function fetchRecorteImageFile(r: Recorte): Promise<File> {
-  if (r.imageKey) {
-    const res = await apiFetch(recorteImageUrl(r.imageKey))
-    if (!res.ok) throw new Error('No se pudo leer la imagen del recorte')
-    const blob = await res.blob()
-    return new File([blob], 'recorte', { type: blob.type || 'image/webp' })
-  }
+  if (r.imageKey) return fetchRecorteImageKeyFile(r.imageKey)
   if (r.imageUrl) {
     const res = await fetch(r.imageUrl)
     if (!res.ok) throw new Error('No se pudo leer la imagen externa')
@@ -148,6 +151,24 @@ async function fetchRecorteImageFile(r: Recorte): Promise<File> {
     return new File([blob], 'recorte', { type: blob.type || 'image/jpeg' })
   }
   throw new Error('El recorte no tiene imagen')
+}
+
+type RecorteImageFilesResult = { files: File[]; failed: number }
+
+async function fetchRecorteImageFiles(r: Recorte): Promise<RecorteImageFilesResult> {
+  const keys = r.images.map((image) => image.storageKey)
+  if (keys.length > 0) {
+    const settled = await Promise.allSettled(
+      keys.map((key, index) => fetchRecorteImageKeyFile(key, index)),
+    )
+    return {
+      files: settled.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value] : [],
+      ),
+      failed: settled.filter((result) => result.status === 'rejected').length,
+    }
+  }
+  return { files: [await fetchRecorteImageFile(r)], failed: 0 }
 }
 
 /**
@@ -230,6 +251,7 @@ export function RecorteCard({
   const toast = useToast()
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
   const [ocrBusy, setOcrBusy] = useState(false)
+  const [exportingPrint, setExportingPrint] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const hasImage = !!(r.imageKey || r.imageUrl)
   // ¿Hay alguna imagen (propia o derivada de YouTube) que muestre el marco?
@@ -286,6 +308,30 @@ export function RecorteCard({
       toast.show({ message: msg, tone: 'error' })
     } finally {
       setOcrBusy(false)
+    }
+  }
+
+  async function handleExportToPrint() {
+    if (exportingPrint) return
+    setExportingPrint(true)
+    try {
+      const { files, failed } = await fetchRecorteImageFiles(r)
+      if (files.length === 0) throw new Error('No se pudo leer ninguna imagen')
+      enqueuePdfStudioRecorteFiles(files)
+      toast.show({
+        message:
+          failed > 0
+            ? `${files.length} de ${files.length + failed} imágenes enviadas a Imprenta`
+            : files.length === 1
+              ? 'Imagen enviada a Imprenta'
+              : `${files.length} imágenes enviadas a Imprenta`,
+        tone: failed > 0 ? 'default' : 'success',
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'No se pudo enviar a Imprenta'
+      toast.show({ message: msg, tone: 'error' })
+    } finally {
+      setExportingPrint(false)
     }
   }
 
@@ -494,21 +540,32 @@ export function RecorteCard({
                       </OverflowMenuItem>
                     )}
                     {hasImage && (
-                      <OverflowMenuItem
-                        onClick={() => {
-                          void handleOcr()
-                          close()
-                        }}
-                        disabled={ocrBusy}
-                      >
-                        {ocrBusy ? (
-                          <AIThinkingLabel state="reading" />
-                        ) : (
-                          <>
-                            <TextIcon size={13} /> extraer texto
-                          </>
-                        )}
-                      </OverflowMenuItem>
+                      <>
+                        <OverflowMenuItem
+                          onClick={() => {
+                            void handleExportToPrint()
+                            close()
+                          }}
+                          disabled={exportingPrint}
+                        >
+                          <DuplicateIcon size={13} /> → imprenta
+                        </OverflowMenuItem>
+                        <OverflowMenuItem
+                          onClick={() => {
+                            void handleOcr()
+                            close()
+                          }}
+                          disabled={ocrBusy}
+                        >
+                          {ocrBusy ? (
+                            <AIThinkingLabel state="reading" />
+                          ) : (
+                            <>
+                              <TextIcon size={13} /> extraer texto
+                            </>
+                          )}
+                        </OverflowMenuItem>
+                      </>
                     )}
                     <OverflowMenuItem
                       onClick={() => {

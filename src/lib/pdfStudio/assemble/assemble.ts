@@ -11,7 +11,7 @@ import type { PDFFont, PDFPage } from 'pdf-lib'
 import { applyPdfAnnotations } from './assembleAnnotations'
 import { applyDocumentSettings } from './assembleDocumentSettings'
 import { embeddableFontUrl, fetchFontBytes } from './assembleFonts'
-import { addImagePage, readPngSize } from './assembleImages'
+import { addImageGridPage, addImagePage, readPngSize } from './assembleImages'
 import { countImages, emitLifecycle } from './assembleProgress'
 import {
   addRedactedRasterPage,
@@ -65,7 +65,7 @@ export async function assemble(
   emitLifecycle(emit, 'load-fonts', 'start')
   const hasEmbeddedText = doc.pages.some((p) =>
     p.annotations.some(
-      (a) => a.kind === 'text' && a.text.trim() && isEmbeddableFont(a.font),
+      (a) => a.kind === 'text' && a.text.trim() && !a.italic && isEmbeddableFont(a.font),
     ),
   )
   if (hasEmbeddedText) {
@@ -102,12 +102,12 @@ export async function assemble(
   }
 
   const fontCache = new Map<string, PDFFont>()
-  const fontFor = async (font: PdfFontKind, bold: boolean): Promise<PDFFont> => {
-    const key = `${font}:${bold ? 'b' : 'r'}`
+  const fontFor = async (font: PdfFontKind, bold: boolean, italic = false): Promise<PDFFont> => {
+    const key = `${font}:${bold ? 'b' : 'r'}:${italic ? 'i' : 'n'}`
     const hit = fontCache.get(key)
     if (hit) return hit
     let embedded: PDFFont | null = null
-    const url = embeddableFontUrl(font, bold)
+    const url = embeddableFontUrl(font, bold, italic)
     if (url) {
       try {
         embedded = await out.embedFont(await fetchFontBytes(url), { subset: true })
@@ -115,13 +115,14 @@ export async function assemble(
         embedded = null
       }
     }
-    const resolved = embedded ?? (await out.embedFont(standardFontName(font, bold)))
+    const resolved = embedded ?? (await out.embedFont(standardFontName(font, bold, italic)))
     fontCache.set(key, resolved)
     return resolved
   }
 
   emitLifecycle(emit, 'process-pages', 'start', 0, doc.pages.length)
-  for (const [pageIndex, page] of doc.pages.entries()) {
+  for (let pageIndex = 0; pageIndex < doc.pages.length; pageIndex += 1) {
+    const page = doc.pages[pageIndex]!
     throwIfAborted(options.signal, 'process-pages')
     const source = getSource(doc, page.sourceId)
     if (!source || skippedIds.has(source.id)) continue
@@ -140,9 +141,37 @@ export async function assemble(
         const [copied] = await out.copyPages(src, [page.pageIndex])
         if (copied) outPage = out.addPage(copied)
       } else {
-        outPage = await addImagePage(out, source.file, {
-          compression: options.compression,
-        })
+        const perPage = doc.settings?.imageLayout?.imagesPerPage ?? 1
+        if (
+          perPage > 1 &&
+          page.annotations.length === 0 &&
+          !page.rotationQuarters
+        ) {
+          const files: File[] = [source.file]
+          let consumed = 1
+          for (let j = pageIndex + 1; j < doc.pages.length && files.length < perPage; j += 1) {
+            const nextPage = doc.pages[j]!
+            const nextSource = getSource(doc, nextPage.sourceId)
+            if (
+              nextPage.kind !== 'image' ||
+              !nextSource ||
+              nextSource.kind !== 'image' ||
+              nextPage.annotations.length > 0 ||
+              nextPage.rotationQuarters
+            ) break
+            files.push(nextSource.file)
+            consumed += 1
+          }
+          outPage = await addImageGridPage(out, files, {
+            compression: options.compression,
+            imagesPerPage: perPage,
+          })
+          pageIndex += consumed - 1
+        } else {
+          outPage = await addImagePage(out, source.file, {
+            compression: options.compression,
+          })
+        }
       }
       if (!outPage) continue
 
