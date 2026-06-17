@@ -138,11 +138,14 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  font-size: clamp(1.38rem, 6.2vw, 2.12rem);
-  font-weight: 500;
+  font-size: clamp(1.44rem, 5.7vw, 2.02rem);
+  font-variation-settings: 'wght' 430;
+  font-weight: 430;
   line-height: 1;
-  letter-spacing: 0.52em;
-  margin-right: -0.52em;
+  letter-spacing: 0.44em;
+  margin-right: -0.44em;
+  transform: scaleX(1.04);
+  transform-origin: center;
   text-shadow: 0 1px 0 rgb(var(--paper-50) / 0.7);
 }
 
@@ -280,8 +283,9 @@
   }
 
   .trama-login-wordmark {
-    letter-spacing: 0.42em;
-    margin-right: -0.42em;
+    letter-spacing: 0.36em;
+    margin-right: -0.36em;
+    transform: scaleX(1.03);
   }
 }
 
