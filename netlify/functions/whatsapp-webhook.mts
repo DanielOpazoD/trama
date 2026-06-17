@@ -24,6 +24,7 @@ import {
   persistImageRecorte,
   persistImageRecorteEvent,
   persistImageMomentoEpisode,
+  persistVideoRecorte,
   persistVoiceNoteAttachment,
 } from './_lib/whatsapp/persist-media.js'
 import {
@@ -33,6 +34,7 @@ import {
   isVisionRoute,
   downloadTwilioMedia,
   isAllowedImageMime,
+  isAllowedVideoMime,
   isTranscribableAudioMime,
   audioExtFromMime,
   MEDIA_TOO_LARGE,
@@ -829,6 +831,43 @@ async function handleInboundMedia(
       continue
     }
 
+    if (cat === 'video') {
+      if (!isAllowedVideoMime(item.contentType)) {
+        skipped.add('video_format')
+        continue
+      }
+      if (!accountSid || !authToken) {
+        skipped.add('config')
+        continue
+      }
+      try {
+        const { buffer, contentType } = await downloadTwilioMedia(
+          item.url,
+          accountSid,
+          authToken,
+          {
+            onRetry: (attempt, reason) =>
+              logEvent({ event: 'whatsapp_media_retry', attempt, reason }),
+          },
+        )
+        const key = await storeMedia(
+          'recortes-media',
+          userId,
+          buffer,
+          contentType || item.contentType,
+        )
+        const r = await persistVideoRecorte(sql, userId, key, caption)
+        lastId = r.id
+        lastKind = 'recorte'
+        saved += 1
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        skipped.add(msg === MEDIA_TOO_LARGE ? 'toolarge' : 'error')
+        logEvent({ event: 'whatsapp_media_failed', message: msg })
+      }
+      continue
+    }
+
     if (cat !== 'image') {
       skipped.add(cat)
       continue
@@ -1083,8 +1122,8 @@ async function handleInboundMedia(
     // El deep link (texto o botón [Abrir en Trama]) y el deshacer los agrega el
     // caller (replyWithCapture) según haya plantillas/captura.
   }
-  if (skipped.has('video')) {
-    lines.push('🎬 El video todavía no lo proceso, pero muy pronto.')
+  if (skipped.has('video_format')) {
+    lines.push('🎬 Ese formato de video no lo soporto aún. Envía MP4, WEBM o MOV.')
   }
   if (skipped.has('audio_format')) {
     lines.push(

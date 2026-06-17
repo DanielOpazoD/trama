@@ -87,6 +87,7 @@ export function flattenRecorteImages(items: CaptureItem[]): GalleryImage[] {
   for (const it of items) {
     if (it.type !== 'recorte') continue
     const r = it.recorte
+    if (r.captureMode === 'video') continue
     const alt = r.sourceTitle ?? r.text.slice(0, 60)
     if (r.images.length > 0) {
       r.images.forEach((img, i) =>

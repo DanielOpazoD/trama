@@ -919,6 +919,59 @@ describe('whatsapp-webhook', () => {
     expect(body.get('ContentVariables')).toContain('Recortes')
   })
 
+  it('video → Recorte de video en recortes-media', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'video/mp4' },
+      arrayBuffer: async () => new ArrayBuffer(8),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const fields = {
+      MessageSid: 'SMvideo',
+      From: 'whatsapp:+56912345678',
+      To: 'whatsapp:+14155238886',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/video',
+      MediaContentType0: 'video/mp4',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMvideo' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'r-video' }]) // INSERT recorte video
+    mockSqlResponses.push([]) // recordLastCapture
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Guardado en Recortes')
+    expect(xml).not.toContain('todavía no lo proceso')
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO recortes/i.test(c.template),
+    )
+    expect(insert?.template).toContain("'video'")
+  })
+
   it('foto sin pie + List Picker configurado → manda la lista «Acciones» (ContentSid actions)', async () => {
     // Prueba de cableado de extremo a extremo del UX-2: con la plantilla List
     // Picker encendida (env var), una foto sin pie hace que Trama MANDE la lista

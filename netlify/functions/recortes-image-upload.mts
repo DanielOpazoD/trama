@@ -3,13 +3,13 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { extensionPreflight, withExtensionCors } from './_lib/extension-cors.js'
-import { RECORTE_IMAGE_MIMES, storeRecorteImage } from './_lib/recortes-media.js'
+import { RECORTE_MEDIA_MIMES, storeRecorteMedia } from './_lib/recortes-media.js'
 
 /**
  * POST /api/recortes-image-upload
  *
- * Sube una imagen capturada por la extensión (screenshot de región, imagen
- * de la web con OCR pendiente) al store de Netlify Blobs "recortes-media" y
+ * Sube una imagen o video capturado por la app/extensión al store privado
+ * de Netlify Blobs "recortes-media" y
  * devuelve la `imageKey` que el cliente mete en el payload del recorte.
  *
  * Es gemelo de momentos-upload.mts: mismo contrato (multipart field "file",
@@ -57,11 +57,11 @@ export default withObservability(
       return cors(ApiErrors.validation(requestId, 'Falta el field "file"'))
     }
 
-    if (!(file.type in RECORTE_IMAGE_MIMES)) {
+    if (!(file.type in RECORTE_MEDIA_MIMES)) {
       return cors(
         ApiErrors.unsupportedMediaType(
           requestId,
-          `mimeType "${file.type}" no soportado. Usa image/jpeg, image/png, image/webp o image/gif.`,
+          `mimeType "${file.type}" no soportado. Usa image/jpeg, image/png, image/webp, image/gif, video/mp4, video/webm o video/quicktime.`,
         ),
       )
     }
@@ -72,7 +72,7 @@ export default withObservability(
     // Mismo store + esquema de key que la caché de miniaturas (storeRecorteImage):
     // un solo camino de escritura de blobs de recorte, sin copias que deriven.
     const buf = await file.arrayBuffer()
-    const key = await storeRecorteImage(userId, buf, file.type)
+    const key = await storeRecorteMedia(userId, buf, file.type)
 
     return cors(
       Response.json({

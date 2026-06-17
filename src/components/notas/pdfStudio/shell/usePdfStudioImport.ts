@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
 import {
-  addImageSource,
   addPdfSource,
   type ImageAsset,
   type PdfDoc,
@@ -9,6 +8,8 @@ import { getPdfPageCount } from '../../../../lib/pdfStudio/render/pdfRender'
 import { useToast } from '../../../../state'
 import { buildPdfStudioImportPreflight } from '../../../../lib/pdfStudio/preflight/pdfStudioPreflight'
 import { isPdfFile, isStudioImageFile } from './pdfStudioFileUtils'
+import { imagesToSheetPdfFile } from '../../../../lib/pdfStudio/assemble/imagesToSheetPdfFile'
+import { resolveImagesPerPage } from '../../../../lib/pdfStudio/assemble/assembleImages'
 
 export function usePdfStudioImport({
   commit,
@@ -49,25 +50,40 @@ export function usePdfStudioImport({
       try {
         let next = doc
         const failed: string[] = []
-        const newAssets: ImageAsset[] = []
         const supportedFiles = files.filter(
           (file) => isPdfFile(file) || isStudioImageFile(file),
         )
-        for (const file of supportedFiles) {
+        let imageBatch: File[] = []
+        const flushImages = async () => {
+          const imageFiles = imageBatch
+          imageBatch = []
+          if (imageFiles.length === 0) return
           try {
-            if (isPdfFile(file)) {
-              const count = await getPdfPageCount(file)
-              next = addPdfSource(next, file, count)
-            } else if (isStudioImageFile(file)) {
-              next = addImageSource(next, file)
-              newAssets.push({ id: crypto.randomUUID(), file })
-            }
+            const sheetPdf = await imagesToSheetPdfFile(imageFiles, {
+              imagesPerPage: resolveImagesPerPage(next.settings),
+            })
+            const count = await getPdfPageCount(sheetPdf)
+            next = addPdfSource(next, sheetPdf, count)
           } catch {
-            failed.push(file.name)
+            failed.push(...imageFiles.map((file) => file.name))
           }
         }
+        for (const file of supportedFiles) {
+          if (isPdfFile(file)) {
+            await flushImages()
+            try {
+              const count = await getPdfPageCount(file)
+              next = addPdfSource(next, file, count)
+            } catch {
+              failed.push(file.name)
+            }
+          } else if (isStudioImageFile(file)) {
+            imageBatch.push(file)
+          }
+        }
+        await flushImages()
         commit(next)
-        if (newAssets.length > 0) onImageAssets(newAssets)
+        onImageAssets([])
         if (failed.length > 0) {
           toast.show({
             message: `No se pudo leer: ${failed.join(', ')} (¿PDF cifrado o formato no soportado?).`,

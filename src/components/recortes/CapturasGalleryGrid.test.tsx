@@ -117,6 +117,22 @@ describe('<CapturasGalleryGrid />', () => {
     expect(new Set(cells.map((c) => c.key)).size).toBe(3)
   })
 
+  it('no trata videos como imágenes de la galería', () => {
+    const video: CaptureItem = {
+      type: 'recorte',
+      id: 'vid',
+      createdAt: '2026-06-14T12:00:00.000Z',
+      recorte: recorte({
+        id: 'vid',
+        imageKey: 'clip.mp4',
+        images: [{ storageKey: 'clip.mp4' }],
+        captureMode: 'video',
+      }),
+    }
+
+    expect(flattenRecorteImages([video])).toEqual([])
+  })
+
   it('parte la galería en filas para virtualizar sin perder orden', () => {
     expect(chunkCapturasGalleryRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]])
     expect(chunkCapturasGalleryRows([1, 2, 3], 0)).toEqual([[1], [2], [3]])

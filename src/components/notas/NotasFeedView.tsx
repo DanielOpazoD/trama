@@ -29,6 +29,7 @@ import {
   ListIcon,
   ThumbSizeIcon,
   CheckSquareIcon,
+  UploadIcon,
 } from '../Icons'
 import { OverflowMenu } from '../OverflowMenu'
 import {
@@ -141,6 +142,7 @@ export function NotasFeedView({
   const [title, setTitle] = useState('')
   const composerRef = useAutosizeTextarea(draft, { minRows: 3, maxRows: 12 })
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const captureMediaInputRef = useRef<HTMLInputElement>(null)
   // El usuario pegó un enlace solo; el composer ofrece guardarlo como recorte.
   // `forceNote` deja anular esa heurística y guardarlo igual como nota.
   const [forceNote, setForceNote] = useState(false)
@@ -427,28 +429,35 @@ export function NotasFeedView({
     )
   }
 
-  /** Sube y captura una o varias imágenes como recortes de imagen.
+  /** Sube y captura imágenes/videos como recortes visuales.
    *  Las comprime client-side (downscale + JPEG) antes de subir, igual que el
    *  composer de Momentos — evita subir un screenshot de 8 MB tal cual. */
-  async function captureImageFiles(files: File[]) {
-    const images = files.filter((f) => f.type.startsWith('image/'))
-    if (images.length === 0) return
+  async function captureMediaFiles(files: File[]) {
+    const media = files.filter(
+      (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
+    )
+    if (media.length === 0) return
     // Mostramos las tarjetas «subiendo…» desde ya (incluye la compresión).
-    setUploadingImages((n) => n + images.length)
+    setUploadingImages((n) => n + media.length)
     let done = 0
-    for (const original of images) {
-      const file = await compressImage(original).catch(() => original)
+    for (const original of media) {
+      const isVideo = original.type.startsWith('video/')
+      const file = isVideo
+        ? original
+        : await compressImage(original).catch(() => original)
       createRecorte.mutate(
-        { kind: 'image', file },
+        { kind: isVideo ? 'video' : 'image', file },
         {
           onSuccess: () => {
             done += 1
-            if (done === images.length) {
+            if (done === media.length) {
               toast.show({
                 message:
-                  images.length === 1
-                    ? 'Imagen guardada en tus capturas.'
-                    : `${images.length} imágenes guardadas en tus capturas.`,
+                  media.length === 1
+                    ? isVideo
+                      ? 'Video guardado en tus capturas.'
+                      : 'Imagen guardada en tus capturas.'
+                    : `${media.length} archivos guardados en tus capturas.`,
                 tone: 'success',
               })
             }
@@ -479,14 +488,20 @@ export function NotasFeedView({
 
   /** Soltar imágenes sobre el composer las captura como recortes. */
   function onComposerDrop(e: React.DragEvent) {
-    const images = Array.from(e.dataTransfer.files).filter((f) =>
-      f.type.startsWith('image/'),
+    const media = Array.from(e.dataTransfer.files).filter(
+      (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
     )
-    if (images.length > 0) {
+    if (media.length > 0) {
       e.preventDefault()
-      captureImageFiles(images)
+      captureMediaFiles(media)
     }
     setDragging(false)
+  }
+
+  function onCaptureMediaInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.currentTarget.files ?? [])
+    if (files.length > 0) void captureMediaFiles(files)
+    e.currentTarget.value = ''
   }
 
   function save() {
@@ -605,8 +620,8 @@ export function NotasFeedView({
             onKeyDown={onComposerKey}
             onPaste={onComposerPaste}
             rows={3}
-            placeholder="Escribe una nota, pega un enlace o suelta una imagen… usa #etiquetas"
-            aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen"
+            placeholder="Escribe una nota, pega un enlace o suelta una imagen o video… usa #etiquetas"
+            aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen o video"
             onRequestFocusMode={() => setFocusMode(true)}
             tagUniverse={allNoteTags}
             className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8"
@@ -616,6 +631,25 @@ export function NotasFeedView({
             onChange={setPendingFiles}
             busy={createNote.isPending || uploadAttachment.isPending}
           />
+          <div className="mt-2 flex justify-end">
+            <input
+              ref={captureMediaInputRef}
+              type="file"
+              accept="image/*,video/mp4,video/webm,video/quicktime"
+              multiple
+              className="sr-only"
+              aria-label="Elegir imagen o video para capturar"
+              onChange={onCaptureMediaInput}
+            />
+            <button
+              type="button"
+              onClick={() => captureMediaInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 rounded-md border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-micro uppercase tracking-eyebrow text-ink-500 transition-colors hover:border-ink-200 hover:text-ink-800"
+            >
+              <UploadIcon size={12} />
+              Capturar imagen o video
+            </button>
+          </div>
 
           {/* Cuando el borrador es un enlace, anunciamos que se guardará como
               recorte y dejamos volver a nota con un toque. */}
@@ -637,7 +671,7 @@ export function NotasFeedView({
             <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60 animate-fade-up">
               <span className="flex items-center gap-1.5 text-micro text-ink-300">
                 <CameraIcon size={11} />
-                pega o suelta una imagen para capturarla
+                pega o suelta una imagen o video para capturarlo
               </span>
               <div className="relative">
                 <button

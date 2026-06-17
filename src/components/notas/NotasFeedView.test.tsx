@@ -412,4 +412,154 @@ describe('<NotasFeedView />', () => {
 
     expect(await screen.findByText(/Artículo de ejemplo/)).toBeInTheDocument()
   })
+
+  it('al soltar un video lo guarda como recorte de video y lo muestra con controles', async () => {
+    const created: Array<Record<string, unknown>> = []
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = init?.method ?? 'GET'
+      if (url.startsWith('/api/notas-feed') && method === 'GET') {
+        return jsonResponse({
+          items: created.map((recorte) => ({
+            type: 'recorte',
+            id: recorte.id,
+            createdAt: recorte.created_at,
+            recorte,
+          })),
+          nextCursor: null,
+        })
+      }
+      if (url.startsWith('/api/notes') && method === 'GET') return jsonResponse([])
+      if (url.includes('recortes-image-upload') && method === 'POST') {
+        return jsonResponse({ imageKey: 'u/clip.mp4', mime: 'video/mp4', size: 5 })
+      }
+      if (url.startsWith('/api/recortes-image/') && method === 'GET') {
+        return new Response(new Blob(['video'], { type: 'video/mp4' }))
+      }
+      if (url === '/api/recortes' && method === 'POST') {
+        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
+        const row = {
+          id: 'video-1',
+          text: body.text ?? '',
+          source_url: null,
+          source_title: null,
+          source_author: null,
+          note: null,
+          image_url: null,
+          image_key: body.imageKey ?? null,
+          images: [{ storage_key: body.imageKey }],
+          capture_mode: body.captureMode ?? null,
+          status: 'pending',
+          promoted_target: null,
+          promoted_id: null,
+          captured_at: null,
+          created_at: '2026-06-17T00:00:00.000Z',
+          updated_at: '2026-06-17T00:00:00.000Z',
+        }
+        created.unshift(row)
+        return jsonResponse(row, 201)
+      }
+      if (url.startsWith('/api/counts') || url.startsWith('/api/home'))
+        return jsonResponse({})
+      throw new Error(`Fetch inesperado: ${method} ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:clip')
+    const file = new File(['video'], 'clip.mp4', { type: 'video/mp4' })
+
+    renderWithProviders(
+      <>
+        <NotasFeedView />
+        <ToastHost />
+      </>,
+    )
+
+    const composer = screen.getByPlaceholderText(/Escribe una nota/)
+    fireEvent.drop(composer, {
+      dataTransfer: { files: [file] },
+    })
+
+    expect((await screen.findAllByText(/Video guardado/)).length).toBeGreaterThan(0)
+    expect(await screen.findByLabelText('Video del recorte')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/recortes',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"captureMode":"video"'),
+      }),
+    )
+    createObjectURL.mockRestore()
+  })
+
+  it('permite seleccionar un video desde el boton de capturar medio', async () => {
+    const created: Array<Record<string, unknown>> = []
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = init?.method ?? 'GET'
+      if (url.startsWith('/api/notas-feed') && method === 'GET') {
+        return jsonResponse({
+          items: created.map((recorte) => ({
+            type: 'recorte',
+            id: recorte.id,
+            createdAt: recorte.created_at,
+            recorte,
+          })),
+          nextCursor: null,
+        })
+      }
+      if (url.startsWith('/api/notes') && method === 'GET') return jsonResponse([])
+      if (url.includes('recortes-image-upload') && method === 'POST') {
+        return jsonResponse({ imageKey: 'u/clip.mp4', mime: 'video/mp4', size: 5 })
+      }
+      if (url === '/api/recortes' && method === 'POST') {
+        const body = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>
+        const row = {
+          id: 'video-1',
+          text: body.text ?? '',
+          source_url: null,
+          source_title: null,
+          source_author: null,
+          note: null,
+          image_url: null,
+          image_key: body.imageKey ?? null,
+          images: [{ storage_key: body.imageKey }],
+          capture_mode: body.captureMode ?? null,
+          status: 'pending',
+          promoted_target: null,
+          promoted_id: null,
+          captured_at: null,
+          created_at: '2026-06-17T00:00:00.000Z',
+          updated_at: '2026-06-17T00:00:00.000Z',
+        }
+        created.unshift(row)
+        return jsonResponse(row, 201)
+      }
+      if (url.startsWith('/api/recortes-image/') && method === 'GET') {
+        return new Response(new Blob(['video'], { type: 'video/mp4' }))
+      }
+      if (url.startsWith('/api/counts') || url.startsWith('/api/home'))
+        return jsonResponse({})
+      throw new Error(`Fetch inesperado: ${method} ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:clip')
+    const user = userEvent.setup()
+
+    renderWithProviders(
+      <>
+        <NotasFeedView />
+        <ToastHost />
+      </>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Capturar imagen o video' }))
+    const input = document.querySelector(
+      'input[aria-label="Elegir imagen o video para capturar"]',
+    ) as HTMLInputElement
+    await user.upload(input, new File(['video'], 'clip.mp4', { type: 'video/mp4' }))
+
+    expect((await screen.findAllByText(/Video guardado/)).length).toBeGreaterThan(0)
+    expect(await screen.findByLabelText('Video del recorte')).toBeInTheDocument()
+    createObjectURL.mockRestore()
+  })
 })

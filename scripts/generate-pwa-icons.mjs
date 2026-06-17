@@ -1,70 +1,102 @@
 /**
- * Genera los PNG de la PWA desde el monograma de Trama (one-off, re-ejecutable):
+ * Genera los íconos de Trama desde el logo fuente.
  *
  *   node scripts/generate-pwa-icons.mjs
  *
- * - public/apple-touch-icon.png (180): iOS IGNORA los SVG en apple-touch-icon
- *   (cae al screenshot genérico). Fondo a sangre completa SIN esquinas
- *   redondeadas — iOS aplica su propia máscara squircle.
- * - public/icon-192.png / public/icon-512.png (maskable): fondo a sangre y
- *   monograma dentro de la zona segura (~80%) para que Android pueda aplicar
- *   cualquier máscara sin cortar el glifo.
+ * Fuente:
+ * - public/trama-logo-source.png: logo completo recibido como imagen.
  *
- * Usa el Chromium de Playwright (ya instalado para e2e) — sin dependencias nuevas.
+ * Salidas:
+ * - public/trama-icon.png: isotipo recortado, sin texto, 1024px.
+ * - public/favicon-32.png / public/favicon-48.png: favicon PNG.
+ * - public/apple-touch-icon.png: iOS (180px).
+ * - public/icon-192.png / public/icon-512.png: PWA maskable.
+ *
+ * Usa Chromium de Playwright, ya instalado para e2e; no agrega dependencias.
  */
-import { chromium } from 'playwright'
-import { mkdir } from 'node:fs/promises'
+import { Buffer } from 'node:buffer'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { chromium } from 'playwright'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const publicDir = resolve(root, 'public')
+const sourceFile = resolve(publicDir, 'trama-logo-source.png')
 
-/** Monograma de Trama a sangre completa (el viewBox 180 del icon original). */
-function iconSvg(size, { glyphScale = 1 } = {}) {
-  // El glifo del apple-touch-icon.svg vive en un lienzo de 180; lo escalamos
-  // alrededor del centro para dejar la zona segura de los maskable.
-  const s = (size / 180) * glyphScale
-  const t = (size - 180 * s) / 2
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" fill="#fafafa" />
-  <g transform="translate(${t} ${t}) scale(${s})">
-    <path d="M40 65h100" stroke="#18181b" stroke-width="11" stroke-linecap="round" />
-    <path d="M90 65v75" stroke="#18181b" stroke-width="11" stroke-linecap="round" />
-    <path d="M65 95l50 30M115 95l-50 30" stroke="#18181b" stroke-width="7" stroke-linecap="round" stroke-opacity="0.55" />
-  </g>
-</svg>`
+// Recorte cuadrado del isotipo: conserva el símbolo completo y excluye el texto.
+const SOURCE_CROP = {
+  x: 247,
+  y: 150,
+  size: 760,
 }
 
-async function renderPng(page, svg, size, outFile) {
-  await page.setViewportSize({ width: size, height: size })
-  await page.setContent(
-    `<!doctype html><html><head><style>html,body{margin:0;padding:0}</style></head><body>${svg}</body></html>`,
+const PAPER = '#fbf8f1'
+
+async function renderIcon(page, sourceDataUrl, size, outFile, { glyphScale }) {
+  const pngBase64 = await page.evaluate(
+    async ({ crop, glyphScale: scale, paper, size: canvasSize, source }) => {
+      const image = new globalThis.Image()
+      image.src = source
+      await image.decode()
+
+      const canvas = globalThis.document.createElement('canvas')
+      canvas.width = canvasSize
+      canvas.height = canvasSize
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas no disponible')
+
+      ctx.fillStyle = paper
+      ctx.fillRect(0, 0, canvasSize, canvasSize)
+
+      const drawSize = Math.round(canvasSize * scale)
+      const offset = Math.round((canvasSize - drawSize) / 2)
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(
+        image,
+        crop.x,
+        crop.y,
+        crop.size,
+        crop.size,
+        offset,
+        offset,
+        drawSize,
+        drawSize,
+      )
+
+      return canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
+    },
+    { crop: SOURCE_CROP, glyphScale, paper: PAPER, size, source: sourceDataUrl },
   )
-  await page.screenshot({
-    path: outFile,
-    clip: { x: 0, y: 0, width: size, height: size },
-  })
+  await writeFile(outFile, Buffer.from(pngBase64, 'base64'))
   console.log(`✓ ${outFile}`)
 }
 
+const source = await readFile(sourceFile)
+const sourceDataUrl = `data:image/png;base64,${source.toString('base64')}`
+
 const browser = await chromium.launch()
 const page = await browser.newPage({ deviceScaleFactor: 1 })
-await mkdir(resolve(root, 'public'), { recursive: true })
+await mkdir(publicDir, { recursive: true })
 
-// iOS: a sangre, sin radius (iOS enmascara solo).
-await renderPng(page, iconSvg(180), 180, resolve(root, 'public/apple-touch-icon.png'))
-// Android maskable: glifo al ~78% para la zona segura de la máscara.
-await renderPng(
-  page,
-  iconSvg(192, { glyphScale: 0.78 }),
-  192,
-  resolve(root, 'public/icon-192.png'),
-)
-await renderPng(
-  page,
-  iconSvg(512, { glyphScale: 0.78 }),
-  512,
-  resolve(root, 'public/icon-512.png'),
-)
+await renderIcon(page, sourceDataUrl, 1024, resolve(publicDir, 'trama-icon.png'), {
+  glyphScale: 0.9,
+})
+await renderIcon(page, sourceDataUrl, 32, resolve(publicDir, 'favicon-32.png'), {
+  glyphScale: 1,
+})
+await renderIcon(page, sourceDataUrl, 48, resolve(publicDir, 'favicon-48.png'), {
+  glyphScale: 1,
+})
+await renderIcon(page, sourceDataUrl, 180, resolve(publicDir, 'apple-touch-icon.png'), {
+  glyphScale: 0.88,
+})
+await renderIcon(page, sourceDataUrl, 192, resolve(publicDir, 'icon-192.png'), {
+  glyphScale: 0.78,
+})
+await renderIcon(page, sourceDataUrl, 512, resolve(publicDir, 'icon-512.png'), {
+  glyphScale: 0.78,
+})
 
 await browser.close()

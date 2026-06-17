@@ -7,7 +7,7 @@ import { request } from './request'
 
 export type RecorteStatus = 'pending' | 'promoted' | 'archived'
 export type RecorteTarget = 'quote' | 'entity' | 'momento'
-export type CaptureMode = 'citation' | 'article' | 'html' | 'region' | 'image'
+export type CaptureMode = 'citation' | 'article' | 'html' | 'region' | 'image' | 'video'
 
 /** Sugerencia de curaduría de la IA para un recorte (advisory). */
 export type RecorteSuggestion = {
@@ -200,11 +200,20 @@ export const recortesApi = {
     return recorteFromRow(row)
   },
   /**
-   * Sube una imagen al store privado `recortes-media` y devuelve la `imageKey`
-   * que luego se pasa a `createRecorte` para crear un recorte de imagen desde
-   * la web (la captura unificada del composer de Notas). Gemelo del endpoint
-   * que usa la extensión de Chrome; multipart con field "file", máx 10 MB.
+   * Sube un medio al store privado `recortes-media` y devuelve la `imageKey`
+   * que luego se pasa a `createRecorte` para crear un recorte visual desde
+   * la app o extensión. El nombre legacy queda por compatibilidad.
    */
+  async uploadRecorteMedia(
+    file: File,
+  ): Promise<{ imageKey: string; mime: string; size: number }> {
+    const form = new FormData()
+    form.append('file', file)
+    return request<{ imageKey: string; mime: string; size: number }>(
+      '/api/recortes-image-upload',
+      { method: 'POST', body: form },
+    )
+  },
   async uploadRecorteImage(
     file: File,
   ): Promise<{ imageKey: string; mime: string; size: number }> {

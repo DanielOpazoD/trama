@@ -8,11 +8,14 @@ import {
   CloseIcon,
   FilePdfIcon,
   FileIcon,
+  GalleryIcon,
   PrinterIcon,
   RedoIcon,
   UndoIcon,
   UploadIcon,
 } from '../../../Icons'
+
+const IMAGE_LAYOUT_OPTIONS = [1, 2, 4, 6] as const
 
 function isMacLike(): boolean {
   if (typeof navigator === 'undefined') return true
@@ -158,12 +161,159 @@ export function PdfStudioDocumentToolbar({
             </button>
           </div>
         )}
+        {!isTemplates && (
+          <div
+            role="group"
+            aria-label="Imágenes por hoja al importar"
+            className="hidden items-center overflow-hidden rounded-md border border-ink-100 bg-paper-50 sm:inline-flex"
+          >
+            <span
+              aria-hidden
+              className="inline-flex h-7 w-7 items-center justify-center border-r border-ink-100 text-ink-400"
+              title="Imágenes por hoja al importar"
+            >
+              <GalleryIcon size={12} />
+            </span>
+            {IMAGE_LAYOUT_OPTIONS.map((count) => {
+              const selected = imagesPerPage === count
+              return (
+                <button
+                  key={count}
+                  type="button"
+                  aria-label={`${count} ${count === 1 ? 'imagen' : 'imágenes'} por hoja al importar`}
+                  aria-pressed={selected}
+                  onClick={() => onSetImagesPerPage(count)}
+                  className={`h-7 min-w-7 px-2 text-caption font-medium transition-colors ${
+                    selected
+                      ? 'bg-ink-800 text-paper-50'
+                      : 'text-ink-500 hover:bg-ink-100/60 hover:text-ink-800'
+                  }`}
+                >
+                  {count}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
       <div className="ml-auto flex min-w-0 items-center gap-1.5">
         {!empty && (
           <span className="hidden text-micro text-ink-300 tabular-nums sm:inline">
             {total} {total === 1 ? 'página' : 'páginas'}
           </span>
+        )}
+        {!isTemplates && (
+          <OverflowMenu
+            label="Ajustes de página"
+            width="w-72"
+            triggerClassName="inline-flex h-7 items-center gap-1.5 rounded-md border border-ink-200 px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900"
+            triggerContent={
+              <>
+                <FileIcon size={12} />
+                <span className="hidden sm:inline">Página</span>
+              </>
+            }
+          >
+            {() => (
+              <div className="px-2 py-2">
+                <p className="mb-2 text-micro uppercase tracking-eyebrow text-ink-300">
+                  Encabezado y pie
+                </p>
+                <label className="flex items-center gap-2 text-caption text-ink-700">
+                  <input
+                    type="checkbox"
+                    checked={!!pageNumbers}
+                    onChange={(e) =>
+                      onSetPageNumbers(
+                        e.target.checked ? { position: 'center' } : undefined,
+                      )
+                    }
+                  />
+                  Numerar páginas
+                </label>
+                {pageNumbers && (
+                  <div className="mt-1.5 flex gap-1 pl-6">
+                    {(['left', 'center', 'right'] as const).map((position) => {
+                      const on = pageNumbers.position === position
+                      const label =
+                        position === 'left'
+                          ? 'Izq.'
+                          : position === 'center'
+                            ? 'Centro'
+                            : 'Der.'
+                      return (
+                        <button
+                          key={position}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => onSetPageNumbers({ position })}
+                          className={`rounded px-2 py-0.5 text-micro transition-colors ${
+                            on
+                              ? 'bg-[color:var(--accent-sage)] text-paper-50'
+                              : 'text-ink-500 hover:bg-ink-100/60'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                <label
+                  className="mt-2 block text-caption text-ink-700"
+                  htmlFor="pdf-header-page"
+                >
+                  Encabezado
+                </label>
+                <input
+                  id="pdf-header-page"
+                  type="text"
+                  value={headerText}
+                  onChange={(e) => onSetHeader(e.target.value)}
+                  placeholder="Ej: Clínica Norte"
+                  className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                />
+                <label
+                  className="mt-2 block text-caption text-ink-700"
+                  htmlFor="pdf-footer-page"
+                >
+                  Pie de página
+                </label>
+                <input
+                  id="pdf-footer-page"
+                  type="text"
+                  value={footerText}
+                  onChange={(e) => onSetFooter(e.target.value)}
+                  placeholder="Ej: Uso interno"
+                  className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                />
+                <label
+                  className="mt-2 block text-caption text-ink-700 sm:hidden"
+                  htmlFor="pdf-images-per-page-page"
+                >
+                  Imágenes por hoja al importar
+                </label>
+                <select
+                  id="pdf-images-per-page-page"
+                  value={imagesPerPage}
+                  onChange={(e) =>
+                    onSetImagesPerPage(
+                      Number(e.currentTarget.value) as NonNullable<
+                        DocSettings['imageLayout']
+                      >['imagesPerPage'],
+                    )
+                  }
+                  className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption sm:hidden"
+                >
+                  {IMAGE_LAYOUT_OPTIONS.map((count) => (
+                    <option key={count} value={count}>
+                      {count} {count === 1 ? 'imagen' : 'imágenes'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </OverflowMenu>
         )}
         {/* "Nuevo documento" salió del menú "···" y queda como acción a la par
             del guardado (sólo Imprenta; en Planillas sigue en el menú). */}
@@ -276,98 +426,6 @@ export function PdfStudioDocumentToolbar({
                   <p className="mb-2 text-micro uppercase tracking-eyebrow text-ink-300">
                     Ajustes
                   </p>
-                  <label className="flex items-center gap-2 text-caption text-ink-700">
-                    <input
-                      type="checkbox"
-                      checked={!!pageNumbers}
-                      onChange={(e) =>
-                        onSetPageNumbers(
-                          e.target.checked ? { position: 'center' } : undefined,
-                        )
-                      }
-                    />
-                    Numerar páginas
-                  </label>
-                  {pageNumbers && (
-                    <div className="mt-1.5 flex gap-1 pl-6">
-                      {(['left', 'center', 'right'] as const).map((position) => {
-                        const on = pageNumbers.position === position
-                        const label =
-                          position === 'left'
-                            ? 'Izq.'
-                            : position === 'center'
-                              ? 'Centro'
-                              : 'Der.'
-                        return (
-                          <button
-                            key={position}
-                            type="button"
-                            aria-pressed={on}
-                            onClick={() => onSetPageNumbers({ position })}
-                            className={`rounded px-2 py-0.5 text-micro transition-colors ${
-                              on
-                                ? 'bg-[color:var(--accent-sage)] text-paper-50'
-                                : 'text-ink-500 hover:bg-ink-100/60'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                  <label
-                    className="mt-2 block text-caption text-ink-700"
-                    htmlFor="pdf-header-menu"
-                  >
-                    Encabezado
-                  </label>
-                  <input
-                    id="pdf-header-menu"
-                    type="text"
-                    value={headerText}
-                    onChange={(e) => onSetHeader(e.target.value)}
-                    placeholder="Ej: Clínica Norte"
-                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
-                  />
-                  <label
-                    className="mt-2 block text-caption text-ink-700"
-                    htmlFor="pdf-footer-menu"
-                  >
-                    Pie de página
-                  </label>
-                  <input
-                    id="pdf-footer-menu"
-                    type="text"
-                    value={footerText}
-                    onChange={(e) => onSetFooter(e.target.value)}
-                    placeholder="Ej: Uso interno"
-                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
-                  />
-                  <label
-                    className="mt-2 block text-caption text-ink-700"
-                    htmlFor="pdf-images-per-page-menu"
-                  >
-                    Imágenes por página
-                  </label>
-                  <select
-                    id="pdf-images-per-page-menu"
-                    value={imagesPerPage}
-                    onChange={(e) =>
-                      onSetImagesPerPage(
-                        Number(e.currentTarget.value) as NonNullable<
-                          DocSettings['imageLayout']
-                        >['imagesPerPage'],
-                      )
-                    }
-                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
-                  >
-                    <option value={1}>1 imagen</option>
-                    <option value={2}>2 imágenes</option>
-                    <option value={3}>3 imágenes</option>
-                    <option value={4}>4 imágenes</option>
-                    <option value={6}>6 imágenes</option>
-                  </select>
                   <label
                     className="mt-2 block text-caption text-ink-700"
                     htmlFor="pdf-watermark-menu"
