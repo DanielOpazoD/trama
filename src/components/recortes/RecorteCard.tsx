@@ -11,6 +11,7 @@ import {
   DuplicateIcon,
   EntitiesIcon,
   MomentosIcon,
+  PrinterIcon,
   QuoteIcon,
   SparkleIcon,
   TextIcon,
@@ -210,6 +211,7 @@ export function RecorteCard({
   onArchive,
   onRestore,
   onDelete,
+  onSendImagesToPdf,
 }: {
   recorte: Recorte
   /** Tamaño de la miniatura de imagen (preferencia del feed). */
@@ -218,6 +220,7 @@ export function RecorteCard({
   onArchive: () => void
   onRestore: () => void
   onDelete: () => void
+  onSendImagesToPdf?: (recorte: Recorte) => void
 }) {
   const host = hostOf(r.sourceUrl)
   // Visor de la(s) imagen(es) propia(s) (doble clic en la miniatura) — misma
@@ -232,6 +235,7 @@ export function RecorteCard({
   const [ocrBusy, setOcrBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const hasImage = !!(r.imageKey || r.imageUrl)
+  const hasInternalImage = !!(r.imageKey || r.images.length > 0)
   // ¿Hay alguna imagen (propia o derivada de YouTube) que muestre el marco?
   // Si no, el origen se anuncia como eyebrow discreto sobre el título.
   const hasPreview = hasImage || youtubeThumb(r.sourceUrl ?? '') !== null
@@ -508,6 +512,16 @@ export function RecorteCard({
                             <TextIcon size={13} /> extraer texto
                           </>
                         )}
+                      </OverflowMenuItem>
+                    )}
+                    {onSendImagesToPdf && hasInternalImage && (
+                      <OverflowMenuItem
+                        onClick={() => {
+                          onSendImagesToPdf(r)
+                          close()
+                        }}
+                      >
+                        <PrinterIcon size={13} /> → Imprenta
                       </OverflowMenuItem>
                     )}
                     <OverflowMenuItem
