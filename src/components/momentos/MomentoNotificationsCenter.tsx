@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { MomentoShareInvitation } from '../../api/momentos'
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { BellIcon } from '../Icons'
 import { MomentoShareInvitationCard } from './MomentoShareInvitationCard'
 
@@ -16,20 +15,8 @@ export function MomentoNotificationsCenter({
   onRespond: (id: string, action: 'accept' | 'reject') => void
 }) {
   const [open, setOpen] = useState(false)
-  const dialogRef = useRef<HTMLDivElement>(null)
   const count = invitations.length
-
-  useFocusTrap(dialogRef, open)
-  useBodyScrollLock(open)
-
-  useEffect(() => {
-    if (!open) return
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  const overlay = useModalOverlay({ open, onClose: () => setOpen(false) })
 
   const panel =
     open && typeof document !== 'undefined'
@@ -42,7 +29,7 @@ export function MomentoNotificationsCenter({
               className="absolute inset-0 cursor-default bg-ink-900/10 backdrop-blur-[1px] sm:bg-transparent sm:backdrop-blur-0"
             />
             <div
-              ref={dialogRef}
+              ref={overlay.dialogRef}
               role="dialog"
               aria-modal="true"
               aria-label="Centro de notificaciones"
