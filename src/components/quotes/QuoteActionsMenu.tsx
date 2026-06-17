@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useAnchoredPopover } from '../../hooks/useAnchoredPopover'
 import { SparkleIcon, TrashIcon } from '../Icons'
 
 /**
@@ -9,8 +9,7 @@ import { SparkleIcon, TrashIcon } from '../Icons'
  * El popover se renderiza con `createPortal` a `document.body` y se posiciona
  * con coordenadas `fixed` calculadas desde el botón — así flota libre y NO se
  * recorta dentro de la columna de lectura (`max-w-3xl`). Se cierra al hacer
- * clic afuera, con Escape, y al scrollear/redimensionar (la posición fija
- * quedaría desfasada).
+ * clic afuera y con Escape; ante scroll/resize se reposiciona desde el ancla.
  */
 const ROW =
   'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-left transition-colors disabled:opacity-50'
@@ -31,56 +30,21 @@ export function QuoteActionsMenu({
   /** false cuando la cita ya tiene interpretación IA guardada. */
   canReflect?: boolean
 }) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-
-  useLayoutEffect(() => {
-    if (!open) return
-    const r = triggerRef.current?.getBoundingClientRect()
-    if (r) setPos({ top: r.bottom + 6, right: window.innerWidth - r.right })
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      const t = e.target as Node
-      if (!triggerRef.current?.contains(t) && !menuRef.current?.contains(t)) {
-        setOpen(false)
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    function onReflow() {
-      setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    window.addEventListener('scroll', onReflow, true)
-    window.addEventListener('resize', onReflow)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-      window.removeEventListener('scroll', onReflow, true)
-      window.removeEventListener('resize', onReflow)
-    }
-  }, [open])
+  const popover = useAnchoredPopover()
 
   function run(fn: () => void) {
-    setOpen(false)
+    popover.close()
     fn()
   }
 
   return (
     <>
       <button
-        ref={triggerRef}
+        ref={popover.triggerRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={popover.toggle}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={popover.open}
         aria-label="Más acciones"
         title="Más acciones"
         className="p-1.5 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
@@ -89,13 +53,18 @@ export function QuoteActionsMenu({
           ⋯
         </span>
       </button>
-      {open &&
-        pos &&
+      {popover.open &&
+        popover.position &&
         createPortal(
           <div
-            ref={menuRef}
+            ref={popover.layerRef}
             role="menu"
-            style={{ position: 'fixed', top: pos.top, right: pos.right }}
+            style={{
+              position: 'fixed',
+              top: popover.position.top,
+              bottom: popover.position.bottom,
+              right: popover.position.right,
+            }}
             className="z-50 w-44 paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up"
           >
             <button
