@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { RecorteCard } from './RecorteCard'
 import type { Recorte } from '../../api'
 import { renderWithProviders } from '../../test-utils'
@@ -71,5 +72,35 @@ describe('<RecorteCard />', () => {
 
     expect(expand).toHaveClass('h-7', 'w-7')
     expect(control).toHaveClass('absolute', 'bottom-1')
+  })
+
+  it('ofrece enviar imágenes internas a Imprenta desde el menú del recorte', async () => {
+    const user = userEvent.setup()
+    const onSendImagesToPdf = vi.fn()
+    const imageRecorte = {
+      ...RECORTE,
+      text: 'Imagen desde WhatsApp',
+      sourceTitle: 'recorte',
+      imageKey: 'user/whatsapp.webp',
+      images: [{ storageKey: 'user/whatsapp.webp' }],
+      captureMode: 'image',
+      captureSource: 'whatsapp',
+    } satisfies Recorte
+
+    renderWithProviders(
+      <RecorteCard
+        recorte={imageRecorte}
+        onPromote={() => {}}
+        onArchive={() => {}}
+        onRestore={() => {}}
+        onDelete={() => {}}
+        onSendImagesToPdf={onSendImagesToPdf}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Acciones del recorte' }))
+    await user.click(screen.getByRole('menuitem', { name: /Imprenta/i }))
+
+    expect(onSendImagesToPdf).toHaveBeenCalledWith(imageRecorte)
   })
 })
