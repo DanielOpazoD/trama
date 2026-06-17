@@ -11,6 +11,7 @@
  * - public/favicon-32.png / public/favicon-48.png: favicon PNG.
  * - public/apple-touch-icon.png: iOS (180px).
  * - public/icon-192.png / public/icon-512.png: PWA maskable.
+ * - public/og-image.png: preview social 1200x630 con isotipo nuevo.
  *
  * Usa Chromium de Playwright, ya instalado para e2e; no agrega dependencias.
  */
@@ -73,6 +74,56 @@ async function renderIcon(page, sourceDataUrl, size, outFile, { glyphScale }) {
   console.log(`✓ ${outFile}`)
 }
 
+async function renderOgImage(page, sourceDataUrl, outFile) {
+  const pngBase64 = await page.evaluate(
+    async ({ crop, paper, source }) => {
+      const image = new globalThis.Image()
+      image.src = source
+      await image.decode()
+
+      const canvas = globalThis.document.createElement('canvas')
+      canvas.width = 1200
+      canvas.height = 630
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas no disponible')
+
+      ctx.fillStyle = paper
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      ctx.fillStyle = '#08294a'
+      ctx.font = '700 92px Georgia, serif'
+      ctx.fillText('Trama', 112, 252)
+
+      ctx.fillStyle = '#4a5563'
+      ctx.font = '400 32px Arial, sans-serif'
+      ctx.fillText('Tu mapa cognitivo personal', 118, 318)
+
+      ctx.fillStyle = '#a87f00'
+      ctx.fillRect(118, 374, 92, 4)
+
+      const drawSize = 380
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(
+        image,
+        crop.x,
+        crop.y,
+        crop.size,
+        crop.size,
+        710,
+        118,
+        drawSize,
+        drawSize,
+      )
+
+      return canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
+    },
+    { crop: SOURCE_CROP, paper: PAPER, source: sourceDataUrl },
+  )
+  await writeFile(outFile, Buffer.from(pngBase64, 'base64'))
+  console.log(`✓ ${outFile}`)
+}
+
 const source = await readFile(sourceFile)
 const sourceDataUrl = `data:image/png;base64,${source.toString('base64')}`
 
@@ -98,5 +149,6 @@ await renderIcon(page, sourceDataUrl, 192, resolve(publicDir, 'icon-192.png'), {
 await renderIcon(page, sourceDataUrl, 512, resolve(publicDir, 'icon-512.png'), {
   glyphScale: 0.78,
 })
+await renderOgImage(page, sourceDataUrl, resolve(publicDir, 'og-image.png'))
 
 await browser.close()
