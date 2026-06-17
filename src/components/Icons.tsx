@@ -5,8 +5,6 @@
  *   - 1.6  ui            (la "house weight", todos los UI icons usan esta)
  *   - 1.4  accent        (SparkleIcon — las 8 rayitas se ven amontonadas
  *                         con 1.6, baja a 1.4 para que respiren)
- *   - 1.7  brand-primary (TramaMark T principal — logo, intencional ancho)
- *   - 1.1  brand-detail  (TramaMark threads — sub-ornament del logo)
  *   - 1.0  ornament      (EndMark diamond — flourish discreto)
  *   - 0.8–0.9 ornament-thread (OrnamentBreak threads — flujo editorial)
  *
@@ -524,57 +522,20 @@ export const SettingsIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
-/* Trama monogram — a woven "T" with crossed threads beneath.
-   La identidad visual de la marca: una "T" geométrica con dos hilos
-   cruzados que pasan por el stem vertical. Lee como "T" desde lejos
-   (typográfico) y como "telar" de cerca (semántico). El cross-point
-   de los hilos cae exactamente en el stem — no es coincidencia.
-
-   `animate`: cuando true, agrega las clases CSS que dibujan los
-   strokes con dash-offset (mark-crossbar/mark-vertical/mark-thread).
-   Solo activarlo en el Splash — en sidebar/lockup no queremos que
-   anime cada vez que el componente monta. */
-export const TramaMark = ({
-  size = 22,
-  className,
-  animate,
-}: Props & { animate?: boolean }) =>
-  animate ? (
-    <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none">
-      <path
-        className="mark-crossbar"
-        d="M5 6h14"
-        stroke="currentColor"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-      />
-      <path
-        className="mark-vertical"
-        d="M12 6v13"
-        stroke="currentColor"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-      />
-      <path
-        className="mark-thread"
-        d="M9 11l6 4M15 11l-6 4"
-        stroke="currentColor"
-        strokeWidth={1.1}
-        strokeOpacity={0.55}
-        strokeLinecap="round"
-      />
-    </svg>
-  ) : (
-    <img
-      src="/favicon-48.png"
-      width={size}
-      height={size}
-      alt=""
-      aria-hidden="true"
-      draggable={false}
-      className={className}
-    />
-  )
+/* Trama mark — isotipo oficial recortado desde el logo fuente. `animate`
+   queda como prop tolerada para compatibilidad con el splash, pero la marca
+   visual es una sola en toda la app. */
+export const TramaMark = ({ size = 22, className }: Props & { animate?: boolean }) => (
+  <img
+    src="/favicon-48.png"
+    width={size}
+    height={size}
+    alt=""
+    aria-hidden="true"
+    draggable={false}
+    className={className}
+  />
+)
 
 /* Brand lockup — TramaMark + wordmark "Trama" lado a lado.
    La presentación canónica de la marca cuando hay espacio para
