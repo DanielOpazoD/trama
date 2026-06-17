@@ -3,7 +3,6 @@ import {
   lazy,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -37,10 +36,10 @@ import { GraphSvgCanvas } from './graph/GraphSvgCanvas'
 import {
   computeClusterCentroids,
   computeConnectionCount,
-  computePositionBounds,
   selectGraphDataset,
 } from './graph/graphViewModel'
 import { useGraphHoverPreview } from './graph/useGraphHoverPreview'
+import { useGraphSvgMeasure, useGraphViewportFit } from './graph/useGraphViewport'
 import { LoadingHint } from './LoadingHint'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
@@ -72,24 +71,6 @@ const EXPLORE_HINT_THRESHOLD = 2000
 // el render se vuelve perceptiblemente lento. WebGL pinta 10k+ sin sudar.
 const WEBGL_THRESHOLD = 600
 
-export function graphViewportFitKey({
-  mode,
-  svgSize,
-  entityCount,
-  relationshipCount,
-}: {
-  mode: LayoutMode
-  svgSize: { width: number; height: number }
-  entityCount: number
-  relationshipCount: number
-}): string | null {
-  if (mode === 'organic') return null
-  if (svgSize.width < 120 || svgSize.height < 120) return null
-  return `${mode}:${entityCount}:${relationshipCount}:${Math.round(
-    svgSize.width,
-  )}x${Math.round(svgSize.height)}`
-}
-
 export default function GraphView({
   selectedId,
   onSelect,
@@ -109,12 +90,7 @@ export default function GraphView({
   const suggest = useSuggestRelationships()
   const { offline } = useOffline()
   const svgRef = useRef<SVGSVGElement | null>(null)
-  const [svgElement, setSvgElement] = useState<SVGSVGElement | null>(null)
-  const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
-  const setGraphSvgRef = useCallback((node: SVGSVGElement | null) => {
-    svgRef.current = node
-    setSvgElement(node)
-  }, [])
+  const { svgSize, setGraphSvgRef } = useGraphSvgMeasure(svgRef)
   // Default 'by-degree' (por densidad) — los hubs caen al centro y el
   // grafo se entiende a primer vistazo. La elección persiste en
   // localStorage vía useLocalStorageState.
@@ -178,40 +154,6 @@ export default function GraphView({
   const truncated =
     graphMode === 'exploratorio' ? (neighborsQuery.data?.truncated ?? false) : false
 
-  // Measure the SVG so we can center the world group using numeric translate.
-  // (SVG transform attribute does not accept percentage values.)
-  useLayoutEffect(() => {
-    const svg = svgElement
-    if (!svg) return
-    let frame = 0
-    const update = () => {
-      const rect = svg.getBoundingClientRect()
-      setSvgSize((prev) => {
-        if (
-          Math.round(prev.width) === Math.round(rect.width) &&
-          Math.round(prev.height) === Math.round(rect.height)
-        ) {
-          return prev
-        }
-        return { width: rect.width, height: rect.height }
-      })
-    }
-    const scheduleUpdate = () => {
-      window.cancelAnimationFrame(frame)
-      frame = window.requestAnimationFrame(update)
-    }
-    update()
-    frame = window.requestAnimationFrame(update)
-    const observer = new ResizeObserver(scheduleUpdate)
-    observer.observe(svg)
-    window.addEventListener('resize', scheduleUpdate)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      observer.disconnect()
-      window.removeEventListener('resize', scheduleUpdate)
-    }
-  }, [svgElement])
-
   const { positions, setPosition, reorganize, computing } = useGraphLayout({
     mode,
     nodes: entities,
@@ -226,38 +168,14 @@ export default function GraphView({
   // A zoom 0.7 (default) esos clusters no entran. Encuadramos auto al
   // bounding box de los nodos. Organic no se toca: persiste posiciones
   // del usuario y el zoom default es suficiente.
-  const lastFittedViewportRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (mode === 'organic') {
-      lastFittedViewportRef.current = mode
-      return
-    }
-    // En algunos montajes el SVG reporta 0px o una franja mínima antes de que
-    // el layout del shell termine. No marcamos el fit como hecho hasta tener
-    // un viewport real; si no, el grafo queda encogido arriba.
-    const fitKey = graphViewportFitKey({
-      mode,
-      svgSize,
-      entityCount: entities.length,
-      relationshipCount: relationships.length,
-    })
-    if (!fitKey) return
-    // Solo refit cuando ENTRAMOS al mode (no en cada re-render del mismo).
-    if (lastFittedViewportRef.current === fitKey) return
-    const bounds = computePositionBounds(positions)
-    if (!bounds) return
-    pz.fitToView(bounds, 140, 1.15)
-    lastFittedViewportRef.current = fitKey
-  }, [
+  useGraphViewportFit({
     mode,
-    positions,
-    pz,
     svgSize,
-    svgSize.width,
-    svgSize.height,
-    entities.length,
-    relationships.length,
-  ])
+    entityCount: entities.length,
+    relationshipCount: relationships.length,
+    positions,
+    panZoom: pz,
+  })
 
   const freshEntities = useFreshIds(entities.map((e) => e.id))
   const freshRels = useFreshIds(relationships.map((r) => r.id))

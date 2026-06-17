@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import GraphView, { graphViewportFitKey } from './GraphView'
+import GraphView from './GraphView'
 import { renderWithProviders } from '../test-utils'
+import { graphViewportFitKey } from './graph/useGraphViewport'
 
 const graphFitToView = vi.hoisted(() => vi.fn())
 

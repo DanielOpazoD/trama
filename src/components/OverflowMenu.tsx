@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
 
 function zIndexFromClassName(className: string): number | undefined {
@@ -13,8 +20,8 @@ function zIndexFromClassName(className: string): number | undefined {
 /**
  * Menú "⋯" reutilizable: un trigger discreto + un popover portado a
  * `document.body` con posición `fixed` (no se recorta dentro de columnas ni
- * contenedores con overflow). Se cierra al hacer clic afuera, con Escape y al
- * scrollear/redimensionar.
+ * contenedores con overflow). Se cierra al hacer clic afuera y con Escape; ante
+ * scroll/resize recalcula su ancla para no desmontarse durante reflows.
  *
  * `children` recibe `close` para cerrar el menú tras ejecutar cada acción.
  */
@@ -42,10 +49,9 @@ export function OverflowMenu({
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
-  useLayoutEffect(() => {
-    if (!open) return
+  const updatePosition = useCallback(() => {
     const r = triggerRef.current?.getBoundingClientRect()
-    if (!r) return
+    if (!r) return false
     const right = window.innerWidth - r.right
     // Si hay poco espacio debajo del trigger (está bajo en el viewport), abrimos
     // el menú HACIA ARRIBA anclando su base sobre el trigger, para que no se
@@ -57,7 +63,13 @@ export function OverflowMenu({
     } else {
       setPos({ top: r.bottom + 6, right })
     }
-  }, [open])
+    return true
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    updatePosition()
+  }, [open, updatePosition])
 
   useEffect(() => {
     if (!open) return
@@ -74,7 +86,7 @@ export function OverflowMenu({
       setOpen(false)
     }
     function onReflow() {
-      setOpen(false)
+      if (!updatePosition()) setOpen(false)
     }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey, true)
@@ -86,7 +98,7 @@ export function OverflowMenu({
       window.removeEventListener('scroll', onReflow, true)
       window.removeEventListener('resize', onReflow)
     }
-  }, [open])
+  }, [open, updatePosition])
 
   return (
     <>

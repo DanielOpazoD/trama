@@ -367,6 +367,10 @@ export function NotasFeedView() {
     deps: [segment, searchOpen, calendarOpen, capturaStatus, recorteThumb, items.length],
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const virtualizerRef = useRef(virtualizer)
+  useEffect(() => {
+    virtualizerRef.current = virtualizer
+  }, [virtualizer])
   const feedMeasureKey = useMemo(
     () =>
       items
@@ -383,8 +387,8 @@ export function NotasFeedView() {
 
   useLayoutEffect(() => {
     if (items.length === 0) return
-    virtualizer.measure()
-  }, [feedMeasureKey, items.length, recorteThumb, virtualizer])
+    virtualizerRef.current.measure()
+  }, [feedMeasureKey, items.length, recorteThumb])
 
   // Carga incremental: cuando la ventana visible llega a los últimos ítems,
   // pedimos la próxima página. Leemos el índice virtual más alto (atado al
