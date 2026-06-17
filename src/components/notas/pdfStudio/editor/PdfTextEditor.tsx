@@ -205,6 +205,7 @@ export function PdfTextEditor({
       color: style.color,
       font: style.font,
       bold: style.bold,
+      italic: style.italic,
       opacity: style.opacity,
       rotation: style.rotation,
     })
@@ -434,6 +435,7 @@ export function PdfTextEditor({
             activeFont={activeStyle.font}
             activeSize={activeStyle.sizeRatio}
             activeBold={activeStyle.bold}
+            activeItalic={activeStyle.italic ?? false}
             activeColor={activeStyle.color}
             activeOpacity={activeStyle.opacity ?? 1}
             activeRotation={activeStyle.rotation ?? 0}

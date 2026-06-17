@@ -15,7 +15,7 @@ export const ACCENT = 'var(--accent-sage)'
  *  fuente/tamaño/negrita/rotación son sólo de texto. */
 export type TextStyle = Pick<
   TextAnnotation,
-  'font' | 'sizeRatio' | 'bold' | 'color' | 'opacity' | 'rotation'
+  'font' | 'sizeRatio' | 'bold' | 'italic' | 'color' | 'opacity' | 'rotation'
 >
 
 /** Acota `n` al rango `[lo, hi]`. */

@@ -126,7 +126,11 @@ function segmentHasTags(segment: NotasFeedSegment): boolean {
  * (promover / archivar / eliminar) se cablea completo con sus mutaciones propias
  * + PromoteModal.
  */
-export function NotasFeedView() {
+export function NotasFeedView({
+  onSendImagesToPdf,
+}: {
+  onSendImagesToPdf?: (selected: Recorte[]) => void
+}) {
   // --- Composer (captura unificada: nota · enlace · imagen) ---------------
   const createNote = useCreateNote()
   const uploadAttachment = useUploadNotasAttachment()
@@ -1135,6 +1139,7 @@ export function NotasFeedView() {
           selected={selectedRecortes}
           onClear={exitSelection}
           onDone={exitSelection}
+          onSendImagesToPdf={onSendImagesToPdf}
         />
       )}
 

@@ -186,6 +186,19 @@ describe('<PdfStudioView />', () => {
     ).toBeInTheDocument()
   })
 
+  it('importa archivos externos enviados desde Recortes', async () => {
+    const onExternalFilesConsumed = vi.fn()
+    renderWithProviders(
+      <PdfStudioView
+        externalFiles={[imageFile('whatsapp.webp')]}
+        onExternalFilesConsumed={onExternalFilesConsumed}
+      />,
+    )
+
+    expect(await screen.findByAltText('Página 1')).toBeInTheDocument()
+    await waitFor(() => expect(onExternalFilesConsumed).toHaveBeenCalled())
+  })
+
   it('en modo planillas usa estado vacío, modo y acción primaria propios', () => {
     renderWithProviders(<PdfStudioView studioMode="templates" />)
 
@@ -295,6 +308,30 @@ describe('<PdfStudioView />', () => {
     expect(
       screen.queryByRole('menuitem', { name: /Detectar formularios/i }),
     ).not.toBeInTheDocument()
+  })
+
+  it('configura encabezado, pie e imágenes por página antes de guardar', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+
+    await user.upload(fileInput(), imageFile())
+    await screen.findByAltText('Página 1')
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+    await user.type(screen.getByLabelText('Encabezado'), 'Clínica Norte')
+    await user.type(screen.getByLabelText('Pie de página'), 'Uso interno')
+    await user.selectOptions(screen.getByLabelText('Imágenes por página'), '4')
+    await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
+
+    expect(mocks.assemblePdfInWorker).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          header: { text: 'Clínica Norte' },
+          footer: { text: 'Uso interno' },
+          imageLayout: { imagesPerPage: 4 },
+        }),
+      }),
+      expect.anything(),
+    )
   })
 
   it('en modo editor PDF no muestra ni ejecuta planillas guardadas', async () => {

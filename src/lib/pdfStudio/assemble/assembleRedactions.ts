@@ -46,7 +46,7 @@ function createRasterCanvas(width: number, height: number): RasterCanvas {
 }
 
 function getRasterContext(canvas: RasterCanvas): RasterContext {
-  const ctx = canvas.getContext('2d')
+  const ctx = canvas.getContext('2d') as RasterContext | null
   if (!ctx) throw new Error('Canvas 2D no disponible para redacción segura')
   return ctx
 }

@@ -5,6 +5,7 @@ import {
 import {
   BoldIcon,
   ChevronDownIcon,
+  ItalicIcon,
   OpacityIcon,
   RotateIcon,
   TextSizeIcon,
@@ -32,6 +33,7 @@ export function EditorToolbarStyleMenu({
   activeFont,
   activeSize,
   activeBold,
+  activeItalic,
   activeColor,
   activeOpacity,
   activeRotation,
@@ -40,6 +42,7 @@ export function EditorToolbarStyleMenu({
   activeFont: PdfFontKind
   activeSize: number
   activeBold: boolean
+  activeItalic: boolean
   activeColor: string
   activeOpacity: number
   activeRotation: number
@@ -111,20 +114,35 @@ export function EditorToolbarStyleMenu({
           />
 
           <div className="flex items-center justify-between px-1">
-            <span className="text-caption text-ink-700">Negrita</span>
-            <button
-              type="button"
-              onClick={() => onApplyStyle({ bold: !activeBold })}
-              aria-pressed={activeBold}
-              aria-label="Negrita"
-              className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
-                activeBold
-                  ? 'bg-ink-100/60 text-ink-800'
-                  : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'
-              }`}
-            >
-              <BoldIcon size={14} />
-            </button>
+            <span className="text-caption text-ink-700">Estilo</span>
+            <div className="inline-flex rounded-md bg-ink-100/45 p-0.5">
+              <button
+                type="button"
+                onClick={() => onApplyStyle({ bold: !activeBold })}
+                aria-pressed={activeBold}
+                aria-label="Negrita"
+                className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
+                  activeBold
+                    ? 'bg-ink-100/80 text-ink-800'
+                    : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'
+                }`}
+              >
+                <BoldIcon size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onApplyStyle({ italic: !activeItalic })}
+                aria-pressed={activeItalic}
+                aria-label="Cursiva"
+                className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
+                  activeItalic
+                    ? 'bg-ink-100/80 text-ink-800'
+                    : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'
+                }`}
+              >
+                <ItalicIcon size={14} />
+              </button>
+            </div>
           </div>
 
           <div>

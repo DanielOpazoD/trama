@@ -25,6 +25,7 @@ const calls = vi.hoisted(() => ({
   drawImage: vi.fn(),
   drawText: vi.fn(),
   drawRectangle: vi.fn(),
+  drawLine: vi.fn(),
   setRotation: vi.fn(),
   registerFontkit: vi.fn(),
   load: vi.fn(),
@@ -46,11 +47,12 @@ vi.mock('pdf-lib', () => {
     drawImage: (...a: unknown[]) => calls.drawImage(...a),
     drawText: (...a: unknown[]) => calls.drawText(...a),
     drawRectangle: (...a: unknown[]) => calls.drawRectangle(...a),
+    drawLine: (...a: unknown[]) => calls.drawLine(...a),
   })
   return {
     PDFDocument: {
       create: async () => {
-        let count = 0
+        const pages: ReturnType<typeof makePage>[] = []
         return {
           copyPages: async (...a: unknown[]) => {
             calls.copyPages(...a)
@@ -58,8 +60,9 @@ vi.mock('pdf-lib', () => {
           },
           addPage: (arg: unknown) => {
             calls.addPage(arg)
-            count += 1
-            return Array.isArray(arg) ? makePage(arg[0], arg[1]) : arg
+            const page = Array.isArray(arg) ? makePage(arg[0], arg[1]) : arg
+            pages.push(page as ReturnType<typeof makePage>)
+            return page
           },
           embedPng: async (b: unknown) => {
             calls.embedPng(b)
@@ -77,7 +80,8 @@ vi.mock('pdf-lib', () => {
             }
           },
           registerFontkit: (...a: unknown[]) => calls.registerFontkit(...a),
-          getPageCount: () => count,
+          getPageCount: () => pages.length,
+          getPages: () => pages,
           save: async (...a: unknown[]) => {
             calls.save(...a)
             if (calls.failSave) throw new Error('out of memory while saving')
@@ -196,13 +200,50 @@ beforeEach(() => {
 })
 
 describe('pdfStudio/assemble (contrato browser-only)', () => {
-  it('PNG se embebe sin pérdida (embedPng), no JPEG; devuelve blob PDF', async () => {
+  it('PNG se embebe sin pérdida en una hoja imprimible con margen blanco', async () => {
     const { blob, skipped } = await assemble(addImageSource(emptyDoc(), png()))
     expect(calls.embedPng).toHaveBeenCalledTimes(1)
     expect(calls.embedJpg).not.toHaveBeenCalled()
     expect(calls.drawImage).toHaveBeenCalledTimes(1)
+    expect(calls.addPage).toHaveBeenCalledWith([595.28, 841.89])
+    const [_image, opts] = calls.drawImage.mock.calls[0] as [
+      unknown,
+      { x: number; y: number; width: number; height: number },
+    ]
+    expect(opts.x).toBeCloseTo(114.17, 1)
+    expect(opts.y).toBeCloseTo(54, 1)
+    expect(opts.width).toBeCloseTo(366.95, 1)
+    expect(opts.height).toBeCloseTo(733.89, 1)
     expect(blob.type).toBe('application/pdf')
     expect(skipped).toEqual([])
+  })
+
+  it.each([1, 2, 3, 4, 6] as const)(
+    'agrupa imágenes en hojas imprimibles de %i por página',
+    async (imagesPerPage) => {
+      let doc = emptyDoc()
+      for (let i = 0; i < 7; i += 1) {
+        doc = addImageSource(doc, png(`img-${i}.png`))
+      }
+      doc = { ...doc, settings: { imageLayout: { imagesPerPage } } }
+
+      await assemble(doc)
+
+      expect(calls.addPage).toHaveBeenCalledTimes(Math.ceil(7 / imagesPerPage))
+      expect(calls.drawImage).toHaveBeenCalledTimes(7)
+    },
+  )
+
+  it('mantiene las páginas PDF importadas en copyPages aunque haya layout de imágenes', async () => {
+    const doc = {
+      ...addPdfSource(emptyDoc(), pdf(), 1),
+      settings: { imageLayout: { imagesPerPage: 4 as const } },
+    }
+
+    await assemble(doc)
+
+    expect(calls.copyPages).toHaveBeenCalledTimes(1)
+    expect(calls.addPage).toHaveBeenCalledWith(expect.objectContaining({}))
   })
 
   it('emite progreso por fases del pipeline de exportación', async () => {
@@ -376,7 +417,7 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
   })
 
   it('el texto sans embebe la fuente REAL (Inter por bytes + subconjunto) y dibuja en el layout', async () => {
-    let doc = addImageSource(emptyDoc(), png()) // página → 100 x 200 pt (embedPng mock)
+    let doc = addImageSource(emptyDoc(), png()) // imagen sobre hoja imprimible A4
     const ann = makeTextAnnotation({
       text: 'Hola',
       xRatio: 0.25,
@@ -403,12 +444,30 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
       { x: number; y: number; size: number; opacity: number; rotate: { __deg: number } },
     ]
     expect(text).toBe('Hola')
-    expect(opts.x).toBeCloseTo(25) // 0.25 * 100
-    expect(opts.size).toBeCloseTo(20) // 0.1 * 200
-    // topY(100) − baselineDropEm('sans')·size — modelo de line-box, no heightAtSize.
-    expect(opts.y).toBeCloseTo(100 - baselineDropEm('sans') * 20)
+    expect(opts.x).toBeCloseTo(205.90375) // imagen centrada + 0.25 * ancho imagen
+    expect(opts.size).toBeCloseTo(73.389) // 0.1 * alto imagen
+    expect(opts.y).toBeCloseTo(420.945 - baselineDropEm('sans') * 73.389)
     expect(opts.opacity).toBe(0.5)
     expect(opts.rotate).toEqual({ __deg: -30 }) // CSS horario → pdf-lib antihorario
+  })
+
+  it('el texto cursivo usa fuente base-14 itálica al exportar', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeTextAnnotation({
+        text: 'Firma',
+        xRatio: 0.1,
+        yRatio: 0.1,
+        sizeRatio: 0.04,
+        color: '#000000',
+        font: 'mono',
+        bold: false,
+        italic: true,
+      }),
+    ])
+    await assemble(doc)
+
+    expect(calls.embedFont).toHaveBeenCalledWith('Courier-Oblique')
   })
 
   it('el texto con caja real se exporta con maxWidth para envolver líneas', async () => {
@@ -432,8 +491,8 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
       string,
       { maxWidth?: number; lineHeight: number },
     ]
-    expect(opts.maxWidth).toBeCloseTo(35)
-    expect(opts.lineHeight).toBeCloseTo(8 * 1.15)
+    expect(opts.maxWidth).toBeCloseTo(128.43075)
+    expect(opts.lineHeight).toBeCloseTo(29.3556 * 1.15)
   })
 
   it('el texto con caja real respeta el alto máximo al exportar', async () => {
@@ -521,10 +580,10 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     const [opts] = calls.drawRectangle.mock.calls[0] as [
       { x: number; y: number; width: number; height: number; opacity: number },
     ]
-    expect(opts.x).toBeCloseTo(20) // 0.2 * 100
-    expect(opts.width).toBeCloseTo(40) // 0.4 * 100
-    expect(opts.height).toBeCloseTo(20) // 0.1 * 200
-    expect(opts.y).toBeCloseTo(120) // 200 − (0.3+0.1)*200
+    expect(opts.x).toBeCloseTo(187.5565)
+    expect(opts.width).toBeCloseTo(146.778)
+    expect(opts.height).toBeCloseTo(73.389)
+    expect(opts.y).toBeCloseTo(494.334)
     expect(opts.opacity).toBe(0.5)
   })
 
@@ -548,11 +607,30 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
       unknown,
       { x: number; y: number; width: number; height: number; opacity: number },
     ]
-    expect(opts.x).toBeCloseTo(20)
-    expect(opts.width).toBeCloseTo(40)
-    expect(opts.height).toBeCloseTo(20)
-    expect(opts.y).toBeCloseTo(120)
+    expect(opts.x).toBeCloseTo(187.5565)
+    expect(opts.width).toBeCloseTo(146.778)
+    expect(opts.height).toBeCloseTo(73.389)
+    expect(opts.y).toBeCloseTo(494.334)
     expect(opts.opacity).toBe(0.75)
+  })
+
+  it('dibuja encabezado y pie configurados en todas las hojas exportadas', async () => {
+    let doc = addImageSource(emptyDoc(), png('a.png'))
+    doc = addImageSource(doc, png('b.png'))
+    doc = {
+      ...doc,
+      settings: {
+        header: { text: 'Clínica Norte' },
+        footer: { text: 'Uso interno' },
+        imageLayout: { imagesPerPage: 1 },
+      },
+    }
+
+    await assemble(doc)
+
+    const drawnTexts = calls.drawText.mock.calls.map((call) => call[0])
+    expect(drawnTexts.filter((text) => text === 'Clínica Norte')).toHaveLength(2)
+    expect(drawnTexts.filter((text) => text === 'Uso interno')).toHaveLength(2)
   })
 
   it('readPngSize lee las dimensiones del IHDR; null si no es PNG', () => {

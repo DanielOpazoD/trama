@@ -443,13 +443,18 @@ describe('pdfStudio/model · texto vectorial', () => {
     expect(d1.pages[0]!.annotations).toHaveLength(1)
   })
 
-  it('standardFontName mapea familia + negrita a fuentes base-14', () => {
+  it('standardFontName mapea familia + negrita/cursiva a fuentes base-14', () => {
     expect(standardFontName('sans', false)).toBe('Helvetica')
     expect(standardFontName('sans', true)).toBe('Helvetica-Bold')
+    expect(standardFontName('sans', false, true)).toBe('Helvetica-Oblique')
+    expect(standardFontName('sans', true, true)).toBe('Helvetica-BoldOblique')
     expect(standardFontName('serif', false)).toBe('Times-Roman')
     expect(standardFontName('serif', true)).toBe('Times-Bold')
+    expect(standardFontName('serif', false, true)).toBe('Times-Italic')
+    expect(standardFontName('serif', true, true)).toBe('Times-BoldItalic')
     expect(standardFontName('mono', false)).toBe('Courier')
     expect(standardFontName('mono', true)).toBe('Courier-Bold')
+    expect(standardFontName('mono', false, true)).toBe('Courier-Oblique')
   })
 
   it('previewFontFamily usa la fuente REAL embebible (Inter/Spectral), Courier para mono', () => {
@@ -711,10 +716,16 @@ describe('pdfStudio/model · anotaciones polimórficas', () => {
     const out = setDocSettings(d, {
       pageNumbers: { position: 'center' },
       watermark: { text: 'BORRADOR' },
+      header: { text: 'Clínica Norte' },
+      footer: { text: 'Uso interno' },
+      imageLayout: { imagesPerPage: 4 },
     })
     expect(out.settings).toEqual({
       pageNumbers: { position: 'center' },
       watermark: { text: 'BORRADOR' },
+      header: { text: 'Clínica Norte' },
+      footer: { text: 'Uso interno' },
+      imageLayout: { imagesPerPage: 4 },
     })
     expect(out).not.toBe(d)
     expect(d.settings).toBeUndefined() // no mutó el original

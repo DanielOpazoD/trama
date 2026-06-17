@@ -68,6 +68,7 @@ export function AnnotationTextBox({
     padding: `${HIT_Y}px ${HIT_X}px`,
     fontFamily: previewFontFamily(a.font),
     fontWeight: a.bold ? 700 : 400,
+    fontStyle: a.italic ? 'italic' : undefined,
     fontSize: `${sz}px`,
     lineHeight: TEXT_LINE_HEIGHT,
     color: a.color,

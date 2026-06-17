@@ -1,17 +1,11 @@
 /** Borde browser-only del editor de PDF: ensambla el documento final con pdf-lib. */
-import {
-  getSource,
-  isEmbeddableFont,
-  standardFontName,
-  type PdfDoc,
-  type PdfFontKind,
-  type PdfSource,
-} from '../model/model'
-import type { PDFFont, PDFPage } from 'pdf-lib'
+import { getSource, isEmbeddableFont, type PdfDoc, type PdfSource } from '../model/model'
+import type { PDFPage } from 'pdf-lib'
 import { applyPdfAnnotations } from './assembleAnnotations'
 import { applyDocumentSettings } from './assembleDocumentSettings'
-import { embeddableFontUrl, fetchFontBytes } from './assembleFonts'
-import { addImagePage, readPngSize } from './assembleImages'
+import { createPdfFontResolver } from './assembleFontResolver'
+import { readPngSize, resolveImagesPerPage } from './assembleImages'
+import { addImageSheetFromDoc } from './assembleImageSheets'
 import { countImages, emitLifecycle } from './assembleProgress'
 import {
   addRedactedRasterPage,
@@ -101,28 +95,13 @@ export async function assemble(
     skipped.push({ name: source.file.name, reason: errMessage(err) })
   }
 
-  const fontCache = new Map<string, PDFFont>()
-  const fontFor = async (font: PdfFontKind, bold: boolean): Promise<PDFFont> => {
-    const key = `${font}:${bold ? 'b' : 'r'}`
-    const hit = fontCache.get(key)
-    if (hit) return hit
-    let embedded: PDFFont | null = null
-    const url = embeddableFontUrl(font, bold)
-    if (url) {
-      try {
-        embedded = await out.embedFont(await fetchFontBytes(url), { subset: true })
-      } catch {
-        embedded = null
-      }
-    }
-    const resolved = embedded ?? (await out.embedFont(standardFontName(font, bold)))
-    fontCache.set(key, resolved)
-    return resolved
-  }
+  const fontFor = createPdfFontResolver(out)
 
   emitLifecycle(emit, 'process-pages', 'start', 0, doc.pages.length)
-  for (const [pageIndex, page] of doc.pages.entries()) {
+  const imagesPerPage = resolveImagesPerPage(doc.settings)
+  for (let pageIndex = 0; pageIndex < doc.pages.length; pageIndex += 1) {
     throwIfAborted(options.signal, 'process-pages')
+    const page = doc.pages[pageIndex]!
     const source = getSource(doc, page.sourceId)
     if (!source || skippedIds.has(source.id)) continue
     try {
@@ -140,16 +119,29 @@ export async function assemble(
         const [copied] = await out.copyPages(src, [page.pageIndex])
         if (copied) outPage = out.addPage(copied)
       } else {
-        outPage = await addImagePage(out, source.file, {
+        const sheet = await addImageSheetFromDoc({
+          doc,
+          pageIndex,
+          out,
+          imagesPerPage,
           compression: options.compression,
+          fontFor,
+          rgb,
+          degrees,
+          skipped,
+          skippedIds,
         })
+        outPage = sheet.outPage
+        pageIndex = sheet.nextPageIndex
       }
       if (!outPage) continue
 
       emitLifecycle(emit, 'apply-annotations', 'start', pageIndex + 1, doc.pages.length)
       const annotations = redacted
         ? annotationsWithoutRedactions(page.annotations)
-        : page.annotations
+        : page.kind === 'image'
+          ? []
+          : page.annotations
       if (annotations.length > 0) {
         await applyPdfAnnotations({
           out,

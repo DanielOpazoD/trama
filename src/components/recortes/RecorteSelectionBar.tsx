@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { api, type PromoteRecorteInput, type Recorte } from '../../api'
 import { useToast } from '../../state/toast'
 import { queryKeys } from '../../state/queryClient'
-import { ArchiveIcon, MomentosIcon, TrashIcon } from '../Icons'
+import { ArchiveIcon, FilePdfIcon, MomentosIcon, TrashIcon } from '../Icons'
 
 /** Pies autogenerados que no vale la pena arrastrar como caption del momento. */
 const IMAGE_PLACEHOLDERS = new Set([
@@ -59,10 +59,12 @@ export function RecorteSelectionBar({
   selected,
   onClear,
   onDone,
+  onSendImagesToPdf,
 }: {
   selected: Recorte[]
   onClear: () => void
   onDone: () => void
+  onSendImagesToPdf?: (selected: Recorte[]) => void
 }) {
   const qc = useQueryClient()
   const toast = useToast()
@@ -73,6 +75,7 @@ export function RecorteSelectionBar({
   const n = selected.length
   const anyArchived = selected.some((r) => r.status === 'archived')
   const anyActive = selected.some((r) => r.status !== 'archived')
+  const imageRecortes = selected.filter((r) => r.images.length > 0 || r.imageKey)
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: queryKeys.recortes })
@@ -174,6 +177,19 @@ export function RecorteSelectionBar({
           >
             <MomentosIcon size={14} /> {busy === 'momento' ? '…' : '→ Momento'}
           </button>
+          {onSendImagesToPdf && imageRecortes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                onSendImagesToPdf(imageRecortes)
+                onDone()
+              }}
+              disabled={!!busy}
+              className={btn}
+            >
+              <FilePdfIcon size={14} /> → Imprenta
+            </button>
+          )}
           {anyActive && (
             <button
               type="button"

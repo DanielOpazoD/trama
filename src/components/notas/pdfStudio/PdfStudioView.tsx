@@ -1,22 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import {
-  isPdfTemplate,
-  type DocSettings,
-  type PdfDoc,
-} from '../../../lib/pdfStudio/model/model'
+import { isPdfTemplate } from '../../../lib/pdfStudio/model/model'
 import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
 import { canRedo, canUndo, redo, undo } from '../../../lib/pdfStudio/model/history'
 import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
 import { buildPdfStudioPreflight } from '../../../lib/pdfStudio/preflight/pdfStudioPreflight'
 import { BulkBar } from './shell/BulkBar'
-import { PdfDocTitleInput } from './shell/PdfDocTitleInput'
-import { PdfStudioDocumentToolbar } from './shell/PdfStudioDocumentToolbar'
-import { PdfStudioOperationalStatus } from './shell/PdfStudioOperationalStatus'
+import { PdfStudioDocumentControls } from './shell/PdfStudioDocumentControls'
 import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
 import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
 import { PdfStudioOcrPanel } from './ocr/PdfStudioOcrPanel'
-import { PdfTemplateWorkflowGuide } from './planillas/design/PdfTemplateWorkflowGuide'
 import { PdfStudioWorkspacePanelHost } from './shell/PdfStudioWorkspacePanelHost'
 import { PdfTextEditor } from './editor/PdfTextEditor'
 import {
@@ -38,11 +31,25 @@ import { usePdfStudioTemplateMode } from './planillas/design/usePdfStudioTemplat
 import { usePdfStudioWorkspace } from './workspace/usePdfStudioWorkspace'
 import { pdfStudioPageInteractionMode as pageMode } from './shell/pdfStudioPageInteractionMode'
 import { usePdfStudioDocumentHistory } from './shell/usePdfStudioDocumentHistory'
+import { usePdfStudioDocumentSettings } from './shell/usePdfStudioDocumentSettings'
+import { usePdfStudioExternalFiles } from './shell/usePdfStudioExternalFiles'
+import { usePdfStudioKeyboardRefs } from './shell/usePdfStudioKeyboardRefs'
 import { useToast } from '../../../state'
-const ACCEPT = 'application/pdf,image/*'
+import { usePdfStudioTemplateSaveAction } from './shell/usePdfStudioTemplateSaveAction'
+
 export type PdfStudioMode = 'editor' | 'templates'
-type PdfStudioViewProps = { topBar?: ReactNode; studioMode?: PdfStudioMode }
-export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewProps) {
+type PdfStudioViewProps = {
+  externalFiles?: File[]
+  onExternalFilesConsumed?: () => void
+  topBar?: ReactNode
+  studioMode?: PdfStudioMode
+}
+export function PdfStudioView({
+  externalFiles = [],
+  onExternalFilesConsumed,
+  topBar,
+  studioMode = 'editor',
+}: PdfStudioViewProps) {
   const toast = useToast()
   const templatesEnabled = studioMode === 'templates'
   const [exportCompression, setExportCompression] =
@@ -57,7 +64,6 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   const [editorSessionZoom, setEditorSessionZoom] = useState(1)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null)
-  const pageClipboardRef = useRef<PdfDoc | null>(null)
   const {
     selectedIds,
     selectedIndices,
@@ -93,16 +99,17 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     mode: effectiveTemplateMode,
     setDraftSanitizer: workspace.setDraftSanitizer,
   })
-  const selectedIndicesRef = useRef(selectedIndices)
-  selectedIndicesRef.current = selectedIndices
-  const docRef = useRef(doc)
-  docRef.current = doc
-  const selectAllRef = useRef(selectAll)
-  selectAllRef.current = selectAll
+  const { docRef, pageClipboardRef, selectedIndicesRef, selectAllRef } =
+    usePdfStudioKeyboardRefs({ doc, selectedIndices, selectAll })
   const { addFiles, busy } = usePdfStudioImport({
     commit,
     doc,
     onImageAssets: workspace.addAssets,
+  })
+  usePdfStudioExternalFiles({
+    addFiles,
+    externalFiles,
+    onConsumed: onExternalFilesConsumed,
   })
   const { applyForms, clearForms, formSummary, forms, inspectForms, updateFormValue } =
     usePdfStudioForms(doc, commit)
@@ -169,14 +176,16 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     if (edits) commit((d) => applyPdfTextEditorResult(d, edits))
     setTextPage(null)
   }
-  function startTemplateSave() {
-    if (!templatesEnabled || empty) return
-    if (!isPdfTemplate(doc)) return setTextPage(0)
-    workspace.setPanelCollapsed(false)
-    setSaveTemplateSignal((signal) => signal + 1)
-  }
   const total = doc.pages.length
   const empty = total === 0
+  const startTemplateSave = usePdfStudioTemplateSaveAction({
+    doc,
+    empty,
+    enabled: templatesEnabled,
+    setPanelCollapsed: workspace.setPanelCollapsed,
+    setSaveTemplateSignal,
+    setTextPage,
+  })
   const preflightReport = buildPdfStudioPreflight(doc, { action: 'export' })
   const undoable = canUndo(history)
   const redoable = canRedo(history)
@@ -200,15 +209,18 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
       onClear={clearSelection}
     />
   )
-  const pageNumbers = doc.settings?.pageNumbers
-  const watermarkText = doc.settings?.watermark?.text ?? ''
-  const setPageNumbers = (next: DocSettings['pageNumbers']) =>
-    updateSettings({ ...doc.settings, pageNumbers: next })
-  const setWatermark = (text: string) =>
-    updateSettings({
-      ...doc.settings,
-      watermark: text.trim() ? { text } : undefined,
-    })
+  const {
+    footerText,
+    headerText,
+    imagesPerPage,
+    pageNumbers,
+    setFooter,
+    setHeader,
+    setImagesPerPage,
+    setPageNumbers,
+    setWatermark,
+    watermarkText,
+  } = usePdfStudioDocumentSettings(doc, updateSettings)
   return (
     <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
       <PdfStudioWorkspacePanelHost
@@ -251,74 +263,56 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
           className="pdf-studio-canvas min-h-0 flex-1 overflow-y-auto"
         >
           <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
-            {!templatesEnabled && !empty && (
-              <PdfDocTitleInput title={doc.title ?? ''} onCommit={updateTitle} />
-            )}
-            <PdfStudioDocumentToolbar
-              busy={busy}
-              canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
+            <PdfStudioDocumentControls
+              autosaveState={workspace.autosaveState}
+              doc={doc}
+              effectiveTemplateMode={effectiveTemplateMode}
               empty={empty}
-              exportStatus={exportStatus}
-              exportCompression={exportCompression}
-              formsEnabled={templatesEnabled}
-              pageNumbers={pageNumbers}
-              redoable={redoable}
-              saving={saving}
-              studioMode={studioMode}
-              templateMode={effectiveTemplateMode ?? 'design'}
+              fileInputRef={fileInputRef}
+              formSummary={formSummary}
+              onFileInput={onFileInput}
+              preflightReport={preflightReport}
+              templatesEnabled={templatesEnabled}
               total={total}
-              undoable={undoable}
-              watermarkText={watermarkText}
-              onImport={() => fileInputRef.current?.click()}
-              onUndo={() => setHistory((h) => undo(h))}
-              onRedo={() => setHistory((h) => redo(h))}
-              onSavePdf={() => void openPreview(doc)}
-              // "Descargar rellenable" va por la vista previa en modal (no descarga
-              // directa): Safari bloquea el a.click() tras el ensamblado async, fuera
-              // del gesto del usuario. En el modal la descarga sale del click del botón
-              // (gesto fresco) — el mismo camino seguro que ya usa "Guardar PDF".
-              onDownloadFillable={() => void openPreview(doc, 'rellenable')}
-              onCancelExport={cancelExport}
-              onNewDoc={newDoc}
-              onOpenOcr={() => setOcrOpen(true)}
-              onInspectForms={() => void inspectForms()}
-              onPrintTemplate={() =>
-                void openPreview(doc, 'planilla', { flattenFormFields: true })
-              }
-              onStartSaveTemplate={startTemplateSave}
-              onSetExportCompression={setExportCompression}
-              onSetPageNumbers={setPageNumbers}
-              onSetWatermark={setWatermark}
+              updateTitle={updateTitle}
+              toolbarProps={{
+                busy,
+                canSaveTemplate: templatesEnabled && !empty && isPdfTemplate(doc),
+                empty,
+                exportStatus,
+                exportCompression,
+                formsEnabled: templatesEnabled,
+                footerText,
+                headerText,
+                imagesPerPage,
+                pageNumbers,
+                redoable,
+                saving,
+                studioMode,
+                templateMode: effectiveTemplateMode ?? 'design',
+                total,
+                undoable,
+                watermarkText,
+                onImport: () => fileInputRef.current?.click(),
+                onUndo: () => setHistory((h) => undo(h)),
+                onRedo: () => setHistory((h) => redo(h)),
+                onSavePdf: () => void openPreview(doc),
+                onDownloadFillable: () => void openPreview(doc, 'rellenable'),
+                onCancelExport: cancelExport,
+                onNewDoc: newDoc,
+                onOpenOcr: () => setOcrOpen(true),
+                onInspectForms: () => void inspectForms(),
+                onPrintTemplate: () =>
+                  void openPreview(doc, 'planilla', { flattenFormFields: true }),
+                onStartSaveTemplate: startTemplateSave,
+                onSetExportCompression: setExportCompression,
+                onSetFooter: setFooter,
+                onSetHeader: setHeader,
+                onSetImagesPerPage: setImagesPerPage,
+                onSetPageNumbers: setPageNumbers,
+                onSetWatermark: setWatermark,
+              }}
             />
-            {(!empty || workspace.autosaveState.kind !== 'idle') && (
-              <PdfStudioOperationalStatus
-                autosaveState={workspace.autosaveState}
-                preflightReport={preflightReport}
-              />
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPT}
-              multiple
-              className="sr-only"
-              onChange={onFileInput}
-            />
-            {templatesEnabled && effectiveTemplateMode !== 'fill' && (
-              <PdfTemplateWorkflowGuide
-                fieldCount={doc.formFields?.length ?? 0}
-                pageCount={total}
-              />
-            )}
-            {templatesEnabled && formSummary && (
-              <div
-                role="status"
-                aria-live="polite"
-                className="rounded-md border border-ink-100 bg-paper-50/80 px-3 py-2 text-caption text-ink-600"
-              >
-                {formSummary}
-              </div>
-            )}
             {templateModeBanner}
             {templatesEnabled && (
               <PdfStudioFormPanel

@@ -117,4 +117,31 @@ describe('<RecorteSelectionBar />', () => {
     )
     expect(screen.getByRole('button', { name: /a pendientes/i })).toBeInTheDocument()
   })
+
+  it('ofrece enviar imágenes seleccionadas a Imprenta', async () => {
+    const onSendImagesToPdf = vi.fn()
+    const onDone = vi.fn()
+    renderWithProviders(
+      <RecorteSelectionBar
+        selected={[
+          recorte({
+            id: 'img',
+            imageKey: 'u/x.webp',
+            images: [{ storageKey: 'u/x.webp' }],
+          }),
+          recorte({ id: 'txt', text: 'solo texto' }),
+        ]}
+        onClear={vi.fn()}
+        onDone={onDone}
+        onSendImagesToPdf={onSendImagesToPdf}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: /imprenta/i }))
+
+    expect(onSendImagesToPdf).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'img' }),
+    ])
+    expect(onDone).toHaveBeenCalled()
+  })
 })

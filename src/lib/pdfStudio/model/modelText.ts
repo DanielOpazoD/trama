@@ -1,11 +1,28 @@
 import type { PdfFontKind, TextAnnotation } from './modelTypes'
 
-export function standardFontName(font: PdfFontKind, bold: boolean): string {
-  if (font === 'serif') return bold ? 'Times-Bold' : 'Times-Roman'
-  if (font === 'mono') return bold ? 'Courier-Bold' : 'Courier'
+export function standardFontName(
+  font: PdfFontKind,
+  bold: boolean,
+  italic = false,
+): string {
+  if (font === 'serif') {
+    if (bold && italic) return 'Times-BoldItalic'
+    if (bold) return 'Times-Bold'
+    if (italic) return 'Times-Italic'
+    return 'Times-Roman'
+  }
+  if (font === 'mono') {
+    if (bold && italic) return 'Courier-BoldOblique'
+    if (bold) return 'Courier-Bold'
+    if (italic) return 'Courier-Oblique'
+    return 'Courier'
+  }
   // base-14 no trae cursiva manuscrita: la oblicua es el fallback menos peor.
   if (font === 'script') return bold ? 'Helvetica-BoldOblique' : 'Helvetica-Oblique'
-  return bold ? 'Helvetica-Bold' : 'Helvetica'
+  if (bold && italic) return 'Helvetica-BoldOblique'
+  if (bold) return 'Helvetica-Bold'
+  if (italic) return 'Helvetica-Oblique'
+  return 'Helvetica'
 }
 
 export function previewFontFamily(font: PdfFontKind): string {

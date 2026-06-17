@@ -48,6 +48,7 @@ export function EditorToolbar({
   activeFont,
   activeSize,
   activeBold,
+  activeItalic,
   activeColor,
   activeOpacity,
   activeRotation,
@@ -76,6 +77,7 @@ export function EditorToolbar({
   activeFont: PdfFontKind
   activeSize: number
   activeBold: boolean
+  activeItalic: boolean
   activeColor: string
   activeOpacity: number
   activeRotation: number
@@ -227,6 +229,7 @@ export function EditorToolbar({
           activeFont={activeFont}
           activeSize={activeSize}
           activeBold={activeBold}
+          activeItalic={activeItalic}
           activeColor={activeColor}
           activeOpacity={activeOpacity}
           activeRotation={activeRotation}

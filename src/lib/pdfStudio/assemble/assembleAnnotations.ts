@@ -13,6 +13,12 @@ type PdfRgb = NonNullable<Parameters<PDFPage['drawText']>[1]>['color']
 type PdfRotation = NonNullable<Parameters<PDFPage['drawText']>[1]>['rotate']
 type RgbFn = (r: number, g: number, b: number) => PdfRgb
 type DegreesFn = (angle: number) => PdfRotation
+export type PdfAnnotationViewport = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 /** `#rrggbb` → componentes 0..1 (negro si no parsea). */
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -103,22 +109,28 @@ export async function applyPdfAnnotations({
   rgb,
   degrees,
   skipped,
+  viewport,
 }: {
   out: PDFDocument
   outPage: PDFPage
   annotations: Annotation[]
-  fontFor: (font: PdfFontKind, bold: boolean) => Promise<PDFFont>
+  fontFor: (font: PdfFontKind, bold: boolean, italic?: boolean) => Promise<PDFFont>
   rgb: RgbFn
   degrees: DegreesFn
   skipped: SkippedSource[]
+  viewport?: PdfAnnotationViewport
 }) {
-  const w = outPage.getWidth()
-  const h = outPage.getHeight()
+  const pageW = outPage.getWidth()
+  const pageH = outPage.getHeight()
+  const originX = viewport?.x ?? 0
+  const originY = viewport?.y ?? 0
+  const w = viewport?.width ?? pageW
+  const h = viewport?.height ?? pageH
   for (const ann of annotations) {
     try {
       if (ann.kind === 'text') {
         if (!ann.text.trim()) continue
-        const font = await fontFor(ann.font, ann.bold)
+        const font = await fontFor(ann.font, ann.bold, ann.italic ?? false)
         const layout = textBoxLayout(ann, w, h)
         const size = Math.max(1, layout.size)
         const c = hexToRgb(ann.color)
@@ -133,8 +145,8 @@ export async function applyPdfAnnotations({
         })
         if (!text.trim()) continue
         outPage.drawText(text, {
-          x: layout.x,
-          y: layout.topY - baselineDropEm(ann.font) * size,
+          x: originX + layout.x,
+          y: originY + layout.topY - baselineDropEm(ann.font) * size,
           size,
           font,
           color: rgb(c.r, c.g, c.b),
@@ -146,8 +158,8 @@ export async function applyPdfAnnotations({
       } else if (ann.kind === 'highlight') {
         const c = hexToRgb(ann.color)
         outPage.drawRectangle({
-          x: ann.xRatio * w,
-          y: h - (ann.yRatio + ann.hRatio) * h,
+          x: originX + ann.xRatio * w,
+          y: originY + h - (ann.yRatio + ann.hRatio) * h,
           width: ann.wRatio * w,
           height: ann.hRatio * h,
           color: rgb(c.r, c.g, c.b),
@@ -158,8 +170,8 @@ export async function applyPdfAnnotations({
         const col = rgb(c.r, c.g, c.b)
         const sw = Math.max(0.5, ann.strokeRatio * h)
         const op = ann.opacity ?? 1
-        const p0 = { x: ann.x0Ratio * w, y: h - ann.y0Ratio * h }
-        const p1 = { x: ann.x1Ratio * w, y: h - ann.y1Ratio * h }
+        const p0 = { x: originX + ann.x0Ratio * w, y: originY + h - ann.y0Ratio * h }
+        const p1 = { x: originX + ann.x1Ratio * w, y: originY + h - ann.y1Ratio * h }
         if (ann.shape === 'rect' || ann.shape === 'oval') {
           const x = Math.min(p0.x, p1.x)
           const y = Math.min(p0.y, p1.y)
@@ -226,8 +238,8 @@ export async function applyPdfAnnotations({
           ? await out.embedPng(bytes)
           : await out.embedJpg(bytes)
         outPage.drawImage(img, {
-          x: ann.xRatio * w,
-          y: h - (ann.yRatio + ann.hRatio) * h,
+          x: originX + ann.xRatio * w,
+          y: originY + h - (ann.yRatio + ann.hRatio) * h,
           width: ann.wRatio * w,
           height: ann.hRatio * h,
           opacity: ann.opacity ?? 1,
