@@ -54,7 +54,7 @@ export function MobileMoreSheet({
       {/* Backdrop — primero en el DOM, queda debajo de la hoja. */}
       <button
         type="button"
-        aria-label="Cerrar"
+        aria-label="Cerrar fondo"
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-ink-900/40 backdrop-blur-sm animate-fade-up motion-reduce:animate-none"
       />

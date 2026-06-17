@@ -161,6 +161,11 @@ describe('<ViewRouter />', () => {
       'data-view-transition',
       'grafo',
     )
+    expect(screen.getByTestId('view-transition')).toHaveClass(
+      'relative',
+      'h-full',
+      'overflow-hidden',
+    )
     expect(await screen.findByText(/grafo mock e1/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'seleccionar grafo' }))

@@ -71,6 +71,7 @@ export function NavButton({
         <button
           onClick={onClick}
           aria-label={ariaLabel}
+          aria-current={active ? 'page' : undefined}
           className={`touch-target relative p-2.5 rounded-lg transition-all duration-250 ease-out active:scale-95 ${
             active
               ? 'bg-ink-700/10 text-ink-700'
@@ -110,6 +111,7 @@ export function NavButton({
     <button
       onClick={onClick}
       aria-label={ariaLabel}
+      aria-current={active ? 'page' : undefined}
       className={`touch-target group flex items-center justify-between gap-2 pl-3 pr-2.5 py-1.5 rounded-md text-body transition-colors relative ${
         active
           ? 'text-ink-800 font-medium'

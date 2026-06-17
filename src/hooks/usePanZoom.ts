@@ -32,6 +32,7 @@ export type PanZoomControls = {
   fitToView: (
     bbox: { minX: number; minY: number; maxX: number; maxY: number },
     padding?: number,
+    maxFitZoom?: number,
   ) => void
 }
 
@@ -143,7 +144,11 @@ export function usePanZoom(
   // del viewport, dejando solo edges visibles. Ahora calculamos el zoom
   // óptimo para que el bbox entre con `padding` px de margen.
   const fitToView = useCallback(
-    (bbox: { minX: number; minY: number; maxX: number; maxY: number }, padding = 80) => {
+    (
+      bbox: { minX: number; minY: number; maxX: number; maxY: number },
+      padding = 80,
+      maxFitZoom = maxZoom,
+    ) => {
       const svg = svgRef.current
       if (!svg) return
       const rect = svg.getBoundingClientRect()
@@ -156,7 +161,7 @@ export function usePanZoom(
       const scaleX = (width - padding * 2) / bboxW
       const scaleY = (height - padding * 2) / bboxH
       const fitScale = Math.min(scaleX, scaleY)
-      setZoom(Math.max(minZoom, Math.min(maxZoom, fitScale)))
+      setZoom(Math.max(minZoom, Math.min(maxZoom, maxFitZoom, fitScale)))
       // pan = -centro del bbox (porque la SVG group hace
       // translate(50%, 50%) scale(zoom) translate(pan)).
       setPan({ x: -cx, y: -cy })

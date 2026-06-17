@@ -3,7 +3,6 @@ import {
   lazy,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -37,10 +36,10 @@ import { GraphSvgCanvas } from './graph/GraphSvgCanvas'
 import {
   computeClusterCentroids,
   computeConnectionCount,
-  computePositionBounds,
   selectGraphDataset,
 } from './graph/graphViewModel'
 import { useGraphHoverPreview } from './graph/useGraphHoverPreview'
+import { useGraphSvgMeasure, useGraphViewportFit } from './graph/useGraphViewport'
 import { LoadingHint } from './LoadingHint'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
@@ -90,8 +89,8 @@ export default function GraphView({
   const updateEntityPosition = useUpdateEntityPosition()
   const suggest = useSuggestRelationships()
   const { offline } = useOffline()
-  const svgRef = useRef<SVGSVGElement>(null)
-  const [svgSize, setSvgSize] = useState({ width: 0, height: 0 })
+  const svgRef = useRef<SVGSVGElement | null>(null)
+  const { svgSize, setGraphSvgRef } = useGraphSvgMeasure(svgRef)
   // Default 'by-degree' (por densidad) — los hubs caen al centro y el
   // grafo se entiende a primer vistazo. La elección persiste en
   // localStorage vía useLocalStorageState.
@@ -155,21 +154,6 @@ export default function GraphView({
   const truncated =
     graphMode === 'exploratorio' ? (neighborsQuery.data?.truncated ?? false) : false
 
-  // Measure the SVG so we can center the world group using numeric translate.
-  // (SVG transform attribute does not accept percentage values.)
-  useLayoutEffect(() => {
-    const svg = svgRef.current
-    if (!svg) return
-    const update = () => {
-      const rect = svg.getBoundingClientRect()
-      setSvgSize({ width: rect.width, height: rect.height })
-    }
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(svg)
-    return () => observer.disconnect()
-  }, [])
-
   const { positions, setPosition, reorganize, computing } = useGraphLayout({
     mode,
     nodes: entities,
@@ -184,19 +168,14 @@ export default function GraphView({
   // A zoom 0.7 (default) esos clusters no entran. Encuadramos auto al
   // bounding box de los nodos. Organic no se toca: persiste posiciones
   // del usuario y el zoom default es suficiente.
-  const lastFittedModeRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (mode === 'organic') {
-      lastFittedModeRef.current = mode
-      return
-    }
-    // Solo refit cuando ENTRAMOS al mode (no en cada re-render del mismo).
-    if (lastFittedModeRef.current === mode) return
-    const bounds = computePositionBounds(positions)
-    if (!bounds) return
-    pz.fitToView(bounds)
-    lastFittedModeRef.current = mode
-  }, [mode, positions, pz])
+  useGraphViewportFit({
+    mode,
+    svgSize,
+    entityCount: entities.length,
+    relationshipCount: relationships.length,
+    positions,
+    panZoom: pz,
+  })
 
   const freshEntities = useFreshIds(entities.map((e) => e.id))
   const freshRels = useFreshIds(relationships.map((r) => r.id))
@@ -350,7 +329,7 @@ export default function GraphView({
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="absolute inset-0 overflow-hidden">
       <GraphToolbar
         mode={mode}
         onModeChange={setMode}
@@ -434,7 +413,7 @@ export default function GraphView({
         </Suspense>
       ) : (
         <GraphSvgCanvas
-          svgRef={svgRef}
+          svgRef={setGraphSvgRef}
           svgSize={svgSize}
           cursorStyle={cursorStyle}
           pan={pz.pan}

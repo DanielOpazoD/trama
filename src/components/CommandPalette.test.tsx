@@ -135,6 +135,22 @@ describe('<CommandPalette />', () => {
     expect(screen.queryByText('Flujo')).not.toBeInTheDocument()
   })
 
+  it('presenta las vistas como índice de Catálogo, Lentes y Diálogo', () => {
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+
+    const listText = container.querySelector('ul')?.textContent ?? ''
+    expect(listText).toMatch(/Entidades.*Catálogo/i)
+    expect(listText).toMatch(/Grafo.*Lentes/i)
+    expect(listText).toMatch(/Sugerencias.*Diálogo/i)
+  })
+
   it('filters by query — typing "entid" shrinks results', () => {
     const { container } = renderWithProviders(
       <CommandPalette

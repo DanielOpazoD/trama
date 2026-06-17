@@ -168,9 +168,12 @@ function ViewTransition({
   layout?: 'scroll' | 'canvas'
   children: ReactNode
 }) {
+  const layoutClass =
+    layout === 'canvas' ? 'relative h-full overflow-hidden' : 'min-h-full'
+
   return (
     <div
-      className={`view-transition view-transition--${layout}`}
+      className={`view-transition view-transition--${layout} ${layoutClass}`}
       data-testid="view-transition"
       data-view-transition={view}
       key={view}
