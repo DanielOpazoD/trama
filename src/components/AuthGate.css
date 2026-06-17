@@ -75,7 +75,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.62rem;
+  gap: 0.85rem;
+}
+
+.trama-login-lockup {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+}
+
+.trama-login-mark {
+  width: clamp(5.4rem, 22vw, 6.9rem);
+  height: clamp(5.4rem, 22vw, 6.9rem);
+  object-fit: contain;
+  filter: drop-shadow(0 1px 0 rgb(var(--paper-50) / 0.64))
+    drop-shadow(0 12px 24px rgb(var(--ink-900) / 0.06));
+}
+
+.trama-login-wordmark {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: clamp(1.38rem, 6.2vw, 2.12rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.52em;
+  margin-right: -0.52em;
+  text-shadow: 0 1px 0 rgb(var(--paper-50) / 0.7);
 }
 
 .trama-login-mascotSeal {
@@ -92,7 +125,7 @@
   box-shadow:
     0 8px 28px rgb(var(--ink-900) / 0.07),
     0 1px 0 rgb(var(--paper-50) / 0.8) inset;
-  transform: translateY(-0.16rem);
+  transform: translateY(0.9rem);
 }
 
 .trama-login-mascotSeal::before,
@@ -115,15 +148,8 @@
   bottom: 0.58rem;
 }
 
-.trama-login-title {
-  font-size: clamp(3.65rem, 16vw, 4.95rem);
-  line-height: 0.9;
-  letter-spacing: -0.035em;
-  text-shadow: 0 1px 0 rgb(var(--paper-50) / 0.7);
-}
-
 .trama-login-subtitle {
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
   color: rgb(var(--ink-400));
 }
 
@@ -192,16 +218,18 @@
   }
 
   .trama-login-titleRow {
-    gap: 0.42rem;
-  }
-
-  .trama-login-title {
-    font-size: clamp(3rem, 18vw, 4rem);
+    gap: 0.58rem;
   }
 
   .trama-login-mascotSeal {
-    width: 2.7rem;
-    height: 2.7rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    transform: translateY(0.72rem);
+  }
+
+  .trama-login-wordmark {
+    letter-spacing: 0.42em;
+    margin-right: -0.42em;
   }
 }
 

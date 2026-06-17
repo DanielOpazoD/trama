@@ -16,7 +16,7 @@ import { Show, SignIn, SignUp } from '@clerk/react'
 import { useEffect, useState } from 'react'
 import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
 import { shouldUseClerk } from '../lib/clerkRuntime'
-import { EyeIcon } from './Icons'
+import { EyeIcon, TramaMark } from './Icons'
 import { LoginThreadField } from './LoginThreadField'
 import { TramaMascot } from './TramaMascot'
 import './AuthGate.css'
@@ -156,7 +156,17 @@ function AuthScreen() {
             />
           </svg>
           <div className="trama-login-titleRow">
-            <h1 className="trama-login-title font-serif text-ink-700">Trama</h1>
+            <div className="trama-login-lockup" aria-label="Trama">
+              <span data-testid="login-brand-mark">
+                <TramaMark size={104} className="trama-login-mark" />
+              </span>
+              <h1
+                className="trama-login-wordmark text-ink-700"
+                data-testid="login-brand-wordmark"
+              >
+                TRAMA
+              </h1>
+            </div>
             <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
               <TramaMascot
                 className="trama-mascot--wordmark trama-mascot--loginAwake"
