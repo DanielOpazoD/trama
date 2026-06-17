@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import type { NotasAttachment } from '../../api'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, PencilIcon } from '../Icons'
 
@@ -32,23 +32,25 @@ export function AttachmentLightbox({
   editing: boolean
   interactive?: boolean
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, true)
+  const overlay = useModalOverlay({
+    open: true,
+    onClose,
+    lockScroll: false,
+    closeOnEscape: interactive,
+  })
 
   const total = photos.length
   const current = photos[index]
   const multi = total > 1
   const { src, status } = useAuthenticatedMediaState(current?.url)
 
-  // Teclado: ESC cierra, flechas navegan (wrap). Solo cuando el visor manda
+  // Teclado: flechas navegan (wrap). Solo cuando el visor manda
   // (no mientras el editor está abierto encima → interactive=false).
+  // Escape queda delegado a useModalOverlay para respetar el stack de overlays.
   useEffect(() => {
     if (!interactive) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      } else if (e.key === 'ArrowLeft' && multi) {
+      if (e.key === 'ArrowLeft' && multi) {
         onIndexChange((index - 1 + total) % total)
       } else if (e.key === 'ArrowRight' && multi) {
         onIndexChange((index + 1) % total)
@@ -56,7 +58,7 @@ export function AttachmentLightbox({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [interactive, index, total, multi, onIndexChange, onClose])
+  }, [interactive, index, total, multi, onIndexChange])
 
   if (!current) return null
 
@@ -74,7 +76,7 @@ export function AttachmentLightbox({
         }}
       />
       <div
-        ref={dialogRef}
+        ref={overlay.dialogRef}
         role="dialog"
         aria-label="Visor de fotos"
         aria-modal="true"

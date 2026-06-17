@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useAnchoredPopover } from '../../hooks/useAnchoredPopover'
 import { useDeleteEntity, useQuotesQuery } from '../../state'
 import { useChatThreadsQuery, useCreateChatThread } from '../../state/useChat'
 import type { Entity } from '../../types'
@@ -18,7 +19,7 @@ export function EntityActionsMenu({
   entity,
   onOpenThread,
   onEditDescription,
-  onClose,
+  onClose: closePanel,
 }: {
   entity: Entity
   onOpenThread?: (threadId: string) => void
@@ -29,54 +30,14 @@ export function EntityActionsMenu({
   const createChatThread = useCreateChatThread()
   const deleteEntity = useDeleteEntity()
 
-  const [open, setOpen] = useState(false)
   const [confirming, setConfirming] = useState(false)
   // Imprimir como objeto: la ficha de catálogo de la entidad + sus citas.
   const [printOpen, setPrintOpen] = useState(false)
   const { data: allQuotes = [] } = useQuotesQuery()
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-
-  useLayoutEffect(() => {
-    if (!open) return
-    const r = triggerRef.current?.getBoundingClientRect()
-    if (r) setPos({ top: r.bottom + 6, right: window.innerWidth - r.right })
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      const t = e.target as Node
-      if (!triggerRef.current?.contains(t) && !menuRef.current?.contains(t)) {
-        setOpen(false)
-        setConfirming(false)
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setOpen(false)
-        setConfirming(false)
-      }
-    }
-    function onReflow() {
-      setOpen(false)
-      setConfirming(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    window.addEventListener('scroll', onReflow, true)
-    window.addEventListener('resize', onReflow)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-      window.removeEventListener('scroll', onReflow, true)
-      window.removeEventListener('resize', onReflow)
-    }
-  }, [open])
+  const popover = useAnchoredPopover({ onClose: () => setConfirming(false) })
 
   async function talk() {
-    setOpen(false)
+    popover.close()
     if (!onOpenThread) return
     const ctx = `entity:${entity.id}`
     const existing = chatThreads.find((t) => t.context === ctx)
@@ -95,8 +56,8 @@ export function EntityActionsMenu({
   async function remove() {
     try {
       await deleteEntity.mutateAsync(entity.id)
-      setOpen(false)
-      onClose()
+      popover.close()
+      closePanel()
     } catch {
       /* surfaces */
     }
@@ -108,11 +69,11 @@ export function EntityActionsMenu({
   return (
     <>
       <button
-        ref={triggerRef}
+        ref={popover.triggerRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={popover.toggle}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={popover.open}
         aria-label="Más acciones"
         title="Más acciones"
         className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
@@ -121,13 +82,18 @@ export function EntityActionsMenu({
           ⋯
         </span>
       </button>
-      {open &&
-        pos &&
+      {popover.open &&
+        popover.position &&
         createPortal(
           <div
-            ref={menuRef}
+            ref={popover.layerRef}
             role="menu"
-            style={{ position: 'fixed', top: pos.top, right: pos.right }}
+            style={{
+              position: 'fixed',
+              top: popover.position.top,
+              bottom: popover.position.bottom,
+              right: popover.position.right,
+            }}
             className="z-50 w-52 paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up"
           >
             {confirming ? (
@@ -157,7 +123,7 @@ export function EntityActionsMenu({
                   <button
                     role="menuitem"
                     onClick={() => {
-                      setOpen(false)
+                      popover.close()
                       onEditDescription()
                     }}
                     className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}
@@ -180,7 +146,7 @@ export function EntityActionsMenu({
                 <button
                   role="menuitem"
                   onClick={() => {
-                    setOpen(false)
+                    popover.close()
                     setPrintOpen(true)
                   }}
                   className={`${ROW} text-ink-600 hover:text-ink-800 hover:bg-ink-100/60`}

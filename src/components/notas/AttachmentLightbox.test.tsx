@@ -55,14 +55,14 @@ describe('<AttachmentLightbox />', () => {
     expect(onIndexChange).toHaveBeenCalledWith(2)
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     expect(onIndexChange).toHaveBeenCalledWith(0)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalled()
   })
 
   it('ignora el teclado cuando interactive=false (editor encima)', () => {
     const { onIndexChange, onClose } = setup({ interactive: false })
     fireEvent.keyDown(window, { key: 'ArrowRight' })
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onIndexChange).not.toHaveBeenCalled()
     expect(onClose).not.toHaveBeenCalled()
   })

@@ -1,12 +1,6 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react'
+import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useAnchoredPopover } from '../hooks/useAnchoredPopover'
 
 function zIndexFromClassName(className: string): number | undefined {
   if (className.includes('z-[80]')) return 80
@@ -42,72 +36,16 @@ export function OverflowMenu({
   /** Contenido del trigger. Por defecto, el glifo "⋯". */
   triggerContent?: ReactNode
 }) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState<{ top?: number; bottom?: number; right: number } | null>(
-    null,
-  )
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-
-  const updatePosition = useCallback(() => {
-    const r = triggerRef.current?.getBoundingClientRect()
-    if (!r) return false
-    const right = window.innerWidth - r.right
-    // Si hay poco espacio debajo del trigger (está bajo en el viewport), abrimos
-    // el menú HACIA ARRIBA anclando su base sobre el trigger, para que no se
-    // salga por el borde inferior (y quede inalcanzable). Umbral ~ alto típico
-    // del menú más largo.
-    const spaceBelow = window.innerHeight - r.bottom
-    if (spaceBelow < 260) {
-      setPos({ bottom: window.innerHeight - r.top + 6, right })
-    } else {
-      setPos({ top: r.bottom + 6, right })
-    }
-    return true
-  }, [])
-
-  useLayoutEffect(() => {
-    if (!open) return
-    updatePosition()
-  }, [open, updatePosition])
-
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      const t = e.target as Node
-      if (!triggerRef.current?.contains(t) && !menuRef.current?.contains(t)) {
-        setOpen(false)
-      }
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key !== 'Escape') return
-      e.preventDefault()
-      e.stopPropagation()
-      setOpen(false)
-    }
-    function onReflow() {
-      if (!updatePosition()) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey, true)
-    window.addEventListener('scroll', onReflow, true)
-    window.addEventListener('resize', onReflow)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey, true)
-      window.removeEventListener('scroll', onReflow, true)
-      window.removeEventListener('resize', onReflow)
-    }
-  }, [open, updatePosition])
+  const popover = useAnchoredPopover()
 
   return (
     <>
       <button
-        ref={triggerRef}
+        ref={popover.triggerRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={popover.toggle}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={popover.open}
         aria-label={label}
         title={label}
         className={triggerClassName}
@@ -118,17 +56,17 @@ export function OverflowMenu({
           </span>
         )}
       </button>
-      {open &&
-        pos &&
+      {popover.open &&
+        popover.position &&
         createPortal(
           <div
-            ref={menuRef}
+            ref={popover.layerRef}
             role="menu"
             style={{
               position: 'fixed',
-              top: pos.top,
-              bottom: pos.bottom,
-              right: pos.right,
+              top: popover.position.top,
+              bottom: popover.position.bottom,
+              right: popover.position.right,
               // Si el viewport es muy bajo, el menú no debe desbordar: scrollea.
               maxHeight: '80vh',
               overflowY: 'auto',
@@ -136,7 +74,7 @@ export function OverflowMenu({
             }}
             className={`${menuLayerClassName} ${width} paper-grain rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-1.5 animate-fade-up`}
           >
-            {children(() => setOpen(false))}
+            {children(popover.close)}
           </div>,
           document.body,
         )}

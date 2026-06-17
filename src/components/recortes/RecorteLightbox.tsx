@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../Icons'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 
@@ -30,12 +29,10 @@ export function RecorteLightbox({
   onClose: () => void
 }) {
   const [zoomed, setZoomed] = useState(false)
-  const dialogRef = useRef<HTMLDivElement>(null)
   const total = entries.length
   const current = entries[index]
   const multi = total > 1
-  useFocusTrap(dialogRef, open)
-  useBodyScrollLock(open)
+  const overlay = useModalOverlay({ open, onClose })
   const { src, status } = useAuthenticatedMediaState(open ? (current?.url ?? null) : null)
 
   useEffect(() => {
@@ -45,13 +42,12 @@ export function RecorteLightbox({
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-      else if (e.key === 'ArrowLeft' && multi) onIndexChange((index - 1 + total) % total)
+      if (e.key === 'ArrowLeft' && multi) onIndexChange((index - 1 + total) % total)
       else if (e.key === 'ArrowRight' && multi) onIndexChange((index + 1) % total)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, multi, index, total, onIndexChange, onClose])
+  }, [open, multi, index, total, onIndexChange])
 
   if (!open || typeof document === 'undefined' || !current) return null
 
@@ -69,7 +65,7 @@ export function RecorteLightbox({
         }}
       />
       <div
-        ref={dialogRef}
+        ref={overlay.dialogRef}
         role="dialog"
         aria-label="Visor de imagen"
         aria-modal="true"

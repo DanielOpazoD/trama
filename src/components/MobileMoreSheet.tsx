@@ -1,10 +1,8 @@
-import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { ViewMode } from '../types/view'
 import { MOBILE_MORE_GROUPS } from '../lib/navigation'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
-import { useFocusTrap } from '../hooks/useFocusTrap'
-import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 
 /**
  * Hoja "Más" de la navegación móvil. La bottom nav solo expone 4 vistas
@@ -29,18 +27,7 @@ export function MobileMoreSheet({
   view: ViewMode
   onChangeView: (v: ViewMode) => void
 }) {
-  const sheetRef = useRef<HTMLDivElement | null>(null)
-  useFocusTrap(sheetRef, open)
-  useBodyScrollLock(open)
-
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  const overlay = useModalOverlay({ open, onClose })
 
   if (!open) return null
 
@@ -61,7 +48,7 @@ export function MobileMoreSheet({
 
       {/* Hoja — sube desde el borde inferior. */}
       <div
-        ref={sheetRef}
+        ref={overlay.dialogRef}
         className="absolute inset-x-0 bottom-0 max-h-[78vh] overflow-y-auto rounded-t-2xl border-t border-ink-100/70 bg-paper-50 px-4 pt-3 shadow-2xl shadow-ink-900/20 animate-slide-up motion-reduce:animate-none"
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
       >

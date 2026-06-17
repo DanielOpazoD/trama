@@ -1,13 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   useNotasFeed,
   useNotesQuery,
@@ -61,6 +52,7 @@ import { useFeedKeyboardNav } from '../../hooks/useFeedKeyboardNav'
 import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
 import { MarkdownField } from './MarkdownField'
+import { useMeasuredVirtualFeed } from './useMeasuredVirtualFeed'
 import { compressImage } from '../momentos/helpers'
 
 // Lazy: la escritura enfocada (overlay fullscreen) se baja solo al abrirla.
@@ -367,28 +359,7 @@ export function NotasFeedView() {
     deps: [segment, searchOpen, calendarOpen, capturaStatus, recorteThumb, items.length],
   })
   const virtualItems = virtualizer.getVirtualItems()
-  const virtualizerRef = useRef(virtualizer)
-  useEffect(() => {
-    virtualizerRef.current = virtualizer
-  }, [virtualizer])
-  const feedMeasureKey = useMemo(
-    () =>
-      items
-        .map((item) =>
-          item.type === 'note'
-            ? `n:${item.id}:${item.note.updatedAt}:${item.note.hasImages ? 1 : 0}`
-            : `r:${item.id}:${item.recorte.updatedAt}:${item.recorte.imageKey ?? ''}:${
-                item.recorte.imageUrl ?? ''
-              }:${item.recorte.text.length}`,
-        )
-        .join('|'),
-    [items],
-  )
-
-  useLayoutEffect(() => {
-    if (items.length === 0) return
-    virtualizerRef.current.measure()
-  }, [feedMeasureKey, items.length, recorteThumb])
+  useMeasuredVirtualFeed({ items, recorteThumb, virtualizer })
 
   // Carga incremental: cuando la ventana visible llega a los últimos ítems,
   // pedimos la próxima página. Leemos el índice virtual más alto (atado al

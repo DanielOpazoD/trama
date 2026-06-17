@@ -60,8 +60,17 @@ describe('<ConfirmDestroy />', () => {
   it('calls onCancel when ESC is pressed', () => {
     const onCancel = vi.fn()
     render(<ConfirmDestroy open title="x" onConfirm={() => {}} onCancel={onCancel} />)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onCancel).toHaveBeenCalledOnce()
+  })
+
+  it('does not close with ESC while pending=true', () => {
+    const onCancel = vi.fn()
+    render(
+      <ConfirmDestroy open title="x" pending onConfirm={() => {}} onCancel={onCancel} />,
+    )
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onCancel).not.toHaveBeenCalled()
   })
 
   it('disables buttons while pending=true and shows "eliminando…"', () => {

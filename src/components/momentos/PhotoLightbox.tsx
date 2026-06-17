@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../Icons'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 
@@ -37,10 +36,8 @@ export function PhotoLightbox({
 }) {
   const [active, setActive] = useState(initialIndex)
   const [zoomed, setZoomed] = useState(false)
-  const dialogRef = useRef<HTMLDivElement>(null)
   const visible = open && photos.length > 0
-  useFocusTrap(dialogRef, visible)
-  useBodyScrollLock(visible)
+  const overlay = useModalOverlay({ open: visible, onClose })
 
   // Navegar siempre resetea el zoom — ver una foto nueva ampliada al azar
   // desorienta.
@@ -69,13 +66,12 @@ export function PhotoLightbox({
   useEffect(() => {
     if (!visible) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-      else if (e.key === 'ArrowLeft') prev()
+      if (e.key === 'ArrowLeft') prev()
       else if (e.key === 'ArrowRight') next()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [visible, prev, next, onClose])
+  }, [visible, prev, next])
 
   if (!visible || typeof document === 'undefined') return null
   const current = photos[active]
@@ -97,7 +93,7 @@ export function PhotoLightbox({
         }}
       />
       <div
-        ref={dialogRef}
+        ref={overlay.dialogRef}
         role="dialog"
         aria-label="Visor de fotos"
         aria-modal="true"
