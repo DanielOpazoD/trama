@@ -538,32 +538,43 @@ export const TramaMark = ({
   size = 22,
   className,
   animate,
-}: Props & { animate?: boolean }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none">
-    <path
-      className={animate ? 'mark-crossbar' : undefined}
-      d="M5 6h14"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
+}: Props & { animate?: boolean }) =>
+  animate ? (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none">
+      <path
+        className="mark-crossbar"
+        d="M5 6h14"
+        stroke="currentColor"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+      <path
+        className="mark-vertical"
+        d="M12 6v13"
+        stroke="currentColor"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+      />
+      <path
+        className="mark-thread"
+        d="M9 11l6 4M15 11l-6 4"
+        stroke="currentColor"
+        strokeWidth={1.1}
+        strokeOpacity={0.55}
+        strokeLinecap="round"
+      />
+    </svg>
+  ) : (
+    <img
+      src="/favicon-48.png"
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className={className}
     />
-    <path
-      className={animate ? 'mark-vertical' : undefined}
-      d="M12 6v13"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-    />
-    <path
-      className={animate ? 'mark-thread' : undefined}
-      d="M9 11l6 4M15 11l-6 4"
-      stroke="currentColor"
-      strokeWidth={1.1}
-      strokeOpacity={0.55}
-      strokeLinecap="round"
-    />
-  </svg>
-)
+  )
 
 /* Brand lockup — TramaMark + wordmark "Trama" lado a lado.
    La presentación canónica de la marca cuando hay espacio para

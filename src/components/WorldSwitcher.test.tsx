@@ -13,6 +13,15 @@ vi.mock('./notas/NotasWorld', () => {
 })
 
 describe('<WorldSwitcher />', () => {
+  it('usa el isotipo nuevo como marca del header', () => {
+    const { container } = renderWithProviders(
+      <WorldSwitcher world="trama" onChangeWorld={() => {}} />,
+    )
+
+    const mark = container.querySelector('img[src="/favicon-48.png"]')
+    expect(mark).toBeInTheDocument()
+  })
+
   it('muestra el mundo actual y abre el menú con los mundos', () => {
     renderWithProviders(<WorldSwitcher world="trama" onChangeWorld={() => {}} />)
     const trigger = screen.getByRole('button', { name: /Mundo actual: Trama/ })
