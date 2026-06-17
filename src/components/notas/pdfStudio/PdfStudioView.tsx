@@ -41,8 +41,18 @@ import { usePdfStudioDocumentHistory } from './shell/usePdfStudioDocumentHistory
 import { useToast } from '../../../state'
 const ACCEPT = 'application/pdf,image/*'
 export type PdfStudioMode = 'editor' | 'templates'
-type PdfStudioViewProps = { topBar?: ReactNode; studioMode?: PdfStudioMode }
-export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewProps) {
+type PdfStudioViewProps = {
+  externalFiles?: File[]
+  onExternalFilesConsumed?: () => void
+  topBar?: ReactNode
+  studioMode?: PdfStudioMode
+}
+export function PdfStudioView({
+  externalFiles = [],
+  onExternalFilesConsumed,
+  topBar,
+  studioMode = 'editor',
+}: PdfStudioViewProps) {
   const toast = useToast()
   const templatesEnabled = studioMode === 'templates'
   const [exportCompression, setExportCompression] =
@@ -104,6 +114,13 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
     doc,
     onImageAssets: workspace.addAssets,
   })
+  const consumedExternalFilesRef = useRef<File[] | null>(null)
+  useEffect(() => {
+    if (externalFiles.length === 0 || consumedExternalFilesRef.current === externalFiles)
+      return
+    consumedExternalFilesRef.current = externalFiles
+    void addFiles(externalFiles).finally(() => onExternalFilesConsumed?.())
+  }, [addFiles, externalFiles, onExternalFilesConsumed])
   const { applyForms, clearForms, formSummary, forms, inspectForms, updateFormValue } =
     usePdfStudioForms(doc, commit)
   const {
@@ -202,12 +219,32 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
   )
   const pageNumbers = doc.settings?.pageNumbers
   const watermarkText = doc.settings?.watermark?.text ?? ''
+  const headerText = doc.settings?.header?.text ?? ''
+  const footerText = doc.settings?.footer?.text ?? ''
+  const imagesPerPage = doc.settings?.imageLayout?.imagesPerPage ?? 1
   const setPageNumbers = (next: DocSettings['pageNumbers']) =>
     updateSettings({ ...doc.settings, pageNumbers: next })
   const setWatermark = (text: string) =>
     updateSettings({
       ...doc.settings,
       watermark: text.trim() ? { text } : undefined,
+    })
+  const setHeader = (text: string) =>
+    updateSettings({
+      ...doc.settings,
+      header: text.trim() ? { text } : undefined,
+    })
+  const setFooter = (text: string) =>
+    updateSettings({
+      ...doc.settings,
+      footer: text.trim() ? { text } : undefined,
+    })
+  const setImagesPerPage = (
+    next: NonNullable<DocSettings['imageLayout']>['imagesPerPage'],
+  ) =>
+    updateSettings({
+      ...doc.settings,
+      imageLayout: { imagesPerPage: next },
     })
   return (
     <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
@@ -261,6 +298,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               exportStatus={exportStatus}
               exportCompression={exportCompression}
               formsEnabled={templatesEnabled}
+              footerText={footerText}
+              headerText={headerText}
+              imagesPerPage={imagesPerPage}
               pageNumbers={pageNumbers}
               redoable={redoable}
               saving={saving}
@@ -287,6 +327,9 @@ export function PdfStudioView({ topBar, studioMode = 'editor' }: PdfStudioViewPr
               }
               onStartSaveTemplate={startTemplateSave}
               onSetExportCompression={setExportCompression}
+              onSetFooter={setFooter}
+              onSetHeader={setHeader}
+              onSetImagesPerPage={setImagesPerPage}
               onSetPageNumbers={setPageNumbers}
               onSetWatermark={setWatermark}
             />

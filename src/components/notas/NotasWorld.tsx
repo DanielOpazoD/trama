@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
@@ -13,6 +13,10 @@ import { LoadingHint } from '../LoadingHint'
 import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
+import type { Recorte } from '../../api'
+import { apiFetch } from '../../api/request'
+import { useToast } from '../../state'
+import { recortesToPdfFiles } from '../../lib/pdfStudio/import/recortesToPdfFiles'
 
 // Lazy: pdf.js (~1MB) y pdf-lib sólo se bajan al entrar a la sección PDF.
 const loadPdfStudioView = () =>
@@ -52,8 +56,10 @@ export function NotasWorld({
   /** Sección con la que abrir (p. ej. al revelar un módulo desde el otro mundo). */
   initialSection?: NotasSection
 }) {
+  const toast = useToast()
   const [searchOpen, setSearchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pendingPdfFiles, setPendingPdfFiles] = useState<File[]>([])
   const { theme, setTheme } = useTheme()
   const { isVisible } = useModuleVisibility()
   // La sección activa se clampa a Inicio si deja de ser visible (anti-trampa).
@@ -76,6 +82,45 @@ export function NotasWorld({
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [searchOpen])
+
+  const sendImagesToPdf = useCallback(
+    async (recortes: Recorte[]) => {
+      const { files, failures } = await recortesToPdfFiles(recortes, {
+        fetcher: apiFetch,
+      })
+      if (files.length === 0) {
+        toast.show({
+          message:
+            failures.length > 0
+              ? 'No se pudo enviar ninguna imagen a Imprenta'
+              : 'No hay imágenes para enviar a Imprenta',
+          tone: 'error',
+        })
+        return
+      }
+      try {
+        setPendingPdfFiles(files)
+        preloadPdfStudioView()
+        setSection('pdf')
+        toast.show({
+          message:
+            failures.length > 0
+              ? `${files.length} de ${files.length + failures.length} imágenes enviadas a Imprenta`
+              : `${files.length} ${files.length === 1 ? 'imagen enviada' : 'imágenes enviadas'} a Imprenta`,
+          tone: failures.length > 0 ? 'default' : 'success',
+        })
+      } catch (error) {
+        toast.show({
+          message:
+            error instanceof Error
+              ? error.message
+              : 'No se pudieron enviar las imágenes a Imprenta',
+          tone: 'error',
+        })
+      }
+    },
+    [setSection, toast],
+  )
 
   return (
     <div className="h-full w-full flex flex-col md:flex-row overflow-hidden">
@@ -121,6 +166,8 @@ export function NotasWorld({
               }
             >
               <PdfStudioView
+                externalFiles={section === 'pdf' ? pendingPdfFiles : []}
+                onExternalFilesConsumed={() => setPendingPdfFiles([])}
                 topBar={<NotasTopBar section={section} />}
                 studioMode={section === 'planillas' ? 'templates' : 'editor'}
               />
@@ -137,7 +184,9 @@ export function NotasWorld({
                   className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
                 >
                   {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
-                  {section === 'notas' && <NotasFeedView />}
+                  {section === 'notas' && (
+                    <NotasFeedView onSendImagesToPdf={sendImagesToPdf} />
+                  )}
                   {section === 'tareas' && <TareasView />}
                   {section === 'prompts' && <PromptsView />}
                   {section === 'claves' && <ClavesView />}

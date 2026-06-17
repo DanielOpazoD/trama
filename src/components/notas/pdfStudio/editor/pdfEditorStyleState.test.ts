@@ -20,6 +20,7 @@ const annotations: Annotation[] = [
     color: '#222222',
     font: 'sans',
     bold: false,
+    italic: false,
     opacity: 1,
     rotation: 0,
   },
@@ -59,6 +60,7 @@ describe('pdfEditorStyleState', () => {
     const out = applyEditorStylePatch(annotations, 'txt', {
       font: 'serif',
       bold: true,
+      italic: true,
       color: '#f2c94c',
       opacity: 0.6,
       rotation: 15,
@@ -67,6 +69,7 @@ describe('pdfEditorStyleState', () => {
     expect(out.find((a) => a.id === 'txt')).toMatchObject({
       font: 'serif',
       bold: true,
+      italic: true,
       color: '#f2c94c',
       opacity: 0.6,
       rotation: 15,
@@ -77,6 +80,7 @@ describe('pdfEditorStyleState', () => {
     const patch: Partial<TextStyle> = {
       font: 'mono',
       bold: true,
+      italic: true,
       color: '#f2c94c',
       opacity: 0.5,
       rotation: 30,

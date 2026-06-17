@@ -26,6 +26,9 @@ export function PdfStudioDocumentToolbar({
   exportCompression,
   exportStatus,
   formsEnabled,
+  footerText,
+  headerText,
+  imagesPerPage,
   pageNumbers,
   redoable,
   saving,
@@ -45,6 +48,9 @@ export function PdfStudioDocumentToolbar({
   onSavePdf,
   onStartSaveTemplate,
   onSetExportCompression,
+  onSetFooter,
+  onSetHeader,
+  onSetImagesPerPage,
   onSetPageNumbers,
   onSetWatermark,
   onUndo,
@@ -55,6 +61,9 @@ export function PdfStudioDocumentToolbar({
   exportCompression: AssembleOptions['compression']
   exportStatus: string | null
   formsEnabled: boolean
+  footerText: string
+  headerText: string
+  imagesPerPage: NonNullable<DocSettings['imageLayout']>['imagesPerPage']
   pageNumbers: DocSettings['pageNumbers']
   redoable: boolean
   saving: boolean
@@ -74,6 +83,11 @@ export function PdfStudioDocumentToolbar({
   onSavePdf: () => void
   onStartSaveTemplate: () => void
   onSetExportCompression: (next: AssembleOptions['compression']) => void
+  onSetFooter: (text: string) => void
+  onSetHeader: (text: string) => void
+  onSetImagesPerPage: (
+    next: NonNullable<DocSettings['imageLayout']>['imagesPerPage'],
+  ) => void
   onSetPageNumbers: (next: DocSettings['pageNumbers']) => void
   onSetWatermark: (text: string) => void
   onUndo: () => void
@@ -302,6 +316,58 @@ export function PdfStudioDocumentToolbar({
                       })}
                     </div>
                   )}
+                  <label
+                    className="mt-2 block text-caption text-ink-700"
+                    htmlFor="pdf-header-menu"
+                  >
+                    Encabezado
+                  </label>
+                  <input
+                    id="pdf-header-menu"
+                    type="text"
+                    value={headerText}
+                    onChange={(e) => onSetHeader(e.target.value)}
+                    placeholder="Ej: Clínica Norte"
+                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                  />
+                  <label
+                    className="mt-2 block text-caption text-ink-700"
+                    htmlFor="pdf-footer-menu"
+                  >
+                    Pie de página
+                  </label>
+                  <input
+                    id="pdf-footer-menu"
+                    type="text"
+                    value={footerText}
+                    onChange={(e) => onSetFooter(e.target.value)}
+                    placeholder="Ej: Uso interno"
+                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                  />
+                  <label
+                    className="mt-2 block text-caption text-ink-700"
+                    htmlFor="pdf-images-per-page-menu"
+                  >
+                    Imágenes por página
+                  </label>
+                  <select
+                    id="pdf-images-per-page-menu"
+                    value={imagesPerPage}
+                    onChange={(e) =>
+                      onSetImagesPerPage(
+                        Number(e.currentTarget.value) as NonNullable<
+                          DocSettings['imageLayout']
+                        >['imagesPerPage'],
+                      )
+                    }
+                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                  >
+                    <option value={1}>1 imagen</option>
+                    <option value={2}>2 imágenes</option>
+                    <option value={3}>3 imágenes</option>
+                    <option value={4}>4 imágenes</option>
+                    <option value={6}>6 imágenes</option>
+                  </select>
                   <label
                     className="mt-2 block text-caption text-ink-700"
                     htmlFor="pdf-watermark-menu"

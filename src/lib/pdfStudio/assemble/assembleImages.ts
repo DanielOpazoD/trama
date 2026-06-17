@@ -1,4 +1,5 @@
-import type { PDFDocument, PDFPage } from 'pdf-lib'
+import type { PDFDocument, PDFImage, PDFPage } from 'pdf-lib'
+import type { DocSettings, PdfPage as PdfModelPage, PdfSource } from '../model/model'
 
 export type PdfImageCompressionMode = 'balanced' | 'compatibility'
 
@@ -6,6 +7,59 @@ export type PdfImageCompressionPolicy = {
   jpegMaxDimension: number
   jpegQuality: number
   maxLosslessPngPixels: number
+}
+
+export type PdfImagePageCell = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export const PRINT_SHEET = {
+  width: 595.28,
+  height: 841.89,
+  margin: 54,
+} as const
+
+const ALLOWED_IMAGES_PER_PAGE = [1, 2, 3, 4, 6] as const
+
+export function resolveImagesPerPage(
+  settings: DocSettings | undefined,
+): 1 | 2 | 3 | 4 | 6 {
+  const value = settings?.imageLayout?.imagesPerPage
+  return ALLOWED_IMAGES_PER_PAGE.includes(
+    value as (typeof ALLOWED_IMAGES_PER_PAGE)[number],
+  )
+    ? (value as 1 | 2 | 3 | 4 | 6)
+    : 1
+}
+
+function gridFor(imagesPerPage: 1 | 2 | 3 | 4 | 6): { cols: number; rows: number } {
+  if (imagesPerPage === 1) return { cols: 1, rows: 1 }
+  if (imagesPerPage === 2) return { cols: 1, rows: 2 }
+  if (imagesPerPage === 3) return { cols: 1, rows: 3 }
+  if (imagesPerPage === 4) return { cols: 2, rows: 2 }
+  return { cols: 2, rows: 3 }
+}
+
+export function imagePageCells(imagesPerPage: 1 | 2 | 3 | 4 | 6): PdfImagePageCell[] {
+  const { cols, rows } = gridFor(imagesPerPage)
+  const gap = imagesPerPage === 1 ? 0 : 18
+  const usableW = PRINT_SHEET.width - PRINT_SHEET.margin * 2
+  const usableH = PRINT_SHEET.height - PRINT_SHEET.margin * 2
+  const cellW = (usableW - gap * (cols - 1)) / cols
+  const cellH = (usableH - gap * (rows - 1)) / rows
+  return Array.from({ length: imagesPerPage }, (_, index) => {
+    const col = index % cols
+    const row = Math.floor(index / cols)
+    return {
+      x: PRINT_SHEET.margin + col * (cellW + gap),
+      y: PRINT_SHEET.height - PRINT_SHEET.margin - (row + 1) * cellH - row * gap,
+      width: cellW,
+      height: cellH,
+    }
+  })
 }
 
 export function imageCompressionPolicy(
@@ -124,6 +178,76 @@ async function toJpegBytes(
   }
 }
 
+async function embedImageForPdfPage(
+  out: PDFDocument,
+  file: File,
+  policy: PdfImageCompressionPolicy,
+): Promise<{ image: PDFImage; width: number; height: number }> {
+  const buf = new Uint8Array(await file.arrayBuffer())
+  if (file.type === 'image/png' || isPngBytes(buf)) {
+    const size = readPngSize(buf)
+    if (!size || size.w * size.h <= policy.maxLosslessPngPixels) {
+      try {
+        const image = await out.embedPng(buf)
+        return { image, width: image.width, height: image.height }
+      } catch {
+        // PNG no soportado por pdf-lib → JPEG abajo.
+      }
+    }
+  }
+  const { bytes, width, height } = await toJpegBytes(file, policy)
+  const image = await out.embedJpg(bytes)
+  return { image, width, height }
+}
+
+export function containImageInCell(
+  image: { width: number; height: number },
+  cell: PdfImagePageCell,
+): PdfImagePageCell {
+  const scale = Math.min(cell.width / image.width, cell.height / image.height)
+  const width = image.width * scale
+  const height = image.height * scale
+  return {
+    x: cell.x + (cell.width - width) / 2,
+    y: cell.y + (cell.height - height) / 2,
+    width,
+    height,
+  }
+}
+
+export async function addImageSheetPage({
+  out,
+  entries,
+  imagesPerPage,
+  compression,
+  onImageDrawn,
+}: {
+  out: PDFDocument
+  entries: Array<{ source: PdfSource; page: PdfModelPage }>
+  imagesPerPage: 1 | 2 | 3 | 4 | 6
+  compression?: PdfImageCompressionMode
+  onImageDrawn?: (
+    outPage: PDFPage,
+    entry: { source: PdfSource; page: PdfModelPage },
+    cell: PdfImagePageCell,
+  ) => Promise<void>
+}): Promise<PDFPage | null> {
+  const policy = imageCompressionPolicy(compression)
+  const outPage = out.addPage([PRINT_SHEET.width, PRINT_SHEET.height])
+  const cells = imagePageCells(imagesPerPage)
+  let drawn = 0
+  for (const [index, entry] of entries.entries()) {
+    const cell = cells[index]
+    if (!cell) continue
+    const embedded = await embedImageForPdfPage(out, entry.source.file, policy)
+    const rect = containImageInCell(embedded, cell)
+    outPage.drawImage(embedded.image, rect)
+    drawn += 1
+    await onImageDrawn?.(outPage, entry, rect)
+  }
+  return drawn > 0 ? outPage : null
+}
+
 /**
  * Embebe una imagen como una hoja. PNG → sin pérdida (`embedPng`, preserva
  * screenshots/line-art); el resto se re-encodea a JPEG. Si pdf-lib no soporta
@@ -135,23 +259,13 @@ export async function addImagePage(
   options: { compression?: PdfImageCompressionMode } = {},
 ): Promise<PDFPage> {
   const policy = imageCompressionPolicy(options.compression)
-  const buf = new Uint8Array(await file.arrayBuffer())
-  if (file.type === 'image/png' || isPngBytes(buf)) {
-    const size = readPngSize(buf)
-    if (!size || size.w * size.h <= policy.maxLosslessPngPixels) {
-      try {
-        const png = await out.embedPng(buf)
-        const p = out.addPage([png.width, png.height])
-        p.drawImage(png, { x: 0, y: 0, width: png.width, height: png.height })
-        return p
-      } catch {
-        // PNG no soportado por pdf-lib → JPEG abajo.
-      }
-    }
-  }
-  const { bytes, width, height } = await toJpegBytes(file, policy)
-  const jpg = await out.embedJpg(bytes)
-  const p = out.addPage([width, height])
-  p.drawImage(jpg, { x: 0, y: 0, width, height })
+  const embedded = await embedImageForPdfPage(out, file, policy)
+  const p = out.addPage([embedded.width, embedded.height])
+  p.drawImage(embedded.image, {
+    x: 0,
+    y: 0,
+    width: embedded.width,
+    height: embedded.height,
+  })
   return p
 }

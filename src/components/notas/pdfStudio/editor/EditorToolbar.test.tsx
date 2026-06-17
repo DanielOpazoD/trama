@@ -18,6 +18,7 @@ function setup(overrides: Partial<Props> = {}) {
     activeFont: 'sans',
     activeSize: 0.04,
     activeBold: false,
+    activeItalic: false,
     activeColor: '#222222',
     activeOpacity: 1,
     activeRotation: 0,
@@ -166,6 +167,8 @@ describe('<EditorToolbar />', () => {
     expect(lastStyle(p.onApplyStyle)).toEqual({ font: 'serif' })
     fireEvent.click(screen.getByRole('menuitemradio', { name: 'Color Amarillo' }))
     expect(lastStyle(p.onApplyStyle)).toEqual({ color: '#f2c94c' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cursiva' }))
+    expect(lastStyle(p.onApplyStyle)).toEqual({ italic: true })
     fireEvent.click(screen.getByLabelText('Rotación del texto: aumentar'))
     expect(lastStyle(p.onApplyStyle)).toEqual({ rotation: 15 })
 

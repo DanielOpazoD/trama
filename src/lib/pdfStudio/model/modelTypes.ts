@@ -27,6 +27,7 @@ export type TextAnnotation = AnnotationBase & {
   color: string
   font: PdfFontKind
   bold: boolean
+  italic?: boolean
   rotation?: number
 }
 
@@ -121,6 +122,9 @@ export type PdfPage = {
 export type DocSettings = {
   pageNumbers?: { position: 'left' | 'center' | 'right' }
   watermark?: { text: string }
+  header?: { text: string }
+  footer?: { text: string }
+  imageLayout?: { imagesPerPage: 1 | 2 | 3 | 4 | 6 }
   /** Tamaño GLOBAL de las marcas X (lado como fracción del alto de página). Una
    *  sola medida para todo el documento: cambiarla redimensiona todas las X. */
   xMarkSize?: number
