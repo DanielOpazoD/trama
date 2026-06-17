@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useAnchoredPopover } from '../hooks/useAnchoredPopover'
 import { TramaMark, NotesIcon, ChevronDownIcon, CheckIcon } from './Icons'
 import type { World } from '../types/world'
 
@@ -62,66 +62,22 @@ export function WorldSwitcher({
   onChangeWorld: (w: World) => void
   collapsed?: boolean
 }) {
-  const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-
-  // Posiciona el menú bajo el trigger, clampeado al viewport para que no se
-  // salga por el borde derecho en móvil. Se recalcula en resize/scroll.
-  useLayoutEffect(() => {
-    if (!open) return
-    function place() {
-      const btn = triggerRef.current
-      if (!btn) return
-      const r = btn.getBoundingClientRect()
-      const maxLeft = window.innerWidth - MENU_WIDTH - VIEWPORT_MARGIN
-      const left = Math.max(VIEWPORT_MARGIN, Math.min(r.left, maxLeft))
-      setCoords({ top: r.bottom + 6, left })
-    }
-    place()
-    window.addEventListener('resize', place)
-    window.addEventListener('scroll', place, true)
-    return () => {
-      window.removeEventListener('resize', place)
-      window.removeEventListener('scroll', place, true)
-    }
-  }, [open])
-
-  // Cerrar al clic afuera o con Escape. El menú vive en un portal, así que
-  // "afuera" = ni el trigger ni el propio menú.
-  useEffect(() => {
-    if (!open) return
-    function onDown(e: MouseEvent) {
-      const t = e.target as Node
-      if (triggerRef.current?.contains(t)) return
-      if (menuRef.current?.contains(t)) return
-      setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setOpen(false)
-        triggerRef.current?.focus()
-      }
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+  const popover = useAnchoredPopover({
+    horizontal: 'left',
+    layerWidth: MENU_WIDTH,
+    viewportMargin: VIEWPORT_MARGIN,
+  })
 
   const current = WORLDS.find((w) => w.id === world) ?? WORLDS[0]!
 
   return (
     <div className="min-w-0">
       <button
-        ref={triggerRef}
+        ref={popover.triggerRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={popover.toggle}
         aria-haspopup="menu"
-        aria-expanded={open}
+        aria-expanded={popover.open}
         aria-label={`Mundo actual: ${current.label}. Cambiar de mundo`}
         title="Cambiar de mundo"
         className={
@@ -143,13 +99,17 @@ export function WorldSwitcher({
         )}
       </button>
 
-      {open &&
-        coords &&
+      {popover.open &&
+        popover.position &&
         createPortal(
           <div
-            ref={menuRef}
+            ref={popover.layerRef}
             role="menu"
-            style={{ top: coords.top, left: coords.left }}
+            style={{
+              top: popover.position.top,
+              bottom: popover.position.bottom,
+              left: popover.position.left,
+            }}
             className="fixed z-dropdown w-60 max-w-[calc(100vw-1.5rem)] paper-grain rounded-xl border border-ink-100/60 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 p-1.5 animate-fade-up origin-top motion-reduce:animate-none"
           >
             <p className="px-2 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
@@ -168,7 +128,7 @@ export function WorldSwitcher({
                   onMouseEnter={() => preloadWorld(w.id)}
                   onClick={() => {
                     onChangeWorld(w.id)
-                    setOpen(false)
+                    popover.close()
                   }}
                   className={`w-full flex items-start gap-2.5 px-2 py-1.5 rounded-md text-left transition-colors ${
                     active ? 'bg-ink-100/70' : 'hover:bg-ink-100/50'

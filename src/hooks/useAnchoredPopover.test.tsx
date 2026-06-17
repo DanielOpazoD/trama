@@ -2,8 +2,14 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useAnchoredPopover } from './useAnchoredPopover'
 
-function Harness({ onClose = () => {} }: { onClose?: () => void }) {
-  const popover = useAnchoredPopover({ onClose })
+function Harness({
+  onClose = () => {},
+  options,
+}: {
+  onClose?: () => void
+  options?: Parameters<typeof useAnchoredPopover>[0]
+}) {
+  const popover = useAnchoredPopover({ ...options, onClose })
 
   return (
     <>
@@ -49,5 +55,31 @@ describe('useAnchoredPopover', () => {
 
     expect(screen.queryByRole('menuitem', { name: 'Acción' })).not.toBeInTheDocument()
     expect(onClose).toHaveBeenCalledTimes(2)
+  })
+
+  it('can anchor left while clamping to viewport bounds', () => {
+    render(
+      <Harness
+        options={{
+          horizontal: 'left',
+          layerWidth: 240,
+          viewportMargin: 12,
+        }}
+      />,
+    )
+    const trigger = screen.getByRole('button', { name: 'Abrir menú' })
+    trigger.getBoundingClientRect = () =>
+      ({
+        bottom: 40,
+        left: 900,
+        right: 930,
+        top: 10,
+      }) as DOMRect
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1000 })
+
+    fireEvent.click(trigger)
+
+    const menu = screen.getByRole('menu')
+    expect(menu).toHaveStyle({ left: '748px', top: '46px' })
   })
 })

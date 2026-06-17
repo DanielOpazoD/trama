@@ -1,5 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react'
-import { useFocusTrap } from '../hooks/useFocusTrap'
+import type { ReactNode } from 'react'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 
 /**
  * Modal de confirmación para acciones destructivas (eliminar entidad,
@@ -43,17 +43,12 @@ export function ConfirmDestroy({
   onConfirm: () => void
   onCancel: () => void
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, open)
-
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !pending) onCancel()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onCancel, pending])
+  const overlay = useModalOverlay({
+    open,
+    onClose: onCancel,
+    closeOnEscape: !pending,
+    lockScroll: false,
+  })
 
   if (!open) return null
 
@@ -68,7 +63,7 @@ export function ConfirmDestroy({
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
         <div
-          ref={dialogRef}
+          ref={overlay.dialogRef}
           role="alertdialog"
           aria-modal="true"
           aria-labelledby="confirm-destroy-title"

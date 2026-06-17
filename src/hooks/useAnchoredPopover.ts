@@ -3,17 +3,24 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 export type AnchoredPopoverPosition = {
   top?: number
   bottom?: number
-  right: number
+  left?: number
+  right?: number
 }
 
 export function useAnchoredPopover({
   offset = 6,
   flipThreshold = 260,
+  horizontal = 'right',
+  layerWidth,
   onClose,
+  viewportMargin = 12,
 }: {
   offset?: number
   flipThreshold?: number
+  horizontal?: 'left' | 'right'
+  layerWidth?: number
   onClose?: () => void
+  viewportMargin?: number
 } = {}) {
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState<AnchoredPopoverPosition | null>(null)
@@ -37,14 +44,27 @@ export function useAnchoredPopover({
     if (!rect) return false
 
     const right = window.innerWidth - rect.right
+    const horizontalPosition =
+      horizontal === 'left' && typeof layerWidth === 'number'
+        ? {
+            left: Math.max(
+              viewportMargin,
+              Math.min(rect.left, window.innerWidth - layerWidth - viewportMargin),
+            ),
+            right: undefined,
+          }
+        : { right }
     const spaceBelow = window.innerHeight - rect.bottom
     if (spaceBelow < flipThreshold) {
-      setPosition({ bottom: window.innerHeight - rect.top + offset, right })
+      setPosition({
+        bottom: window.innerHeight - rect.top + offset,
+        ...horizontalPosition,
+      })
     } else {
-      setPosition({ top: rect.bottom + offset, right })
+      setPosition({ top: rect.bottom + offset, ...horizontalPosition })
     }
     return true
-  }, [flipThreshold, offset])
+  }, [flipThreshold, horizontal, layerWidth, offset, viewportMargin])
 
   useLayoutEffect(() => {
     if (!open) return
