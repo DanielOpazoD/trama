@@ -23,14 +23,14 @@ import { WorldSwitcher } from './WorldSwitcher'
  */
 const TITLES: Record<ViewMode, { title: string; subtitle?: string }> = {
   inicio: { title: 'Inicio', subtitle: 'tu trama de hoy' },
-  grafo: { title: 'Grafo', subtitle: 'mapa visual de tus conexiones' },
-  entidades: { title: 'Entidades', subtitle: 'personas, obras, conceptos' },
-  citas: { title: 'Citas', subtitle: 'fragmentos que retuviste' },
+  grafo: { title: 'Grafo', subtitle: 'lente de relaciones entre entidades' },
+  entidades: { title: 'Entidades', subtitle: 'catálogo de personas, obras y conceptos' },
+  citas: { title: 'Citas', subtitle: 'catálogo de fragmentos guardados' },
   escuchas: { title: 'Escuchas', subtitle: 'tu música reciente' },
   twitter: { title: 'Twitter', subtitle: 'tus tweets marcados' },
-  momentos: { title: 'Momentos', subtitle: 'la dimensión temporal de tu trama' },
-  cronologia: { title: 'Cronología', subtitle: 'hojear el tiempo, por estaciones' },
-  atlas: { title: 'Atlas', subtitle: 'constelaciones de tu trama' },
+  momentos: { title: 'Momentos', subtitle: 'catálogo temporal de notas y escenas' },
+  cronologia: { title: 'Cronología', subtitle: 'lente temporal de tu archivo' },
+  atlas: { title: 'Atlas', subtitle: 'lente de constelaciones temáticas' },
   chat: { title: 'Chat', subtitle: 'conversa con tu trama' },
   sugerencias: { title: 'Sugerencias', subtitle: 'propuestas de la IA' },
 }

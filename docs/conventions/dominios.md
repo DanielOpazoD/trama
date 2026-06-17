@@ -1,5 +1,23 @@
 # Dominios — grafo, chat, Momentos y derivados
 
+## Contrato de navegación top-level
+
+Una vista top-level existe cuando cambia la manera principal de leer la trama,
+no cuando aparece una herramienta nueva. El sidebar y la navegación móvil deben
+sentirse como `Inicio` + `Catálogo` + `Lentes` + `Diálogo`:
+
+- **Catálogo:** materia base acumulada (`Entidades`, `Citas`, `Momentos`,
+  `Escuchas`, `Twitter`).
+- **Lentes:** formas de mirar ese catálogo (`Grafo`, `Cronología`, `Atlas`).
+- **Diálogo:** conversación o revisión asistida (`Chat`, `Sugerencias`).
+
+Antes de agregar una nueva vista al sidebar, intentá ubicarla como tab interna,
+filtro, acción del Command Palette, módulo de un mundo existente o lente dentro
+de una vista. Solo sube a top-level si necesita URL, título, navegación móvil y
+estado propio persistente. Si sube, registrala en `src/lib/navigation.ts`; no
+dupliques listas manuales en Sidebar, MobileBottomNav, MobileMoreSheet o
+CommandPalette.
+
 ## Cuando edites el grafo
 
 `src/components/GraphView.tsx` es solo composición. La lógica está en:

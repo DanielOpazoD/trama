@@ -126,4 +126,17 @@ describe('usePanZoom', () => {
     expect(result.current.zoom).toBeGreaterThan(0)
     expect(result.current.zoom).toBeLessThan(3)
   })
+
+  it('fitToView permite limitar el zoom automático sin bloquear el zoom manual', () => {
+    const ref = makeRef()
+    const { result } = renderHook(() => usePanZoom(ref))
+
+    act(() =>
+      result.current.fitToView({ minX: -20, minY: -20, maxX: 20, maxY: 20 }, 20, 1.1),
+    )
+    expect(result.current.zoom).toBeCloseTo(1.1)
+
+    act(() => result.current.zoomIn())
+    expect(result.current.zoom).toBeGreaterThan(1.1)
+  })
 })

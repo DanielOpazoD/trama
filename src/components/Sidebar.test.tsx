@@ -11,6 +11,7 @@ const stateMocks = vi.hoisted(() => ({
   useMomentoShareInvitationsQuery: vi.fn(),
   useProactiveQuery: vi.fn(),
   useIsMobile: vi.fn(),
+  isSectionVisible: vi.fn(),
 }))
 
 vi.mock('../state', () => ({
@@ -27,7 +28,7 @@ vi.mock('../hooks/useIsMobile', () => ({
 
 vi.mock('../hooks/useSectionVisibility', () => ({
   useSectionVisibility: () => ({
-    isVisible: () => true,
+    isVisible: stateMocks.isSectionVisible,
     setVisible: () => {},
     showAll: () => {},
     visibleSections: {},
@@ -86,6 +87,7 @@ describe('<Sidebar />', () => {
     stateMocks.useMomentoShareInvitationsQuery.mockReset()
     stateMocks.useProactiveQuery.mockReset()
     stateMocks.useIsMobile.mockReset()
+    stateMocks.isSectionVisible.mockReset()
 
     stateMocks.useCountsQuery.mockReturnValue({
       data: { entities: 12, quotes: 7, momentos: 4 },
@@ -98,13 +100,16 @@ describe('<Sidebar />', () => {
     stateMocks.useMomentoShareInvitationsQuery.mockReturnValue({ data: { items: [] } })
     stateMocks.useProactiveQuery.mockReturnValue({ data: [] })
     stateMocks.useIsMobile.mockReturnValue(false)
+    stateMocks.isSectionVisible.mockReturnValue(true)
   })
 
   it('renderiza navegación expandida con grupos, contadores y sugerencias ocultas sin pendientes', async () => {
     const user = userEvent.setup()
     const props = renderSidebar({ view: 'entidades' })
 
-    expect(screen.getByText('Mi trama')).toBeInTheDocument()
+    expect(screen.getByText('Catálogo')).toBeInTheDocument()
+    expect(screen.getByText('Lentes')).toBeInTheDocument()
+    expect(screen.getByText('Diálogo')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Entidades 12' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Citas 7' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Flujo' })).not.toBeInTheDocument()
@@ -119,6 +124,17 @@ describe('<Sidebar />', () => {
     expect(props.onChangeView).toHaveBeenCalledWith('twitter')
     expect(stateMocks.acknowledgeHealthAlerts).toHaveBeenCalledWith(['budget-high'])
     expect(props.onOpenSettings).toHaveBeenCalledOnce()
+  })
+
+  it('mantiene visible la vista activa aunque esté oculta por personalización', () => {
+    stateMocks.isSectionVisible.mockImplementation((view: string) => view !== 'atlas')
+
+    renderSidebar({ view: 'atlas' })
+
+    expect(screen.getByRole('button', { name: 'Atlas' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   it('renderiza la versión colapsada con búsqueda, mundo, modo local y sugerencias pendientes', async () => {

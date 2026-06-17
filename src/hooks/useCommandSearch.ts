@@ -13,6 +13,7 @@ import { useModuleVisibility } from './useModuleVisibility'
 import { isPinEnabled } from '../components/AppPinGate'
 import { SECTIONS } from '../components/notas/NotasWorldChrome'
 import { MODULE_ALIASES } from '../components/notas/moduleAliases'
+import { NAV_GROUPS } from '../lib/navigation'
 
 /**
  * Lógica de búsqueda del command palette (Cmd+K), extraída de
@@ -57,19 +58,30 @@ export type Item =
       text: string
     }
 
-const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = [
-  { view: 'inicio', label: 'Inicio', hint: 'la página principal' },
-  { view: 'grafo', label: 'Grafo', hint: 'el mapa visual' },
-  { view: 'entidades', label: 'Entidades', hint: 'personas, libros, vínculos' },
-  { view: 'citas', label: 'Citas', hint: 'fragmentos guardados' },
-  { view: 'momentos', label: 'Momentos', hint: 'la dimensión temporal de la trama' },
-  { view: 'escuchas', label: 'Escuchas', hint: 'tu música reciente' },
-  { view: 'twitter', label: 'Twitter', hint: 'tus tweets marcados (bookmarks)' },
-  { view: 'cronologia', label: 'Cronología', hint: 'hojear el tiempo, por estaciones' },
-  { view: 'atlas', label: 'Atlas', hint: 'constelaciones semánticas de tu trama' },
-  { view: 'chat', label: 'Chat', hint: 'conversación con la IA' },
-  { view: 'sugerencias', label: 'Sugerencias', hint: 'la IA revisa la trama' },
-]
+const VIEW_HINTS: Record<ViewMode, string> = {
+  inicio: 'entrada a la trama',
+  entidades: 'personas, obras y conceptos',
+  citas: 'fragmentos guardados',
+  momentos: 'notas y escenas del tiempo',
+  escuchas: 'música reciente',
+  twitter: 'bookmarks de X/Twitter',
+  grafo: 'mapa de relaciones',
+  cronologia: 'lectura temporal',
+  atlas: 'constelaciones temáticas',
+  chat: 'conversación con tu archivo',
+  sugerencias: 'ronda proactiva de IA',
+}
+
+const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = NAV_GROUPS.flatMap(
+  (group) =>
+    group.items.map((item) => ({
+      view: item.value,
+      label: item.label,
+      hint: group.label
+        ? `${group.label} · ${VIEW_HINTS[item.value]}`
+        : VIEW_HINTS[item.value],
+    })),
+)
 
 // Acciones rápidas — el palette no las navega, las despacha como callbacks
 // al padre. Los hints son keywords que el filtro substring matchea.

@@ -9,7 +9,21 @@ describe('<TopBar />', () => {
   it('muestra título y subtítulo de la vista activa', () => {
     renderWithProviders(<TopBar view="entidades" />)
     expect(screen.getByText('Entidades')).toBeInTheDocument()
-    expect(screen.getByText(/personas, obras, conceptos/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/catálogo de personas, obras y conceptos/i),
+    ).toBeInTheDocument()
+  })
+
+  it.each([
+    ['entidades', 'catálogo de personas, obras y conceptos'],
+    ['citas', 'catálogo de fragmentos guardados'],
+    ['momentos', 'catálogo temporal de notas y escenas'],
+    ['grafo', 'lente de relaciones entre entidades'],
+    ['cronologia', 'lente temporal de tu archivo'],
+    ['atlas', 'lente de constelaciones temáticas'],
+  ])('orienta %s como catálogo o lente', (view, subtitle) => {
+    renderWithProviders(<TopBar view={view as never} />)
+    expect(screen.getByText(subtitle)).toBeInTheDocument()
   })
 
   it.each([

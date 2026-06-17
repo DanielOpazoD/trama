@@ -23,6 +23,7 @@ vi.mock('../../hooks/useMainScrollVirtualizer', () => ({
   useMainScrollVirtualizer: ({ count }: { count: number }) => ({
     listRef: { current: null },
     virtualizer: {
+      measure: measureFeedRows,
       getTotalSize: () => count * 200,
       getVirtualItems: () =>
         Array.from({ length: count }, (_, index) => ({
@@ -37,6 +38,8 @@ vi.mock('../../hooks/useMainScrollVirtualizer', () => ({
     },
   }),
 }))
+
+const measureFeedRows = vi.hoisted(() => vi.fn())
 
 const noteRows = [
   {
@@ -170,6 +173,7 @@ function stubFeedFetch() {
 }
 
 beforeEach(() => {
+  measureFeedRows.mockClear()
   stubFeedFetch()
 })
 
@@ -183,6 +187,13 @@ describe('<NotasFeedView />', () => {
 
     expect(await screen.findByText(/Idea matriz sobre memoria/)).toBeInTheDocument()
     expect(screen.getByText(/Una cita capturada de la web/)).toBeInTheDocument()
+  })
+
+  it('re-mide la lista virtualizada cuando el feed carga ítems de altura variable', async () => {
+    renderWithProviders(<NotasFeedView />)
+
+    expect(await screen.findByText(/Idea matriz sobre memoria/)).toBeInTheDocument()
+    await waitFor(() => expect(measureFeedRows).toHaveBeenCalled())
   })
 
   it('conserva el composer de creación de notas', () => {

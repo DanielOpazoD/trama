@@ -4,15 +4,35 @@ import {
   NAV_ITEMS,
   MOBILE_PRIMARY_VIEWS,
   MOBILE_PRIMARY_ITEMS,
+  MOBILE_MORE_GROUPS,
   MOBILE_MORE_VIEWS,
   findNavItem,
 } from './navigation'
 import { SECTION_ACCENT } from './sectionAccent'
+import type { ViewMode } from '../types/view'
+
+const ALL_VIEW_MODES: ViewMode[] = [
+  'inicio',
+  'entidades',
+  'citas',
+  'momentos',
+  'escuchas',
+  'twitter',
+  'grafo',
+  'cronologia',
+  'atlas',
+  'chat',
+  'sugerencias',
+]
 
 describe('registro de navegación', () => {
   it('no tiene vistas duplicadas', () => {
     const values = NAV_ITEMS.map((i) => i.value)
     expect(new Set(values).size).toBe(values.length)
+  })
+
+  it('registra exactamente todas las ViewMode top-level navegables', () => {
+    expect(NAV_ITEMS.map((item) => item.value)).toEqual(ALL_VIEW_MODES)
   })
 
   it('las vistas primarias existen en el registro', () => {
@@ -46,5 +66,27 @@ describe('registro de navegación', () => {
   it('Inicio es la primera vista y vive suelto (grupo sin label)', () => {
     expect(NAV_GROUPS[0]?.label).toBeNull()
     expect(NAV_GROUPS[0]?.items[0]?.value).toBe('inicio')
+  })
+
+  it('modela Catálogo y Lentes como grupos semánticos, no como cajones genéricos', () => {
+    expect(NAV_GROUPS.map((group) => group.label)).toEqual([
+      null,
+      'Catálogo',
+      'Lentes',
+      'Diálogo',
+    ])
+    expect(
+      NAV_GROUPS.find((group) => group.label === 'Lentes')?.items.map((i) => i.value),
+    ).toEqual(['grafo', 'cronologia', 'atlas'])
+  })
+
+  it('la hoja móvil Más conserva los mismos grupos semánticos sin primarias', () => {
+    expect(
+      MOBILE_MORE_GROUPS.map((group) => [group.label, group.items.map((i) => i.value)]),
+    ).toEqual([
+      ['Catálogo', ['escuchas', 'twitter']],
+      ['Lentes', ['grafo', 'cronologia', 'atlas']],
+      ['Diálogo', ['chat', 'sugerencias']],
+    ])
   })
 })

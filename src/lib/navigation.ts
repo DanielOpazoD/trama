@@ -24,9 +24,9 @@ import {
  *
  * Los grupos descomprimen la barra por naturaleza (mismo criterio que tenía
  * el Sidebar):
- *   · Mi trama — lo que acumulás (colecciones)
- *   · Miradas  — lentes sobre el conjunto (Grafo/Cronología/Atlas no son
- *                destinos sueltos, son tres formas de ver lo mismo)
+ *   · Catálogo — lo que acumulás (colecciones)
+ *   · Lentes   — lecturas sobre el conjunto (Grafo/Cronología/Atlas no son
+ *                destinos sueltos, son tres formas de mirar lo mismo)
  *   · Diálogo  — superficies de IA
  * 'Inicio' queda suelto arriba. El orden de grupos es el orden de lectura.
  */
@@ -35,7 +35,7 @@ export type NavGroup = { label: string | null; items: NavItem[] }
 export const NAV_GROUPS: NavGroup[] = [
   { label: null, items: [{ value: 'inicio', label: 'Inicio', icon: HomeIcon }] },
   {
-    label: 'Mi trama',
+    label: 'Catálogo',
     items: [
       { value: 'entidades', label: 'Entidades', icon: EntitiesIcon },
       { value: 'citas', label: 'Citas', icon: QuoteIcon },
@@ -45,7 +45,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Miradas',
+    label: 'Lentes',
     items: [
       { value: 'grafo', label: 'Grafo', icon: GraphIcon },
       { value: 'cronologia', label: 'Cronología', icon: CronologiaIcon },

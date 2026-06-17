@@ -1,4 +1,13 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   useNotasFeed,
   useNotesQuery,
@@ -358,6 +367,24 @@ export function NotasFeedView() {
     deps: [segment, searchOpen, calendarOpen, capturaStatus, recorteThumb, items.length],
   })
   const virtualItems = virtualizer.getVirtualItems()
+  const feedMeasureKey = useMemo(
+    () =>
+      items
+        .map((item) =>
+          item.type === 'note'
+            ? `n:${item.id}:${item.note.updatedAt}:${item.note.hasImages ? 1 : 0}`
+            : `r:${item.id}:${item.recorte.updatedAt}:${item.recorte.imageKey ?? ''}:${
+                item.recorte.imageUrl ?? ''
+              }:${item.recorte.text.length}`,
+        )
+        .join('|'),
+    [items],
+  )
+
+  useLayoutEffect(() => {
+    if (items.length === 0) return
+    virtualizer.measure()
+  }, [feedMeasureKey, items.length, recorteThumb, virtualizer])
 
   // Carga incremental: cuando la ventana visible llega a los últimos ítems,
   // pedimos la próxima página. Leemos el índice virtual más alto (atado al
