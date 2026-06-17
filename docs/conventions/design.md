@@ -94,6 +94,19 @@ virtualizados de Notas, la medición de alturas vive en
 `useMeasuredVirtualFeed`; si agregás campos que cambian la altura de tarjetas,
 actualizá `feedMeasureSignature` y su test.
 
+Regla de adopción, sin crear framework:
+
+- Sí: menú anclado a botón (`⋯`, switcher, acciones inline) →
+  `useAnchoredPopover`.
+- Sí: modal, sheet, lightbox o confirmación con `dialog`/`alertdialog` →
+  `useModalOverlay`.
+- Sí: lista virtualizada de Notas cuyas alturas cambian por imágenes/texto →
+  `useMeasuredVirtualFeed`.
+- No: nuevos `document.addEventListener('keydown', Escape)`, click-outside,
+  focus trap o scroll-lock manuales si una primitiva ya cubre el caso.
+- No: crecer `useAnchoredPopover` hacia collision detection compleja, arrows,
+  nested menus o roving tabindex. Si aparece esa necesidad, evaluar Floating UI.
+
 **NumberTicker (`src/components/NumberTicker.tsx`)** — para mostrar cualquier count que pueda cambiar (sidebar nav counts, totales). Anima dígito por dígito en ~420ms con out-quart, respeta `prefers-reduced-motion`. Es siempre `<span class="tabular-nums">`, así que se puede usar inline en oraciones. NO usar para timestamps ni valores que cambien continuamente — fue pensado para deltas humanos (+1, +10, +100), no para ticking de relojes.
 
 **`useAchievements({ entities, quotes, relationships })`** — corre en App.tsx con los counts de las queries. Dispara un toast efímero cuando se cruza un umbral (10, 25, 50, 100, 250, 500, 1000+). Persiste lo que ya fue notificado en localStorage `trama:achievements-seen`. Si cruzás varios umbrales a la vez (e.g. import masivo) muestra solo el mayor. Si querés agregar un dominio nuevo (e.g. `chatMessages`), extendé la signature y agregá un branch en `pickMessage`.

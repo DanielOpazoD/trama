@@ -7,21 +7,36 @@ export type AnchoredPopoverPosition = {
   right?: number
 }
 
-export function useAnchoredPopover({
-  offset = 6,
-  flipThreshold = 260,
-  horizontal = 'right',
-  layerWidth,
-  onClose,
-  viewportMargin = 12,
-}: {
+type AnchoredPopoverBaseOptions = {
   offset?: number
   flipThreshold?: number
-  horizontal?: 'left' | 'right'
-  layerWidth?: number
   onClose?: () => void
   viewportMargin?: number
-} = {}) {
+}
+
+type AnchoredPopoverRightOptions = AnchoredPopoverBaseOptions & {
+  horizontal?: 'right'
+  layerWidth?: never
+}
+
+type AnchoredPopoverLeftOptions = AnchoredPopoverBaseOptions & {
+  horizontal: 'left'
+  layerWidth: number
+}
+
+export type AnchoredPopoverOptions =
+  | AnchoredPopoverRightOptions
+  | AnchoredPopoverLeftOptions
+
+export function useAnchoredPopover(options: AnchoredPopoverOptions = {}) {
+  const {
+    offset = 6,
+    flipThreshold = 260,
+    horizontal = 'right',
+    onClose,
+    viewportMargin = 12,
+  } = options
+  const layerWidth = options.horizontal === 'left' ? options.layerWidth : undefined
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState<AnchoredPopoverPosition | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
