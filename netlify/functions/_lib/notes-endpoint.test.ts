@@ -204,6 +204,15 @@ describe('notes endpoint — integration', () => {
     expect(cte).toMatch(/SELECT deleted_at FROM del_note/i)
   })
 
+  it('DELETE inexistente o de otro usuario devuelve 404, no 200 no-op', async () => {
+    mockSqlResponses.push([])
+    const res = await handler(
+      new Request('http://localhost/api/notes/n1', { method: 'DELETE' }),
+      mockContext({ id: 'n1' }),
+    )
+    expect(res.status).toBe(404)
+  })
+
   it('POST /:id/restore revive nota + anexos con el deleted_at exacto', async () => {
     mockSqlResponses.push([{ restored: true }])
     const res = await handler(

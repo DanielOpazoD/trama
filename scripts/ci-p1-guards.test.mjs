@@ -58,4 +58,40 @@ describe('CI P1 guardrails', () => {
       expect(runbook).toContain(risk)
     }
   })
+
+  it('separa CI verde, deploy preview, producción estricta y smoke real', () => {
+    const runbook = readFileSync(
+      join(process.cwd(), 'docs/runbook-multiusuario.md'),
+      'utf8',
+    )
+    const deploy = readFileSync(join(process.cwd(), 'docs/deploy.md'), 'utf8')
+    const combined = `${runbook}\n${deploy}`
+
+    for (const phrase of [
+      'CI verde no equivale a cutover multiusuario',
+      'deploy preview puede correr con fallback legacy',
+      'producción estricta exige anónimo = 401',
+      'smoke multiusuario real',
+      'cutover:preflight',
+      'cutover:smoke',
+      'cutover:smoke:isolation',
+    ]) {
+      expect(combined).toContain(phrase)
+    }
+  })
+
+  it('expone un runner de aislamiento para previews sin relajar cutover:smoke', () => {
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'))
+    const isolationRunner = readFileSync(
+      join(process.cwd(), 'scripts/run-cutover-isolation-smoke.mjs'),
+      'utf8',
+    )
+
+    expect(pkg.scripts['cutover:smoke']).toBe('node scripts/run-cutover-smoke.mjs')
+    expect(pkg.scripts['cutover:smoke:isolation']).toBe(
+      'node scripts/run-cutover-isolation-smoke.mjs',
+    )
+    expect(isolationRunner).toContain('not_checked_preview_only')
+    expect(isolationRunner).toContain('no reemplaza cutover:smoke')
+  })
 })

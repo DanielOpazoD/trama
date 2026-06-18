@@ -80,6 +80,59 @@ async function mintTokenForUser(
   return token.jwt
 }
 
+function isCreateSessionUnsupported(error) {
+  return error?.errors?.some?.((item) => item.code === 'request_invalid_for_environment')
+}
+
+async function mintTokenFromActiveSession(clerkClient, userId, expiresInSeconds) {
+  const sessions = await clerkClient.sessions.getSessionList({
+    userId,
+    status: 'active',
+    limit: 10,
+  })
+  const session = sessions.data?.[0]
+  if (!session?.id) {
+    throw new Error(
+      `Clerk no permite crear sesiones en este entorno y ${userId} no tiene sesiones activas. Inicia sesión con ese usuario o entrega E2E_USER_*_TOKEN manualmente.`,
+    )
+  }
+
+  const token = await clerkClient.sessions.getToken(
+    session.id,
+    undefined,
+    expiresInSeconds,
+  )
+  if (!token?.jwt) {
+    throw new Error(`Clerk no devolvio JWT para la sesion activa ${session.id}.`)
+  }
+  return token.jwt
+}
+
+async function resolveTokenForUser(
+  clerkClient,
+  userId,
+  expiresInSeconds,
+  createdSessionIds,
+) {
+  try {
+    return {
+      mode: 'minted-clerk-tokens',
+      token: await mintTokenForUser(
+        clerkClient,
+        userId,
+        expiresInSeconds,
+        createdSessionIds,
+      ),
+    }
+  } catch (error) {
+    if (!isCreateSessionUnsupported(error)) throw error
+    return {
+      mode: 'active-clerk-sessions',
+      token: await mintTokenFromActiveSession(clerkClient, userId, expiresInSeconds),
+    }
+  }
+}
+
 export async function resolveMultiuserSmokeEnv({
   env = process.env,
   createClerkClient,
@@ -105,13 +158,13 @@ export async function resolveMultiuserSmokeEnv({
   const expiresInSeconds = getTokenTtlSeconds(env)
 
   try {
-    const userAToken = await mintTokenForUser(
+    const userA = await resolveTokenForUser(
       clerkClient,
       env.E2E_USER_A_ID,
       expiresInSeconds,
       createdSessionIds,
     )
-    const userBToken = await mintTokenForUser(
+    const userB = await resolveTokenForUser(
       clerkClient,
       env.E2E_USER_B_ID,
       expiresInSeconds,
@@ -119,12 +172,15 @@ export async function resolveMultiuserSmokeEnv({
     )
 
     return {
-      mode: 'minted-clerk-tokens',
+      mode:
+        userA.mode === 'minted-clerk-tokens' && userB.mode === 'minted-clerk-tokens'
+          ? 'minted-clerk-tokens'
+          : 'active-clerk-sessions',
       env: {
         ...process.env,
         ...env,
-        E2E_USER_A_TOKEN: userAToken,
-        E2E_USER_B_TOKEN: userBToken,
+        E2E_USER_A_TOKEN: userA.token,
+        E2E_USER_B_TOKEN: userB.token,
       },
       cleanup: async () => {
         await revokeCreatedSessions(clerkClient, createdSessionIds)
