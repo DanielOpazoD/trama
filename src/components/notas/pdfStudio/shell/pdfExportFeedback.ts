@@ -42,6 +42,14 @@ export function describePdfExportError(err: unknown): string {
   if (/cancel|abort/.test(normalized)) {
     return 'Exportación cancelada.'
   }
+  if (
+    code === 'STALE_APP_ASSET' ||
+    /failed to fetch dynamically imported module|chunkloaderror|dynamically imported module/.test(
+      normalized,
+    )
+  ) {
+    return 'Trama se actualizó mientras esta pestaña seguía abierta. Estoy recargando la app; vuelve a exportar el PDF en unos segundos.'
+  }
   if (/redacci|redaction|unsafe_redaction/.test(normalized)) {
     return `No se pudo aplicar la redacción segura. La página redactada debe rasterizarse para eliminar el contenido subyacente. Detalle: ${raw}`
   }

@@ -45,4 +45,23 @@ describe('assemblePdfInWorker', () => {
     ).rejects.toThrow()
     expect(mocks.assemble).not.toHaveBeenCalled()
   })
+
+  it('pide refrescar si el fallback pesado apunta a un chunk obsoleto', async () => {
+    const reload = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { reload },
+    })
+    mocks.runPdfHeavyOperation.mockRejectedValue(new Error('worker sin canvas'))
+    mocks.assemble.mockRejectedValue(
+      new TypeError(
+        'Failed to fetch dynamically imported module: https://tramahub.app/assets/assemble-6PkgTIDP.js',
+      ),
+    )
+
+    await expect(assemblePdfInWorker(doc)).rejects.toMatchObject({
+      code: 'STALE_APP_ASSET',
+    })
+    expect(reload).toHaveBeenCalledTimes(1)
+  })
 })

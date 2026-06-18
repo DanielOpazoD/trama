@@ -87,17 +87,17 @@ describe('AuthGate', () => {
       'data-sign-up-url',
       '/#sign-up',
     )
-    expect(screen.getByText('Trama')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toHaveAttribute(
-      'tabindex',
-      '0',
+    const brandMark = screen.getByTestId('login-brand-mark').querySelector('img')
+    expect(brandMark).toHaveAttribute('src', '/favicon-48.png')
+    expect(brandMark).toHaveAttribute(
+      'srcSet',
+      '/favicon-48.png 48w, /icon-192.png 192w, /trama-icon.png 1024w',
     )
+    expect(screen.getByTestId('login-brand-wordmark')).toHaveAccessibleName('TRAMA')
+    expect(screen.getByTestId('login-brand-wordmark')).toHaveClass('trama-login-wordmark')
+    expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toHaveClass(
       'trama-mascot--loginAwake',
-    )
-    expect(screen.getByTestId('login-mascot-seal')).toContainElement(
-      screen.getByRole('img', { name: 'Mascota de Trama' }),
     )
     expect(screen.getByText('tu archivo vivo')).toBeInTheDocument()
     expect(screen.getByTestId('login-thread-field')).toHaveAttribute(
@@ -161,7 +161,7 @@ describe('AuthGate', () => {
       '/#sign-in',
     )
     expect(screen.queryByTestId('clerk-sign-in')).not.toBeInTheDocument()
-    expect(screen.getByText('Trama')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'TRAMA' })).toBeInTheDocument()
   })
 
   it('renders the app directly when the E2E Clerk bypass is enabled', () => {

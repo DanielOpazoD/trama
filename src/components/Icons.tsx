@@ -5,8 +5,6 @@
  *   - 1.6  ui            (la "house weight", todos los UI icons usan esta)
  *   - 1.4  accent        (SparkleIcon — las 8 rayitas se ven amontonadas
  *                         con 1.6, baja a 1.4 para que respiren)
- *   - 1.7  brand-primary (TramaMark T principal — logo, intencional ancho)
- *   - 1.1  brand-detail  (TramaMark threads — sub-ornament del logo)
  *   - 1.0  ornament      (EndMark diamond — flourish discreto)
  *   - 0.8–0.9 ornament-thread (OrnamentBreak threads — flujo editorial)
  *
@@ -524,44 +522,51 @@ export const SettingsIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
-/* Trama monogram — a woven "T" with crossed threads beneath.
-   La identidad visual de la marca: una "T" geométrica con dos hilos
-   cruzados que pasan por el stem vertical. Lee como "T" desde lejos
-   (typográfico) y como "telar" de cerca (semántico). El cross-point
-   de los hilos cae exactamente en el stem — no es coincidencia.
+/* Trama mark — isotipo oficial recortado desde el logo fuente. `animate`
+   queda como prop tolerada para compatibilidad con el splash, pero la marca
+   visual es una sola en toda la app. */
+export const TramaMark = ({ size = 22, className }: Props & { animate?: boolean }) => (
+  <img
+    src="/favicon-48.png"
+    srcSet="/favicon-48.png 48w, /icon-192.png 192w, /trama-icon.png 1024w"
+    sizes="(max-width: 48px) 48px, (max-width: 192px) 192px, 1024px"
+    width={size}
+    height={size}
+    alt=""
+    aria-hidden="true"
+    draggable={false}
+    className={className}
+  />
+)
 
-   `animate`: cuando true, agrega las clases CSS que dibujan los
-   strokes con dash-offset (mark-crossbar/mark-vertical/mark-thread).
-   Solo activarlo en el Splash — en sidebar/lockup no queremos que
-   anime cada vez que el componente monta. */
-export const TramaMark = ({
-  size = 22,
-  className,
-  animate,
-}: Props & { animate?: boolean }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none">
-    <path
-      className={animate ? 'mark-crossbar' : undefined}
-      d="M5 6h14"
+export const TramaWordmark = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    aria-label="TRAMA"
+    className={className}
+    role="img"
+    viewBox="0 0 710 92"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <g
+      fill="none"
       stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-    />
-    <path
-      className={animate ? 'mark-vertical' : undefined}
-      d="M12 6v13"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-    />
-    <path
-      className={animate ? 'mark-thread' : undefined}
-      d="M9 11l6 4M15 11l-6 4"
-      stroke="currentColor"
-      strokeWidth={1.1}
-      strokeOpacity={0.55}
-      strokeLinecap="round"
-    />
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      strokeWidth="9"
+    >
+      <path d="M8 14H94" />
+      <path d="M51 14V82" />
+
+      <path d="M146 82V14H195C219 14 234 27 234 43C234 57 219 63 195 63H146" />
+      <path d="M195 63L236 82" />
+
+      <path d="M290 82L338 14L386 82" />
+
+      <path d="M448 82V14L496 61L544 14V82" />
+
+      <path d="M606 82L654 14L702 82" />
+    </g>
   </svg>
 )
 
