@@ -133,6 +133,9 @@ Antes de abrir PR, confirmar:
   `E2E_CLERK_TOKEN_TTL_SECONDS` (default: 600 segundos). Para validar
   revocación en una pasada manual, entregar además `E2E_REVOKED_TOKEN` con un
   JWT cuya sesión ya fue revocada; el smoke espera 401.
+  Si Clerk no permite crear sesiones desde backend, el runner intenta usar una
+  sesión activa existente para cada usuario; si no hay sesión activa, inicia
+  sesión con ese usuario o usa tokens manuales.
 
   El smoke operacional equivalente, útil para cutover con tokens copiados de
   DevTools, usa el wrapper:

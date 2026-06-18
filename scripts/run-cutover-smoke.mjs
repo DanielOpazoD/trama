@@ -63,6 +63,8 @@ export async function runCutoverSmoke({
 
   if (smokeEnv.mode === 'minted-clerk-tokens') {
     write(stdout, 'cutover smoke: usando tokens efimeros generados con Clerk.')
+  } else if (smokeEnv.mode === 'active-clerk-sessions') {
+    write(stdout, 'cutover smoke: usando sesiones activas existentes de Clerk.')
   }
 
   const preflight = await runPreflight({

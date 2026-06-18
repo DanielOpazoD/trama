@@ -101,6 +101,11 @@ E2E_USER_B_ID=user_... \
 npm run cutover:smoke -- --project=chromium
 ```
 
+Si Clerk no permite crear sesiones desde backend en esa instancia, el runner
+intenta usar sesiones activas existentes para esos usuarios. En ese caso A y B
+deben haber iniciado sesión recientemente en producción; si un usuario no tiene
+sesión activa, usa tokens manuales copiados desde DevTools.
+
 ### Token revocado opcional
 
 Para probar revocación sin automatizar Clerk en CI:
