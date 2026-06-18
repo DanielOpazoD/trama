@@ -34,13 +34,28 @@ const PER_USER_TABLES = [
   'quotes',
   'momentos',
   'momento_entities',
+  'momento_access',
+  'momento_comments',
+  'momento_reactions',
   'notes',
+  'month_notes',
+  'recortes',
+  'recorte_images',
   'tasks',
   'prompts',
   'secrets',
   'notas_attachments',
+  'favoritos',
+  'saved_queries',
+  'reading_tables',
+  'pdf_studio_saved_pdfs',
   'chat_threads',
   'chat_messages',
+  'user_prefs',
+  'api_tokens',
+  'whatsapp_events',
+  'whatsapp_links',
+  'whatsapp_processed_messages',
   'spotify_plays',
   'spotify_tokens',
   'x_tokens',
@@ -234,6 +249,11 @@ describe('guardrail: migraciones mantienen FK user_id -> users(id)', () => {
     expect(tables).toContain('x_bookmarks')
   })
 
+  it('toda tabla versionada con user_id está clasificada por el guardrail privado', () => {
+    const missing = tables.filter((table) => !PER_USER_TABLES.includes(table))
+    expect(missing).toEqual([])
+  })
+
   for (const table of tables) {
     it(`${table}: user_id referencia users(id)`, () => {
       expect(
@@ -278,12 +298,27 @@ describe('guardrail: migraciones habilitan RLS en tablas privadas', () => {
   })
 
   for (const table of PER_USER_TABLES) {
-    it(`${table}: está incluida en el set RLS privado`, () => {
+    it(`${table}: está cubierta por RLS privado`, () => {
+      const escapedTable = table.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const coveredBySharedPolicy = new RegExp(`'${escapedTable}'`).test(sql)
+      const coveredByExplicitPolicy =
+        new RegExp(
+          `ALTER\\s+TABLE\\s+${escapedTable}\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+          'i',
+        ).test(sql) &&
+        new RegExp(
+          `ALTER\\s+TABLE\\s+${escapedTable}\\s+FORCE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+          'i',
+        ).test(sql) &&
+        new RegExp(
+          `CREATE\\s+POLICY[\\s\\S]*?ON\\s+${escapedTable}[\\s\\S]*?current_setting\\('app\\.current_user_id',\\s*true\\)`,
+          'i',
+        ).test(sql)
       expect(
-        sql,
-        `${table} tiene user_id pero no aparece en la migración RLS. ` +
-          'Inclúyela en el array de tablas privadas o documenta por qué queda fuera.',
-      ).toMatch(new RegExp(`'${table}'`))
+        coveredBySharedPolicy || coveredByExplicitPolicy,
+        `${table} tiene user_id pero no está cubierta por RLS privado. ` +
+          'Inclúyela en el array trama_user_isolation o agrega ENABLE/FORCE RLS + política con app.current_user_id.',
+      ).toBe(true)
     })
   }
 })

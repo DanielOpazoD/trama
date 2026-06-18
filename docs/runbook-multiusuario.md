@@ -37,23 +37,47 @@ Con el deploy arriba y dos sesiones Clerk reales (usuario A y usuario B):
 SMOKE_BASE_URL=https://<sitio>.netlify.app \
 SMOKE_TOKEN_A=<jwt de A> \
 SMOKE_TOKEN_B=<jwt de B> \
+SMOKE_REVOKED_TOKEN=<jwt revocado opcional> \
 node scripts/smoke-isolation.mjs
 ```
 
 Los JWT se sacan de la app logueada (DevTools → Network → cualquier request a
 `/api/*` → header `Authorization`). Expiran rápido: copiar y correr enseguida.
+Si se quiere probar revocación, crear una sesión temporal en Clerk, copiar el
+JWT, revocar esa sesión en Clerk y pasarlo como `SMOKE_REVOKED_TOKEN`.
 
 El script verifica, creando y soft-borrando sus propias fixtures:
 
 1. **Sin token → 401** (el fallback legacy quedó realmente apagado).
-2. **Entidades**: lo que crea A no aparece en la lista de B ni se puede abrir
-   directo (404).
-3. **Notas**: ídem.
-4. **Momentos**: ídem — cubre además que B, sin invitación aceptada, no ve el
+2. **Token revocado → 401** si se entregó `SMOKE_REVOKED_TOKEN`.
+3. **Entidades**: lo que crea A no aparece en la lista de B ni se puede abrir
+   directo (403/404).
+4. **Citas + búsqueda**: una cita de A no aparece en `/api/quotes` de B ni en
+   `/api/search?q=...`.
+5. **Notas + Notas feed**: una nota de A no aparece en `/api/notes?q=...` ni en
+   `/api/notas-feed?segment=todo&q=...` de B.
+6. **Blobs/anexos**: B no puede listar anexos de una nota de A ni descargar el
+   `storage_key` del blob de A.
+7. **Momentos**: lo que crea A no aparece en B — cubre además que B, sin
+   invitación aceptada, no ve el
    espacio de A aunque el endpoint contemple compartidos.
 
 Cualquier ✗ → **no seguir**: revertir el paso 4 (volver a `true`) deja todo
 como estaba mientras se investiga.
+
+La variante recomendada en CI/manual técnico es `npm run e2e:multiuser`, que
+puede crear tokens efímeros con Clerk y revocar las sesiones al terminar:
+
+```bash
+E2E_BASE_URL=https://<sitio>.netlify.app \
+CLERK_SECRET_KEY=sk_live_... \
+E2E_USER_A_ID=user_... \
+E2E_USER_B_ID=user_... \
+npm run e2e:multiuser -- --project=chromium
+```
+
+También acepta tokens manuales con `E2E_USER_A_TOKEN` y `E2E_USER_B_TOKEN`. No
+guardar ni pegar tokens en archivos versionados o chats.
 
 Smoke manual del sharing (5 min, una sola vez): A invita al correo de B desde
 Momentos → B ve la invitación al entrar → B acepta → ambos ven el espacio del

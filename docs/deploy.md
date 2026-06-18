@@ -86,9 +86,10 @@ Antes de abrir PR, confirmar:
 - Producción no puede tener `ALLOW_LEGACY_FALLBACK=true`; `npm run check:legacy-fallback` debe fallar si alguien lo intenta.
 - Clerk debe configurarse como par: `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` juntas. El mismo check falla si solo una está seteada, porque dejaría front y backend en modos distintos.
 - Si el cambio toca privacidad multiusuario, correr el smoke con dos usuarios de
-  prueba Clerk. Modo recomendado: generar tokens efímeros desde Clerk en cada
-  run, usando el secret del backend y los `user_id` de los dos usuarios de
-  prueba:
+  prueba Clerk. Debe cubrir: anónimo → 401, A no aparece en B para entidades,
+  citas, momentos, búsqueda y Notas feed, y B no puede listar/descargar anexos
+  de A. Modo recomendado: generar tokens efímeros desde Clerk en cada run,
+  usando el secret del backend y los `user_id` de los dos usuarios de prueba:
 
   ```bash
   E2E_BASE_URL=https://tramadaod.netlify.app \
@@ -100,7 +101,9 @@ Antes de abrir PR, confirmar:
 
   El script crea sesiones temporales, obtiene JWTs para Playwright y revoca las
   sesiones al terminar. Opcionalmente, ajustar la vida de esos tokens con
-  `E2E_CLERK_TOKEN_TTL_SECONDS` (default: 600 segundos).
+  `E2E_CLERK_TOKEN_TTL_SECONDS` (default: 600 segundos). Para validar
+  revocación en una pasada manual, entregar además `E2E_REVOKED_TOKEN` con un
+  JWT cuya sesión ya fue revocada; el smoke espera 401.
 
 - Alternativa manual, útil para una prueba local puntual después de iniciar
   sesión en el navegador:
