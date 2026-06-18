@@ -93,7 +93,15 @@ export default withObservability(
 
     if (req.method === 'DELETE' && id) {
       await ensureUserRow(sql, authedUser)
-      await sql`UPDATE chat_threads SET deleted_at = NOW() WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
+      const rows = await sqlTyped<{ id: string }>(sql`
+        UPDATE chat_threads
+        SET deleted_at = NOW()
+        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+        RETURNING id
+      `)
+      if (rows.length === 0) {
+        return ApiErrors.notFound(requestId, 'Thread no encontrado')
+      }
       return ApiSuccess.noContent()
     }
 

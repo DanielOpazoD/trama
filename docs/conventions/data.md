@@ -82,3 +82,22 @@ La regla general sigue siendo soft-delete para toda tabla con `deleted_at`. Los
 - `entity_types` / `relationship_types`: catálogo global sin `deleted_at`; el endpoint rechaza borrar slugs en uso visible.
 - `llm_cache`: GC de cache expirado.
 - `spotify_tokens` / `x_tokens`: desconexión OAuth; se elimina material secreto.
+
+## Contrato de mutación privada
+
+En tablas por usuario, el filtro `user_id` no basta: toda mutación que apunta a
+un recurso concreto debe probar que realmente tocó una fila del usuario actual.
+El patrón canónico es:
+
+```sql
+UPDATE tabla_privada
+SET deleted_at = NOW()
+WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+RETURNING id
+```
+
+Si el `RETURNING` viene vacío, el endpoint responde `ApiErrors.notFound(...)`.
+Esto aplica a `PATCH`, `DELETE`, restore y acciones equivalentes. Las pocas
+operaciones donde 0 filas es un resultado válido (por ejemplo limpiar links
+derivados antes de reemplazar un set completo) deben quedar exentas de forma
+explícita en el guardrail, con razón documentada.

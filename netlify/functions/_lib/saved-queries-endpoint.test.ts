@@ -94,17 +94,26 @@ describe('saved-queries endpoint', () => {
   })
 
   it('DELETE → soft-delete (UPDATE deleted_at), 204', async () => {
-    mockSqlResponses.push([]) // UPDATE
+    mockSqlResponses.push([{ id: ROW.id }]) // UPDATE ... RETURNING
     const res = await savedQueriesHandler(req('DELETE', { id: ROW.id }), mockContext())
     expect(res.status).toBe(204)
     const del = mockSqlResponses.calls.find((c) =>
       c.template.includes('deleted_at = NOW()'),
     )
     expect(del).toBeDefined()
+    expect(del?.template).toMatch(/RETURNING id/i)
     // Nunca un DELETE físico sobre una tabla con deleted_at.
     expect(mockSqlResponses.calls.some((c) => /DELETE\s+FROM/i.test(c.template))).toBe(
       false,
     )
+  })
+
+  it('DELETE de una consulta inexistente → 404', async () => {
+    mockSqlResponses.push([])
+    const res = await savedQueriesHandler(req('DELETE', { id: ROW.id }), mockContext())
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
   })
 
   it('método no soportado → 405', async () => {

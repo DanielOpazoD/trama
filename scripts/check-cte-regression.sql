@@ -116,11 +116,11 @@ END $$;
 -- 2) entities.mts — cascade DELETE (sobre K) + restore con el mismo deleted_at.
 -- ============================================================================
 WITH ts AS (SELECT NOW() AS now),
-del_entity AS (UPDATE entities SET deleted_at=(SELECT now FROM ts) WHERE id='11111111-1111-1111-1111-111111111111' AND deleted_at IS NULL AND user_id='u1' RETURNING 1),
-del_rels AS (UPDATE relationships SET deleted_at=(SELECT now FROM ts) WHERE (from_id='11111111-1111-1111-1111-111111111111' OR to_id='11111111-1111-1111-1111-111111111111') AND deleted_at IS NULL AND user_id='u1' RETURNING 1),
-del_quotes AS (UPDATE quotes SET deleted_at=(SELECT now FROM ts) WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at IS NULL AND user_id='u1' RETURNING 1),
-del_links AS (UPDATE momento_entities SET deleted_at=(SELECT now FROM ts) WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at IS NULL AND user_id='u1' RETURNING 1)
-SELECT now AS deletedat FROM ts \gset
+del_entity AS (UPDATE entities SET deleted_at=(SELECT now FROM ts) WHERE id='11111111-1111-1111-1111-111111111111' AND deleted_at IS NULL AND user_id='u1' RETURNING deleted_at),
+del_rels AS (UPDATE relationships SET deleted_at=(SELECT now FROM ts) WHERE (from_id='11111111-1111-1111-1111-111111111111' OR to_id='11111111-1111-1111-1111-111111111111') AND deleted_at IS NULL AND user_id='u1' AND EXISTS (SELECT 1 FROM del_entity) RETURNING 1),
+del_quotes AS (UPDATE quotes SET deleted_at=(SELECT now FROM ts) WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at IS NULL AND user_id='u1' AND EXISTS (SELECT 1 FROM del_entity) RETURNING 1),
+del_links AS (UPDATE momento_entities SET deleted_at=(SELECT now FROM ts) WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at IS NULL AND user_id='u1' AND EXISTS (SELECT 1 FROM del_entity) RETURNING 1)
+SELECT deleted_at AS deletedat FROM del_entity \gset
 
 DO $$
 DECLARE d timestamptz;
@@ -134,10 +134,10 @@ BEGIN
 END $$;
 
 WITH restore_entity AS (UPDATE entities SET deleted_at=NULL WHERE id='11111111-1111-1111-1111-111111111111' AND deleted_at=:'deletedat' AND user_id='u1' RETURNING 1),
-restore_rels AS (UPDATE relationships SET deleted_at=NULL WHERE (from_id='11111111-1111-1111-1111-111111111111' OR to_id='11111111-1111-1111-1111-111111111111') AND deleted_at=:'deletedat' AND user_id='u1' RETURNING 1),
-restore_quotes AS (UPDATE quotes SET deleted_at=NULL WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at=:'deletedat' AND user_id='u1' RETURNING 1),
-restore_links AS (UPDATE momento_entities SET deleted_at=NULL WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at=:'deletedat' AND user_id='u1' RETURNING 1)
-SELECT 1;
+restore_rels AS (UPDATE relationships SET deleted_at=NULL WHERE (from_id='11111111-1111-1111-1111-111111111111' OR to_id='11111111-1111-1111-1111-111111111111') AND deleted_at=:'deletedat' AND user_id='u1' AND EXISTS (SELECT 1 FROM restore_entity) RETURNING 1),
+restore_quotes AS (UPDATE quotes SET deleted_at=NULL WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at=:'deletedat' AND user_id='u1' AND EXISTS (SELECT 1 FROM restore_entity) RETURNING 1),
+restore_links AS (UPDATE momento_entities SET deleted_at=NULL WHERE entity_id='11111111-1111-1111-1111-111111111111' AND deleted_at=:'deletedat' AND user_id='u1' AND EXISTS (SELECT 1 FROM restore_entity) RETURNING 1)
+SELECT EXISTS(SELECT 1 FROM restore_entity) AS restored;
 
 DO $$
 BEGIN

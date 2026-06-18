@@ -24,6 +24,10 @@ async function expectPatchBlocked(response: APIResponse) {
   expect([403, 404]).toContain(response.status())
 }
 
+async function expectMutationBlocked(response: APIResponse) {
+  expect([403, 404]).toContain(response.status())
+}
+
 test.describe('multi-user isolation smoke', () => {
   test.skip(
     !hasIsolationEnv(),
@@ -166,7 +170,7 @@ test.describe('multi-user isolation smoke', () => {
           data: { name: `${marker} mutado por B` },
         }),
       )
-      await userB.delete(`/api/entities/${entity.id}`)
+      await expectMutationBlocked(await userB.delete(`/api/entities/${entity.id}`))
       await expectResponseToContain(await userA.get('/api/entities'), marker)
 
       await expectPatchBlocked(
@@ -174,7 +178,7 @@ test.describe('multi-user isolation smoke', () => {
           data: { text: `${marker} cita mutada por B` },
         }),
       )
-      await userB.delete(`/api/quotes/${quote.id}`)
+      await expectMutationBlocked(await userB.delete(`/api/quotes/${quote.id}`))
       await expectResponseToContain(await userA.get('/api/quotes?limit=50'), marker)
 
       await expectPatchBlocked(
@@ -182,7 +186,7 @@ test.describe('multi-user isolation smoke', () => {
           data: { content: `${marker} nota mutada por B` },
         }),
       )
-      await userB.delete(`/api/notes/${note.id}`)
+      await expectMutationBlocked(await userB.delete(`/api/notes/${note.id}`))
       await expectResponseToContain(
         await userA.get(`/api/notes?q=${encodeURIComponent(marker)}`),
         marker,
@@ -193,10 +197,12 @@ test.describe('multi-user isolation smoke', () => {
           data: { payload: { bodyText: `${marker} momento mutado por B` } },
         }),
       )
-      await userB.delete(`/api/momentos/${momento.id}`)
+      await expectMutationBlocked(await userB.delete(`/api/momentos/${momento.id}`))
       await expectResponseToContain(await userA.get('/api/momentos'), marker)
 
-      await userB.delete(`/api/notas-attachments/${attachment.id}`)
+      await expectMutationBlocked(
+        await userB.delete(`/api/notas-attachments/${attachment.id}`),
+      )
       const aAttachments = await userA.get(
         `/api/notas-attachments?ownerType=note&ownerId=${encodeURIComponent(note.id)}`,
       )

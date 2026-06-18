@@ -55,4 +55,29 @@ describe('notas attachments endpoint', () => {
     expect(mockSqlState.calls[1]?.template).toMatch(/FROM notas_attachments/)
     expect(mockSqlState.calls[1]?.values).toContain('legacy-single-user')
   })
+
+  it('DELETE devuelve 404 si no tocó un anexo del usuario', async () => {
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      new Request('http://localhost/api/notas-attachments/a1', { method: 'DELETE' }),
+      mockContext({ id: 'a1' }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
+  })
+
+  it('DELETE devuelve ok cuando soft-borra un anexo del usuario', async () => {
+    mockSqlResponses.push([{ id: 'a1' }])
+
+    const res = await handler(
+      new Request('http://localhost/api/notas-attachments/a1', { method: 'DELETE' }),
+      mockContext({ id: 'a1' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true })
+    expect(mockSqlState.calls[0]?.template).toMatch(/RETURNING id/i)
+  })
 })

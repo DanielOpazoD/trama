@@ -218,7 +218,7 @@ describe('quotes endpoint — integration', () => {
   })
 
   it('DELETE devuelve { deletedAt }', async () => {
-    mockSqlResponses.push([], [{ now: '2026-05-23T12:00:00Z' }], [])
+    mockSqlResponses.push([], [{ deleted_at: '2026-05-23T12:00:00Z' }])
     const res = await handler(
       new Request('http://localhost/api/quotes/q1', { method: 'DELETE' }),
       mockContext({ id: 'q1' }),
@@ -228,8 +228,19 @@ describe('quotes endpoint — integration', () => {
     expect(body.deletedAt).toBe('2026-05-23T12:00:00Z')
   })
 
-  it('POST /:id/restore con deletedAt válido devuelve restored: true', async () => {
+  it('DELETE devuelve 404 si no tocó una cita del usuario', async () => {
     mockSqlResponses.push([], [])
+    const res = await handler(
+      new Request('http://localhost/api/quotes/q1', { method: 'DELETE' }),
+      mockContext({ id: 'q1' }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
+  })
+
+  it('POST /:id/restore con deletedAt válido devuelve restored: true', async () => {
+    mockSqlResponses.push([], [{ restored: true }])
     const res = await handler(
       new Request('http://localhost/api/quotes/q1/restore', {
         method: 'POST',
@@ -241,6 +252,21 @@ describe('quotes endpoint — integration', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.restored).toBe(true)
+  })
+
+  it('POST /:id/restore devuelve 404 si no restauró una cita del usuario', async () => {
+    mockSqlResponses.push([], [])
+    const res = await handler(
+      new Request('http://localhost/api/quotes/q1/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deletedAt: '2026-05-23T12:00:00Z' }),
+      }),
+      mockContext({ id: 'q1' }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
   })
 
   it('POST /:id/restore sin deletedAt devuelve 400', async () => {

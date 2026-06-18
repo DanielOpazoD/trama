@@ -81,10 +81,14 @@ export default withObservability(
     if (req.method === 'DELETE') {
       const parsed = await parseJsonBody(req, SavedQueryDelete, requestId)
       if (!parsed.ok) return parsed.response
-      await sql`
+      const rows = await sqlTyped<{ id: string }>(sql`
         UPDATE saved_queries SET deleted_at = NOW()
         WHERE id = ${parsed.data.id} AND user_id = ${userId} AND deleted_at IS NULL
-      `
+        RETURNING id
+      `)
+      if (rows.length === 0) {
+        return ApiErrors.notFound(requestId, 'Consulta guardada no encontrada')
+      }
       return ApiSuccess.noContent()
     }
 
