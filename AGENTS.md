@@ -37,6 +37,7 @@ Este archivo lo lee Codex automáticamente al entrar al proyecto. Acá viven sol
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | [**filosofia-estetica.md**](docs/conventions/filosofia-estetica.md) | Norte estético: 4 principios rectores, vocabulario visual, anti-patrones, excepciones deliberadas   |
 | [**design.md**](docs/conventions/design.md)                         | Type scale, icon sizes, tracking, animaciones, vertical rhythm, accesibilidad, patterns canónicos δ |
+| [**frontend-structure.md**](docs/conventions/frontend-structure.md) | Patrón vista/componentes/modelos y ratchets para evitar mega-componentes                            |
 | [**data.md**](docs/conventions/data.md)                             | `getSql()`, hooks de estado `src/state/`, Netlify Blobs, costos + observabilidad + request-id       |
 | [**llm.md**](docs/conventions/llm.md)                               | Abstracción `_lib/llm/`, providers, caminos de propuesta IA                                         |
 | [**api.md**](docs/conventions/api.md)                               | Schemas Zod, patrón de añadir endpoint, ApiErrors canónicos, tipos                                  |

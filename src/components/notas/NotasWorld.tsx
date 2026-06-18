@@ -2,7 +2,6 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
-import { NotasFeedView } from './NotasFeedView'
 import { NotasMobileTabs, NotasSidebar, NotasTopBar, SECTIONS } from './NotasWorldChrome'
 import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
@@ -27,8 +26,12 @@ export function preloadPdfStudioView(): void {
 }
 
 const PdfStudioView = lazy(loadPdfStudioView)
+const NotasFeedView = lazy(() =>
+  import('./NotasFeedView').then((m) => ({ default: m.NotasFeedView })),
+)
 
 function preloadNotasSection(section: NotasSection): void {
+  if (section === 'notas') void import('./NotasFeedView')
   if (section === 'pdf' || section === 'planillas') preloadPdfStudioView()
 }
 
@@ -185,7 +188,15 @@ export function NotasWorld({
                 >
                   {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
                   {section === 'notas' && (
-                    <NotasFeedView onSendImagesToPdf={sendImagesToPdf} />
+                    <Suspense
+                      fallback={
+                        <div className="py-10 flex justify-center">
+                          <LoadingHint text="cargando Notas" size="sm" />
+                        </div>
+                      }
+                    >
+                      <NotasFeedView onSendImagesToPdf={sendImagesToPdf} />
+                    </Suspense>
                   )}
                   {section === 'tareas' && <TareasView />}
                   {section === 'prompts' && <PromptsView />}

@@ -6,7 +6,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 710,
+    maxLines: 650,
     files: ['src/App.tsx'],
   },
   {
@@ -16,13 +16,63 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 500,
+    maxLines: 420,
     files: ['src/components/CommandPalette.tsx'],
   },
   {
     group: 'app-large-surfaces',
     maxLines: 505,
     files: ['src/components/GraphView.tsx'],
+  },
+  {
+    group: 'notas-feed-surfaces',
+    maxLines: 760,
+    files: ['src/components/notas/NotasFeedView.tsx'],
+  },
+  {
+    group: 'notas-feed-components',
+    maxLines: 130,
+    files: ['src/components/notas/NotasFeedContent.tsx'],
+  },
+  {
+    group: 'notas-feed-components',
+    maxLines: 350,
+    files: ['src/components/notas/NotasFeedControls.tsx'],
+  },
+  {
+    group: 'notas-feed-components',
+    maxLines: 220,
+    files: ['src/components/notas/NotasFeedComposer.tsx'],
+  },
+  {
+    group: 'recortes-surfaces',
+    maxLines: 440,
+    files: ['src/components/recortes/RecorteCard.tsx'],
+  },
+  {
+    group: 'recortes-components',
+    maxLines: 115,
+    files: ['src/components/recortes/RecorteMediaPreview.tsx'],
+  },
+  {
+    group: 'momentos-surfaces',
+    maxLines: 420,
+    files: ['src/components/MomentosView.tsx'],
+  },
+  {
+    group: 'settings-surfaces',
+    maxLines: 455,
+    files: ['src/components/settings/LogsPanel.tsx'],
+  },
+  {
+    group: 'settings-surfaces',
+    maxLines: 435,
+    files: ['src/components/settings/DataPanel.tsx'],
+  },
+  {
+    group: 'settings-surfaces',
+    maxLines: 375,
+    files: ['src/components/settings/HealthPanel.tsx'],
   },
   {
     group: 'server-large-surfaces',
