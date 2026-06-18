@@ -222,7 +222,8 @@ export default withObservability(
         )
         SELECT deleted_at FROM del_note
       `)
-      return Response.json({ ok: true, deletedAt: rows[0]?.deleted_at ?? null })
+      if (!rows[0]?.deleted_at) return ApiErrors.notFound(requestId, 'Nota no encontrada')
+      return Response.json({ ok: true, deletedAt: rows[0].deleted_at })
     }
 
     return ApiErrors.methodNotAllowed(requestId)
