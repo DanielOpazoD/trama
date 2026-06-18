@@ -74,8 +74,24 @@ describe('CI P1 guardrails', () => {
       'smoke multiusuario real',
       'cutover:preflight',
       'cutover:smoke',
+      'cutover:smoke:isolation',
     ]) {
       expect(combined).toContain(phrase)
     }
+  })
+
+  it('expone un runner de aislamiento para previews sin relajar cutover:smoke', () => {
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'))
+    const isolationRunner = readFileSync(
+      join(process.cwd(), 'scripts/run-cutover-isolation-smoke.mjs'),
+      'utf8',
+    )
+
+    expect(pkg.scripts['cutover:smoke']).toBe('node scripts/run-cutover-smoke.mjs')
+    expect(pkg.scripts['cutover:smoke:isolation']).toBe(
+      'node scripts/run-cutover-isolation-smoke.mjs',
+    )
+    expect(isolationRunner).toContain('not_checked_preview_only')
+    expect(isolationRunner).toContain('no reemplaza cutover:smoke')
   })
 })

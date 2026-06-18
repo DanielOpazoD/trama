@@ -30,6 +30,7 @@
     "e2e:multiuser": "node scripts/run-multiuser-smoke.mjs",
     "cutover:preflight": "node scripts/cutover-preflight.mjs",
     "cutover:smoke": "node scripts/run-cutover-smoke.mjs",
+    "cutover:smoke:isolation": "node scripts/run-cutover-isolation-smoke.mjs",
     "smoke:multiuser:prod": "node scripts/smoke-isolation.mjs",
     "e2e:ui": "node_modules/.bin/playwright test --ui",
     "e2e:install": "node_modules/.bin/playwright install --with-deps chromium",

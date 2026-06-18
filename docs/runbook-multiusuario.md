@@ -37,6 +37,9 @@ runtime, pero el front necesita rebuild por la `VITE_*`).
 - **deploy preview puede correr con fallback legacy**: sirve para revisar código
   y Netlify, pero si `auth.mode = clerk-with-legacy-fallback` no se debe contar
   como aceptación de cutover.
+- **preview puede validar aislamiento sin declarar cutover**: usa
+  `cutover:smoke:isolation` para correr solo el caso A/B contra un deploy
+  preview; ese comando marca `anonymous_401: not_checked_preview_only`.
 - **producción estricta exige anónimo = 401**: antes del smoke multiusuario real,
   correr el preflight contra la URL final:
 
@@ -64,6 +67,21 @@ runtime, pero el front necesita rebuild por la `VITE_*`).
 
   Ese modo debe imprimir `skipped_preview_fallback`, no `ok`.
 
+  Para validar solo el aislamiento A/B de un deploy preview que todavía permite
+  fallback legacy:
+
+  ```bash
+  E2E_BASE_URL=https://deploy-preview-<n>--tramadaod.netlify.app \
+  CLERK_SECRET_KEY=sk_live_... \
+  E2E_USER_A_ID=user_... \
+  E2E_USER_B_ID=user_... \
+  npm run cutover:smoke:isolation -- --project=chromium
+  ```
+
+  Este comando usa el mismo resolvedor de tokens que `cutover:smoke`, pero corre
+  solo el caso “usuario B no descubre fixtures de A”. No prueba anónimo = 401 ni
+  token revocado; por eso no reemplaza `cutover:smoke` para producción.
+
 ## Verificación: smoke de aislamiento
 
 Con el deploy arriba y dos sesiones Clerk reales (usuario A y usuario B):
@@ -77,7 +95,11 @@ npm run smoke:multiuser:prod
 ```
 
 Los JWT se sacan de la app logueada (DevTools → Network → cualquier request a
-`/api/*` → header `Authorization`). Expiran rápido: copiar y correr enseguida.
+`/api/*` → header `Authorization: Bearer ...`). Copiar solo ese header, nunca
+cookies de Clerk (`__session`, `__client`, `__clerk_handshake`) ni requests
+`/tokens?...`: son más sensibles y no son el contrato de la API de Trama.
+Expiran rápido: A y B deben haber iniciado sesión recientemente, o hay que
+copiar y correr enseguida.
 
 La ruta preferida para el **smoke multiusuario real** es el runner de cutover,
 porque primero exige preflight estricto y luego corre el e2e de aislamiento:

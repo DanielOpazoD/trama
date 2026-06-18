@@ -116,6 +116,19 @@ Antes de abrir PR, confirmar:
     --allow-legacy-preview
   ```
 
+  Para validar solo aislamiento A/B en ese preview, sin declarar cutover:
+
+  ```bash
+  E2E_BASE_URL=https://deploy-preview-<n>--tramadaod.netlify.app \
+  CLERK_SECRET_KEY=sk_live_... \
+  E2E_USER_A_ID=user_... \
+  E2E_USER_B_ID=user_... \
+  npm run cutover:smoke:isolation -- --project=chromium
+  ```
+
+  Ese comando debe imprimir `anonymous_401: not_checked_preview_only`; producción
+  estricta se acepta con `cutover:smoke`, no con el runner de preview.
+
   Modo recomendado: generar
   tokens efímeros desde Clerk en cada run, usando el secret del backend y los
   `user_id` de los dos usuarios de prueba:
@@ -136,6 +149,9 @@ Antes de abrir PR, confirmar:
   Si Clerk no permite crear sesiones desde backend, el runner intenta usar una
   sesión activa existente para cada usuario; si no hay sesión activa, inicia
   sesión con ese usuario o usa tokens manuales.
+  Si usas tokens manuales desde DevTools, copia solo el header
+  `Authorization: Bearer ...` de un request `/api/*`; no copies cookies de Clerk
+  ni requests `tokens?...`.
 
   El smoke operacional equivalente, útil para cutover con tokens copiados de
   DevTools, usa el wrapper:
