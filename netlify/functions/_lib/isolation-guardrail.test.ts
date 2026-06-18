@@ -158,6 +158,12 @@ function sqlTemplateBodies(src: string): string[] {
   return bodies
 }
 
+function functionHandlerFiles(): string[] {
+  return readdirSync(FUNCTIONS_DIR)
+    .filter((file) => file.endsWith('.mts'))
+    .sort()
+}
+
 function migrationUserTables(sql: string): {
   tables: string[]
   createBodies: Map<string, string[]>
@@ -208,7 +214,7 @@ function hasUserForeignKey(
 }
 
 describe('guardrail: aislamiento por user_id en handlers', () => {
-  const files = readdirSync(FUNCTIONS_DIR).filter((f) => f.endsWith('.mts'))
+  const files = functionHandlerFiles()
 
   for (const file of files) {
     const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
@@ -258,6 +264,26 @@ describe('guardrail: aislamiento por user_id en handlers', () => {
       ).toBe(true)
     })
   }
+})
+
+describe('guardrail: architecture fitness suite mínima', () => {
+  const files = functionHandlerFiles()
+
+  it('todos los handlers HTTP están envueltos en withObservability', () => {
+    const offenders = files.filter((file) => {
+      const src = uncommentedSource(join(FUNCTIONS_DIR, file))
+      return (
+        !/import\s+\{\s*withObservability\s*\}\s+from\s+['"].\/_lib\/handler-wrap\.js['"]/i.test(
+          src,
+        ) || !/export\s+default\s+withObservability\s*\(/i.test(src)
+      )
+    })
+
+    expect(
+      offenders,
+      `Handlers sin contrato operacional explícito: ${offenders.join(', ')}`,
+    ).toEqual([])
+  })
 })
 
 describe('guardrail: migraciones mantienen FK user_id -> users(id)', () => {

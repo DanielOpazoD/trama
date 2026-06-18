@@ -128,6 +128,25 @@ soft-borra todas las fixtures de A.
 - [ ] Logs no contienen token, body, password ni detalles sensibles.
 - [ ] RLS cubre toda tabla versionada con `user_id`.
 
+## Quality gates por dominio crítico
+
+| Dominio     | Gate vivo                                                      | Evidencia mínima                                                                             |
+| ----------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Auth        | Anónimo, token revocado y PAT inválido no acceden              | `npm run check:legacy-fallback`, `npm run smoke:multiuser:prod`, `npm run e2e:multiuser`     |
+| RLS         | Toda tabla `user_id` tiene RLS, FK a `users` y contexto seguro | `netlify/functions/_lib/isolation-guardrail.test.ts`, `query.integration.test.ts`            |
+| Soft delete | Delete/restore privado usa scope por dueño y 0 filas no es 2xx | `npm run check:hard-delete-allowlist`, `npm run check:cte-regression`, tests de endpoints    |
+| Blobs       | List/download/delete validan dueño activo antes de tocar store | smoke multiusuario, `notas-attachments-*`, `momentos-file` y tests de endpoints autenticados |
+
+## Registro vivo de riesgos
+
+| Riesgo                                | Señal temprana                                  | Gate que lo bloquea                                                           |
+| ------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| Fallback legacy activo                | Health muestra fallback permitido o anónimo 2xx | `check:legacy-fallback`, smoke anónimo = 401                                  |
+| Endpoint privado sin auth             | Handler nuevo sin `getAuthedUser()`             | `isolation-guardrail.test.ts` exige auth o exención explícita                 |
+| Mutación privada 2xx no-op            | Usuario B borra/edita A y recibe 2xx            | smoke/e2e multiusuario + guardrail `RETURNING` en soft delete/restore privado |
+| Blob/anexo accesible por otro usuario | B lista, descarga o borra `storage_key` de A    | smoke `blob_isolation` + tests de `notas-attachments` y `momentos-file`       |
+| Log con contenido sensible            | Token, body, email o teléfono aparece en logs   | tests de `observability` y redacción centralizada en `withObservability`      |
+
 Smoke manual del sharing (5 min, una sola vez): A invita al correo de B desde
 Momentos → B ve la invitación al entrar → B acepta → ambos ven el espacio del
 otro → A revoca desde "quién tiene acceso" → B deja de ver.
