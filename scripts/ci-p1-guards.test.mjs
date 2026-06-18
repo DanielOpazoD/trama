@@ -58,4 +58,24 @@ describe('CI P1 guardrails', () => {
       expect(runbook).toContain(risk)
     }
   })
+
+  it('separa CI verde, deploy preview, producción estricta y smoke real', () => {
+    const runbook = readFileSync(
+      join(process.cwd(), 'docs/runbook-multiusuario.md'),
+      'utf8',
+    )
+    const deploy = readFileSync(join(process.cwd(), 'docs/deploy.md'), 'utf8')
+    const combined = `${runbook}\n${deploy}`
+
+    for (const phrase of [
+      'CI verde no equivale a cutover multiusuario',
+      'deploy preview puede correr con fallback legacy',
+      'producción estricta exige anónimo = 401',
+      'smoke multiusuario real',
+      'cutover:preflight',
+      'cutover:smoke',
+    ]) {
+      expect(combined).toContain(phrase)
+    }
+  })
 })

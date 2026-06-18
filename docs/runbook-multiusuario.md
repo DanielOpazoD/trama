@@ -29,6 +29,41 @@
 Deploy de producción después de cambiar variables (las functions las leen en
 runtime, pero el front necesita rebuild por la `VITE_*`).
 
+## Lectura correcta de señales
+
+- **CI verde no equivale a cutover multiusuario**: CI prueba contratos locales,
+  tipos, build, migraciones y e2e disponibles; no demuestra que el entorno real
+  esté en modo estricto.
+- **deploy preview puede correr con fallback legacy**: sirve para revisar código
+  y Netlify, pero si `auth.mode = clerk-with-legacy-fallback` no se debe contar
+  como aceptación de cutover.
+- **producción estricta exige anónimo = 401**: antes del smoke multiusuario real,
+  correr el preflight contra la URL final:
+
+  ```bash
+  npm run cutover:preflight -- --base-url=https://<sitio>.netlify.app
+  ```
+
+  Si `/api/health` está protegido, ese comando puede quedar en
+  `partial_health_auth_required`: ya probó anónimo = 401, pero aún no leyó
+  `auth.mode`. Para preflight completo, entrega un JWT de un usuario de prueba
+  solo para Health:
+
+  ```bash
+  CUTOVER_HEALTH_TOKEN=<jwt de A> \
+  npm run cutover:preflight -- --base-url=https://<sitio>.netlify.app
+  ```
+
+  Si quieres diagnosticar un preview que aún permite fallback, usa dry run:
+
+  ```bash
+  npm run cutover:preflight -- \
+    --base-url=https://deploy-preview-<n>--tramadaod.netlify.app \
+    --allow-legacy-preview
+  ```
+
+  Ese modo debe imprimir `skipped_preview_fallback`, no `ok`.
+
 ## Verificación: smoke de aislamiento
 
 Con el deploy arriba y dos sesiones Clerk reales (usuario A y usuario B):
@@ -43,6 +78,28 @@ npm run smoke:multiuser:prod
 
 Los JWT se sacan de la app logueada (DevTools → Network → cualquier request a
 `/api/*` → header `Authorization`). Expiran rápido: copiar y correr enseguida.
+
+La ruta preferida para el **smoke multiusuario real** es el runner de cutover,
+porque primero exige preflight estricto y luego corre el e2e de aislamiento:
+
+```bash
+E2E_BASE_URL=https://<sitio>.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+E2E_USER_B_TOKEN=<jwt de B> \
+E2E_REVOKED_TOKEN=<jwt revocado opcional> \
+npm run cutover:smoke -- --project=chromium
+```
+
+También puede mintear tokens efímeros si tienes el secret real de Clerk y dos
+usuarios de prueba:
+
+```bash
+E2E_BASE_URL=https://<sitio>.netlify.app \
+CLERK_SECRET_KEY=sk_live_... \
+E2E_USER_A_ID=user_... \
+E2E_USER_B_ID=user_... \
+npm run cutover:smoke -- --project=chromium
+```
 
 ### Token revocado opcional
 
