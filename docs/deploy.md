@@ -106,6 +106,20 @@ Antes de abrir PR, confirmar:
   revocación en una pasada manual, entregar además `E2E_REVOKED_TOKEN` con un
   JWT cuya sesión ya fue revocada; el smoke espera 401.
 
+  El smoke operacional equivalente, útil para cutover con tokens copiados de
+  DevTools, usa el wrapper:
+
+  ```bash
+  SMOKE_BASE_URL=https://tramadaod.netlify.app \
+  SMOKE_TOKEN_A=... \
+  SMOKE_TOKEN_B=... \
+  SMOKE_REVOKED_TOKEN=... \
+  npm run smoke:multiuser:prod
+  ```
+
+  El resumen esperado es `anonymous_401: ok`, `revoked_401: ok|skipped`,
+  `read_isolation: ok`, `mutation_isolation: ok` y `blob_isolation: ok`.
+
 - Alternativa manual, útil para una prueba local puntual después de iniciar
   sesión en el navegador:
 

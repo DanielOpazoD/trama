@@ -110,7 +110,34 @@ export function withObservability(
 function redactResponseBody(body: string): string {
   if (!body) return ''
   try {
-    return JSON.stringify(redactLogValue(JSON.parse(body)))
+    const parsed = JSON.parse(body)
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      'error' in parsed &&
+      parsed.error &&
+      typeof parsed.error === 'object'
+    ) {
+      const error = parsed.error as {
+        code?: unknown
+        message?: unknown
+        requestId?: unknown
+      }
+      if (typeof error.code === 'string' && typeof error.message === 'string') {
+        return JSON.stringify(
+          redactLogValue({
+            error: {
+              code: error.code,
+              message: error.message,
+              ...(typeof error.requestId === 'string'
+                ? { requestId: error.requestId }
+                : {}),
+            },
+          }),
+        )
+      }
+    }
+    return JSON.stringify(redactLogValue(parsed))
   } catch {
     return String(redactLogValue(body))
   }

@@ -38,13 +38,23 @@ SMOKE_BASE_URL=https://<sitio>.netlify.app \
 SMOKE_TOKEN_A=<jwt de A> \
 SMOKE_TOKEN_B=<jwt de B> \
 SMOKE_REVOKED_TOKEN=<jwt revocado opcional> \
-node scripts/smoke-isolation.mjs
+npm run smoke:multiuser:prod
 ```
 
 Los JWT se sacan de la app logueada (DevTools → Network → cualquier request a
 `/api/*` → header `Authorization`). Expiran rápido: copiar y correr enseguida.
-Si se quiere probar revocación, crear una sesión temporal en Clerk, copiar el
-JWT, revocar esa sesión en Clerk y pasarlo como `SMOKE_REVOKED_TOKEN`.
+
+### Token revocado opcional
+
+Para probar revocación sin automatizar Clerk en CI:
+
+1. Crear o abrir una sesión temporal de un usuario de prueba en Clerk.
+2. Copiar el JWT de esa sesión desde DevTools o desde un template de sesión.
+3. Revocar esa sesión en Clerk.
+4. Ejecutar el smoke con ese JWT en `SMOKE_REVOKED_TOKEN`.
+
+Resultado esperado: `revoked_401: ok`. Si no se entrega el token, el resumen
+muestra `revoked_401: skipped`.
 
 El script verifica, creando y soft-borrando sus propias fixtures:
 
@@ -65,6 +75,16 @@ El script verifica, creando y soft-borrando sus propias fixtures:
 
 Cualquier ✗ → **no seguir**: revertir el paso 4 (volver a `true`) deja todo
 como estaba mientras se investiga.
+
+Al final debe imprimir este resumen compacto:
+
+```text
+anonymous_401: ok
+revoked_401: ok|skipped
+read_isolation: ok
+mutation_isolation: ok
+blob_isolation: ok
+```
 
 La variante recomendada en CI/manual técnico es `npm run e2e:multiuser`, que
 puede crear tokens efímeros con Clerk y revocar las sesiones al terminar:
@@ -94,6 +114,16 @@ npm run e2e:multiuser -- --project=chromium
 Criterio de aceptación: anónimo = 401; token revocado = 401 si se probó; B no
 ve, no edita, no borra ni descarga fixtures privadas de A; la limpieza final
 soft-borra todas las fixtures de A.
+
+## Checklist de aceptación del PR
+
+- [ ] Health muestra `auth.mode` y no filtra secretos de Clerk.
+- [ ] `ALLOW_LEGACY_FALLBACK=false` produce 401 anónimo.
+- [ ] Usuario B no lee fixtures privadas de A.
+- [ ] Usuario B no muta ni borra fixtures privadas de A.
+- [ ] Usuario B no lista ni descarga blobs/anexos de A.
+- [ ] Logs no contienen token, body, password ni detalles sensibles.
+- [ ] RLS cubre toda tabla versionada con `user_id`.
 
 Smoke manual del sharing (5 min, una sola vez): A invita al correo de B desde
 Momentos → B ve la invitación al entrar → B acepta → ambos ven el espacio del
