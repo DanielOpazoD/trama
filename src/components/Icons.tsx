@@ -539,6 +539,37 @@ export const TramaMark = ({ size = 22, className }: Props & { animate?: boolean 
   />
 )
 
+export const TramaWordmark = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    aria-label="TRAMA"
+    className={className}
+    role="img"
+    viewBox="0 0 710 92"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <g
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="butt"
+      strokeLinejoin="miter"
+      strokeWidth="9"
+    >
+      <path d="M8 14H94" />
+      <path d="M51 14V82" />
+
+      <path d="M146 82V14H195C219 14 234 27 234 43C234 57 219 63 195 63H146" />
+      <path d="M195 63L236 82" />
+
+      <path d="M290 82L338 14L386 82" />
+
+      <path d="M448 82V14L496 61L544 14V82" />
+
+      <path d="M606 82L654 14L702 82" />
+    </g>
+  </svg>
+)
+
 /* Brand lockup — TramaMark + wordmark "Trama" lado a lado.
    La presentación canónica de la marca cuando hay espacio para
    ambos. Usa el mismo gap-2 que el Sidebar para mantener feel

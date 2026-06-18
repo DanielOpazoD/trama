@@ -93,7 +93,7 @@ describe('AuthGate', () => {
       'srcSet',
       '/favicon-48.png 48w, /icon-192.png 192w, /trama-icon.png 1024w',
     )
-    expect(screen.getByTestId('login-brand-wordmark')).toHaveTextContent('TRAMA')
+    expect(screen.getByTestId('login-brand-wordmark')).toHaveAccessibleName('TRAMA')
     expect(screen.getByTestId('login-brand-wordmark')).toHaveClass('trama-login-wordmark')
     expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toHaveClass(
