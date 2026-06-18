@@ -25,6 +25,8 @@ const SENSITIVE_KEY_RE =
   /^(authorization|cookie|set-cookie|x-api-key|api[-_]?key|token|access[-_]?token|refresh[-_]?token|password|secret|session|jwt)$/i
 const SENSITIVE_CONTENT_KEY_RE =
   /^(body|rawBody|requestBody|responseBody|prompt|input|inputText|content|text)$/i
+const SENSITIVE_PII_KEY_RE =
+  /(^|[-_])(?:e[-_]?mail|email|phone|phoneNumber|telefono|teléfono)([-_]|$)|(?:email|phone|telefono|teléfono)$/i
 
 const SECRET_PATTERNS: Array<[RegExp, string]> = [
   [/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]'],
@@ -32,17 +34,26 @@ const SECRET_PATTERNS: Array<[RegExp, string]> = [
   [/\bsk_(?:live|test|proj)_[A-Za-z0-9._-]+\b/g, REDACTED],
   [/\b(?:gho|ghp)_[A-Za-z0-9_]{20,}\b/g, REDACTED],
   [/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, REDACTED],
+  [/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted-email]'],
 ]
 
 function redactString(value: string): string {
-  return SECRET_PATTERNS.reduce(
+  const withoutSecrets = SECRET_PATTERNS.reduce(
     (current, [pattern, replacement]) => current.replace(pattern, replacement),
     value,
   )
+  return withoutSecrets.replace(/\+?\d[\d\s().-]{7,}\d/g, (match) => {
+    const digitCount = match.replace(/\D/g, '').length
+    return digitCount >= 9 ? '[redacted-phone]' : match
+  })
 }
 
 function shouldRedactKey(key: string): boolean {
-  return SENSITIVE_KEY_RE.test(key) || SENSITIVE_CONTENT_KEY_RE.test(key)
+  return (
+    SENSITIVE_KEY_RE.test(key) ||
+    SENSITIVE_CONTENT_KEY_RE.test(key) ||
+    SENSITIVE_PII_KEY_RE.test(key)
+  )
 }
 
 export function redactLogValue(value: unknown, depth = 0): unknown {

@@ -90,6 +90,20 @@ const PUBLIC_AUTH_EXEMPT: Record<string, string> = {
     'webhook entrante firmado por Twilio (X-Twilio-Signature); resuelve el usuario por el número del remitente (whatsapp_links) y escribe bajo su RLS',
 }
 
+const MUTATION_RETURNING_EXEMPT: Record<
+  string,
+  Array<{ pattern: RegExp; reason: string }>
+> = {
+  'momentos.mts': [
+    {
+      pattern:
+        /UPDATE\s+momento_entities\s+SET\s+deleted_at\s*=\s*NOW\(\)[\s\S]*?WHERE\s+momento_id\s*=\s*\$\{id\}[\s\S]*?user_id\s*=\s*\$\{ownerUserId\}/i,
+      reason:
+        'PATCH entity_ids reemplaza el set completo: limpiar 0 links previos es un resultado válido, no un recurso objetivo inexistente.',
+    },
+  ],
+}
+
 function tableRegex(table: string): RegExp {
   return new RegExp(`\\b(?:from|into|update|join)\\s+${table}\\b`, 'i')
 }
@@ -134,6 +148,20 @@ function uncommentedSource(file: string): string {
 
 function repoPath(file: string): string {
   return relative(REPO_ROOT, file)
+}
+
+function sqlTemplateBodies(src: string): string[] {
+  const bodies: string[] = []
+  const re = /sql(?:Typed<[^>]+>)?\s*(?:\([^`]*?)?`([\s\S]*?)`/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(src))) bodies.push(match[1])
+  return bodies
+}
+
+function functionHandlerFiles(): string[] {
+  return readdirSync(FUNCTIONS_DIR)
+    .filter((file) => file.endsWith('.mts'))
+    .sort()
 }
 
 function migrationUserTables(sql: string): {
@@ -186,7 +214,7 @@ function hasUserForeignKey(
 }
 
 describe('guardrail: aislamiento por user_id en handlers', () => {
-  const files = readdirSync(FUNCTIONS_DIR).filter((f) => f.endsWith('.mts'))
+  const files = functionHandlerFiles()
 
   for (const file of files) {
     const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
@@ -236,6 +264,26 @@ describe('guardrail: aislamiento por user_id en handlers', () => {
       ).toBe(true)
     })
   }
+})
+
+describe('guardrail: architecture fitness suite mínima', () => {
+  const files = functionHandlerFiles()
+
+  it('todos los handlers HTTP están envueltos en withObservability', () => {
+    const offenders = files.filter((file) => {
+      const src = uncommentedSource(join(FUNCTIONS_DIR, file))
+      return (
+        !/import\s+\{\s*withObservability\s*\}\s+from\s+['"].\/_lib\/handler-wrap\.js['"]/i.test(
+          src,
+        ) || !/export\s+default\s+withObservability\s*\(/i.test(src)
+      )
+    })
+
+    expect(
+      offenders,
+      `Handlers sin contrato operacional explícito: ${offenders.join(', ')}`,
+    ).toEqual([])
+  })
 })
 
 describe('guardrail: migraciones mantienen FK user_id -> users(id)', () => {
@@ -321,6 +369,46 @@ describe('guardrail: migraciones habilitan RLS en tablas privadas', () => {
       ).toBe(true)
     })
   }
+})
+
+describe('guardrail: soft-delete/restore privado verifica filas afectadas', () => {
+  it('no deja UPDATE ... deleted_at ... user_id sin RETURNING salvo exención documentada', () => {
+    const offenders = readdirSync(FUNCTIONS_DIR)
+      .filter((f) => f.endsWith('.mts'))
+      .flatMap((file) => {
+        const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+        return sqlTemplateBodies(src)
+          .filter(
+            (statement) =>
+              /\bUPDATE\s+[a-z_]+\s+SET[\s\S]*?\bdeleted_at\b[\s\S]*?\bWHERE\b[\s\S]*?\buser_id\b/i.test(
+                statement,
+              ) &&
+              !/\bRETURNING\b/i.test(statement) &&
+              !(MUTATION_RETURNING_EXEMPT[file] ?? []).some((exemption) =>
+                exemption.pattern.test(statement),
+              ),
+          )
+          .map((statement) => ({
+            file,
+            statement: statement.trim().replace(/\s+/g, ' '),
+          }))
+      })
+
+    expect(
+      offenders,
+      'Las mutaciones privadas deben probar ownership por filas afectadas y devolver ApiErrors.notFound si no tocaron filas.',
+    ).toEqual([])
+  })
+
+  it('mantiene explícitas las exenciones de UPDATE ... deleted_at sin RETURNING', () => {
+    for (const [file, exemptions] of Object.entries(MUTATION_RETURNING_EXEMPT)) {
+      const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+      for (const exemption of exemptions) {
+        expect(exemption.reason.length).toBeGreaterThan(20)
+        expect(src).toMatch(exemption.pattern)
+      }
+    }
+  })
 })
 
 describe('guardrail: endpoints públicos declaran contexto RLS explícito', () => {

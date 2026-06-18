@@ -211,8 +211,8 @@ export default withObservability(
       const commentId = url.searchParams.get('commentId')
 
       if (reaction === 'heart') {
-        await runWithSystemRls(
-          () => sql`
+        const rows = await runWithSystemRls(() =>
+          sqlTyped<DeletedRow>(sql`
           UPDATE momento_reactions
           SET deleted_at = NOW(),
               updated_at = NOW()
@@ -220,8 +220,13 @@ export default withObservability(
             AND user_id = ${userId}
             AND reaction = ${reaction}
             AND deleted_at IS NULL
+          RETURNING id
         `,
         )
+        )
+        if (!rows[0]) {
+          return ApiErrors.notFound(requestId, 'Reacción no encontrada')
+        }
         return Response.json({ reaction: { reaction, reactedByMe: false } })
       }
 

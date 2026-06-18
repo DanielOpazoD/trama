@@ -253,6 +253,7 @@ describe('chat-threads endpoint', () => {
     })
 
     mockSqlResponses.reset()
+    mockSqlResponses.push([], [{ id: 't2' }])
     const deleted = await chatThreadsHandler(
       new Request('http://localhost/api/chat/threads/t2', { method: 'DELETE' }),
       mockContext({ id: 't2' }),
@@ -260,6 +261,19 @@ describe('chat-threads endpoint', () => {
 
     expect(deleted.status).toBe(204)
     expect(mockSqlResponses.calls.at(-1)?.template).toMatch(/SET deleted_at = NOW/)
+    expect(mockSqlResponses.calls.at(-1)?.template).toMatch(/RETURNING id/)
+  })
+
+  it('DELETE devuelve 404 si no tocó un thread del usuario', async () => {
+    mockSqlResponses.push([])
+
+    const deleted = await chatThreadsHandler(
+      new Request('http://localhost/api/chat/threads/t2', { method: 'DELETE' }),
+      mockContext({ id: 't2' }),
+    )
+
+    expect(deleted.status).toBe(404)
+    expect(await deleted.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
   })
 
   it('devuelve error canónico si insert no retorna fila y 405 en métodos inválidos', async () => {

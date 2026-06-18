@@ -81,6 +81,7 @@ Antes de abrir PR, confirmar:
 - `scripts/apply-migrations.sh` corre en DB limpia y un segundo run reporta `Applied 0 new migration(s).` El script usa `psql` del host o el contenedor Docker `trama-postgres`.
 - Endpoints nuevos o tocados usan `getAuthedUser`, `ensureUserRow` si mutan datos, `parseJsonBody` + Zod para bodies y `ApiErrors.*` para errores.
 - Toda query multi-user filtra `user_id`; toda referencia entrante valida ownership antes de insertar.
+- Toda mutación privada (`PATCH`, `DELETE`, restore y acciones equivalentes) verifica filas afectadas con `RETURNING` o un CTE equivalente; si toca 0 filas, responde `ApiErrors.notFound`, no éxito silencioso.
 - Deletes de dominio siguen soft-delete y limpian/ocultan relaciones derivadas visibles.
 - Cualquier llamada LLM pasa por cost-cap y escribe `extraction_log`, salvo excepción documentada como embeddings.
 - Producción no puede tener `ALLOW_LEGACY_FALLBACK=true`; `npm run check:legacy-fallback` debe fallar si alguien lo intenta.
@@ -88,7 +89,8 @@ Antes de abrir PR, confirmar:
 - Si el cambio toca privacidad multiusuario, correr el smoke con dos usuarios de
   prueba Clerk. Debe cubrir: anónimo → 401, A no aparece en B para entidades,
   citas, momentos, búsqueda y Notas feed, B no puede mutar/borrar fixtures de
-  A, y B no puede listar/descargar anexos de A. Modo recomendado: generar
+  A con 2xx silencioso, y B no puede listar/borrar/descargar anexos de A.
+  Modo recomendado: generar
   tokens efímeros desde Clerk en cada run, usando el secret del backend y los
   `user_id` de los dos usuarios de prueba:
 
@@ -119,6 +121,8 @@ Antes de abrir PR, confirmar:
 
   El resumen esperado es `anonymous_401: ok`, `revoked_401: ok|skipped`,
   `read_isolation: ok`, `mutation_isolation: ok` y `blob_isolation: ok`.
+  En `mutation_isolation`, un `DELETE` de B sobre recurso de A debe responder
+  403/404; un 2xx no-op es fallo operacional.
 
 - Alternativa manual, útil para una prueba local puntual después de iniciar
   sesión en el navegador:

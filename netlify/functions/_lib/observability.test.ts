@@ -88,6 +88,38 @@ describe('observability', () => {
       expect(redacted.context.safe).toBe('ok')
       expect(original.context.cookie).toBe('session=s3cr3t')
     })
+
+    it('redacta PII común como email y teléfono en claves y strings', () => {
+      const redacted = redactLogValue({
+        event: 'pii',
+        email: 'daniel@example.com',
+        phone: '+56912345678',
+        message: 'contacto daniel@example.com +56912345678',
+        context: {
+          authorEmail: 'mama@example.com',
+          phoneNumber: '+56 9 8765 4321',
+          safe: 'ok',
+        },
+      }) as {
+        email: string
+        phone: string
+        message: string
+        context: { authorEmail: string; phoneNumber: string; safe: string }
+      }
+
+      const serialized = JSON.stringify(redacted)
+      expect(serialized).not.toContain('daniel@example.com')
+      expect(serialized).not.toContain('mama@example.com')
+      expect(serialized).not.toContain('+56912345678')
+      expect(serialized).not.toContain('+56 9 8765 4321')
+      expect(redacted.email).toBe('[redacted]')
+      expect(redacted.phone).toBe('[redacted]')
+      expect(redacted.context.authorEmail).toBe('[redacted]')
+      expect(redacted.context.phoneNumber).toBe('[redacted]')
+      expect(redacted.context.safe).toBe('ok')
+      expect(redacted.message).toContain('[redacted-email]')
+      expect(redacted.message).toContain('[redacted-phone]')
+    })
   })
 
   describe('persistError', () => {

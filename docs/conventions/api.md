@@ -18,9 +18,10 @@ Tipos en `src/types/` (G1: split por dominio) que tenían copias duplicadas serv
 3. Wrap el handler con `withObservability('<name>', async (req, _ctx, { requestId }) => {...})`. El tercer arg trae el `requestId` que tenés que pasar a cualquier respuesta de error (ver punto 5).
 4. Para GET/POST/PATCH/DELETE en el mismo path, branch por `req.method`.
 5. **Errores SIEMPRE via `ApiErrors`** (de `./_lib/api-error.js`). Nunca `new Response('texto', { status: 4xx })` directo. El shape canónico es `{ error: { code, message, requestId, details? } }` y se devuelve con header `x-request-id`. Helpers disponibles: `validation`, `notFound`, `conflict`, `methodNotAllowed`, `rateLimited`, `aiDisabled`, `payloadTooLarge`, `unsupportedMediaType`, `unprocessable`, `upstream`, `internal`. El cliente parsea esto y tira `ApiClientError` con `code`/`message`/`requestId` accesibles.
-6. Agrega el cliente en `src/api/`.
-7. Si hay UI, hook en `src/state/` (con TanStack Query).
-8. Test al menos la lógica pura (prompts, validators, transforms) en `*.test.ts`.
+6. **Mutaciones privadas verifican filas afectadas.** En `PATCH`, `DELETE`, restore y acciones equivalentes sobre tablas con `user_id`, el SQL debe hacer `RETURNING` o un CTE que permita saber si la fila primaria se tocó. Si el resultado viene vacío, responde `ApiErrors.notFound(...)`. No devuelvas 200/204 cuando no se mutó nada: eso oculta recursos ajenos, IDs malos y drift operacional.
+7. Agrega el cliente en `src/api/`.
+8. Si hay UI, hook en `src/state/` (con TanStack Query).
+9. Test al menos la lógica pura (prompts, validators, transforms) en `*.test.ts`.
 
 > **Duplicados de entidades:** `/api/entities` POST usa el patrón canónico con `ApiErrors.conflict(...)`. Para conservar la UX específica, el servidor pone `details: { kind: 'possible_duplicate', suggestions: [...] }` y el cliente lo transforma en `DuplicateEntityError`. El parser legacy `{ error: 'possible_duplicate', suggestions }` queda solo para compatibilidad con despliegues antiguos.
 

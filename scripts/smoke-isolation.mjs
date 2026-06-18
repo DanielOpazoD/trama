@@ -178,11 +178,9 @@ async function expectBMutationDoesNotAffectA({
   const deleted = await api(TOKEN_B, 'DELETE', path)
   if (deleted.status === 403 || deleted.status === 404) {
     ok(`${label}: B no puede borrar item de A (status ${deleted.status})`)
-  } else if (deleted.status >= 200 && deleted.status < 300) {
-    ok(`${label}: DELETE de B no tocó filas de A (status ${deleted.status})`)
   } else {
     fail(
-      `${label}: DELETE de B falló de forma inesperada`,
+      `${label}: DELETE de B debe rechazarse explícitamente`,
       `status ${deleted.status}`,
       'mutation_isolation',
     )
@@ -373,11 +371,9 @@ if (REVOKED_TOKEN) {
       )
       if (deletedByB.status === 403 || deletedByB.status === 404) {
         ok(`B no puede borrar anexo de A (status ${deletedByB.status})`)
-      } else if (deletedByB.status >= 200 && deletedByB.status < 300) {
-        ok(`DELETE de B no tocó anexo de A (status ${deletedByB.status})`)
       } else {
         fail(
-          'DELETE de B sobre anexo falló de forma inesperada',
+          'DELETE de B sobre anexo debe rechazarse explícitamente',
           `status ${deletedByB.status}`,
           'blob_isolation',
         )

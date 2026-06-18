@@ -54,10 +54,14 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
-      await sql`
+      const rows = await sqlTyped<{ id: string }>(sql`
         UPDATE notas_attachments SET deleted_at = NOW(), updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `
+        RETURNING id
+      `)
+      if (rows.length === 0) {
+        return ApiErrors.notFound(requestId, 'Anexo no encontrado')
+      }
       return Response.json({ ok: true })
     }
 

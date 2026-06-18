@@ -328,26 +328,32 @@ export default withObservability(
         del_entity AS (
           UPDATE entities SET deleted_at = (SELECT now FROM ts)
           WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-          RETURNING 1
+          RETURNING deleted_at
         ),
         del_rels AS (
           UPDATE relationships SET deleted_at = (SELECT now FROM ts)
           WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at IS NULL AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM del_entity)
           RETURNING 1
         ),
         del_quotes AS (
           UPDATE quotes SET deleted_at = (SELECT now FROM ts)
           WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM del_entity)
           RETURNING 1
         ),
         del_links AS (
           UPDATE momento_entities SET deleted_at = (SELECT now FROM ts)
           WHERE entity_id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM del_entity)
           RETURNING 1
         )
-        SELECT now FROM ts
-      `) as Array<{ now: string }>
-      const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
+        SELECT deleted_at FROM del_entity
+      `) as Array<{ deleted_at: string }>
+      const deletedAt = tsRows[0]?.deleted_at
+      if (!deletedAt) {
+        return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+      }
       return Response.json({ deletedAt })
     }
 
@@ -360,7 +366,7 @@ export default withObservability(
       const { deletedAt } = parsed.data
       // Undo atómico simétrico al DELETE: restaura la entidad + el cascade que
       // compartía exactamente ese deleted_at, en un único CTE.
-      await sql`
+      const rows = await sqlTyped<{ restored: boolean }>(sql`
         WITH restore_entity AS (
           UPDATE entities SET deleted_at = NULL
           WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
@@ -369,20 +375,26 @@ export default withObservability(
         restore_rels AS (
           UPDATE relationships SET deleted_at = NULL
           WHERE (from_id = ${id} OR to_id = ${id}) AND deleted_at = ${deletedAt} AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM restore_entity)
           RETURNING 1
         ),
         restore_quotes AS (
           UPDATE quotes SET deleted_at = NULL
           WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM restore_entity)
           RETURNING 1
         ),
         restore_links AS (
           UPDATE momento_entities SET deleted_at = NULL
           WHERE entity_id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+            AND EXISTS (SELECT 1 FROM restore_entity)
           RETURNING 1
         )
-        SELECT 1
-      `
+        SELECT EXISTS(SELECT 1 FROM restore_entity) AS restored
+      `)
+      if (!rows[0]?.restored) {
+        return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+      }
       return Response.json({ restored: true })
     }
 

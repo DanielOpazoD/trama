@@ -35,4 +35,27 @@ describe('CI P1 guardrails', () => {
     expect(e2eSmoke).toContain('anon.get')
     expect(e2eSmoke).toContain('toBe(401)')
   })
+
+  it('mantiene el runbook como checklist vivo de gates y riesgos críticos', () => {
+    const runbook = readFileSync(
+      join(process.cwd(), 'docs/runbook-multiusuario.md'),
+      'utf8',
+    )
+
+    expect(runbook).toContain('Quality gates por dominio crítico')
+    for (const domain of ['Auth', 'RLS', 'Soft delete', 'Blobs']) {
+      expect(runbook).toMatch(new RegExp(`\\|\\s*${domain}\\s*\\|`))
+    }
+
+    expect(runbook).toContain('Registro vivo de riesgos')
+    for (const risk of [
+      'Fallback legacy activo',
+      'Endpoint privado sin auth',
+      'Mutación privada 2xx no-op',
+      'Blob/anexo accesible por otro usuario',
+      'Log con contenido sensible',
+    ]) {
+      expect(runbook).toContain(risk)
+    }
+  })
 })

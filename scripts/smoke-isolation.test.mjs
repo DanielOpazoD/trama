@@ -50,7 +50,10 @@ globalThis.fetch = async (rawUrl, init = {}) => {
   if (path.startsWith('/api/entities/')) {
     if (isB && method === 'GET') return json(404, { error: { code: 'NOT_FOUND' } })
     if (isB && method === 'PATCH') return json(404, { error: { code: 'NOT_FOUND' } })
-    if (isB && method === 'DELETE') return json(200, { ok: true })
+    if (isB && method === 'DELETE') {
+      if (process.env.MOCK_ENTITY_B_DELETE_200 === '1') return json(200, { ok: true })
+      return json(404, { error: { code: 'NOT_FOUND' } })
+    }
     if (isA && method === 'DELETE') return json(200, { ok: true })
   }
 
@@ -63,7 +66,7 @@ globalThis.fetch = async (rawUrl, init = {}) => {
   if (method === 'GET' && path === '/api/quotes') return json(200, isB ? { items: [] } : { items: state.quotes })
   if (path.startsWith('/api/quotes/')) {
     if (isB && method === 'PATCH') return json(404, { error: { code: 'NOT_FOUND' } })
-    if (isB && method === 'DELETE') return json(200, { ok: true })
+    if (isB && method === 'DELETE') return json(404, { error: { code: 'NOT_FOUND' } })
     if (isA && method === 'DELETE') return json(200, { ok: true })
   }
 
@@ -78,7 +81,7 @@ globalThis.fetch = async (rawUrl, init = {}) => {
   if (method === 'GET' && path === '/api/notes') return json(200, isB ? [] : state.notes)
   if (path.startsWith('/api/notes/')) {
     if (isB && method === 'PATCH') return json(404, { error: { code: 'NOT_FOUND' } })
-    if (isB && method === 'DELETE') return json(200, { ok: true })
+    if (isB && method === 'DELETE') return json(404, { error: { code: 'NOT_FOUND' } })
     if (isA && method === 'DELETE') return json(200, { ok: true })
   }
   if (method === 'GET' && path === '/api/notas-feed') return json(200, { items: [] })
@@ -97,7 +100,7 @@ globalThis.fetch = async (rawUrl, init = {}) => {
     return new Response('ok', { status: 200 })
   }
   if (path.startsWith('/api/notas-attachments/')) {
-    if (isB && method === 'DELETE') return json(200, { ok: true })
+    if (isB && method === 'DELETE') return json(404, { error: { code: 'NOT_FOUND' } })
     if (isA && method === 'DELETE') return json(200, { ok: true })
   }
 
@@ -111,7 +114,7 @@ globalThis.fetch = async (rawUrl, init = {}) => {
   if (path.startsWith('/api/momentos/')) {
     if (isB && method === 'GET') return json(404, { error: { code: 'NOT_FOUND' } })
     if (isB && method === 'PATCH') return json(404, { error: { code: 'NOT_FOUND' } })
-    if (isB && method === 'DELETE') return json(200, { ok: true })
+    if (isB && method === 'DELETE') return json(404, { error: { code: 'NOT_FOUND' } })
     if (isA && method === 'DELETE') return json(200, { ok: true })
   }
 
@@ -154,10 +157,12 @@ describe('smoke-isolation script', () => {
     expect(result.stdout).toContain('blob_isolation: ok')
   })
 
-  it('falla si DELETE de B devuelve 200 pero A deja de ver su fixture', () => {
-    const result = runSmoke({ MOCK_ENTITY_LOST_AFTER_B_DELETE: '1' })
+  it('falla si DELETE de B devuelve 200 aunque A conserve su fixture', () => {
+    const result = runSmoke({ MOCK_ENTITY_B_DELETE_200: '1' })
 
     expect(result.status).toBe(1)
-    expect(result.stderr).toContain('Entidades: fixture de A debería seguir intacta')
+    expect(result.stderr).toContain(
+      'Entidades: DELETE de B debe rechazarse explícitamente',
+    )
   })
 })

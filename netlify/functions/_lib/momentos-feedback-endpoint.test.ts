@@ -171,4 +171,19 @@ describe('momentos-feedback endpoint', () => {
       ),
     ).toBe(false)
   })
+
+  it('DELETE de reacción devuelve 404 si no tocó una reacción activa del usuario', async () => {
+    mockSqlResponses.push([{ owner_user_id: 'user_owner', access_role: 'viewer' }])
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      authedRequest('http://localhost/api/momentos-feedback/mom-1?reaction=heart', {
+        method: 'DELETE',
+      }),
+      mockContext({ momentoId: 'mom-1' }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
+  })
 })

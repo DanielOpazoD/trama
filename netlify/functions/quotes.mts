@@ -350,9 +350,14 @@ export default withObservability('quotes', async (req: Request, context: Context
 
   if (req.method === 'DELETE' && id) {
     await ensureUserRow(sql, authedUser)
-    const tsRows = (await sql`SELECT NOW() AS now`) as Array<{ now: string }>
-    const deletedAt = tsRows[0]?.now ?? new Date().toISOString()
-    await sql`UPDATE quotes SET deleted_at = ${deletedAt} WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}`
+    const rows = await sqlTyped<{ deleted_at: string }>(sql`
+      UPDATE quotes
+      SET deleted_at = NOW()
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+      RETURNING deleted_at
+    `)
+    const deletedAt = rows[0]?.deleted_at
+    if (!deletedAt) return ApiErrors.notFound(requestId, 'Cita no encontrada')
     return Response.json({ deletedAt })
   }
 
@@ -362,7 +367,13 @@ export default withObservability('quotes', async (req: Request, context: Context
     if (!parsed.ok) return parsed.response
     await ensureUserRow(sql, authedUser)
     const { deletedAt } = parsed.data
-    await sql`UPDATE quotes SET deleted_at = NULL WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}`
+    const rows = await sqlTyped<{ id: string }>(sql`
+      UPDATE quotes
+      SET deleted_at = NULL
+      WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
+      RETURNING id
+    `)
+    if (rows.length === 0) return ApiErrors.notFound(requestId, 'Cita no encontrada')
     return Response.json({ restored: true })
   }
 

@@ -92,8 +92,7 @@ describe('relationships endpoint — integration', () => {
   it('DELETE devuelve { deletedAt }', async () => {
     mockSqlResponses.push(
       [], // ensureUserRow
-      [{ now: '2026-05-23T12:00:00Z' }],
-      [], // UPDATE
+      [{ deleted_at: '2026-05-23T12:00:00Z' }],
     )
     const res = await handler(
       new Request('http://localhost/api/relationships/r1', { method: 'DELETE' }),
@@ -104,8 +103,19 @@ describe('relationships endpoint — integration', () => {
     expect(body.deletedAt).toBe('2026-05-23T12:00:00Z')
   })
 
+  it('DELETE devuelve 404 si no tocó una relación del usuario', async () => {
+    mockSqlResponses.push([], [])
+    const res = await handler(
+      new Request('http://localhost/api/relationships/r1', { method: 'DELETE' }),
+      mockContext({ id: 'r1' }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
+  })
+
   it('POST /:id/restore con deletedAt válido devuelve restored: true', async () => {
-    mockSqlResponses.push([], []) // ensureUserRow, UPDATE
+    mockSqlResponses.push([], [{ restored: true }]) // ensureUserRow, UPDATE RETURNING
     const res = await handler(
       new Request('http://localhost/api/relationships/r1/restore', {
         method: 'POST',
@@ -117,6 +127,21 @@ describe('relationships endpoint — integration', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.restored).toBe(true)
+  })
+
+  it('POST /:id/restore devuelve 404 si no restauró una relación del usuario', async () => {
+    mockSqlResponses.push([], [])
+    const res = await handler(
+      new Request('http://localhost/api/relationships/r1/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deletedAt: '2026-05-23T12:00:00Z' }),
+      }),
+      mockContext({ id: 'r1' }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
   })
 
   it('POST /:id/restore sin deletedAt devuelve 400', async () => {

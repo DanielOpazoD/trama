@@ -139,7 +139,7 @@ describe('entities endpoint — integration', () => {
 
   describe('DELETE /api/entities/:id', () => {
     it('devuelve { deletedAt } y ejecuta el cascade soft-delete en un solo CTE', async () => {
-      mockSqlResponses.push([{ now: '2026-05-23T12:00:00Z' }]) // el CTE → SELECT now FROM ts
+      mockSqlResponses.push([{ deleted_at: '2026-05-23T12:00:00Z' }]) // el CTE → SELECT deleted_at FROM del_entity
 
       const req = new Request('http://localhost/api/entities/abc', {
         method: 'DELETE',
@@ -160,6 +160,18 @@ describe('entities endpoint — integration', () => {
       expect(t).toMatch(/UPDATE momento_entities SET deleted_at/i)
       // El id 'abc' viaja como valor bindeado.
       expect(cte!.values).toContain('abc')
+    })
+
+    it('devuelve 404 si el DELETE no tocó la entidad del usuario', async () => {
+      mockSqlResponses.push([]) // del_entity vacío en el CTE
+
+      const req = new Request('http://localhost/api/entities/abc', {
+        method: 'DELETE',
+      })
+      const res = await handler(req, mockContext({ id: 'abc' }))
+
+      expect(res.status).toBe(404)
+      expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
     })
   })
 
@@ -227,7 +239,7 @@ describe('entities endpoint — integration', () => {
     })
 
     it('200 + { restored: true } cuando deletedAt es válido (restore atómico)', async () => {
-      mockSqlResponses.push([]) // el CTE de restore
+      mockSqlResponses.push([{ restored: true }]) // el CTE de restore
 
       const req = new Request('http://localhost/api/entities/abc/restore', {
         method: 'POST',
@@ -245,6 +257,20 @@ describe('entities endpoint — integration', () => {
       )
       expect(cte).toBeDefined()
       expect(cte!.values).toEqual(expect.arrayContaining(['abc', '2026-05-23T12:00:00Z']))
+    })
+
+    it('devuelve 404 si restore no revive la entidad del usuario', async () => {
+      mockSqlResponses.push([{ restored: false }])
+
+      const req = new Request('http://localhost/api/entities/abc/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deletedAt: '2026-05-23T12:00:00Z' }),
+      })
+      const res = await handler(req, mockContext({ id: 'abc' }))
+
+      expect(res.status).toBe(404)
+      expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
     })
   })
 
