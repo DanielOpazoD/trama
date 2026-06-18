@@ -6,6 +6,26 @@ import { getAuthedUser } from './_lib/auth.js'
 import { getEnv } from './_lib/env.js'
 import { runWithUserRls } from './_lib/user-rls.js'
 
+export type HealthAuthStatus = {
+  clerkConfigured: boolean
+  legacyFallbackAllowed: boolean
+  legacyOwnerMapped: boolean
+  mode: 'legacy-single-user' | 'clerk-with-legacy-fallback' | 'clerk'
+}
+
+export function resolveHealthAuthStatus(env = getEnv()): HealthAuthStatus {
+  return {
+    clerkConfigured: Boolean(env.CLERK_SECRET_KEY),
+    legacyFallbackAllowed: env.ALLOW_LEGACY_FALLBACK,
+    legacyOwnerMapped: Boolean(env.LEGACY_OWNER_CLERK_ID),
+    mode: !env.CLERK_SECRET_KEY
+      ? 'legacy-single-user'
+      : env.ALLOW_LEGACY_FALLBACK
+        ? 'clerk-with-legacy-fallback'
+        : 'clerk',
+  }
+}
+
 /**
  * Endpoint de "salud" para el panel de Settings → Health.
  *
@@ -162,16 +182,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       : envBudgetCents
   const monthCostCents = Number(monthTotalsRows[0]?.cost_cents ?? 0)
   const budgetPct = budgetCents > 0 ? Math.min(1, monthCostCents / budgetCents) : 0
-  const auth = {
-    clerkConfigured: Boolean(env.CLERK_SECRET_KEY),
-    legacyFallbackAllowed: env.ALLOW_LEGACY_FALLBACK,
-    legacyOwnerMapped: Boolean(env.LEGACY_OWNER_CLERK_ID),
-    mode: !env.CLERK_SECRET_KEY
-      ? 'legacy-single-user'
-      : env.ALLOW_LEGACY_FALLBACK
-        ? 'clerk-with-legacy-fallback'
-        : 'clerk',
-  }
+  const auth = resolveHealthAuthStatus(env)
 
   // ── Alertas calculadas en runtime ──────────────────────────────
   // Cada alerta es algo que el usuario debería mirar. Tres severidades:

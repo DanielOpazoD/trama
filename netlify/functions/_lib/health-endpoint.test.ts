@@ -4,7 +4,7 @@ import { resetEnvCache } from './env'
 
 vi.mock('./db.js', () => setupMockSql())
 
-import handler from '../health'
+import handler, { resolveHealthAuthStatus } from '../health'
 
 /**
  * health endpoint — contrato de aislamiento multi-usuario.
@@ -120,6 +120,39 @@ describe('health endpoint — aislamiento por user_id', () => {
         }),
       ]),
     )
+  })
+
+  it('expone modo legacy-single-user cuando Clerk no está configurado', async () => {
+    const res = await handler(new Request('http://localhost/api/health'), mockContext())
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.auth).toEqual({
+      clerkConfigured: false,
+      legacyFallbackAllowed: false,
+      legacyOwnerMapped: false,
+      mode: 'legacy-single-user',
+    })
+    expect(body.alerts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: 'auth_legacy_fallback' })]),
+    )
+  })
+
+  it('resuelve modo clerk estricto sin filtrar secretos', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_health_secret'
+    process.env['ALLOW_LEGACY_FALLBACK'] = 'false'
+    process.env['LEGACY_OWNER_CLERK_ID'] = 'user_owner'
+    resetEnvCache()
+
+    const auth = resolveHealthAuthStatus()
+
+    expect(JSON.stringify(auth)).not.toContain('sk_test_health_secret')
+    expect(auth).toEqual({
+      clerkConfigured: true,
+      legacyFallbackAllowed: false,
+      legacyOwnerMapped: true,
+      mode: 'clerk',
+    })
   })
 
   it('interpola el id del usuario autenticado en las queries', async () => {

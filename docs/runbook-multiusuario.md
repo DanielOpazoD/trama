@@ -37,23 +37,93 @@ Con el deploy arriba y dos sesiones Clerk reales (usuario A y usuario B):
 SMOKE_BASE_URL=https://<sitio>.netlify.app \
 SMOKE_TOKEN_A=<jwt de A> \
 SMOKE_TOKEN_B=<jwt de B> \
-node scripts/smoke-isolation.mjs
+SMOKE_REVOKED_TOKEN=<jwt revocado opcional> \
+npm run smoke:multiuser:prod
 ```
 
 Los JWT se sacan de la app logueada (DevTools → Network → cualquier request a
 `/api/*` → header `Authorization`). Expiran rápido: copiar y correr enseguida.
 
+### Token revocado opcional
+
+Para probar revocación sin automatizar Clerk en CI:
+
+1. Crear o abrir una sesión temporal de un usuario de prueba en Clerk.
+2. Copiar el JWT de esa sesión desde DevTools o desde un template de sesión.
+3. Revocar esa sesión en Clerk.
+4. Ejecutar el smoke con ese JWT en `SMOKE_REVOKED_TOKEN`.
+
+Resultado esperado: `revoked_401: ok`. Si no se entrega el token, el resumen
+muestra `revoked_401: skipped`.
+
 El script verifica, creando y soft-borrando sus propias fixtures:
 
 1. **Sin token → 401** (el fallback legacy quedó realmente apagado).
-2. **Entidades**: lo que crea A no aparece en la lista de B ni se puede abrir
-   directo (404).
-3. **Notas**: ídem.
-4. **Momentos**: ídem — cubre además que B, sin invitación aceptada, no ve el
-   espacio de A aunque el endpoint contemple compartidos.
+2. **Token revocado → 401** si se entregó `SMOKE_REVOKED_TOKEN`.
+3. **Entidades**: lo que crea A no aparece en la lista de B, no se puede abrir
+   directo (403/404), y los intentos de editar/borrar desde B no afectan a A.
+4. **Citas + búsqueda**: una cita de A no aparece en `/api/quotes` de B ni en
+   `/api/search?q=...`; los intentos de editar/borrar desde B no afectan a A.
+5. **Notas + Notas feed**: una nota de A no aparece en `/api/notes?q=...` ni en
+   `/api/notas-feed?segment=todo&q=...` de B; los intentos de editar/borrar
+   desde B no afectan a A.
+6. **Blobs/anexos**: B no puede listar anexos de una nota de A ni descargar el
+   `storage_key` del blob de A; si B intenta borrar el anexo, A lo sigue viendo.
+7. **Momentos**: lo que crea A no aparece en B — cubre además que B, sin
+   invitación aceptada, no ve el espacio de A aunque el endpoint contemple
+   compartidos — y los intentos de editar/borrar desde B no afectan a A.
 
 Cualquier ✗ → **no seguir**: revertir el paso 4 (volver a `true`) deja todo
 como estaba mientras se investiga.
+
+Al final debe imprimir este resumen compacto:
+
+```text
+anonymous_401: ok
+revoked_401: ok|skipped
+read_isolation: ok
+mutation_isolation: ok
+blob_isolation: ok
+```
+
+La variante recomendada en CI/manual técnico es `npm run e2e:multiuser`, que
+puede crear tokens efímeros con Clerk y revocar las sesiones al terminar:
+
+```bash
+E2E_BASE_URL=https://<sitio>.netlify.app \
+CLERK_SECRET_KEY=sk_live_... \
+E2E_USER_A_ID=user_... \
+E2E_USER_B_ID=user_... \
+npm run e2e:multiuser -- --project=chromium
+```
+
+También acepta tokens manuales con `E2E_USER_A_TOKEN` y `E2E_USER_B_TOKEN`. No
+guardar ni pegar tokens en archivos versionados o chats.
+
+Comando mínimo de aceptación antes de declarar cutover:
+
+```bash
+npm run check:legacy-fallback
+E2E_BASE_URL=https://<sitio>.netlify.app \
+CLERK_SECRET_KEY=sk_live_... \
+E2E_USER_A_ID=user_... \
+E2E_USER_B_ID=user_... \
+npm run e2e:multiuser -- --project=chromium
+```
+
+Criterio de aceptación: anónimo = 401; token revocado = 401 si se probó; B no
+ve, no edita, no borra ni descarga fixtures privadas de A; la limpieza final
+soft-borra todas las fixtures de A.
+
+## Checklist de aceptación del PR
+
+- [ ] Health muestra `auth.mode` y no filtra secretos de Clerk.
+- [ ] `ALLOW_LEGACY_FALLBACK=false` produce 401 anónimo.
+- [ ] Usuario B no lee fixtures privadas de A.
+- [ ] Usuario B no muta ni borra fixtures privadas de A.
+- [ ] Usuario B no lista ni descarga blobs/anexos de A.
+- [ ] Logs no contienen token, body, password ni detalles sensibles.
+- [ ] RLS cubre toda tabla versionada con `user_id`.
 
 Smoke manual del sharing (5 min, una sola vez): A invita al correo de B desde
 Momentos → B ve la invitación al entrar → B acepta → ambos ven el espacio del
