@@ -92,6 +92,35 @@ describe('withObservability', () => {
     expect(log.status).toBe(404)
   })
 
+  it('redacta cuerpos sensibles cuando logea responses non-2xx', async () => {
+    const wrapped = withObservability('test-fn', async () => {
+      return new Response(
+        JSON.stringify({
+          error: {
+            code: 'BAD_REQUEST',
+            message: 'no guardar Bearer jwt-secret-token',
+            details: {
+              body: 'texto privado de una nota',
+              password: 'clave-super-secreta',
+            },
+          },
+        }),
+        { status: 400, headers: { 'content-type': 'application/json' } },
+      )
+    })
+
+    await wrapped(new Request('http://localhost/api/test'), mockContext())
+
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    const raw = consoleErrorSpy.mock.calls[0]![0] as string
+    expect(raw).not.toContain('jwt-secret-token')
+    expect(raw).not.toContain('texto privado')
+    expect(raw).not.toContain('clave-super-secreta')
+    const log = JSON.parse(raw)
+    expect(log.message).toContain('Bearer [redacted]')
+    expect(log.message).toContain('[redacted]')
+  })
+
   it('responses 2xx NO disparan persistError', async () => {
     const wrapped = withObservability('test-fn', async () => new Response('ok'))
     await wrapped(new Request('http://localhost/api/test'), mockContext())

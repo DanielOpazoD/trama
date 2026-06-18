@@ -86,12 +86,6 @@ async function apiMultipart(token, path, fields) {
   return { status: res.status, json }
 }
 
-function listItems(json) {
-  if (Array.isArray(json)) return json
-  if (json && Array.isArray(json.items)) return json.items
-  return []
-}
-
 function jsonContains(json, marker) {
   return JSON.stringify(json).includes(marker)
 }
@@ -109,37 +103,44 @@ async function expectBDoesNotContain(label, path, marker) {
   ok(`${label}: B no ve el marker en ${path}`)
 }
 
-async function checkDomain({ label, createPath, listPath, body, idOf, direct = true }) {
-  console.log(`\n· ${label}`)
-  const created = await api(TOKEN_A, 'POST', createPath, body)
-  if (created.status >= 300 || !idOf(created.json)) {
-    fail(`A crea en ${createPath}`, `status ${created.status}`)
+async function expectAStillContains(label, path, marker) {
+  const res = await api(TOKEN_A, 'GET', path)
+  if (res.status !== 200) {
+    fail(`${label}: A debería poder consultar ${path}`, `status ${res.status}`)
     return
   }
-  const id = idOf(created.json)
-  ok(`A creó ${id}`)
-  cleanups.push(() => api(TOKEN_A, 'DELETE', `${createPath}/${id}`))
+  if (!jsonContains(res.json, marker)) {
+    fail(`${label}: fixture de A debería seguir intacta`, `no aparece en ${path}`)
+    return
+  }
+  ok(`${label}: intento de B no afectó la fixture de A`)
+}
 
-  const listB = await api(TOKEN_B, 'GET', listPath)
-  const visible = listItems(listB.json).some((item) => idOf(item) === id)
-  if (visible) fail(`B NO debe ver el item de A en ${listPath}`, 'apareció en la lista')
-  else ok(`B no lo ve en su lista (${listPath})`)
-
-  if (direct) {
-    const directB = await api(TOKEN_B, 'GET', `${createPath}/${id}`)
-    if (directB.status === 404 || directB.status === 403) {
-      ok(`B no puede abrirlo directo (status ${directB.status})`)
+async function expectBMutationDoesNotAffectA({
+  label,
+  path,
+  patchBody,
+  verifyPath,
+  marker,
+}) {
+  if (patchBody) {
+    const patched = await api(TOKEN_B, 'PATCH', path, patchBody)
+    if (patched.status === 403 || patched.status === 404) {
+      ok(`${label}: B no puede editar item de A (status ${patched.status})`)
     } else {
-      fail(`B NO debe poder abrir ${createPath}/${id}`, `status ${directB.status}`)
+      fail(`${label}: B NO debe editar item de A`, `status ${patched.status}`)
     }
   }
 
-  const listA = await api(TOKEN_A, 'GET', listPath)
-  if (listItems(listA.json).some((item) => idOf(item) === id)) {
-    ok('A sí lo ve (sanity)')
+  const deleted = await api(TOKEN_B, 'DELETE', path)
+  if (deleted.status === 403 || deleted.status === 404) {
+    ok(`${label}: B no puede borrar item de A (status ${deleted.status})`)
+  } else if (deleted.status >= 200 && deleted.status < 300) {
+    ok(`${label}: DELETE de B no tocó filas de A (status ${deleted.status})`)
   } else {
-    fail('A debería ver su propio item', 'no apareció — ¿token A inválido?')
+    fail(`${label}: DELETE de B falló de forma inesperada`, `status ${deleted.status}`)
   }
+  await expectAStillContains(label, verifyPath, marker)
 }
 
 async function createA(path, body, label) {
@@ -174,13 +175,32 @@ if (REVOKED_TOKEN) {
 }
 
 // 1 · Entidades (dominio core de Trama).
-await checkDomain({
-  label: 'Entidades',
-  createPath: '/api/entities',
-  listPath: '/api/entities',
-  body: { name: '[smoke-isolation] entidad', type: 'concepto' },
-  idOf: (row) => row?.id,
-})
+{
+  console.log('\n· Entidades')
+  const marker = `[smoke-isolation] entidad ${Date.now()}`
+  const entity = await createA(
+    '/api/entities',
+    { name: marker, type: 'concepto' },
+    'entidad',
+  )
+  if (entity) {
+    cleanups.push(() => api(TOKEN_A, 'DELETE', `/api/entities/${entity.id}`))
+    await expectBDoesNotContain('Entidades', '/api/entities', marker)
+    const directB = await api(TOKEN_B, 'GET', `/api/entities/${entity.id}`)
+    if (directB.status === 404 || directB.status === 403) {
+      ok(`B no puede abrir entidad directo (status ${directB.status})`)
+    } else {
+      fail(`B NO debe poder abrir /api/entities/${entity.id}`, `status ${directB.status}`)
+    }
+    await expectBMutationDoesNotAffectA({
+      label: 'Entidades',
+      path: `/api/entities/${entity.id}`,
+      patchBody: { name: `${marker} mutada por B` },
+      verifyPath: '/api/entities',
+      marker,
+    })
+  }
+}
 
 // 2 · Citas (requiere entidad propia; B no debe verla por lista ni búsqueda).
 {
@@ -206,6 +226,13 @@ await checkDomain({
         `/api/search?q=${encodeURIComponent(marker)}`,
         marker,
       )
+      await expectBMutationDoesNotAffectA({
+        label: 'Citas',
+        path: `/api/quotes/${quote.id}`,
+        patchBody: { text: `${marker} mutada por B` },
+        verifyPath: '/api/quotes?limit=50',
+        marker,
+      })
     }
   }
 }
@@ -266,21 +293,77 @@ await checkDomain({
       } else {
         fail('B NO debe descargar blob de A', `status ${fileB.status}`)
       }
+
+      await expectBMutationDoesNotAffectA({
+        label: 'Notas',
+        path: `/api/notes/${note.id}`,
+        patchBody: { content: `${marker} mutada por B` },
+        verifyPath: `/api/notes?q=${encodeURIComponent(marker)}`,
+        marker,
+      })
+
+      const deletedByB = await api(
+        TOKEN_B,
+        'DELETE',
+        `/api/notas-attachments/${attachment.json.id}`,
+      )
+      if (deletedByB.status === 403 || deletedByB.status === 404) {
+        ok(`B no puede borrar anexo de A (status ${deletedByB.status})`)
+      } else if (deletedByB.status >= 200 && deletedByB.status < 300) {
+        ok(`DELETE de B no tocó anexo de A (status ${deletedByB.status})`)
+      } else {
+        fail(
+          'DELETE de B sobre anexo falló de forma inesperada',
+          `status ${deletedByB.status}`,
+        )
+      }
+      const listA = await api(
+        TOKEN_A,
+        'GET',
+        `/api/notas-attachments?ownerType=note&ownerId=${encodeURIComponent(note.id)}`,
+      )
+      if (jsonContains(listA.json, attachment.json.id)) {
+        ok('Anexo de A sigue listado tras intento de B')
+      } else {
+        fail('Anexo de A debería seguir listado tras intento de B')
+      }
     }
   }
 }
 
 // 4 · Momentos (incluye el camino de espacio compartido: B sin invitación no ve nada).
-await checkDomain({
-  label: 'Momentos',
-  createPath: '/api/momentos',
-  listPath: '/api/momentos',
-  body: {
-    kind: 'nota',
-    payload: { bodyText: '[smoke-isolation] momento' },
-  },
-  idOf: (row) => row?.id,
-})
+{
+  console.log('\n· Momentos')
+  const marker = `[smoke-isolation] momento ${Date.now()}`
+  const momento = await createA(
+    '/api/momentos',
+    {
+      kind: 'nota',
+      payload: { bodyText: marker },
+    },
+    'momento',
+  )
+  if (momento) {
+    cleanups.push(() => api(TOKEN_A, 'DELETE', `/api/momentos/${momento.id}`))
+    await expectBDoesNotContain('Momentos', '/api/momentos', marker)
+    const directB = await api(TOKEN_B, 'GET', `/api/momentos/${momento.id}`)
+    if (directB.status === 404 || directB.status === 403) {
+      ok(`B no puede abrir momento directo (status ${directB.status})`)
+    } else {
+      fail(
+        `B NO debe poder abrir /api/momentos/${momento.id}`,
+        `status ${directB.status}`,
+      )
+    }
+    await expectBMutationDoesNotAffectA({
+      label: 'Momentos',
+      path: `/api/momentos/${momento.id}`,
+      patchBody: { payload: { bodyText: `${marker} mutado por B` } },
+      verifyPath: '/api/momentos',
+      marker,
+    })
+  }
+}
 
 // Limpieza best-effort de las fixtures de A.
 console.log('\n· Limpieza')

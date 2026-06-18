@@ -15,6 +15,15 @@ async function expectResponseNotToContain(response: APIResponse, marker: string)
   expect(serialize(await response.json())).not.toContain(marker)
 }
 
+async function expectResponseToContain(response: APIResponse, marker: string) {
+  expect(response.status()).toBe(200)
+  expect(serialize(await response.json())).toContain(marker)
+}
+
+async function expectPatchBlocked(response: APIResponse) {
+  expect([403, 404]).toContain(response.status())
+}
+
 test.describe('multi-user isolation smoke', () => {
   test.skip(
     !hasIsolationEnv(),
@@ -151,6 +160,52 @@ test.describe('multi-user isolation smoke', () => {
         `/api/notas-attachments-file/${encodeURIComponent(attachment.storage_key)}`,
       )
       expect([403, 404]).toContain(bAttachmentFile.status())
+
+      await expectPatchBlocked(
+        await userB.patch(`/api/entities/${entity.id}`, {
+          data: { name: `${marker} mutado por B` },
+        }),
+      )
+      await userB.delete(`/api/entities/${entity.id}`)
+      await expectResponseToContain(await userA.get('/api/entities'), marker)
+
+      await expectPatchBlocked(
+        await userB.patch(`/api/quotes/${quote.id}`, {
+          data: { text: `${marker} cita mutada por B` },
+        }),
+      )
+      await userB.delete(`/api/quotes/${quote.id}`)
+      await expectResponseToContain(await userA.get('/api/quotes?limit=50'), marker)
+
+      await expectPatchBlocked(
+        await userB.patch(`/api/notes/${note.id}`, {
+          data: { content: `${marker} nota mutada por B` },
+        }),
+      )
+      await userB.delete(`/api/notes/${note.id}`)
+      await expectResponseToContain(
+        await userA.get(`/api/notes?q=${encodeURIComponent(marker)}`),
+        marker,
+      )
+
+      await expectPatchBlocked(
+        await userB.patch(`/api/momentos/${momento.id}`, {
+          data: { payload: { bodyText: `${marker} momento mutado por B` } },
+        }),
+      )
+      await userB.delete(`/api/momentos/${momento.id}`)
+      await expectResponseToContain(await userA.get('/api/momentos'), marker)
+
+      await userB.delete(`/api/notas-attachments/${attachment.id}`)
+      const aAttachments = await userA.get(
+        `/api/notas-attachments?ownerType=note&ownerId=${encodeURIComponent(note.id)}`,
+      )
+      await expectResponseToContain(aAttachments, attachment.id)
+
+      const aAttachmentFile = await userA.get(
+        `/api/notas-attachments-file/${encodeURIComponent(attachment.storage_key)}`,
+      )
+      expect(aAttachmentFile.status()).toBe(200)
     } finally {
       for (const cleanupStep of cleanup.reverse()) {
         await cleanupStep().catch(() => undefined)

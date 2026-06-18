@@ -14,7 +14,7 @@
  */
 
 import type { Context } from '@netlify/functions'
-import { persistError, safeSql } from './observability'
+import { persistError, redactLogValue, safeSql } from './observability'
 import { ApiErrors } from './api-error'
 import type { ApiErrorBody } from './api-error'
 import { UnauthenticatedError } from './auth.js'
@@ -58,12 +58,13 @@ export function withObservability(
             .clone()
             .text()
             .catch(() => '')
+          const redactedBody = redactResponseBody(body)
           persistError(safeSql(), {
             functionName,
             httpMethod: req.method,
             httpPath: url.pathname,
             statusCode: finalResponse.status,
-            message: `non-2xx response: ${body.slice(0, 500)}`,
+            message: `non-2xx response: ${redactedBody.slice(0, 500)}`,
             requestId,
           })
         }
@@ -103,6 +104,15 @@ export function withObservability(
         })
       }
     })
+  }
+}
+
+function redactResponseBody(body: string): string {
+  if (!body) return ''
+  try {
+    return JSON.stringify(redactLogValue(JSON.parse(body)))
+  } catch {
+    return String(redactLogValue(body))
   }
 }
 

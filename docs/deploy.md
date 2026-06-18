@@ -87,9 +87,10 @@ Antes de abrir PR, confirmar:
 - Clerk debe configurarse como par: `CLERK_SECRET_KEY` y `VITE_CLERK_PUBLISHABLE_KEY` juntas. El mismo check falla si solo una está seteada, porque dejaría front y backend en modos distintos.
 - Si el cambio toca privacidad multiusuario, correr el smoke con dos usuarios de
   prueba Clerk. Debe cubrir: anónimo → 401, A no aparece en B para entidades,
-  citas, momentos, búsqueda y Notas feed, y B no puede listar/descargar anexos
-  de A. Modo recomendado: generar tokens efímeros desde Clerk en cada run,
-  usando el secret del backend y los `user_id` de los dos usuarios de prueba:
+  citas, momentos, búsqueda y Notas feed, B no puede mutar/borrar fixtures de
+  A, y B no puede listar/descargar anexos de A. Modo recomendado: generar
+  tokens efímeros desde Clerk en cada run, usando el secret del backend y los
+  `user_id` de los dos usuarios de prueba:
 
   ```bash
   E2E_BASE_URL=https://tramadaod.netlify.app \
