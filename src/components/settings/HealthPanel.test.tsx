@@ -53,6 +53,13 @@ const HEALTH_FIXTURE: HealthResponse = {
     legacyOwnerMapped: true,
     mode: 'clerk',
   },
+  operational: {
+    requestId: 'rid-health-panel',
+    databaseReachable: true,
+    runtimeApiRoutesContract: 'check:runtime-api-routes',
+    productionSmokeCommand: 'npm run smoke:production-report',
+    logRedaction: 'structured-redaction',
+  },
   embeddings: { pendingEntities: 0, pendingQuotes: 0 },
   dailyCost: [
     { day: '2026-05-30', costCents: 0, calls: 0 },
@@ -147,6 +154,14 @@ describe('<HealthPanel />', () => {
     expect(writeText).toHaveBeenCalledTimes(1)
     expect(writeText.mock.calls[0]?.[0]).toContain('Trama health diagnostic')
     expect(writeText.mock.calls[0]?.[0]).toContain('auth=clerk')
+    expect(writeText.mock.calls[0]?.[0]).toContain('requestId=rid-health-panel')
+    expect(writeText.mock.calls[0]?.[0]).toContain('databaseReachable=true')
+    expect(writeText.mock.calls[0]?.[0]).toContain(
+      'runtimeApiRoutesContract=check:runtime-api-routes',
+    )
+    expect(writeText.mock.calls[0]?.[0]).toContain(
+      'productionSmokeCommand=npm run smoke:production-report',
+    )
     expect(writeText.mock.calls[0]?.[0]).toContain(
       'counts=12 entities, 34 quotes, 5 relationships',
     )

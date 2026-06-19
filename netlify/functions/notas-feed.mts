@@ -71,7 +71,10 @@ export default withObservability(
     if (req.method !== 'GET') return ApiErrors.methodNotAllowed(requestId)
 
     // getAuthedUser fija el contexto RLS; getSql() lo lee.
-    const authedUser = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req, {
+      requestId,
+      operation: 'notas-feed.read',
+    })
     const userId = authedUser.id
     const sql = getSql()
 

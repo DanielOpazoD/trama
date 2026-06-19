@@ -32,6 +32,60 @@ Eventos importantes:
 
 Cada uno reporta `provider`, `model`, `tokensIn`, `tokensOut`, `costCents`, `durationMs`, `fromCache` — suficiente para reconstruir costo y latencia post-hoc.
 
+### 2.1 Eventos operacionales multiusuario
+
+Los eventos operacionales son JSON lines emitidos con `logOperationalEvent()`
+desde `netlify/functions/_lib/operational-events.ts`. No reemplazan
+`error_log`: son evidencia breve para saber qué pasó durante auth, ownership,
+mutaciones privadas y smokes productivos.
+
+Vocabulario permitido:
+
+| Evento               | Cuándo aparece                                     | Severidad típica |
+| -------------------- | -------------------------------------------------- | ---------------- |
+| `auth.denied`        | Request privada termina en 401                     | `warn`           |
+| `auth.fallback`      | Clerk no está configurado, owner legacy o fallback | `warn`           |
+| `auth.verified`      | Token/PAT válido resuelve owner                    | `info`           |
+| `owner.mismatch`     | Recurso existe pero no pertenece al owner actual   | `warn`           |
+| `blob.access.denied` | Blob/attachment privado rechaza acceso cross-user  | `warn`           |
+| `mutation.created`   | Mutación crea fixture o entidad privada observable | `info`           |
+| `mutation.deleted`   | Mutación borra/soft-delete fixture privada         | `info`           |
+| `smoke.passed`       | Smoke multiusuario productivo termina verde        | `info`           |
+| `smoke.failed`       | Smoke multiusuario productivo falla                | `error`          |
+
+Matriz de acción rápida:
+
+| Evento               | Origen principal                           | Acción esperada                                              |
+| -------------------- | ------------------------------------------ | ------------------------------------------------------------ |
+| `auth.denied`        | `withObservability` ante request sin auth  | Confirmar anónimo = 401 y que no esté activo fallback legacy |
+| `auth.fallback`      | `getAuthedUser()`                          | Revisar `ALLOW_LEGACY_FALLBACK` y owner legacy               |
+| `auth.verified`      | `getAuthedUser()`                          | Usar como correlación de owner para requestId                |
+| `owner.mismatch`     | Mutación/lectura por id scopiada por owner | Investigar intento cross-user o fixture inexistente          |
+| `blob.access.denied` | Lectura/delete de attachment/blob privado  | Revisar key namespace, owner y endpoint de blobs             |
+| `mutation.created`   | Smoke o mutación privada observable        | Confirmar cleanup/soft-delete posterior                      |
+| `mutation.deleted`   | Smoke o mutación privada observable        | Confirmar que el owner ya no lista el fixture                |
+| `smoke.passed`       | `smoke:production-report`                  | Pegar Markdown en PR/incidente                               |
+| `smoke.failed`       | `smoke:production-report`                  | Bloquear merge/deploy hasta aislar causa                     |
+
+El payload permitido debe caber en contexto operacional: `requestId`, `method`,
+`path sin querystring`, `operation`, `userId`, `status`, `reason` y `details` ya
+redactado. No incluyas bodies, prompts, cookies, JWT, emails o contenido de notas. La
+redacción estructurada de `redactLogValue()` cubre secretos y PII comunes, pero
+el contrato sigue siendo no logear contenido sensible si no aporta diagnóstico.
+
+Para generar evidencia reportable de producción o deploy-preview:
+
+```bash
+E2E_BASE_URL=https://<sitio>.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+E2E_USER_B_TOKEN=<jwt de B> \
+npm run smoke:production-report
+```
+
+El output es Markdown sin tokens, listo para pegar en un PR o incidente. Debe
+incluir `production_smoke: ok`, `anonymous_401: ok`,
+`runtime_api_route_probe: ok` y `playwright_smoke: ok`.
+
 ### 3. Core Web Vitals
 
 `web-vitals` lib en `src/lib/webVitals.ts` registra los listeners. Cada métrica viaja a `/api/web-vitals` vía `sendBeacon`. Solo en producción.

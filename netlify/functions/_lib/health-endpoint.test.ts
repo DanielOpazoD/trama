@@ -155,6 +155,26 @@ describe('health endpoint — aislamiento por user_id', () => {
     })
   })
 
+  it('expone contratos operacionales sin filtrar secretos ni datos de usuario', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/health?token=secret', {
+        headers: { 'x-request-id': 'rid-health' },
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.operational).toEqual({
+      requestId: 'rid-health',
+      databaseReachable: true,
+      runtimeApiRoutesContract: 'check:runtime-api-routes',
+      productionSmokeCommand: 'npm run smoke:production-report',
+      logRedaction: 'structured-redaction',
+    })
+    expect(JSON.stringify(body.operational)).not.toContain('secret')
+  })
+
   it('interpola el id del usuario autenticado en las queries', async () => {
     await handler(new Request('http://localhost/api/health'), mockContext())
     // En tests, getAuthedUser cae a 'legacy-single-user' (sin Clerk).

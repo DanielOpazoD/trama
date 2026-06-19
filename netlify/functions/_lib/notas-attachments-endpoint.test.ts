@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   expectCanonicalError,
   mockContext,
@@ -12,8 +12,15 @@ vi.mock('./db.js', () => setupMockSql())
 import handler from '../notas-attachments'
 
 describe('notas attachments endpoint', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     mockSqlResponses.reset()
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore()
   })
 
   it('no lista anexos si la nota dueña ya no existe para el usuario actual', async () => {
@@ -77,6 +84,25 @@ describe('notas attachments endpoint', () => {
       code: 'NOT_FOUND',
       requestId: 'rid-attachment-delete',
     })
+    const events = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'owner.mismatch',
+          category: 'operational',
+          severity: 'warn',
+          requestId: 'rid-attachment-delete',
+          operation: 'attachment.delete',
+        }),
+        expect.objectContaining({
+          event: 'blob.access.denied',
+          category: 'operational',
+          severity: 'warn',
+          requestId: 'rid-attachment-delete',
+          operation: 'attachment.delete',
+        }),
+      ]),
+    )
   })
 
   it('DELETE devuelve ok cuando soft-borra un anexo del usuario', async () => {

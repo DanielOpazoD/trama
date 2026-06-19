@@ -67,6 +67,9 @@ describe('runtime API route contracts', () => {
     expect(pkg.scripts['check:runtime-api-routes']).toBe(
       'node scripts/runtime-api-routes.mjs',
     )
+    expect(pkg.scripts['smoke:production-report']).toBe(
+      'node scripts/multiuser-production-report.mjs',
+    )
   })
 
   test('runtime route checker emits a JSON manifest for reviewers', () => {

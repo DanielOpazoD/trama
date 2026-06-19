@@ -11,13 +11,18 @@ import { UnauthenticatedError } from './auth'
 
 describe('withObservability', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     // Silenciamos stderr — handler-wrap loguea a través de
     // logErrorEvent (console.error) cuando hay 4xx/5xx.
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   })
-  afterEach(() => consoleErrorSpy.mockRestore())
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
+    consoleLogSpy.mockRestore()
+  })
 
   it('inyecta requestId al handler y lo expone como header x-request-id', async () => {
     let receivedRequestId: string | undefined
@@ -77,6 +82,35 @@ describe('withObservability', () => {
     expect(res.status).toBe(401)
     const body = await res.json()
     expect(body.error.code).toBe('UNAUTHENTICATED')
+  })
+
+  it('emite evento operacional auth.denied cuando la request queda sin auth', async () => {
+    const wrapped = withObservability('test-fn', async () => {
+      throw new UnauthenticatedError()
+    })
+
+    await wrapped(
+      new Request('http://localhost/api/test?token=secret', {
+        headers: { 'x-request-id': 'rid-denied' },
+      }),
+      mockContext(),
+    )
+
+    const logs = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'auth.denied',
+          category: 'operational',
+          severity: 'warn',
+          requestId: 'rid-denied',
+          method: 'GET',
+          path: '/api/test',
+          reason: 'unauthenticated',
+        }),
+      ]),
+    )
+    expect(JSON.stringify(logs)).not.toContain('secret')
   })
 
   it('logea non-2xx responses (4xx también) a stderr', async () => {

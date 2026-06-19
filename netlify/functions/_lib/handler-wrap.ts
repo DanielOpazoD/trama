@@ -18,6 +18,7 @@ import { persistError, redactLogValue, safeSql } from './observability'
 import { ApiErrors } from './api-error'
 import { UnauthenticatedError } from './auth.js'
 import { runWithoutRlsContext } from './user-rls.js'
+import { buildOperationalRequestContext, logOperationalEvent } from './operational-events'
 
 type NetlifyHandler = (req: Request, context: Context) => Promise<Response>
 
@@ -70,6 +71,12 @@ export function withObservability(
         return finalResponse
       } catch (err) {
         if (err instanceof UnauthenticatedError) {
+          logOperationalEvent({
+            event: 'auth.denied',
+            severity: 'warn',
+            ...buildOperationalRequestContext(req, { requestId }),
+            reason: 'unauthenticated',
+          })
           return ApiErrors.unauthenticated(requestId)
         }
 

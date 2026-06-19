@@ -21,10 +21,14 @@ vi.stubGlobal(
 import handler from '../momentos'
 
 describe('momentos endpoint — integration (mock SQL)', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     mockSqlResponses.reset()
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   })
   afterEach(() => {
+    consoleLogSpy.mockRestore()
     vi.unstubAllGlobals()
     vi.stubGlobal(
       'fetch',
@@ -173,6 +177,37 @@ describe('momentos endpoint — integration (mock SQL)', () => {
       mockContext({ id: 'nope' }),
     )
     expect(res.status).toBe(404)
+  })
+
+  it('DELETE emite owner.mismatch cuando el id no pertenece al usuario', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([]) // delete no-op
+    const res = await handler(
+      new Request('http://localhost/api/momentos/m-ajeno', {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-momento-delete' },
+      }),
+      mockContext({ id: 'm-ajeno' }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-momento-delete',
+    })
+    const events = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'owner.mismatch',
+          category: 'operational',
+          severity: 'warn',
+          requestId: 'rid-momento-delete',
+          operation: 'momentos.delete',
+          userId: 'legacy-single-user',
+        }),
+      ]),
+    )
   })
 
   it('POST con kind inválido devuelve 400', async () => {

@@ -26,16 +26,19 @@ import handler from '../notas-attachments-file'
 describe('notas-attachments-file endpoint', () => {
   const originalClerkSecret = process.env['CLERK_SECRET_KEY']
   const originalFallback = process.env['ALLOW_LEGACY_FALLBACK']
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     mockSqlResponses.reset()
     getWithMetadata.mockClear()
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     // Sin Clerk → getAuthedUser() resuelve al usuario legacy-single-user.
     delete process.env['CLERK_SECRET_KEY']
     delete process.env['ALLOW_LEGACY_FALLBACK']
   })
 
   afterEach(() => {
+    consoleLogSpy.mockRestore()
     if (originalClerkSecret === undefined) delete process.env['CLERK_SECRET_KEY']
     else process.env['CLERK_SECRET_KEY'] = originalClerkSecret
     if (originalFallback === undefined) delete process.env['ALLOW_LEGACY_FALLBACK']
@@ -57,6 +60,18 @@ describe('notas-attachments-file endpoint', () => {
       mockSqlState.calls.some((c) => /FROM notas_attachments/i.test(c.template)),
     ).toBe(false)
     expect(getWithMetadata).not.toHaveBeenCalled()
+    const events = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'blob.access.denied',
+          category: 'operational',
+          severity: 'warn',
+          operation: 'attachment.blob.read',
+          userId: 'legacy-single-user',
+        }),
+      ]),
+    )
   })
 
   it('sirve el blob del dueño con la query scoped por user_id y headers privados', async () => {

@@ -4,6 +4,7 @@ import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { logOperationalEvent } from './_lib/operational-events.js'
 
 const STORE = 'notas-attachments'
 
@@ -24,6 +25,16 @@ export default withObservability(
     const storageKey = decodeURIComponent(rawKey)
     const { id: userId } = await getAuthedUser(req)
     if (!storageKey.startsWith(`${userId}/`)) {
+      logOperationalEvent({
+        event: 'blob.access.denied',
+        severity: 'warn',
+        requestId,
+        method: req.method,
+        path: new URL(req.url).pathname,
+        operation: 'attachment.blob.read',
+        userId,
+        reason: 'storage_key_owner_mismatch',
+      })
       return ApiErrors.notFound(requestId, 'No encontrado')
     }
 
@@ -35,7 +46,19 @@ export default withObservability(
         AND user_id = ${userId}
         AND deleted_at IS NULL
     `)
-    if (refs.length === 0) return ApiErrors.notFound(requestId, 'No encontrado')
+    if (refs.length === 0) {
+      logOperationalEvent({
+        event: 'blob.access.denied',
+        severity: 'warn',
+        requestId,
+        method: req.method,
+        path: new URL(req.url).pathname,
+        operation: 'attachment.blob.read',
+        userId,
+        reason: 'attachment_blob_metadata_missing',
+      })
+      return ApiErrors.notFound(requestId, 'No encontrado')
+    }
 
     const blob = await getStore(STORE).getWithMetadata(storageKey, {
       type: 'arrayBuffer',
