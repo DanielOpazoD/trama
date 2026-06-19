@@ -56,6 +56,12 @@ jobs:
       - name: Auth/RLS contracts inventory
         run: npm run check:auth-rls-contracts
 
+      # Contrato runtime de rutas: los wrappers pueden delegar handler a _lib,
+      # pero config.path vive en netlify/functions/*.mts para que Netlify monte
+      # /api/* de forma verificable antes de deployar.
+      - name: Runtime API routes contract
+        run: npm run check:runtime-api-routes
+
       # Gate de soft-delete: bloquea `DELETE FROM` nuevos fuera del allowlist
       # (los hard-deletes legítimos están enumerados en el script). Antes el
       # script existía pero no corría en ningún job.

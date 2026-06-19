@@ -103,6 +103,16 @@ E2E_USER_B_TOKEN=<jwt de B> \
 node_modules/.bin/playwright test e2e/runtime-api-routing.spec.ts --project=chromium
 ```
 
+Si un smoke anterior dejó fixtures conocidas antes de que `/:id` estuviera
+verificado, el cleanup opcional usa solo la API pública y trata `404` como éxito
+(ya no existe):
+
+```bash
+E2E_BASE_URL=https://<sitio>.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+npm run cleanup:runtime-fixtures
+```
+
 Reglas de aceptación:
 
 - `/api/* nunca debe devolver el HTML de la SPA`; toda respuesta API esperada
@@ -112,6 +122,9 @@ Reglas de aceptación:
   `notes`, `notas-feed`) deben estar montadas en producción.
 - Rutas `/:id` usadas para cleanup deben llegar al handler y responder 404 JSON
   para IDs inexistentes; 405 o HTML 404 indica routing roto.
+- El E2E runtime crea y borra un recorte y un momento reales del owner para
+  probar que `DELETE /api/recortes/:id` y `DELETE /api/momentos/:id` no solo
+  enrutan, sino que limpian fixtures vivas.
 - `/.netlify/functions/*` no reemplaza este contrato: solo ayuda a aislar si el
   problema es Netlify routing o lógica del handler.
 

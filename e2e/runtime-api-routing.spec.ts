@@ -69,6 +69,42 @@ async function runProbe(ctx: APIRequestContext, probe: Probe) {
   await expectJsonApiResponse(response, probe.label, probe.expectedStatuses)
 }
 
+async function createOwnedFixture(
+  ctx: APIRequestContext,
+  kind: 'recorte' | 'momento',
+  marker: string,
+) {
+  const response =
+    kind === 'recorte'
+      ? await ctx.post('/api/recortes', {
+          data: {
+            text: `${marker} recorte runtime create-delete`,
+            sourceTitle: 'Runtime route create-delete smoke',
+          },
+        })
+      : await ctx.post('/api/momentos', {
+          data: {
+            kind: 'nota',
+            payload: { bodyText: `${marker} momento runtime create-delete` },
+          },
+        })
+
+  await expectJsonApiResponse(response, `${kind} create`, [201])
+  const body = await response.json()
+  expect(body.id, `${kind} create should return an id`).toEqual(expect.any(String))
+  return body as { id: string }
+}
+
+async function expectDeletedFromOwnerList(
+  ctx: APIRequestContext,
+  path: string,
+  marker: string,
+) {
+  const response = await ctx.get(path)
+  await expectJsonApiResponse(response, `${path} after delete`, [200])
+  expect(JSON.stringify(await response.json())).not.toContain(marker)
+}
+
 test.describe('runtime API routing contract', () => {
   test.skip(
     !hasRuntimeRoutingEnv(),
@@ -227,6 +263,44 @@ test.describe('runtime API routing contract', () => {
         await runProbe(userA, probe)
       }
     } finally {
+      await userA.dispose()
+    }
+  })
+
+  test('owner can create and delete Recortes and Momentos through public /api/:id routes', async () => {
+    const userA = await request.newContext({
+      baseURL: process.env.E2E_BASE_URL!,
+      extraHTTPHeaders: { Authorization: `Bearer ${process.env.E2E_USER_A_TOKEN!}` },
+    })
+    const marker = `runtime-create-delete-${Date.now()}`
+    const cleanup: Array<() => Promise<unknown>> = []
+
+    try {
+      const recorte = await createOwnedFixture(userA, 'recorte', marker)
+      cleanup.push(() => userA.delete(`/api/recortes/${recorte.id}`))
+
+      const momento = await createOwnedFixture(userA, 'momento', marker)
+      cleanup.push(() => userA.delete(`/api/momentos/${momento.id}`))
+
+      await runProbe(userA, {
+        label: 'recorte owner delete',
+        method: 'DELETE',
+        path: `/api/recortes/${recorte.id}`,
+        expectedStatuses: [200],
+      })
+      await expectDeletedFromOwnerList(userA, '/api/recortes?limit=20', marker)
+
+      await runProbe(userA, {
+        label: 'momento owner delete',
+        method: 'DELETE',
+        path: `/api/momentos/${momento.id}`,
+        expectedStatuses: [200],
+      })
+      await expectDeletedFromOwnerList(userA, '/api/momentos?limit=20', marker)
+    } finally {
+      for (const cleanupStep of cleanup.reverse()) {
+        await cleanupStep().catch(() => undefined)
+      }
       await userA.dispose()
     }
   })
