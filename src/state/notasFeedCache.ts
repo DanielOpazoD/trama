@@ -12,6 +12,7 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import type { Note, Recorte, CaptureItem } from '../api'
 import type { NotasFeedPage } from '../api/notasFeed'
+import { restoreQueriesSnapshot, snapshotQueries } from './cacheOptimistic'
 import { queryKeys } from './queryClient'
 
 type RecorteStatus = Recorte['status']
@@ -46,16 +47,18 @@ function parseFeedMeta(key: unknown): { segment: string; recorteStatus: string }
 }
 
 /** Snapshot de todas las caches del feed, para rollback en `onError`. */
-export type NotasFeedSnapshot = Array<
-  [readonly unknown[], InfiniteData<NotasFeedPage> | undefined]
+export type NotasFeedSnapshot = ReturnType<
+  typeof snapshotQueries<InfiniteData<NotasFeedPage>>
 >
 
 export function snapshotNotasFeed(qc: QueryClient): NotasFeedSnapshot {
-  return qc.getQueriesData<InfiniteData<NotasFeedPage>>({ queryKey: queryKeys.notasFeed })
+  return snapshotQueries<InfiniteData<NotasFeedPage>>(qc, {
+    queryKey: queryKeys.notasFeed,
+  })
 }
 
 export function restoreNotasFeed(qc: QueryClient, snap: NotasFeedSnapshot): void {
-  for (const [key, data] of snap) qc.setQueryData(key, data)
+  restoreQueriesSnapshot(qc, snap)
 }
 
 /** Mapea/filtra los ítems de cada cache del feed con conocimiento del filtro. */

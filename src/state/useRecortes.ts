@@ -7,6 +7,13 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type PromoteRecorteInput, type Recorte } from '../api'
+import {
+  invalidateRecorteCreateSurface,
+  invalidateRecortePromotionSurface,
+  invalidateRecorteUnpromoteSurface,
+  invalidateRecortesSurface,
+} from './cacheInvalidation'
+import { restoreQuerySnapshot, snapshotQuery } from './cacheOptimistic'
 import { queryKeys } from './queryClient'
 import {
   applyRecorteStatusInFeed,
@@ -26,14 +33,7 @@ export function useUnpromoteRecorte() {
   return useMutation({
     mutationFn: (id: string) => api.unpromoteRecorte(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.recortes })
-      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
-      qc.invalidateQueries({ queryKey: queryKeys.quotes })
-      qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-      qc.invalidateQueries({ queryKey: queryKeys.entities })
-      qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
-      qc.invalidateQueries({ queryKey: queryKeys.counts })
-      qc.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateRecorteUnpromoteSurface(qc)
     },
   })
 }
@@ -83,8 +83,7 @@ async function enrichLinkRecorte(
         sourceAuthor: preview.author ?? undefined,
         imageUrl: preview.image ?? undefined,
       })
-      qc.invalidateQueries({ queryKey: queryKeys.recortes })
-      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+      invalidateRecortesSurface(qc)
     }
   } catch {
     /* enriquecimiento opcional; el enlace pelado ya quedó guardado */
@@ -105,8 +104,7 @@ async function cacheRecorteThumbnail(qc: ReturnType<typeof useQueryClient>, id: 
   try {
     const result = await api.cacheRecorteThumbnail(id)
     if (result.cached) {
-      qc.invalidateQueries({ queryKey: queryKeys.recortes })
-      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+      invalidateRecortesSurface(qc)
     }
   } catch {
     /* caché opcional; la tarjeta sigue con la miniatura externa/derivada */
@@ -146,10 +144,7 @@ export function useCreateRecorte() {
       })
     },
     onSuccess: (recorte, input) => {
-      qc.invalidateQueries({ queryKey: queryKeys.recortes })
-      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
-      qc.invalidateQueries({ queryKey: queryKeys.counts })
-      qc.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateRecorteCreateSurface(qc)
       // El enriquecimiento corre tras mostrar la tarjeta, sin bloquear.
       if (input.kind === 'link') void enrichLinkRecorte(qc, recorte.id, input.url)
     },
@@ -172,26 +167,25 @@ export function useUpdateRecorte() {
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: queryKeys.recortes })
       await qc.cancelQueries({ queryKey: queryKeys.notasFeed })
-      const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
-      if (prev) {
+      const recortesSnap = snapshotQuery<Recorte[]>(qc, queryKeys.recortes)
+      if (recortesSnap.data) {
         qc.setQueryData<Recorte[]>(
           queryKeys.recortes,
-          prev.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+          recortesSnap.data.map((r) => (r.id === id ? { ...r, ...patch } : r)),
         )
       }
       const feedSnap = snapshotNotasFeed(qc)
       // Si cambia el estado, recalculamos membresía por cache; si no, en sitio.
       if (patch.status) applyRecorteStatusInFeed(qc, id, patch.status)
       else patchRecorteInFeed(qc, id, patch)
-      return { prev, feedSnap }
+      return { recortesSnap, feedSnap }
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+      if (ctx?.recortesSnap) restoreQuerySnapshot(qc, ctx.recortesSnap)
       if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.recortes })
-      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+      invalidateRecortesSurface(qc)
     },
   })
 }
@@ -202,8 +196,7 @@ export function useDeleteRecorte() {
   return useMutation({
     mutationFn: (id: string) => api.removeRecorte(id),
     onSuccess: ({ deletedAt }, id) => {
-      qc.invalidateQueries({ queryKey: queryKeys.recortes })
-      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+      invalidateRecortesSurface(qc)
       if (deletedAt) {
         toast.show({
           message: 'Recorte eliminado',
@@ -212,8 +205,7 @@ export function useDeleteRecorte() {
             label: 'Deshacer',
             onAction: async () => {
               await api.restoreRecorte(id, deletedAt)
-              qc.invalidateQueries({ queryKey: queryKeys.recortes })
-              qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+              invalidateRecortesSurface(qc)
             },
           },
         })
@@ -234,37 +226,25 @@ export function usePromoteRecorte() {
     onMutate: async ({ id, input }) => {
       await qc.cancelQueries({ queryKey: queryKeys.recortes })
       await qc.cancelQueries({ queryKey: queryKeys.notasFeed })
-      const prev = qc.getQueryData<Recorte[]>(queryKeys.recortes)
-      if (prev) {
+      const recortesSnap = snapshotQuery<Recorte[]>(qc, queryKeys.recortes)
+      if (recortesSnap.data) {
         qc.setQueryData<Recorte[]>(
           queryKeys.recortes,
-          prev.map((r) =>
+          recortesSnap.data.map((r) =>
             r.id === id ? { ...r, status: 'promoted', promotedTarget: input.target } : r,
           ),
         )
       }
       const feedSnap = snapshotNotasFeed(qc)
       applyRecorteStatusInFeed(qc, id, 'promoted', input.target)
-      return { prev, feedSnap }
+      return { recortesSnap, feedSnap }
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(queryKeys.recortes, ctx.prev)
+      if (ctx?.recortesSnap) restoreQuerySnapshot(qc, ctx.recortesSnap)
       if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
     onSuccess: (_data, { input }) => {
-      const { target } = input
-      qc.invalidateQueries({ queryKey: queryKeys.recortes })
-      qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
-      if (target === 'quote') {
-        qc.invalidateQueries({ queryKey: queryKeys.quotes })
-        qc.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-      }
-      if (target === 'entity') qc.invalidateQueries({ queryKey: queryKeys.entities })
-      if (target === 'momento') {
-        qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
-      }
-      qc.invalidateQueries({ queryKey: queryKeys.counts })
-      qc.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateRecortePromotionSurface(qc, input.target)
     },
   })
 }
