@@ -150,13 +150,15 @@ El script verifica, creando y soft-borrando sus propias fixtures:
 4. **Citas + búsqueda**: una cita de A no aparece en `/api/quotes` de B ni en
    `/api/search?q=...`; los intentos de editar/borrar desde B responden
    403/404.
-5. **Notas + Notas feed**: una nota de A no aparece en `/api/notes?q=...` ni en
+5. **Recortes**: un recorte de A no aparece en `/api/recortes` de B; los
+   intentos de editar/borrar desde B responden 403/404.
+6. **Notas + Notas feed**: una nota de A no aparece en `/api/notes?q=...` ni en
    `/api/notas-feed?segment=todo&q=...` de B; los intentos de editar/borrar
    desde B responden 403/404.
-6. **Blobs/anexos**: B no puede listar anexos de una nota de A ni descargar el
+7. **Blobs/anexos**: B no puede listar anexos de una nota de A ni descargar el
    `storage_key` del blob de A; si B intenta borrar el anexo, el endpoint debe
    responder 403/404 y A lo sigue viendo.
-7. **Momentos**: lo que crea A no aparece en B — cubre además que B, sin
+8. **Momentos**: lo que crea A no aparece en B — cubre además que B, sin
    invitación aceptada, no ve el espacio de A aunque el endpoint contemple
    compartidos — y los intentos de editar/borrar desde B responden 403/404.
 
@@ -220,6 +222,20 @@ soft-borra todas las fixtures de A.
 | RLS         | Toda tabla `user_id` tiene RLS, FK a `users` y contexto seguro | `netlify/functions/_lib/isolation-guardrail.test.ts`, `query.integration.test.ts`            |
 | Soft delete | Delete/restore privado usa scope por dueño y 0 filas no es 2xx | `npm run check:hard-delete-allowlist`, `npm run check:cte-regression`, tests de endpoints    |
 | Blobs       | List/download/delete validan dueño activo antes de tocar store | smoke multiusuario, `notas-attachments-*`, `momentos-file` y tests de endpoints autenticados |
+
+## Inventario ejecutable Auth/RLS
+
+El contrato vivo de tablas privadas, endpoints privados y dominios cubiertos por
+el smoke está en `scripts/auth-rls-contracts.mjs`.
+
+```bash
+npm run check:auth-rls-contracts
+node_modules/.bin/vitest run scripts/auth-rls-contracts.test.mjs
+```
+
+Ese inventario se usa como fuente para el guardrail de aislamiento: si una
+migración agrega una tabla con `user_id`, el test exige clasificarla con
+`user_id`, RLS, lifecycle y razón operacional antes de aceptar el PR.
 
 ## Registro vivo de riesgos
 

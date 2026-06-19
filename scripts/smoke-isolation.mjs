@@ -297,6 +297,28 @@ if (REVOKED_TOKEN) {
 
 // 3 · Notas + Notas feed + Blob attachments.
 {
+  console.log('\n· Recortes')
+  const marker = `[smoke-isolation] recorte ${Date.now()}`
+  const recorte = await createA(
+    '/api/recortes',
+    { text: marker, sourceTitle: 'Smoke multiusuario' },
+    'recorte',
+  )
+  if (recorte) {
+    cleanups.push(() => api(TOKEN_A, 'DELETE', `/api/recortes/${recorte.id}`))
+    await expectBDoesNotContain('Recortes', '/api/recortes', marker)
+    await expectBMutationDoesNotAffectA({
+      label: 'Recortes',
+      path: `/api/recortes/${recorte.id}`,
+      patchBody: { note: `${marker} mutado por B` },
+      verifyPath: '/api/recortes',
+      marker,
+    })
+  }
+}
+
+// 4 · Notas + Notas feed + Blob attachments.
+{
   console.log('\n· Notas, feed y anexos')
   const marker = `[smoke-isolation] nota ${Date.now()}`
   const note = await createA('/api/notes', { title: marker, content: marker }, 'nota')
@@ -396,7 +418,7 @@ if (REVOKED_TOKEN) {
   }
 }
 
-// 4 · Momentos (incluye el camino de espacio compartido: B sin invitación no ve nada).
+// 5 · Momentos (incluye el camino de espacio compartido: B sin invitación no ve nada).
 {
   console.log('\n· Momentos')
   const marker = `[smoke-isolation] momento ${Date.now()}`

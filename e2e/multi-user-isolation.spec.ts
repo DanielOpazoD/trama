@@ -63,7 +63,7 @@ test.describe('multi-user isolation smoke', () => {
     }
   })
 
-  test('user B cannot discover user A fixtures across core, Notas and attachments', async () => {
+  test('user B cannot discover user A fixtures across core, Recortes, Notas and attachments', async () => {
     const baseURL = process.env.E2E_BASE_URL!
     const userA = await request.newContext({
       baseURL,
@@ -110,6 +110,16 @@ test.describe('multi-user isolation smoke', () => {
     const note = await createNote.json()
     cleanup.push(() => userA.delete(`/api/notes/${note.id}`))
 
+    const createRecorte = await userA.post('/api/recortes', {
+      data: {
+        text: `${marker} recorte privado`,
+        sourceTitle: 'Smoke multiusuario',
+      },
+    })
+    expect(createRecorte.status()).toBe(201)
+    const recorte = await createRecorte.json()
+    cleanup.push(() => userA.delete(`/api/recortes/${recorte.id}`))
+
     const createMomento = await userA.post('/api/momentos', {
       data: {
         kind: 'nota',
@@ -148,6 +158,7 @@ test.describe('multi-user isolation smoke', () => {
         await userB.get(`/api/search?q=${encodeURIComponent(marker)}`),
         marker,
       )
+      await expectResponseNotToContain(await userB.get('/api/recortes'), marker)
       await expectResponseNotToContain(
         await userB.get(
           `/api/notas-feed?segment=todo&q=${encodeURIComponent(marker)}&limit=20`,
@@ -191,6 +202,14 @@ test.describe('multi-user isolation smoke', () => {
         await userA.get(`/api/notes?q=${encodeURIComponent(marker)}`),
         marker,
       )
+
+      await expectPatchBlocked(
+        await userB.patch(`/api/recortes/${recorte.id}`, {
+          data: { note: `${marker} recorte mutado por B` },
+        }),
+      )
+      await expectMutationBlocked(await userB.delete(`/api/recortes/${recorte.id}`))
+      await expectResponseToContain(await userA.get('/api/recortes'), marker)
 
       await expectPatchBlocked(
         await userB.patch(`/api/momentos/${momento.id}`, {
