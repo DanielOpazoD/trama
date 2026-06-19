@@ -7,10 +7,26 @@ import { checkStructureRatchets, fileLineCount } from './check-structure-ratchet
 import { STRUCTURE_RATCHETS } from './structure-ratchets.mjs'
 
 const API_BOUNDARY_ENDPOINTS = [
-  ['netlify/functions/recortes.mts', './_lib/recortes-endpoint.js'],
-  ['netlify/functions/momentos.mts', './_lib/momentos-endpoint.js'],
-  ['netlify/functions/entities.mts', './_lib/entities-endpoint.js'],
-  ['netlify/functions/search.mts', './_lib/search-endpoint.js'],
+  {
+    wrapper: 'netlify/functions/recortes.mts',
+    endpointImport: './_lib/recortes-endpoint.js',
+    handler: 'netlify/functions/_lib/recortes-endpoint.ts',
+  },
+  {
+    wrapper: 'netlify/functions/momentos.mts',
+    endpointImport: './_lib/momentos-endpoint.js',
+    handler: 'netlify/functions/_lib/momentos-endpoint.ts',
+  },
+  {
+    wrapper: 'netlify/functions/entities.mts',
+    endpointImport: './_lib/entities-endpoint.js',
+    handler: 'netlify/functions/_lib/entities-endpoint.ts',
+  },
+  {
+    wrapper: 'netlify/functions/search.mts',
+    endpointImport: './_lib/search-endpoint.js',
+    handler: 'netlify/functions/_lib/search-endpoint.ts',
+  },
 ]
 
 describe('structure ratchets', () => {
@@ -39,11 +55,24 @@ describe('structure ratchets', () => {
   })
 
   it('mantiene los endpoints críticos como wrappers finos hacia _lib/*-endpoint', () => {
-    for (const [file, endpointImport] of API_BOUNDARY_ENDPOINTS) {
-      const source = readFileSync(file, 'utf8')
+    for (const { wrapper, endpointImport } of API_BOUNDARY_ENDPOINTS) {
+      const source = readFileSync(wrapper, 'utf8')
 
-      expect(source).toContain(endpointImport)
-      expect(fileLineCount(file)).toBeLessThanOrEqual(90)
+      expect(source).toBe(
+        `import handler, { config } from '${endpointImport}'\n\nexport { config }\nexport default handler\n`,
+      )
+      expect(fileLineCount(wrapper)).toBeLessThanOrEqual(90)
+    }
+  })
+
+  it('mantiene los handlers extraídos bajo observabilidad y errores canónicos', () => {
+    for (const { handler } of API_BOUNDARY_ENDPOINTS) {
+      const source = readFileSync(handler, 'utf8')
+
+      expect(source).toMatch(/import \{ withObservability \} from '\.\/handler-wrap\.js'/)
+      expect(source).toMatch(/import \{ ApiErrors \} from '\.\/api-error\.js'/)
+      expect(source).toMatch(/export default withObservability\(/)
+      expect(source).not.toMatch(/\bnew Response\s*\(/)
     }
   })
 
@@ -53,8 +82,8 @@ describe('structure ratchets', () => {
     )
     const maxFor = (file) => entries.find((entry) => entry.file === file)?.maxLines
 
-    for (const [file] of API_BOUNDARY_ENDPOINTS) {
-      expect(maxFor(file)).toBeLessThanOrEqual(90)
+    for (const { wrapper } of API_BOUNDARY_ENDPOINTS) {
+      expect(maxFor(wrapper)).toBeLessThanOrEqual(90)
     }
     expect(maxFor('netlify/functions/_lib/recortes-endpoint.ts')).toBeLessThanOrEqual(650)
     expect(maxFor('netlify/functions/_lib/momentos-endpoint.ts')).toBeLessThanOrEqual(560)
