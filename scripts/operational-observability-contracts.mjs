@@ -36,6 +36,9 @@ const REQUIRED_DOC_SNIPPETS = [
     snippets: [
       'Smoke productivo reportable',
       'npm run smoke:production-report',
+      'CLERK_SECRET_KEY',
+      'E2E_USER_A_ID',
+      'E2E_USER_B_ID',
       '--comment-pr',
       '--repo=<owner>/<repo>',
       'production_smoke: ok',

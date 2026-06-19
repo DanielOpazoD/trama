@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
 import { runCutoverPreflight } from './cutover-preflight.mjs'
+import { resolveMultiuserSmokeEnv } from './multiuser-smoke-env.mjs'
 import { probeRuntimeApiRoutes } from './runtime-api-routes.mjs'
 
 const PLAYWRIGHT_SPECS = [
@@ -79,16 +80,11 @@ export async function runProductionSmokeReport({
   argv = process.argv.slice(2),
   runPreflight = runCutoverPreflight,
   probeRuntimeApiRoutes: probeRoutes = probeRuntimeApiRoutes,
+  resolveSmokeEnv = resolveMultiuserSmokeEnv,
   spawnSyncImpl = spawnSync,
 } = {}) {
   const baseUrl = env.E2E_BASE_URL
-  const tokenA = env.E2E_USER_A_TOKEN
-  const tokenB = env.E2E_USER_B_TOKEN
-  if (!baseUrl || !tokenA) {
-    throw new Error(
-      'production smoke report requires E2E_BASE_URL and E2E_USER_A_TOKEN. E2E_USER_B_TOKEN is recommended.',
-    )
-  }
+  if (!baseUrl) throw new Error('production smoke report requires E2E_BASE_URL.')
 
   const playwrightArgs = argv.filter((arg) => !isReportCliFlag(arg))
   if (
@@ -96,27 +92,34 @@ export async function runProductionSmokeReport({
   ) {
     playwrightArgs.push('--project=chromium')
   }
-  const preflight = await runPreflight({
-    baseUrl,
-    healthToken: tokenA,
-  })
-  const routeProbe = await probeRoutes({ baseUrl, tokenA, tokenB })
-  const playwright = runPlaywrightSmoke({
-    env,
-    spawnSyncImpl,
-    playwrightArgs,
-  })
+  const smokeEnv = await resolveSmokeEnv({ env })
+  try {
+    const tokenA = smokeEnv.env.E2E_USER_A_TOKEN
+    const tokenB = smokeEnv.env.E2E_USER_B_TOKEN
+    const preflight = await runPreflight({
+      baseUrl,
+      healthToken: tokenA,
+    })
+    const routeProbe = await probeRoutes({ baseUrl, tokenA, tokenB })
+    const playwright = runPlaywrightSmoke({
+      env: smokeEnv.env,
+      spawnSyncImpl,
+      playwrightArgs,
+    })
 
-  const report = {
-    ok: preflight.status === 'ok' && routeProbe.ok && playwright.ok,
-    baseUrl: normalizeBaseUrl(baseUrl),
-    generatedAt: new Date().toISOString(),
-    preflight,
-    routeProbe,
-    playwright,
+    const report = {
+      ok: preflight.status === 'ok' && routeProbe.ok && playwright.ok,
+      baseUrl: normalizeBaseUrl(baseUrl),
+      generatedAt: new Date().toISOString(),
+      preflight,
+      routeProbe,
+      playwright,
+    }
+    logSmokeEvent(report)
+    return report
+  } finally {
+    await smokeEnv.cleanup()
   }
-  logSmokeEvent(report)
-  return report
 }
 
 export function commentProductionSmokeReport({

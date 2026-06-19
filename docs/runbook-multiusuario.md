@@ -140,12 +140,23 @@ E2E_USER_B_TOKEN=<jwt de B> \
 npm run smoke:production-report
 ```
 
+También puede resolver tokens efímeros con Clerk, igual que `cutover:smoke`:
+
+```bash
+E2E_BASE_URL=https://<sitio-o-preview>.netlify.app \
+CLERK_SECRET_KEY=sk_live_... \
+E2E_USER_A_ID=user_... \
+E2E_USER_B_ID=user_... \
+npm run smoke:production-report
+```
+
 Para publicar la misma evidencia directamente en un PR, sin exponer tokens:
 
 ```bash
 E2E_BASE_URL=https://deploy-preview-<n>--tramadaod.netlify.app \
-E2E_USER_A_TOKEN=<jwt de A> \
-E2E_USER_B_TOKEN=<jwt de B> \
+CLERK_SECRET_KEY=sk_live_... \
+E2E_USER_A_ID=user_... \
+E2E_USER_B_ID=user_... \
 npm run smoke:production-report -- --comment-pr=<n> --repo=<owner>/<repo>
 ```
 

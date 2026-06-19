@@ -89,12 +89,80 @@ describe('multiuser production smoke report', () => {
     )
   })
 
+  test('puede resolver tokens efimeros Clerk antes del smoke reportable', async () => {
+    const cleanup = vi.fn(async () => {})
+    const resolveSmokeEnv = vi.fn(async ({ env }) => ({
+      mode: 'minted-clerk-tokens',
+      env: {
+        ...env,
+        E2E_USER_A_TOKEN: 'minted-token-a-secret',
+        E2E_USER_B_TOKEN: 'minted-token-b-secret',
+      },
+      cleanup,
+    }))
+    const runPreflight = vi.fn(async () => ({
+      status: 'ok',
+      exitCode: 0,
+      lines: ['anonymous_401: ok'],
+      hints: [],
+    }))
+    const probeRuntimeApiRoutes = vi.fn(async () => ({
+      ok: true,
+      baseUrl: 'https://deploy-preview.example',
+      results: [],
+      failures: [],
+    }))
+    const spawnSyncImpl = vi.fn(() => ({ status: 0 }))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await runProductionSmokeReport({
+      env: {
+        E2E_BASE_URL: 'https://deploy-preview.example/',
+        CLERK_SECRET_KEY: 'sk_live_secret',
+        E2E_USER_A_ID: 'user_a',
+        E2E_USER_B_ID: 'user_b',
+      },
+      resolveSmokeEnv,
+      runPreflight,
+      probeRuntimeApiRoutes,
+      spawnSyncImpl,
+    })
+
+    expect(resolveSmokeEnv).toHaveBeenCalledWith({
+      env: expect.objectContaining({
+        E2E_BASE_URL: 'https://deploy-preview.example/',
+        CLERK_SECRET_KEY: 'sk_live_secret',
+        E2E_USER_A_ID: 'user_a',
+        E2E_USER_B_ID: 'user_b',
+      }),
+    })
+    expect(runPreflight).toHaveBeenCalledWith({
+      baseUrl: 'https://deploy-preview.example/',
+      healthToken: 'minted-token-a-secret',
+    })
+    expect(probeRuntimeApiRoutes).toHaveBeenCalledWith({
+      baseUrl: 'https://deploy-preview.example/',
+      tokenA: 'minted-token-a-secret',
+      tokenB: 'minted-token-b-secret',
+    })
+    expect(spawnSyncImpl.mock.calls[0]?.[2]).toEqual(
+      expect.objectContaining({
+        env: expect.objectContaining({
+          E2E_USER_A_TOKEN: 'minted-token-a-secret',
+          E2E_USER_B_TOKEN: 'minted-token-b-secret',
+        }),
+      }),
+    )
+    expect(cleanup).toHaveBeenCalledTimes(1)
+  })
+
   test('marca failed cuando preflight o rutas fallan', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const report = await runProductionSmokeReport({
       env: {
         E2E_BASE_URL: 'https://trama.example',
         E2E_USER_A_TOKEN: 'token-a',
+        E2E_USER_B_TOKEN: 'token-b',
       },
       runPreflight: vi.fn(async () => ({
         status: 'failed',
