@@ -13,6 +13,7 @@
 import { createClerkClient, verifyToken } from '@clerk/backend'
 import { setCurrentRlsUser } from './user-rls'
 import { isPersonalToken, resolvePersonalToken } from './personal-tokens'
+import { logOperationalEvent } from './operational-events'
 
 /** Lee una env var de forma segura tanto en Netlify runtime como en tests. */
 function readEnv(key: string): string | undefined {
@@ -33,6 +34,29 @@ export class UnauthenticatedError extends Error {
     super('Authentication required')
     this.name = 'UnauthenticatedError'
   }
+}
+
+export type AuthOperationalContext = {
+  requestId?: string
+  operation?: string
+}
+
+function logAuthOperationalEvent(
+  event: 'auth.verified' | 'auth.fallback',
+  severity: 'info' | 'warn',
+  userId: string,
+  context?: AuthOperationalContext,
+  reason?: string,
+): void {
+  if (!context?.requestId && !context?.operation) return
+  logOperationalEvent({
+    event,
+    severity,
+    userId,
+    ...(context?.requestId ? { requestId: context.requestId } : {}),
+    ...(context?.operation ? { operation: context.operation } : {}),
+    ...(reason ? { reason } : {}),
+  })
 }
 
 function emailFromJwtPayload(payload: unknown): string | undefined {
@@ -102,7 +126,10 @@ async function fetchEmailFromClerk(sub: string): Promise<string | undefined> {
  *     // ... usar userId en queries SQL: WHERE user_id = ${userId}
  *   })
  */
-export async function getAuthedUser(request: Request): Promise<AuthedUser> {
+export async function getAuthedUser(
+  request: Request,
+  operationalContext?: AuthOperationalContext,
+): Promise<AuthedUser> {
   const clerkConfigured = Boolean(readEnv('CLERK_SECRET_KEY'))
   const bearer = request.headers.get('authorization')?.replace('Bearer ', '').trim()
 
@@ -114,6 +141,7 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
     if (!ownerId) throw new UnauthenticatedError()
     const user = { id: ownerId }
     setCurrentRlsUser(user.id)
+    logAuthOperationalEvent('auth.verified', 'info', user.id, operationalContext)
     return user
   }
 
@@ -121,6 +149,13 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
   if (!clerkConfigured) {
     const user = { id: 'legacy-single-user' }
     setCurrentRlsUser(user.id)
+    logAuthOperationalEvent(
+      'auth.fallback',
+      'warn',
+      user.id,
+      operationalContext,
+      'clerk_not_configured',
+    )
     return user
   }
 
@@ -146,12 +181,20 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
         // El email entra al contexto RLS: las policies de invitaciones por
         // correo (momento_space_*) lo comparan vía app.current_user_email.
         setCurrentRlsUser(user.id, user.email)
+        logAuthOperationalEvent(
+          'auth.fallback',
+          'warn',
+          user.id,
+          operationalContext,
+          'legacy_owner_mapped',
+        )
         return user
       }
       const email =
         emailFromJwtPayload(payload) ?? (await fetchEmailFromClerk(payload.sub))
       const user = { id: payload.sub, email }
       setCurrentRlsUser(user.id, user.email)
+      logAuthOperationalEvent('auth.verified', 'info', user.id, operationalContext)
       return user
     } catch {
       // Token inválido — caer al fallback si está habilitado
@@ -163,6 +206,13 @@ export async function getAuthedUser(request: Request): Promise<AuthedUser> {
   if (readEnv('ALLOW_LEGACY_FALLBACK') === 'true') {
     const user = { id: 'legacy-single-user' }
     setCurrentRlsUser(user.id)
+    logAuthOperationalEvent(
+      'auth.fallback',
+      'warn',
+      user.id,
+      operationalContext,
+      'legacy_fallback_allowed',
+    )
     return user
   }
 

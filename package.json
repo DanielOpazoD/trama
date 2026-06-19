@@ -35,6 +35,7 @@
     "cutover:smoke": "node scripts/run-cutover-smoke.mjs",
     "cutover:smoke:isolation": "node scripts/run-cutover-isolation-smoke.mjs",
     "smoke:multiuser:prod": "node scripts/smoke-isolation.mjs",
+    "smoke:production-report": "node scripts/multiuser-production-report.mjs",
     "e2e:ui": "node_modules/.bin/playwright test --ui",
     "e2e:install": "node_modules/.bin/playwright install --with-deps chromium",
     "typecheck": "node_modules/.bin/tsc -b && npm run check:extension-types",

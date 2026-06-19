@@ -34,7 +34,10 @@ function makeRequest(authHeader?: string): Request {
 }
 
 describe('getAuthedUser', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     verifyTokenMock.mockReset()
     getUserMock.mockReset()
     getUserMock.mockRejectedValue(new Error('not found'))
@@ -50,6 +53,7 @@ describe('getAuthedUser', () => {
   })
 
   afterEach(() => {
+    consoleLogSpy.mockRestore()
     vi.unstubAllGlobals()
   })
 
@@ -79,6 +83,31 @@ describe('getAuthedUser', () => {
     })
   })
 
+  it('con contexto operacional emite auth.verified para token real', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    verifyTokenMock.mockResolvedValue({ sub: 'user_real_clerk_id_123' })
+
+    const { getAuthedUser } = await import('./auth.js')
+    await getAuthedUser(makeRequest('Bearer goodtoken'), {
+      requestId: 'rid-auth',
+      operation: 'notes.list',
+    })
+
+    const logs = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'auth.verified',
+          category: 'operational',
+          severity: 'info',
+          requestId: 'rid-auth',
+          operation: 'notes.list',
+          userId: 'user_real_clerk_id_123',
+        }),
+      ]),
+    )
+  })
+
   it('con Clerk + token inválido + ALLOW_LEGACY_FALLBACK=true → legacy', async () => {
     process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
     process.env['ALLOW_LEGACY_FALLBACK'] = 'true'
@@ -87,6 +116,34 @@ describe('getAuthedUser', () => {
     const { getAuthedUser } = await import('./auth.js')
     const user = await getAuthedUser(makeRequest('Bearer badtoken'))
     expect(user.id).toBe('legacy-single-user')
+  })
+
+  it('con contexto operacional emite auth.fallback cuando usa legacy fallback', async () => {
+    process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
+    process.env['ALLOW_LEGACY_FALLBACK'] = 'true'
+    verifyTokenMock.mockRejectedValue(new Error('bad signature'))
+
+    const { getAuthedUser } = await import('./auth.js')
+    await getAuthedUser(makeRequest('Bearer badtoken'), {
+      requestId: 'rid-fallback',
+      operation: 'recortes.list',
+    })
+
+    const logs = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'auth.fallback',
+          category: 'operational',
+          severity: 'warn',
+          requestId: 'rid-fallback',
+          operation: 'recortes.list',
+          userId: 'legacy-single-user',
+          reason: 'legacy_fallback_allowed',
+        }),
+      ]),
+    )
+    expect(JSON.stringify(logs)).not.toContain('badtoken')
   })
 
   it('con Clerk + token inválido + sin fallback → UnauthenticatedError', async () => {

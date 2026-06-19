@@ -302,6 +302,13 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       pct: budgetPct,
     },
     auth,
+    operational: {
+      requestId,
+      databaseReachable: true,
+      runtimeApiRoutesContract: 'check:runtime-api-routes',
+      productionSmokeCommand: 'npm run smoke:production-report',
+      logRedaction: 'structured-redaction',
+    },
     alerts,
     embeddings: {
       pendingEntities,
