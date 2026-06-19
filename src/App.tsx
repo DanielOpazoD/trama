@@ -46,8 +46,12 @@ import { MomentoNotificationsCenter } from './components/momentos/MomentoNotific
 const NotasWorld = lazy(() =>
   import('./components/notas/NotasWorld').then((m) => ({ default: m.NotasWorld })),
 )
-import { NOTAS_SECTIONS, type NotasSection } from './types/notas'
-import { resolveRecortesRedirect } from './lib/recortesRedirect'
+import { type NotasSection } from './types/notas'
+import {
+  readNotasSectionDeepLinkFromSearch,
+  readWorldDeepLinkFromSearch,
+  resolveRecortesRedirectSearch,
+} from './lib/worldShellRouting'
 import type { CommandAction } from './components/CommandPalette'
 
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
@@ -475,28 +479,6 @@ function Shell({
  * Notas. El mundo activo persiste en localStorage. Es el único nivel por
  * encima del Shell — todo lo de la Trama sigue intacto adentro de Shell.
  */
-function readWorldDeepLink(): World | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const world = new URLSearchParams(window.location.search).get('world')
-    return world === 'notas' || world === 'trama' ? world : null
-  } catch {
-    return null
-  }
-}
-
-function readNotasSectionDeepLink(): NotasSection | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const section = new URLSearchParams(window.location.search).get('section')
-    return NOTAS_SECTIONS.includes(section as NotasSection)
-      ? (section as NotasSection)
-      : null
-  } catch {
-    return null
-  }
-}
-
 /**
  * τ-recortes-merge: los enlaces viejos `?view=recortes` apuntaban a la vista
  * top-level Recortes (ya removida). Antes de resolver mundo/sección iniciales,
@@ -510,13 +492,13 @@ let recortesRedirectApplied = false
 function applyRecortesRedirectOnce() {
   if (recortesRedirectApplied || typeof window === 'undefined') return
   recortesRedirectApplied = true
-  const redirect = resolveRecortesRedirect(window.location.search)
-  if (!redirect) return
+  const search = resolveRecortesRedirectSearch(window.location.search)
+  if (!search) return
   try {
     window.history.replaceState(
       window.history.state,
       '',
-      `${window.location.pathname}${redirect.search}${window.location.hash}`,
+      `${window.location.pathname}${search}${window.location.hash}`,
     )
   } catch {
     /* replaceState no disponible (entorno raro) — el deep-link viejo no rompe nada */
@@ -525,7 +507,10 @@ function applyRecortesRedirectOnce() {
 
 function WorldShell() {
   applyRecortesRedirectOnce()
-  const initialWorldFromUrl = readWorldDeepLink()
+  const initialWorldFromUrl =
+    typeof window === 'undefined'
+      ? null
+      : readWorldDeepLinkFromSearch(window.location.search)
   const [world, setWorld] = useState<World>(() => {
     if (typeof window === 'undefined') return DEFAULT_WORLD
     if (initialWorldFromUrl) return initialWorldFromUrl
@@ -592,7 +577,10 @@ function WorldShell() {
   // des-oculta, agenda abrir esa sección, y cruza al mundo Notas.
 
   const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
-    () => (initialWorldFromUrl === 'notas' ? readNotasSectionDeepLink() : null),
+    () =>
+      initialWorldFromUrl === 'notas' && typeof window !== 'undefined'
+        ? readNotasSectionDeepLinkFromSearch(window.location.search)
+        : null,
   )
   const revealNotasModule = useCallback(
     (moduleId: NotasSection) => {

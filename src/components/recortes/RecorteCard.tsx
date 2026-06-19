@@ -4,11 +4,9 @@ import { recorteImageUrl } from '../../api/recortes'
 import { apiFetch } from '../../api/request'
 import { useSuggestRecorte, useUpdateRecorte } from '../../state'
 import { useToast } from '../../state/toast'
-import { youtubeThumb } from '../../lib/youtubeThumb'
 import {
   ArrowRightIcon,
   ChevronDownIcon,
-  DuplicateIcon,
   EntitiesIcon,
   MomentosIcon,
   PrinterIcon,
@@ -19,141 +17,30 @@ import {
 } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
-import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { hostOf, LinkMediaPreview, type LinkMediaSize } from './LinkMediaPreview'
+import {
+  hasRecorteMediaPreview,
+  hostOf,
+  RecorteMediaPreview,
+  type LinkMediaSize,
+} from './RecorteMediaPreview'
 import { RecorteLightbox } from './RecorteLightbox'
 import { recorteToLightboxEntries } from './recorteViewer'
 import type { PromoteSeed } from './PromoteModal'
 import { markdownToPreview } from './recorteMarkdownPreview'
 import { AIThinkingLabel } from '../AIThinkingLabel'
-
-function formatStamp(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d
-    .toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
-    .replace(/\./g, '')
-}
-
-const TARGET_LABEL: Record<RecorteTarget, string> = {
-  quote: 'cita',
-  entity: 'entidad',
-  momento: 'momento',
-}
-
-/** Etiqueta del modo de captura (chip). 'citation' es la norma -> sin chip. */
-const CAPTURE_MODE_LABEL: Record<NonNullable<Recorte['captureMode']>, string> = {
-  citation: 'cita',
-  article: 'artículo',
-  html: 'página',
-  region: 'región',
-  image: 'imagen',
-  video: 'video',
-}
+import { RecorteSuggestionBanner } from './RecorteSuggestionBanner'
+import {
+  buildPromoteSeedFromSuggestion,
+  formatRecorteStamp,
+  looksLikePlaceholder,
+  recorteCaptureModeLabel,
+  recorteTargetLabel,
+} from './recorteCardModel'
 
 // Alto (px) a partir del cual el texto de una captura se colapsa con un botón
 // sin palabras. Más corto que la nota (~6-7 líneas): una captura no debe
 // dominar la lista; lo extenso se promueve, no se lee entero acá.
 const COLLAPSED_MAX_PX = 168
-
-// Pixel transparente mientras el blob authed viaja (evita el icono roto).
-const TRANSPARENT_PX =
-  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-
-/**
- * Marco de medios del recorte: SOLO se monta cuando hay una imagen real que
- * mostrar — imagen propia del recorte (imageKey/imageUrl), o miniatura derivada
- * si el origen es un video de YouTube. Sin imagen no se renderiza nada: el
- * origen aparece como un eyebrow discreto sobre el título (ver RecorteCard).
- *
- * Prefiere SIEMPRE el blob propio (`imageKey`) cuando existe: tras crear un
- * recorte-enlace, el servidor descarga la miniatura (og:image o la derivada de
- * YouTube) a nuestro blob (ver useRecortes → cacheRecorteThumbnail). La
- * miniatura derivada de i.ytimg.com queda solo como fallback instantáneo
- * mientras la caché server-side aún no corrió.
- */
-function RecorteMediaPreview({
-  recorte: r,
-  host,
-  size,
-  onOpenImage,
-}: {
-  recorte: Recorte
-  host: string | null
-  size: LinkMediaSize
-  /** Abre el visor (solo se cablea cuando la captura tiene imagen propia). */
-  onOpenImage?: () => void
-}) {
-  const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
-  const { src, status } = useAuthenticatedMediaState(authedSrc)
-  const isVideo = r.captureMode === 'video'
-  // Miniatura derivada de YouTube si el recorte no trae imagen propia.
-  const derivedThumb = !r.imageKey && !r.imageUrl ? youtubeThumb(r.sourceUrl ?? '') : null
-  const [thumbFailed, setThumbFailed] = useState(false)
-  const shown = authedSrc ? src : (r.imageUrl ?? derivedThumb)
-
-  // Sin imagen real (ni propia ni derivada que cargue) → no se monta el marco.
-  if (!authedSrc && !r.imageUrl && (!derivedThumb || thumbFailed)) return null
-
-  if (isVideo && authedSrc) {
-    return (
-      <div
-        className={`mb-3 overflow-hidden rounded-md border border-ink-100/70 bg-ink-950/90 ${size === 'grande' ? '' : size === 'mediana' ? 'max-w-[260px]' : 'max-w-[150px]'}`}
-      >
-        {status === 'ready' && src ? (
-          <video
-            src={src}
-            controls
-            preload="metadata"
-            aria-label="Video del recorte"
-            className="block aspect-video w-full bg-ink-950 object-contain"
-          />
-        ) : (
-          <div className="flex aspect-video items-center justify-center text-caption text-paper-50/70">
-            {status === 'error' ? 'No se pudo cargar el video' : 'cargando video…'}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <LinkMediaPreview
-      href={r.imageKey ? null : (r.sourceUrl ?? r.imageUrl)}
-      host={host}
-      dateLabel={formatStamp(r.capturedAt ?? r.createdAt)}
-      size={size}
-      // Recorte-evento: insignia con ícono de «pila» + cantidad de imágenes.
-      // Decorativa: la cuenta se anuncia en el ariaLabel del visor.
-      badge={
-        r.images.length > 1 ? (
-          <>
-            <DuplicateIcon size={11} />
-            {r.images.length}
-          </>
-        ) : undefined
-      }
-      // El visor solo aplica a la imagen propia (sin href). Para enlaces/OG el
-      // clic sigue abriendo el original.
-      onOpenImage={r.imageKey ? onOpenImage : undefined}
-      imageUrl={
-        shown ?? (authedSrc ? TRANSPARENT_PX : (r.imageUrl ?? derivedThumb ?? ''))
-      }
-      imageLoading={status === 'loading'}
-      ariaLabel={
-        r.imageKey
-          ? r.images.length > 1
-            ? `Ampliar — ${r.images.length} imágenes`
-            : 'Ampliar imagen'
-          : r.sourceTitle
-            ? `Abrir ${r.sourceTitle}`
-            : undefined
-      }
-      onImageError={derivedThumb ? () => setThumbFailed(true) : undefined}
-    />
-  )
-}
 
 /**
  * Baja la imagen del recorte como File para pasarla al OCR. Prefiere el blob
@@ -173,59 +60,6 @@ async function fetchRecorteImageFile(r: Recorte): Promise<File> {
     return new File([blob], 'recorte', { type: blob.type || 'image/jpeg' })
   }
   throw new Error('El recorte no tiene imagen')
-}
-
-/**
- * ¿El texto es solo un pie de foto autogenerado (título/"Imagen guardada")?
- * Si lo es, el OCR lo reemplaza; si no, se anexa para no perder lo escrito.
- */
-function looksLikePlaceholder(text: string, r: Recorte): boolean {
-  const t = text.trim().toLowerCase()
-  if (!t) return true
-  if (t === 'imagen guardada' || t === 'recorte visual de la página') return true
-  if (r.sourceTitle && t === r.sourceTitle.trim().toLowerCase()) return true
-  return false
-}
-
-/**
- * Banner de la sugerencia de la IA: destino propuesto, por qué, título y
- * entidades conectadas, con un clic para promover ya pre-llenado.
- */
-function SuggestionBanner({
-  suggestion,
-  onUse,
-}: {
-  suggestion: RecorteSuggestion
-  onUse: () => void
-}) {
-  return (
-    <div className="mt-2.5 rounded-md border border-[color:var(--accent-gold-soft)] bg-[color:var(--accent-gold-soft)] px-3 py-2">
-      <div className="flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-[color:var(--accent-gold)]">
-        <SparkleIcon size={11} />
-        la IA sugiere
-      </div>
-      <p className="mt-1 font-serif text-sm text-ink-700">
-        → {TARGET_LABEL[suggestion.target]}
-        {suggestion.title && (
-          <span className="text-ink-500"> · «{suggestion.title}»</span>
-        )}
-      </p>
-      {suggestion.rationale && (
-        <p className="mt-0.5 text-caption text-ink-500">{suggestion.rationale}</p>
-      )}
-      {suggestion.relatedEntities.length > 0 && (
-        <p className="mt-1 text-micro text-ink-400">
-          conecta con {suggestion.relatedEntities.map((e) => e.name).join(', ')}
-        </p>
-      )}
-      <button
-        onClick={onUse}
-        className="mt-2 text-micro uppercase tracking-eyebrow text-ink-600 hover:text-ink-900 transition-colors"
-      >
-        usar sugerencia →
-      </button>
-    </div>
-  )
 }
 
 export function RecorteCard({
@@ -263,8 +97,8 @@ export function RecorteCard({
   const hasInternalImage = !!(r.imageKey || r.images.length > 0) && !hasVideo
   // ¿Hay alguna imagen (propia o derivada de YouTube) que muestre el marco?
   // Si no, el origen se anuncia como eyebrow discreto sobre el título.
-  const hasPreview = hasImage || hasVideo || youtubeThumb(r.sourceUrl ?? '') !== null
-  const dateLabel = formatStamp(r.capturedAt ?? r.createdAt)
+  const hasPreview = hasRecorteMediaPreview(r)
+  const dateLabel = formatRecorteStamp(r.capturedAt ?? r.createdAt)
 
   // Colapso del cuerpo: igual que NoteCard, las capturas largas se recortan a
   // unas pocas líneas y se abren con un botón sin palabras (chevron).
@@ -318,24 +152,9 @@ export function RecorteCard({
     }
   }
 
-  function seedFromSuggestion(s: RecorteSuggestion): PromoteSeed {
-    const seed: PromoteSeed = { title: s.title }
-    if (s.target === 'quote' && s.relatedEntities[0]) {
-      const entity = s.relatedEntities[0]
-      seed.entityId = entity.id
-      seed.entityName = entity.name
-      seed.entityType = entity.type
-    }
-    if (s.target === 'entity') {
-      seed.entityName = s.suggestedEntityName ?? undefined
-      seed.entityType = s.suggestedEntityType ?? undefined
-    }
-    return seed
-  }
-
   function useSuggestion() {
     if (!suggestion) return
-    onPromote(r, suggestion.target, seedFromSuggestion(suggestion))
+    onPromote(r, suggestion.target, buildPromoteSeedFromSuggestion(suggestion))
   }
 
   return (
@@ -377,7 +196,7 @@ export function RecorteCard({
         </span>
         {r.captureMode && r.captureMode !== 'citation' && (
           <span className="shrink-0 rounded-sm bg-ink-700/5 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400">
-            {CAPTURE_MODE_LABEL[r.captureMode]}
+            {recorteCaptureModeLabel(r.captureMode)}
           </span>
         )}
       </div>
@@ -438,7 +257,9 @@ export function RecorteCard({
 
       {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
 
-      {suggestion && <SuggestionBanner suggestion={suggestion} onUse={useSuggestion} />}
+      {suggestion && (
+        <RecorteSuggestionBanner suggestion={suggestion} onUse={useSuggestion} />
+      )}
 
       {/* Pie: enlace al original a la izquierda + menú ⋯ a la derecha con toda
           la triage (→ cita / → entidad / → momento, sugerir, extraer, archivar,
@@ -458,7 +279,7 @@ export function RecorteCard({
         )}
         {r.status === 'promoted' && r.promotedTarget && (
           <span className="text-micro uppercase tracking-eyebrow text-ink-300">
-            → {TARGET_LABEL[r.promotedTarget]}
+            → {recorteTargetLabel(r.promotedTarget)}
           </span>
         )}
 

@@ -49,11 +49,12 @@ const BUDGETS = {
   ListeningView: 10,
   MomentosView: 25,
   QuotesView: 16,
-  // Mundo Notas completo (lazy desde App): feed unificado notas+recortes con su
-  // triage (RecorteCard + PromoteModal), calendario de actividad, NoteCard y
-  // prefetch por intención hacia PDF Studio.
-  // Salió del bundle `index` al hacerse lazy; vive en su propio chunk.
-  NotasWorld: 44,
+  // Mundo Notas base (lazy desde App): chrome, inicio y secciones livianas.
+  // El feed pesado se carga por sección como NotasFeedView.
+  NotasWorld: 25,
+  // Feed unificado notas+recortes: triage (RecorteCard + PromoteModal),
+  // calendario de actividad, NoteCard y captura de adjuntos.
+  NotasFeedView: 28,
   Settings: 18,
   'index.es': 60,
   'purify.es': 12,
