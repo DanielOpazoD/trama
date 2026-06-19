@@ -10,8 +10,8 @@ const MUTATION_ENDPOINTS = [
   'netlify/functions/notas-attachments-upload.mts',
 ]
 
-const TEXT_ERROR_RESPONSE =
-  /new Response\s*\(\s*(['"`])[\s\S]*?\1\s*,\s*\{[\s\S]*?status\s*:\s*(?:4|5)\d\d/g
+const ADHOC_ERROR_RESPONSE =
+  /\b(?:new Response|Response\.json)\s*\([\s\S]*?,\s*\{[\s\S]*?\bstatus\s*:\s*(?:4|5)\d\d\b[\s\S]*?\}/
 
 describe('mutation contracts guardrail', () => {
   it('mantiene mutaciones privadas sobre ApiErrors, no errores text/plain ad hoc', () => {
@@ -19,8 +19,21 @@ describe('mutation contracts guardrail', () => {
       const source = readFileSync(file, 'utf8')
 
       expect(source, file).toMatch(/ApiErrors/)
-      expect(source, file).not.toMatch(TEXT_ERROR_RESPONSE)
+      expect(source, file).not.toMatch(ADHOC_ERROR_RESPONSE)
     }
+  })
+
+  it('detecta variantes ad hoc aunque usen variables o Response.json', () => {
+    expect("return new Response('bad', { status: 400 })").toMatch(ADHOC_ERROR_RESPONSE)
+    expect('return new Response(errorBody, { status: 500 })').toMatch(
+      ADHOC_ERROR_RESPONSE,
+    )
+    expect('return Response.json({ error: "bad" }, { status: 409 })').toMatch(
+      ADHOC_ERROR_RESPONSE,
+    )
+    expect('return Response.json({ ok: true }, { status: 201 })').not.toMatch(
+      ADHOC_ERROR_RESPONSE,
+    )
   })
 
   it('mantiene el 500 inesperado de withObservability delegando en ApiErrors.internal', () => {
