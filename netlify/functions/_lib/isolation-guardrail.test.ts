@@ -146,6 +146,22 @@ function uncommentedSource(file: string): string {
     .replace(/\/\/.*$/gm, '')
 }
 
+function sourceForFunction(file: string): string {
+  const wrapperPath = join(FUNCTIONS_DIR, file)
+  const wrapperSource = readFileSync(wrapperPath, 'utf8')
+  const endpointImport = wrapperSource.match(
+    /import\s+handler\s*,\s*\{\s*config\s*\}\s+from\s+['"]\.\/_lib\/([^'"]+)\.js['"]/,
+  )
+  if (!endpointImport?.[1]) return wrapperSource
+  return readFileSync(join(LIB_DIR, `${endpointImport[1]}.ts`), 'utf8')
+}
+
+function uncommentedFunctionSource(file: string): string {
+  return sourceForFunction(file)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+}
+
 function repoPath(file: string): string {
   return relative(REPO_ROOT, file)
 }
@@ -217,7 +233,7 @@ describe('guardrail: aislamiento por user_id en handlers', () => {
   const files = functionHandlerFiles()
 
   for (const file of files) {
-    const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+    const src = sourceForFunction(file)
     const hasAuth = /getAuthedUser/.test(src)
 
     it(`${file}: endpoint sin getAuthedUser requiere exención explícita`, () => {
@@ -233,7 +249,7 @@ describe('guardrail: aislamiento por user_id en handlers', () => {
   }
 
   for (const file of files) {
-    const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+    const src = sourceForFunction(file)
     const touchesUserTable = PER_USER_TABLES.some((t) => tableRegex(t).test(src))
     if (!touchesUserTable) continue
 
@@ -252,7 +268,7 @@ describe('guardrail: aislamiento por user_id en handlers', () => {
   }
 
   for (const file of files) {
-    const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+    const src = sourceForFunction(file)
     const writesUserScopedRow = /insert\s+into[\s\S]*\buser_id\b/i.test(src)
     if (!writesUserScopedRow) continue
 
@@ -271,9 +287,9 @@ describe('guardrail: architecture fitness suite mínima', () => {
 
   it('todos los handlers HTTP están envueltos en withObservability', () => {
     const offenders = files.filter((file) => {
-      const src = uncommentedSource(join(FUNCTIONS_DIR, file))
+      const src = uncommentedFunctionSource(file)
       return (
-        !/import\s+\{\s*withObservability\s*\}\s+from\s+['"].\/_lib\/handler-wrap\.js['"]/i.test(
+        !/import\s+\{\s*withObservability\s*\}\s+from\s+['"]\.\/(?:_lib\/)?handler-wrap\.js['"]/i.test(
           src,
         ) || !/export\s+default\s+withObservability\s*\(/i.test(src)
       )
@@ -376,7 +392,7 @@ describe('guardrail: soft-delete/restore privado verifica filas afectadas', () =
     const offenders = readdirSync(FUNCTIONS_DIR)
       .filter((f) => f.endsWith('.mts'))
       .flatMap((file) => {
-        const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+        const src = sourceForFunction(file)
         return sqlTemplateBodies(src)
           .filter(
             (statement) =>
@@ -402,7 +418,7 @@ describe('guardrail: soft-delete/restore privado verifica filas afectadas', () =
 
   it('mantiene explícitas las exenciones de UPDATE ... deleted_at sin RETURNING', () => {
     for (const [file, exemptions] of Object.entries(MUTATION_RETURNING_EXEMPT)) {
-      const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+      const src = sourceForFunction(file)
       for (const exemption of exemptions) {
         expect(exemption.reason.length).toBeGreaterThan(20)
         expect(src).toMatch(exemption.pattern)
@@ -448,7 +464,7 @@ describe('guardrail: JOINs a tablas per-user scopean también el alias unido', (
 
   for (const { file, table, alias, min } of expectations) {
     it(`${file}: JOIN ${table} ${alias} filtra ${alias}.user_id y ${alias}.deleted_at`, () => {
-      const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+      const src = sourceForFunction(file)
       const clauses = scopedJoinClauses(src, table, alias)
       expect(clauses.length).toBeGreaterThanOrEqual(min)
       for (const clause of clauses) {
@@ -558,7 +574,7 @@ describe('guardrail: backfills de embeddings no escriben filas borradas ni ajena
 
   for (const { file, table } of expectations) {
     it(`${file}: UPDATE ${table} embedding filtra user_id y deleted_at`, () => {
-      const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+      const src = sourceForFunction(file)
       const re = new RegExp(
         `update\\s+${table}\\s+set[\\s\\S]*?embedding[\\s\\S]*?where[\\s\\S]*?deleted_at\\s+is\\s+null[\\s\\S]*?user_id\\s*=`,
         'i',

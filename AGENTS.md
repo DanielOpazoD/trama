@@ -41,6 +41,7 @@ Este archivo lo lee Codex automáticamente al entrar al proyecto. Acá viven sol
 | [**data.md**](docs/conventions/data.md)                             | `getSql()`, hooks de estado `src/state/`, Netlify Blobs, costos + observabilidad + request-id       |
 | [**llm.md**](docs/conventions/llm.md)                               | Abstracción `_lib/llm/`, providers, caminos de propuesta IA                                         |
 | [**api.md**](docs/conventions/api.md)                               | Schemas Zod, patrón de añadir endpoint, ApiErrors canónicos, tipos                                  |
+| [**api-boundaries.md**](docs/conventions/api-boundaries.md)         | Wrappers finos Netlify, contratos operacionales, tests y ratchets backend                           |
 | [**dominios.md**](docs/conventions/dominios.md)                     | Grafo, Chat, Momentos (ξ), Tareas — patrones específicos de cada vista                              |
 | [**roadmap.md**](docs/conventions/roadmap.md)                       | Decisiones aplazadas (multi-user, CRDTs, xyflow, etc.)                                              |
 

@@ -80,14 +80,39 @@ export const STRUCTURE_RATCHETS = [
     files: ['netlify/functions/import.mts'],
   },
   {
+    group: 'server-api-wrappers',
+    maxLines: 90,
+    files: [
+      'netlify/functions/recortes.mts',
+      'netlify/functions/momentos.mts',
+      'netlify/functions/entities.mts',
+      'netlify/functions/search.mts',
+    ],
+  },
+  {
     group: 'server-import-payload',
     maxLines: 360,
     files: ['netlify/functions/_lib/import-payload.ts'],
   },
   {
-    group: 'server-large-surfaces',
-    maxLines: 500,
-    files: ['netlify/functions/momentos.mts'],
+    group: 'server-api-endpoints',
+    maxLines: 650,
+    files: ['netlify/functions/_lib/recortes-endpoint.ts'],
+  },
+  {
+    group: 'server-api-endpoints',
+    maxLines: 560,
+    files: ['netlify/functions/_lib/momentos-endpoint.ts'],
+  },
+  {
+    group: 'server-api-endpoints',
+    maxLines: 480,
+    files: ['netlify/functions/_lib/entities-endpoint.ts'],
+  },
+  {
+    group: 'server-api-endpoints',
+    maxLines: 460,
+    files: ['netlify/functions/_lib/search-endpoint.ts'],
   },
   {
     group: 'server-large-surfaces',

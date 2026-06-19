@@ -7,7 +7,7 @@ const functionsRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
 describe('momentos endpoint boundary', () => {
   it('tipa las queries SELECT con sqlTyped en vez de casts locales', () => {
-    const src = readFileSync(join(functionsRoot, 'momentos.mts'), 'utf8')
+    const src = readFileSync(join(functionsRoot, '_lib/momentos-endpoint.ts'), 'utf8')
 
     expect(src).toContain('sqlTyped<')
     expect(src).not.toContain('as MomentoListRow[]')
