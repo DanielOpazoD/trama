@@ -8,8 +8,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Note } from '../api'
 import {
+  invalidateNoteMutationSurface,
   invalidateNotesPromotionSurface,
-  invalidateNotesSurface,
 } from './cacheInvalidation'
 import { restoreQuerySnapshot, snapshotQuery } from './cacheOptimistic'
 import { queryKeys } from './queryClient'
@@ -29,7 +29,7 @@ export function useCreateNote() {
     mutationFn: (input: { content: string; title?: string | null }) =>
       api.notes.create(input.content, { title: input.title }),
     onSuccess: () => {
-      invalidateNotesSurface(qc)
+      invalidateNoteMutationSurface(qc)
     },
   })
 }
@@ -66,7 +66,7 @@ export function useUpdateNote() {
       if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
     onSettled: () => {
-      invalidateNotesSurface(qc)
+      invalidateNoteMutationSurface(qc)
     },
   })
 }
@@ -77,7 +77,7 @@ export function useDeleteNote() {
   return useMutation({
     mutationFn: (id: string) => api.notes.remove(id),
     onSuccess: ({ deletedAt }, id) => {
-      invalidateNotesSurface(qc)
+      invalidateNoteMutationSurface(qc)
       // Deshacer: el restore revive nota + anexos con ese deleted_at exacto.
       if (deletedAt) {
         toast.show({
@@ -87,7 +87,7 @@ export function useDeleteNote() {
             label: 'Deshacer',
             onAction: async () => {
               await api.notes.restore(id, deletedAt)
-              invalidateNotesSurface(qc)
+              invalidateNoteMutationSurface(qc)
             },
           },
         })

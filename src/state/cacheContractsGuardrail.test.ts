@@ -3,13 +3,22 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const STATE_DIR = 'src/state'
+const REPO_ROOT = process.cwd()
 
-function source(file: string): string {
-  return readFileSync(join(STATE_DIR, file), 'utf8')
+function source(file: string, base = STATE_DIR): string {
+  return readFileSync(join(base, file), 'utf8')
 }
 
 function uncommented(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '')
+}
+
+function directInvalidationLines(file: string): string[] {
+  const src = uncommented(readFileSync(join(REPO_ROOT, file), 'utf8'))
+  return src
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.includes('invalidateQueries('))
 }
 
 describe('cache contract guardrail', () => {
@@ -26,7 +35,7 @@ describe('cache contract guardrail', () => {
 
   it('evita que Notas, Recortes y attachments vuelvan a invalidar superficies críticas a mano', () => {
     const forbiddenDirectInvalidation =
-      /invalidateQueries\(\{\s*queryKey:\s*queryKeys\.(notes|notasFeed|recortes|quotes|quotesInfinite|entities|momentosInfinite|counts|home|notasAttachments|tasks)\b/
+      /invalidateQueries\(\{\s*queryKey:\s*queryKeys\.(notes|notasFeed|recortes|quotes|quotesInfinite|entities|momentosInfinite|counts|home|notasAttachments|tasks|search)\b/
 
     for (const file of ['useNotes.ts', 'useRecortes.ts', 'useNotasAttachments.ts']) {
       expect(uncommented(source(file)), file).not.toMatch(forbiddenDirectInvalidation)
@@ -45,5 +54,28 @@ describe('cache contract guardrail', () => {
     expect(source('useNotes.ts')).toContain("from './cacheOptimistic'")
     expect(source('useRecortes.ts')).toContain("from './cacheOptimistic'")
     expect(source('notasFeedCache.ts')).toContain("from './cacheOptimistic'")
+  })
+
+  it('restringe invalidateQueries directo a excepciones explícitas', () => {
+    const allowedDirectInvalidations: Record<string, RegExp[]> = {
+      'src/state/cacheInvalidation.ts': [/queryClient\.invalidateQueries/],
+      'src/state/useMomentos.ts': [
+        /queryKeys\.momentoShareInvitations/,
+        /queryKeys\.momentoFeedback\(momentoId\)/,
+      ],
+      'src/state/useExportImport.ts': [
+        /queryKeys\.(entities|relationships|quotes|momentosInfinite|notes|tasks|home|cronologiaInfinite|atlas)/,
+      ],
+      'src/components/recortes/RecorteSelectionBar.tsx': [
+        /queryKeys\.(recortes|notasFeed|search|momentosInfinite|counts|home)/,
+      ],
+    }
+
+    for (const [file, allowed] of Object.entries(allowedDirectInvalidations)) {
+      const unexpected = directInvalidationLines(file).filter(
+        (line) => !allowed.some((pattern) => pattern.test(line)),
+      )
+      expect(unexpected, file).toEqual([])
+    }
   })
 })

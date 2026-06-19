@@ -9,9 +9,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type PromoteRecorteInput, type Recorte } from '../api'
 import {
   invalidateRecorteCreateSurface,
+  invalidateRecorteMutationSurface,
   invalidateRecortePromotionSurface,
   invalidateRecorteUnpromoteSurface,
-  invalidateRecortesSurface,
 } from './cacheInvalidation'
 import { restoreQuerySnapshot, snapshotQuery } from './cacheOptimistic'
 import { queryKeys } from './queryClient'
@@ -83,7 +83,7 @@ async function enrichLinkRecorte(
         sourceAuthor: preview.author ?? undefined,
         imageUrl: preview.image ?? undefined,
       })
-      invalidateRecortesSurface(qc)
+      invalidateRecorteMutationSurface(qc)
     }
   } catch {
     /* enriquecimiento opcional; el enlace pelado ya quedó guardado */
@@ -104,7 +104,7 @@ async function cacheRecorteThumbnail(qc: ReturnType<typeof useQueryClient>, id: 
   try {
     const result = await api.cacheRecorteThumbnail(id)
     if (result.cached) {
-      invalidateRecortesSurface(qc)
+      invalidateRecorteMutationSurface(qc)
     }
   } catch {
     /* caché opcional; la tarjeta sigue con la miniatura externa/derivada */
@@ -185,7 +185,7 @@ export function useUpdateRecorte() {
       if (ctx?.feedSnap) restoreNotasFeed(qc, ctx.feedSnap)
     },
     onSettled: () => {
-      invalidateRecortesSurface(qc)
+      invalidateRecorteMutationSurface(qc)
     },
   })
 }
@@ -196,7 +196,7 @@ export function useDeleteRecorte() {
   return useMutation({
     mutationFn: (id: string) => api.removeRecorte(id),
     onSuccess: ({ deletedAt }, id) => {
-      invalidateRecortesSurface(qc)
+      invalidateRecorteMutationSurface(qc)
       if (deletedAt) {
         toast.show({
           message: 'Recorte eliminado',
@@ -205,7 +205,7 @@ export function useDeleteRecorte() {
             label: 'Deshacer',
             onAction: async () => {
               await api.restoreRecorte(id, deletedAt)
-              invalidateRecortesSurface(qc)
+              invalidateRecorteMutationSurface(qc)
             },
           },
         })

@@ -6,28 +6,34 @@ function invalidateMany(queryClient: QueryClient, keys: QueryKey[]): void {
   for (const queryKey of keys) queryClient.invalidateQueries({ queryKey })
 }
 
-export function invalidateNotesSurface(queryClient: QueryClient): void {
-  invalidateMany(queryClient, [queryKeys.notes, queryKeys.notasFeed])
+export function invalidateSearchSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.search])
+}
+
+export function invalidateNoteMutationSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.notes, queryKeys.notasFeed, queryKeys.search])
 }
 
 export function invalidateNotesPromotionSurface(queryClient: QueryClient): void {
   invalidateMany(queryClient, [
     queryKeys.notes,
     queryKeys.notasFeed,
+    queryKeys.search,
     queryKeys.momentosInfinite,
     queryKeys.cronologiaInfinite,
     queryKeys.home,
   ])
 }
 
-export function invalidateRecortesSurface(queryClient: QueryClient): void {
-  invalidateMany(queryClient, [queryKeys.recortes, queryKeys.notasFeed])
+export function invalidateRecorteMutationSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.recortes, queryKeys.notasFeed, queryKeys.search])
 }
 
 export function invalidateRecorteCreateSurface(queryClient: QueryClient): void {
   invalidateMany(queryClient, [
     queryKeys.recortes,
     queryKeys.notasFeed,
+    queryKeys.search,
     queryKeys.counts,
     queryKeys.home,
   ])
@@ -47,6 +53,7 @@ export function invalidateRecortePromotionSurface(
   invalidateMany(queryClient, [
     queryKeys.recortes,
     queryKeys.notasFeed,
+    queryKeys.search,
     ...targetKeys,
     queryKeys.counts,
     queryKeys.home,
@@ -57,6 +64,7 @@ export function invalidateRecorteUnpromoteSurface(queryClient: QueryClient): voi
   invalidateMany(queryClient, [
     queryKeys.recortes,
     queryKeys.notasFeed,
+    queryKeys.search,
     queryKeys.quotes,
     queryKeys.quotesInfinite,
     queryKeys.entities,
@@ -72,6 +80,7 @@ export function invalidateMomentosSurface(queryClient: QueryClient): void {
     queryKeys.home,
     queryKeys.cronologiaInfinite,
     queryKeys.atlas,
+    queryKeys.search,
   ])
 }
 
@@ -96,7 +105,7 @@ export function invalidateMomentoShareInvitationResponseSurface(
   ])
 }
 
-export function invalidateNotasAttachmentOwner(
+export function invalidateAttachmentOwnerSurface(
   queryClient: QueryClient,
   ownerType: NotasAttachmentOwner,
   ownerId: string,
@@ -107,6 +116,6 @@ export function invalidateNotasAttachmentOwner(
     invalidateMany(queryClient, [queryKeys.tasks])
   }
   if (ownerType === 'note') {
-    invalidateMany(queryClient, [queryKeys.notes, queryKeys.notasFeed])
+    invalidateMany(queryClient, [queryKeys.notes, queryKeys.notasFeed, queryKeys.search])
   }
 }

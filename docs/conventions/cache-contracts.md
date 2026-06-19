@@ -18,15 +18,31 @@ Momentos, attachments y el feed unificado.
 
 ## Superficies Por Dominio
 
-- Notas: `notes` + `notasFeed`. Promover una nota también invalida
+- Notas: `notes` + `notasFeed` + `search`. Promover una nota también invalida
   `momentosInfinite`, `cronologiaInfinite` y `home`.
-- Recortes: `recortes` + `notasFeed`. Crear recorte también invalida `counts` y
-  `home`. Promover invalida el destino: `quotes/quotesInfinite`, `entities` o
-  `momentosInfinite`, además de `counts` y `home`.
-- Momentos: `momentosInfinite`, `home`, `cronologiaInfinite`, `atlas`.
+- Recortes: `recortes` + `notasFeed` + `search`. Crear recorte también invalida
+  `counts` y `home`. Promover invalida el destino: `quotes/quotesInfinite`,
+  `entities` o `momentosInfinite`, además de `counts` y `home`.
+- Momentos: `momentosInfinite`, `home`, `cronologiaInfinite`, `atlas` y
+  `search`.
 - Attachments: siempre invalida `notasAttachments(ownerType, ownerId)`. Si el
-  owner es `note`, también invalida `notes` y `notasFeed` porque `hasImages` y
-  `hasAudio` se derivan en servidor. Si el owner es `task`, invalida `tasks`.
+  owner es `note`, también invalida `notes`, `notasFeed` y `search` porque
+  `hasImages` y `hasAudio` se derivan en servidor. Si el owner es `task`,
+  invalida `tasks`.
+
+## Matriz De Contratos
+
+| Acción                                  | Queries afectadas                                                                | Razón                                                        |
+| --------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Crear/editar/eliminar/restaurar nota    | `notes`, `notasFeed`, `search`                                                   | Cambia contenido textual y el read-model del feed.           |
+| Promover nota a Momento                 | `notes`, `notasFeed`, `search`, `momentosInfinite`, `cronologiaInfinite`, `home` | La nota cambia estado y aparece un Momento derivado.         |
+| Crear/editar/eliminar/restaurar recorte | `recortes`, `notasFeed`, `search`                                                | Cambia captura indexable y su presencia en el feed.          |
+| Crear recorte                           | `recortes`, `notasFeed`, `search`, `counts`, `home`                              | Además de la bandeja/feed, cambia métricas e Inicio.         |
+| Promover recorte                        | `recortes`, `notasFeed`, `search`, destino, `counts`, `home`                     | El recorte cambia triage y nace/actualiza el objeto destino. |
+| Revertir promoción de recorte           | `recortes`, `notasFeed`, `search`, posibles destinos, `counts`, `home`           | El destino puede ser cita, entidad o momento.                |
+| Crear/editar/eliminar/restaurar Momento | `momentosInfinite`, `home`, `cronologiaInfinite`, `atlas`, `search`              | Cambia timeline, agregados e índice global.                  |
+| Attachment de nota                      | `notasAttachments(owner)`, `notes`, `notasFeed`, `search`                        | `hasImages`/`hasAudio` se recalculan server-side.            |
+| Attachment de tarea                     | `notasAttachments(owner)`, `tasks`                                               | Solo cambia owner operativo de Tareas.                       |
 
 ## Optimistic Update
 

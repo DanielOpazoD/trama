@@ -5,12 +5,13 @@ import {
   invalidateMomentoShareAccessSurface,
   invalidateMomentoShareInvitationResponseSurface,
   invalidateMomentosSurface,
-  invalidateNotasAttachmentOwner,
+  invalidateAttachmentOwnerSurface,
+  invalidateNoteMutationSurface,
   invalidateNotesPromotionSurface,
-  invalidateNotesSurface,
   invalidateRecorteCreateSurface,
+  invalidateRecorteMutationSurface,
   invalidateRecortePromotionSurface,
-  invalidateRecortesSurface,
+  invalidateSearchSurface,
 } from './cacheInvalidation'
 
 function invalidatedKeys(qc: ReturnType<typeof makeQueryClient>) {
@@ -28,17 +29,21 @@ describe('cacheInvalidation', () => {
     const qc = makeQueryClient()
     const spy = invalidatedKeys(qc)
 
-    invalidateNotesSurface(qc)
+    invalidateNoteMutationSurface(qc)
     invalidateNotesPromotionSurface(qc)
+    invalidateSearchSurface(qc)
 
     expect(queryKeysFrom(spy)).toEqual([
       queryKeys.notes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.notes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.momentosInfinite,
       queryKeys.cronologiaInfinite,
       queryKeys.home,
+      queryKeys.search,
     ])
   })
 
@@ -46,7 +51,7 @@ describe('cacheInvalidation', () => {
     const qc = makeQueryClient()
     const spy = invalidatedKeys(qc)
 
-    invalidateRecortesSurface(qc)
+    invalidateRecorteMutationSurface(qc)
     invalidateRecorteCreateSurface(qc)
     invalidateRecortePromotionSurface(qc, 'quote')
     invalidateRecortePromotionSurface(qc, 'entity')
@@ -55,23 +60,28 @@ describe('cacheInvalidation', () => {
     expect(queryKeysFrom(spy)).toEqual([
       queryKeys.recortes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.recortes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.counts,
       queryKeys.home,
       queryKeys.recortes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.quotes,
       queryKeys.quotesInfinite,
       queryKeys.counts,
       queryKeys.home,
       queryKeys.recortes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.entities,
       queryKeys.counts,
       queryKeys.home,
       queryKeys.recortes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.momentosInfinite,
       queryKeys.counts,
       queryKeys.home,
@@ -91,6 +101,7 @@ describe('cacheInvalidation', () => {
       queryKeys.home,
       queryKeys.cronologiaInfinite,
       queryKeys.atlas,
+      queryKeys.search,
       queryKeys.momentoShareAccess,
       queryKeys.momentosInfinite,
       queryKeys.home,
@@ -107,14 +118,15 @@ describe('cacheInvalidation', () => {
     const qc = makeQueryClient()
     const spy = invalidatedKeys(qc)
 
-    invalidateNotasAttachmentOwner(qc, 'note', 'n1')
-    invalidateNotasAttachmentOwner(qc, 'task', 't1')
-    invalidateNotasAttachmentOwner(qc, 'prompt', 'p1')
+    invalidateAttachmentOwnerSurface(qc, 'note', 'n1')
+    invalidateAttachmentOwnerSurface(qc, 'task', 't1')
+    invalidateAttachmentOwnerSurface(qc, 'prompt', 'p1')
 
     expect(queryKeysFrom(spy)).toEqual([
       queryKeys.notasAttachments('note', 'n1'),
       queryKeys.notes,
       queryKeys.notasFeed,
+      queryKeys.search,
       queryKeys.notasAttachments('task', 't1'),
       queryKeys.tasks,
       queryKeys.notasAttachments('prompt', 'p1'),

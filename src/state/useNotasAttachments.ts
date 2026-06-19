@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type NotasAttachmentOwner } from '../api'
-import { invalidateNotasAttachmentOwner } from './cacheInvalidation'
+import { invalidateAttachmentOwnerSurface } from './cacheInvalidation'
 import { queryKeys } from './queryClient'
 
 export function useNotasAttachmentsQuery(input: {
@@ -24,7 +24,7 @@ export function useUploadNotasAttachment() {
   return useMutation({
     mutationFn: api.notasAttachments.upload,
     onSuccess: (attachment) => {
-      invalidateNotasAttachmentOwner(qc, attachment.ownerType, attachment.ownerId)
+      invalidateAttachmentOwnerSurface(qc, attachment.ownerType, attachment.ownerId)
     },
   })
 }
@@ -42,7 +42,7 @@ export function useDeleteNotasAttachment() {
       ownerId: string
     }) => api.notasAttachments.remove(id).then(() => ({ ownerType, ownerId })),
     onSuccess: ({ ownerType, ownerId }) => {
-      invalidateNotasAttachmentOwner(qc, ownerType, ownerId)
+      invalidateAttachmentOwnerSurface(qc, ownerType, ownerId)
     },
   })
 }
