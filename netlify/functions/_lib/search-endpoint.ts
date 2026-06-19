@@ -1,4 +1,3 @@
-import type { Config } from '@netlify/functions'
 import { getSql, sqlTyped } from './db.js'
 import { embedSafe, toPgVector } from './embeddings.js'
 import { fuseRanked, type Ranked } from './rrf.js'
@@ -419,7 +418,3 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
     reranked: wantsRerank && (!!entitiesReorderedIds || !!quotesReorderedIds),
   })
 })
-
-export const config: Config = {
-  path: '/api/search',
-}

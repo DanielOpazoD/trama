@@ -26,7 +26,25 @@ describe('cutover isolation smoke runner', () => {
     })
 
     expect(result.exitCode).toBe(0)
-    expect(spawnSyncImpl).toHaveBeenCalledWith(
+    expect(spawnSyncImpl).toHaveBeenNthCalledWith(
+      1,
+      process.execPath,
+      [
+        'node_modules/.bin/playwright',
+        'test',
+        'e2e/runtime-api-routing.spec.ts',
+        '--project=chromium',
+      ],
+      expect.objectContaining({
+        stdio: 'inherit',
+        env: expect.objectContaining({
+          E2E_USER_A_TOKEN: 'token-a',
+          E2E_USER_B_TOKEN: 'token-b',
+        }),
+      }),
+    )
+    expect(spawnSyncImpl).toHaveBeenNthCalledWith(
+      2,
       process.execPath,
       [
         'node_modules/.bin/playwright',
@@ -51,6 +69,32 @@ describe('cutover isolation smoke runner', () => {
     )
   })
 
+  test('falla antes de crear fixtures cuando el preflight de rutas falla', async () => {
+    const cleanup = vi.fn(async () => {})
+    const stderr = { write: vi.fn() }
+
+    const result = await runCutoverIsolationSmoke({
+      env: { E2E_BASE_URL: 'https://preview.example' },
+      argv: ['--project=chromium'],
+      resolveSmokeEnv: vi.fn(async () => ({
+        mode: 'provided-tokens',
+        env: {
+          E2E_BASE_URL: 'https://preview.example',
+          E2E_USER_A_TOKEN: 'token-a',
+          E2E_USER_B_TOKEN: 'token-b',
+        },
+        cleanup,
+      })),
+      spawnSyncImpl: vi.fn(() => ({ status: 1 })),
+      stdout: { write: vi.fn() },
+      stderr,
+    })
+
+    expect(result.exitCode).toBe(1)
+    expect(cleanup).toHaveBeenCalled()
+    expect(stderr.write.mock.calls.join('\n')).toContain('cutover_route_contract: failed')
+  })
+
   test('limpia sesiones temporales aunque Playwright falle', async () => {
     const cleanup = vi.fn(async () => {})
     const stderr = { write: vi.fn() }
@@ -67,7 +111,9 @@ describe('cutover isolation smoke runner', () => {
         },
         cleanup,
       })),
-      spawnSyncImpl: vi.fn(() => ({ status: 1 })),
+      spawnSyncImpl: vi.fn().mockReturnValueOnce({ status: 0 }).mockReturnValueOnce({
+        status: 1,
+      }),
       stdout: { write: vi.fn() },
       stderr,
     })

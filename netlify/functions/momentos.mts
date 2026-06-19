@@ -1,4 +1,9 @@
-import handler, { config } from './_lib/momentos-endpoint.js'
+import type { Config } from '@netlify/functions'
 
-export { config }
+import handler from './_lib/momentos-endpoint.js'
+
+export const config: Config = {
+  path: ['/api/momentos', '/api/momentos/:id'],
+}
+
 export default handler

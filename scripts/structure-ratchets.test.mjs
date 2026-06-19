@@ -58,9 +58,13 @@ describe('structure ratchets', () => {
     for (const { wrapper, endpointImport } of API_BOUNDARY_ENDPOINTS) {
       const source = readFileSync(wrapper, 'utf8')
 
-      expect(source).toBe(
-        `import handler, { config } from '${endpointImport}'\n\nexport { config }\nexport default handler\n`,
-      )
+      expect(source).toContain("import type { Config } from '@netlify/functions'")
+      expect(source).toContain(`import handler from '${endpointImport}'`)
+      expect(source).toContain('export const config: Config = {')
+      expect(source).toContain('path:')
+      expect(source).toContain('export default handler')
+      expect(source).not.toContain('export { config }')
+      expect(source).not.toContain('import handler, { config }')
       expect(fileLineCount(wrapper)).toBeLessThanOrEqual(90)
     }
   })

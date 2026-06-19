@@ -1,4 +1,4 @@
-import type { Config, Context } from '@netlify/functions'
+import type { Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './db.js'
 import { withObservability } from './handler-wrap.js'
 import { ApiErrors } from './api-error.js'
@@ -602,14 +602,3 @@ export default withObservability(
     return ApiErrors.methodNotAllowed(requestId)
   },
 )
-
-export const config: Config = {
-  path: [
-    '/api/recortes',
-    '/api/recortes/:id',
-    '/api/recortes/:id/promote',
-    '/api/recortes/:id/unpromote',
-    '/api/recortes/:id/restore',
-    '/api/recortes/:id/suggest',
-  ],
-}
