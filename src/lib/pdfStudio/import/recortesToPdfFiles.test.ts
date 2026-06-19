@@ -39,9 +39,9 @@ describe('recortesToPdfFiles', () => {
   })
 
   it('descarga las imágenes disponibles y registra fallas sin cancelar el lote', async () => {
-    const fetcher = vi.fn(async (url: string) => {
-      if (url.includes('missing')) return new Response('no', { status: 404 })
-      return new Response(new Blob(['img'], { type: 'image/webp' }))
+    const fetchBlob = vi.fn(async (url: string) => {
+      if (url.includes('missing')) throw new Error('HTTP 404')
+      return new Blob(['img'], { type: 'image/webp' })
     })
 
     const result = await recortesToPdfFiles(
@@ -49,10 +49,10 @@ describe('recortesToPdfFiles', () => {
         recorte({ imageKey: 'user/foto uno.webp' }),
         recorte({ imageKey: 'user/missing.webp' }),
       ],
-      { fetcher },
+      { fetchBlob },
     )
 
-    expect(fetcher).toHaveBeenCalledWith('/api/recortes-image/user/foto%20uno.webp')
+    expect(fetchBlob).toHaveBeenCalledWith('/api/recortes-image/user/foto%20uno.webp')
     expect(result.files).toHaveLength(1)
     expect(result.files[0]!.name).toBe('foto uno.webp')
     expect(result.files[0]!.type).toBe('image/webp')

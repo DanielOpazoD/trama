@@ -12,7 +12,7 @@ export type RecortesToPdfFilesResult = {
 }
 
 type RecortesToPdfFilesOptions = {
-  fetcher: (url: string) => Promise<Response>
+  fetchBlob: (url: string) => Promise<Blob>
 }
 
 export function imageKeysFromRecortes(recortes: Recorte[]): string[] {
@@ -35,7 +35,7 @@ function failureReason(error: unknown): string {
 
 export async function recortesToPdfFiles(
   recortes: Recorte[],
-  { fetcher }: RecortesToPdfFilesOptions,
+  { fetchBlob }: RecortesToPdfFilesOptions,
 ): Promise<RecortesToPdfFilesResult> {
   const files: File[] = []
   const failures: RecortePdfImportFailure[] = []
@@ -43,12 +43,10 @@ export async function recortesToPdfFiles(
 
   for (const [index, key] of keys.entries()) {
     try {
-      const response = await fetcher(recorteImageUrl(key))
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const blob = await response.blob()
+      const blob = await fetchBlob(recorteImageUrl(key))
       files.push(
         new File([blob], imageFileName(key, index), {
-          type: blob.type || response.headers.get('content-type') || 'image/jpeg',
+          type: blob.type || 'image/jpeg',
         }),
       )
     } catch (error) {

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { NotasAttachment, NotasAttachmentOwner } from '../../api'
+import { requestBlob } from '../../api/request'
 import { prepareAttachmentDownload } from '../../lib/attachmentDownload'
 import {
   useDeleteNotasAttachment,
@@ -51,12 +52,13 @@ export function AttachmentsPanel({
     if (downloadingId) return
     setDownloadingId(attachment.id)
     try {
-      const res = await fetch(attachment.url)
-      if (!res.ok) throw new Error('No se pudo descargar el anexo')
-      const fileBlob = await prepareAttachmentDownload(await res.blob(), {
-        fileName: attachment.fileName,
-        mimeType: attachment.mimeType,
-      })
+      const fileBlob = await prepareAttachmentDownload(
+        await requestBlob(attachment.url),
+        {
+          fileName: attachment.fileName,
+          mimeType: attachment.mimeType,
+        },
+      )
       const url = URL.createObjectURL(fileBlob)
       const link = document.createElement('a')
       link.href = url

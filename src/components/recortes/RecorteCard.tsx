@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { type Recorte, type RecorteSuggestion, type RecorteTarget } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
-import { apiFetch } from '../../api/request'
+import { requestBlob } from '../../api/request'
 import { useSuggestRecorte, useUpdateRecorte } from '../../state'
 import { useToast } from '../../state/toast'
 import {
@@ -44,13 +44,11 @@ const COLLAPSED_MAX_PX = 168
 
 /**
  * Baja la imagen del recorte como File para pasarla al OCR. Prefiere el blob
- * interno authed (imageKey, vía apiFetch con Bearer); si no, la URL externa.
+ * interno authed (imageKey, vía requestBlob con Bearer); si no, la URL externa.
  */
 async function fetchRecorteImageFile(r: Recorte): Promise<File> {
   if (r.imageKey) {
-    const res = await apiFetch(recorteImageUrl(r.imageKey))
-    if (!res.ok) throw new Error('No se pudo leer la imagen del recorte')
-    const blob = await res.blob()
+    const blob = await requestBlob(recorteImageUrl(r.imageKey))
     return new File([blob], 'recorte', { type: blob.type || 'image/webp' })
   }
   if (r.imageUrl) {

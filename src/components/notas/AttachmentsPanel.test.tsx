@@ -3,6 +3,15 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../test-utils'
 import { AttachmentsPanel } from './AttachmentsPanel'
 
+const requestMocks = vi.hoisted(() => ({
+  requestBlob: vi.fn(async () => new Blob(['archivo'], { type: 'text/plain' })),
+}))
+
+vi.mock('../../api/request', async (importActual) => ({
+  ...(await importActual<typeof import('../../api/request')>()),
+  requestBlob: requestMocks.requestBlob,
+}))
+
 const rows = [
   {
     id: 'a1',
@@ -40,6 +49,10 @@ const rows = [
 ]
 
 beforeEach(() => {
+  requestMocks.requestBlob.mockClear()
+  requestMocks.requestBlob.mockResolvedValue(
+    new Blob(['archivo'], { type: 'text/plain' }),
+  )
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -58,11 +71,6 @@ beforeEach(() => {
       }
       if (url === '/api/notas-attachments/a1' && init?.method === 'DELETE') {
         return new Response(null, { status: 204 })
-      }
-      if (url === '/api/notas-attachments-file/user/tiny.txt') {
-        return new Response(new Blob(['archivo'], { type: 'text/plain' }), {
-          status: 200,
-        })
       }
       return new Response(JSON.stringify([]), {
         status: 200,
@@ -125,6 +133,9 @@ describe('<AttachmentsPanel />', () => {
     fireEvent.click(await screen.findByText('tiny.txt'))
 
     await waitFor(() => {
+      expect(requestMocks.requestBlob).toHaveBeenCalledWith(
+        '/api/notas-attachments-file/user/tiny.txt',
+      )
       expect(URL.createObjectURL).toHaveBeenCalled()
       expect(clickSpy).toHaveBeenCalled()
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:attachment')

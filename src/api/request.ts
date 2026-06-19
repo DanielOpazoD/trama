@@ -274,13 +274,26 @@ export async function apiFetch(url: string, init?: RequestInit): Promise<Respons
   })
 }
 
-export async function request<T = unknown>(url: string, init?: RequestInit): Promise<T> {
-  // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
-  if (isDemoMode()) return demoRequest<T>(url, init)
+export async function requestResponse(
+  url: string,
+  init?: RequestInit,
+): Promise<Response> {
   const response = await apiFetch(url, init)
   if (!response.ok) {
     throw await parseErrorResponse(response, url, init?.method ?? 'GET')
   }
+  return response
+}
+
+export async function requestBlob(url: string, init?: RequestInit): Promise<Blob> {
+  const response = await requestResponse(url, init)
+  return response.blob()
+}
+
+export async function request<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+  // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
+  if (isDemoMode()) return demoRequest<T>(url, init)
+  const response = await requestResponse(url, init)
   if (response.status === 204) {
     return undefined as T
   }
