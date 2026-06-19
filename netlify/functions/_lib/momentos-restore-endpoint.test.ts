@@ -61,6 +61,7 @@ describe('momentos-restore endpoint', () => {
     const res = await handler(
       new Request('http://localhost/api/momentos-restore', {
         method: 'POST',
+        headers: { 'x-request-id': 'rid-momento-restore' },
         body: JSON.stringify({
           id: '11111111-1111-1111-1111-111111111111',
           deletedAt: '2026-05-25T13:00:00Z',
@@ -69,6 +70,13 @@ describe('momentos-restore endpoint', () => {
       mockContext(),
     )
     expect(res.status).toBe(409)
+    expect(res.headers.get('x-request-id')).toBe('rid-momento-restore')
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: 'CONFLICT',
+        requestId: 'rid-momento-restore',
+      },
+    })
   })
 
   it('200 con el momento restaurado + entity_ids', async () => {

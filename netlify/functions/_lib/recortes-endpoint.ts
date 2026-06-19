@@ -594,7 +594,9 @@ export default withObservability(
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         RETURNING deleted_at
       `)
-      return Response.json({ ok: true, deletedAt: rows[0]?.deleted_at ?? null })
+      if (!rows[0]?.deleted_at)
+        return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+      return Response.json({ ok: true, deletedAt: rows[0].deleted_at })
     }
 
     return ApiErrors.methodNotAllowed(requestId)

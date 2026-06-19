@@ -502,6 +502,26 @@ describe('recortes endpoint', () => {
     expect((await restore.json()).restored).toBe(true)
   })
 
+  it('DELETE inexistente o de otro usuario devuelve 404 canónico, no 200 no-op', async () => {
+    mockSqlResponses.push([])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}`, {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-recorte-delete' },
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(res.headers.get('x-request-id')).toBe('rid-recorte-delete')
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: 'NOT_FOUND',
+        requestId: 'rid-recorte-delete',
+      },
+    })
+  })
+
   it('PATCH archiva y 404 cuando el recorte no existe', async () => {
     mockSqlResponses.push([{ ...ROW, status: 'archived' }])
     const ok = await recortesHandler(

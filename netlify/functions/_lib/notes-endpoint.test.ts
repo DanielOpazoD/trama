@@ -127,11 +127,20 @@ describe('notes endpoint — integration', () => {
     const res = await handler(
       new Request('http://localhost/api/notes', {
         method: 'POST',
+        headers: { 'x-request-id': 'rid-note-validation' },
         body: JSON.stringify({ content: '' }),
       }),
       mockContext(),
     )
     expect(res.status).toBe(400)
+    expect(res.headers.get('x-request-id')).toBe('rid-note-validation')
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: 'VALIDATION',
+        requestId: 'rid-note-validation',
+        details: { issues: [{ path: 'content' }] },
+      },
+    })
     expect(
       mockSqlResponses.calls.some((c) => /INSERT INTO notes/i.test(c.template)),
     ).toBe(false)
