@@ -7,7 +7,7 @@ const functionsRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
 describe('entities boundary', () => {
   it('tipa respuestas SQL con sqlTyped en vez de casts locales', () => {
-    const src = readFileSync(join(functionsRoot, 'entities.mts'), 'utf8')
+    const src = readFileSync(join(functionsRoot, '_lib/entities-endpoint.ts'), 'utf8')
 
     expect(src).toContain('sqlTyped<DupRow>')
     expect(src).toContain('sqlTyped<EntityRow>')

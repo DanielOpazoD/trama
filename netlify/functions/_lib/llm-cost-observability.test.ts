@@ -98,7 +98,7 @@ describe('guardrail: LLM cost-cap y extraction_log', () => {
   })
 
   it('los callers de llmRerank pasan observability para cost-cap y extraction_log', () => {
-    expect(source('search.mts')).toMatch(/observability:\s*{/)
+    expect(source('_lib/search-endpoint.ts')).toMatch(/observability:\s*{/)
     expect(source('_lib/rag-context.ts')).toMatch(/observability:\s*options\.requestId/)
   })
 
