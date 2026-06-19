@@ -5,11 +5,13 @@ const PRELOAD = `
 let entitySeq = 0
 let quoteSeq = 0
 let noteSeq = 0
+let recorteSeq = 0
 let momentoSeq = 0
 const state = {
   entities: [],
   quotes: [],
   notes: [],
+  recortes: [],
   momentos: [],
   attachments: [],
 }
@@ -71,6 +73,24 @@ globalThis.fetch = async (rawUrl, init = {}) => {
   }
 
   if (method === 'GET' && path === '/api/search') return json(200, { items: [] })
+
+  if (method === 'POST' && path === '/api/recortes') {
+    const body = await requestBody(init)
+    const row = { id: 'recorte-' + ++recorteSeq, text: body.text, status: 'pending' }
+    state.recortes.push(row)
+    return json(201, row)
+  }
+  if (method === 'GET' && path === '/api/recortes') {
+    if (isB) {
+      return json(200, process.env.MOCK_RECORTE_LEAKS_TO_B === '1' ? state.recortes : [])
+    }
+    return json(200, state.recortes)
+  }
+  if (path.startsWith('/api/recortes/')) {
+    if (isB && method === 'PATCH') return json(404, { error: { code: 'NOT_FOUND' } })
+    if (isB && method === 'DELETE') return json(404, { error: { code: 'NOT_FOUND' } })
+    if (isA && method === 'DELETE') return json(200, { ok: true })
+  }
 
   if (method === 'POST' && path === '/api/notes') {
     const body = await requestBody(init)
@@ -150,6 +170,7 @@ describe('smoke-isolation script', () => {
     const result = runSmoke()
 
     expect(result.status).toBe(0)
+    expect(result.stdout).toContain('· Recortes')
     expect(result.stdout).toContain('anonymous_401: ok')
     expect(result.stdout).toContain('revoked_401: ok')
     expect(result.stdout).toContain('read_isolation: ok')
@@ -164,5 +185,12 @@ describe('smoke-isolation script', () => {
     expect(result.stderr).toContain(
       'Entidades: DELETE de B debe rechazarse explícitamente',
     )
+  })
+
+  it('falla si el recorte de A aparece en la lista de B', () => {
+    const result = runSmoke({ MOCK_RECORTE_LEAKS_TO_B: '1' })
+
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Recortes: B NO debe ver fixture de A')
   })
 })

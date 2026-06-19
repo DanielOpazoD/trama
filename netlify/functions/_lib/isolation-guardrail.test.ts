@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, relative } from 'node:path'
+import { PRIVATE_TABLE_CONTRACTS } from '../../../scripts/auth-rls-contracts.mjs'
 
 /**
  * Guardrail de aislamiento multi-usuario.
@@ -28,47 +29,9 @@ const SCRIPTS_DIR = join(REPO_ROOT, 'scripts')
 
 // Tablas con columna user_id (scope por usuario). entity_types y
 // relationship_types NO están: son taxonomía GLOBAL compartida por diseño.
-const PER_USER_TABLES = [
-  'entities',
-  'relationships',
-  'quotes',
-  'momentos',
-  'momento_entities',
-  'momento_access',
-  'momento_comments',
-  'momento_reactions',
-  'notes',
-  'month_notes',
-  'recortes',
-  'recorte_images',
-  'tasks',
-  'prompts',
-  'secrets',
-  'notas_attachments',
-  'favoritos',
-  'saved_queries',
-  'reading_tables',
-  'pdf_studio_saved_pdfs',
-  'chat_threads',
-  'chat_messages',
-  'user_prefs',
-  'api_tokens',
-  'whatsapp_events',
-  'whatsapp_links',
-  'whatsapp_processed_messages',
-  'spotify_plays',
-  'spotify_tokens',
-  'x_tokens',
-  'x_bookmarks',
-  'extraction_log',
-  'error_log',
-  'ai_task_providers',
-  'proactive_suggestions',
-  'web_vitals_samples',
-  'cronicas',
-  'atlas_snapshots',
-  'x_cronicas',
-]
+const PER_USER_TABLES = PRIVATE_TABLE_CONTRACTS.map(
+  (contract: { table: string }) => contract.table,
+)
 
 // Exenciones legítimas documentadas. No se permiten gaps conocidos acá: si
 // toca tabla per-user, debe mencionar user_id o explicar por qué es global.

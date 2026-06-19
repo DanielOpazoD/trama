@@ -50,6 +50,12 @@ jobs:
       - name: Legacy fallback production guard
         run: npm run check:legacy-fallback
 
+      # Inventario ejecutable de privacidad: tablas con user_id, RLS esperado,
+      # matriz endpoint→auth→ownership→operación y dominios cubiertos por el
+      # smoke multiusuario productivo. Bloquea drift antes de que llegue al PR.
+      - name: Auth/RLS contracts inventory
+        run: npm run check:auth-rls-contracts
+
       # Gate de soft-delete: bloquea `DELETE FROM` nuevos fuera del allowlist
       # (los hard-deletes legítimos están enumerados en el script). Antes el
       # script existía pero no corría en ningún job.

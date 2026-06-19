@@ -29,11 +29,13 @@ describe('CI P1 guardrails', () => {
     expect(smoke).toContain('read_isolation')
     expect(smoke).toContain('mutation_isolation')
     expect(smoke).toContain('blob_isolation')
+    expect(smoke).toContain('/api/recortes')
     expect(e2eSmoke).toContain('anonymous requests cannot use the legacy fallback')
     expect(e2eSmoke).toContain('E2E_REVOKED_TOKEN')
     expect(e2eSmoke).toContain('revoked tokens cannot use the API')
     expect(e2eSmoke).toContain('anon.get')
     expect(e2eSmoke).toContain('toBe(401)')
+    expect(e2eSmoke).toContain('/api/recortes')
   })
 
   it('mantiene el runbook como checklist vivo de gates y riesgos críticos', () => {
@@ -93,5 +95,26 @@ describe('CI P1 guardrails', () => {
     )
     expect(isolationRunner).toContain('not_checked_preview_only')
     expect(isolationRunner).toContain('no reemplaza cutover:smoke')
+  })
+
+  it('ejecuta el inventario Auth/RLS en CI junto a los guardrails estáticos', () => {
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8'))
+    const workflow = readFileSync(
+      join(process.cwd(), '.github/workflows/test.yml'),
+      'utf8',
+    )
+    const contracts = readFileSync(
+      join(process.cwd(), 'scripts/auth-rls-contracts.mjs'),
+      'utf8',
+    )
+
+    expect(pkg.scripts['check:auth-rls-contracts']).toBe(
+      'node scripts/auth-rls-contracts.mjs',
+    )
+    expect(workflow).toContain('Auth/RLS contracts inventory')
+    expect(workflow).toContain('npm run check:auth-rls-contracts')
+    expect(contracts).toContain('PRIVATE_TABLE_CONTRACTS')
+    expect(contracts).toContain('ENDPOINT_PRIVACY_CONTRACTS')
+    expect(contracts).toContain('SMOKE_DOMAIN_CONTRACTS')
   })
 })
