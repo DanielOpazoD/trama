@@ -7,6 +7,11 @@ import {
 import { api } from '../api'
 import type { MomentoFeedback, MomentoReaction, MomentoShareRole } from '../api/momentos'
 import type { Momento, MomentoKind, MomentoPayload } from '../types'
+import {
+  invalidateMomentoShareAccessSurface,
+  invalidateMomentoShareInvitationResponseSurface,
+  invalidateMomentosSurface,
+} from './cacheInvalidation'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
@@ -48,10 +53,7 @@ export function useAddMomento() {
     }) => api.createMomento(data),
     onSuccess: () => {
       // Invalidamos todas las variantes de filtro (all + kind=foto, etc.)
-      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+      invalidateMomentosSurface(queryClient)
     },
   })
 }
@@ -72,10 +74,7 @@ export function useUpdateMomento() {
       }>
     }) => api.updateMomento(id, patch),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+      invalidateMomentosSurface(queryClient)
     },
   })
 }
@@ -83,16 +82,10 @@ export function useUpdateMomento() {
 export function useDeleteMomento() {
   const queryClient = useQueryClient()
   const toast = useToast()
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-    queryClient.invalidateQueries({ queryKey: queryKeys.home })
-    queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-    queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
-  }
   return useMutation({
     mutationFn: (id: string) => api.deleteMomento(id),
     onSuccess: ({ deletedAt }, id) => {
-      invalidate()
+      invalidateMomentosSurface(queryClient)
       // Deshacer: restoreMomento revive el momento + sus links de entidades
       // cuyo deleted_at coincide (mismo contrato que entidades/citas).
       if (deletedAt) {
@@ -103,7 +96,7 @@ export function useDeleteMomento() {
             label: 'Deshacer',
             onAction: async () => {
               await api.restoreMomento(id, deletedAt)
-              invalidate()
+              invalidateMomentosSurface(queryClient)
             },
           },
         })
@@ -127,10 +120,7 @@ export function useMergeMomentos() {
       capturedAt?: string
     }) => api.mergeMomentos(input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+      invalidateMomentosSurface(queryClient)
     },
   })
 }
@@ -165,10 +155,7 @@ export function useRevokeMomentoShareAccess() {
   return useMutation({
     mutationFn: (userId: string) => api.revokeMomentoShareAccess(userId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareAccess })
-      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      invalidateMomentoShareAccessSurface(queryClient)
     },
   })
 }
@@ -179,10 +166,7 @@ export function useUpdateMomentoShareAccessRole() {
     mutationFn: ({ userId, role }: { userId: string; role: MomentoShareRole }) =>
       api.updateMomentoShareAccessRole(userId, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareAccess })
-      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      invalidateMomentoShareAccessSurface(queryClient)
     },
   })
 }
@@ -193,11 +177,7 @@ export function useRespondMomentoShareInvitation() {
     mutationFn: ({ id, action }: { id: string; action: 'accept' | 'reject' }) =>
       api.respondMomentoShareInvitation(id, action),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareInvitations })
-      queryClient.invalidateQueries({ queryKey: queryKeys.momentoShareAccess })
-      queryClient.invalidateQueries({ queryKey: MOMENTOS_INFINITE })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      invalidateMomentoShareInvitationResponseSurface(queryClient)
     },
   })
 }

@@ -39,6 +39,7 @@ Este archivo lo lee Codex automáticamente al entrar al proyecto. Acá viven sol
 | [**design.md**](docs/conventions/design.md)                         | Type scale, icon sizes, tracking, animaciones, vertical rhythm, accesibilidad, patterns canónicos δ |
 | [**frontend-structure.md**](docs/conventions/frontend-structure.md) | Patrón vista/componentes/modelos y ratchets para evitar mega-componentes                            |
 | [**data.md**](docs/conventions/data.md)                             | `getSql()`, hooks de estado `src/state/`, Netlify Blobs, costos + observabilidad + request-id       |
+| [**cache-contracts.md**](docs/conventions/cache-contracts.md)       | TanStack Query, optimistic updates, undo e invalidaciones por dominio                               |
 | [**llm.md**](docs/conventions/llm.md)                               | Abstracción `_lib/llm/`, providers, caminos de propuesta IA                                         |
 | [**api.md**](docs/conventions/api.md)                               | Schemas Zod, patrón de añadir endpoint, ApiErrors canónicos, tipos                                  |
 | [**api-boundaries.md**](docs/conventions/api-boundaries.md)         | Wrappers finos Netlify, contratos operacionales, tests y ratchets backend                           |

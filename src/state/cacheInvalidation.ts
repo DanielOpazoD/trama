@@ -1,0 +1,121 @@
+import type { QueryClient, QueryKey } from '@tanstack/react-query'
+import type { NotasAttachmentOwner, RecorteTarget } from '../api'
+import { queryKeys } from './queryClient'
+
+function invalidateMany(queryClient: QueryClient, keys: QueryKey[]): void {
+  for (const queryKey of keys) queryClient.invalidateQueries({ queryKey })
+}
+
+export function invalidateSearchSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.search])
+}
+
+export function invalidateNoteMutationSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.notes, queryKeys.notasFeed, queryKeys.search])
+}
+
+export function invalidateNotesPromotionSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.notes,
+    queryKeys.notasFeed,
+    queryKeys.search,
+    queryKeys.momentosInfinite,
+    queryKeys.cronologiaInfinite,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateRecorteMutationSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.recortes, queryKeys.notasFeed, queryKeys.search])
+}
+
+export function invalidateRecorteCreateSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.recortes,
+    queryKeys.notasFeed,
+    queryKeys.search,
+    queryKeys.counts,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateRecortePromotionSurface(
+  queryClient: QueryClient,
+  target: RecorteTarget,
+): void {
+  const targetKeys =
+    target === 'quote'
+      ? [queryKeys.quotes, queryKeys.quotesInfinite]
+      : target === 'entity'
+        ? [queryKeys.entities]
+        : [queryKeys.momentosInfinite]
+
+  invalidateMany(queryClient, [
+    queryKeys.recortes,
+    queryKeys.notasFeed,
+    queryKeys.search,
+    ...targetKeys,
+    queryKeys.counts,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateRecorteUnpromoteSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.recortes,
+    queryKeys.notasFeed,
+    queryKeys.search,
+    queryKeys.quotes,
+    queryKeys.quotesInfinite,
+    queryKeys.entities,
+    queryKeys.momentosInfinite,
+    queryKeys.counts,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateMomentosSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.momentosInfinite,
+    queryKeys.home,
+    queryKeys.cronologiaInfinite,
+    queryKeys.atlas,
+    queryKeys.search,
+  ])
+}
+
+export function invalidateMomentoShareAccessSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.momentoShareAccess,
+    queryKeys.momentosInfinite,
+    queryKeys.home,
+    queryKeys.cronologiaInfinite,
+  ])
+}
+
+export function invalidateMomentoShareInvitationResponseSurface(
+  queryClient: QueryClient,
+): void {
+  invalidateMany(queryClient, [
+    queryKeys.momentoShareInvitations,
+    queryKeys.momentoShareAccess,
+    queryKeys.momentosInfinite,
+    queryKeys.home,
+    queryKeys.cronologiaInfinite,
+  ])
+}
+
+export function invalidateAttachmentOwnerSurface(
+  queryClient: QueryClient,
+  ownerType: NotasAttachmentOwner,
+  ownerId: string,
+): void {
+  invalidateMany(queryClient, [queryKeys.notasAttachments(ownerType, ownerId)])
+
+  if (ownerType === 'task') {
+    invalidateMany(queryClient, [queryKeys.tasks])
+  }
+  if (ownerType === 'note') {
+    invalidateMany(queryClient, [queryKeys.notes, queryKeys.notasFeed, queryKeys.search])
+  }
+}

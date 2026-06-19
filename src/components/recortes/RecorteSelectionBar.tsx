@@ -80,6 +80,7 @@ export function RecorteSelectionBar({
   function invalidate() {
     qc.invalidateQueries({ queryKey: queryKeys.recortes })
     qc.invalidateQueries({ queryKey: queryKeys.notasFeed })
+    qc.invalidateQueries({ queryKey: queryKeys.search })
     qc.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
     qc.invalidateQueries({ queryKey: queryKeys.counts })
     qc.invalidateQueries({ queryKey: queryKeys.home })
