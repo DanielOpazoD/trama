@@ -17,6 +17,8 @@ operacional sea trazable, testeable y reversible cuando corresponde.
   responde `404` cuando el recurso queda indistinguible de inexistente, o `409`
   cuando el contrato operativo necesita señalar stale restore/version drift.
 - El cliente transforma snake_case a camelCase solo en `src/api/*`.
+- Clientes con undo no deben convertir un `deletedAt` ausente a `null`: eso
+  es drift server-cliente y debe fallar explícitamente antes de ofrecer deshacer.
 
 ## Matriz
 

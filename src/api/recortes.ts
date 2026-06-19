@@ -4,6 +4,7 @@
  * recorte el objeto destino creado por el servidor en la misma operación.
  */
 import { request } from './request'
+import { requireDeletedAt } from './mutation-contracts'
 
 export type RecorteStatus = 'pending' | 'promoted' | 'archived'
 export type RecorteTarget = 'quote' | 'entity' | 'momento'
@@ -246,7 +247,9 @@ export const recortesApi = {
       `/api/recortes/${id}`,
       { method: 'DELETE' },
     )
-    return { deletedAt: res.deletedAt ?? null }
+    return {
+      deletedAt: requireDeletedAt(res.deletedAt, 'DELETE /api/recortes/:id'),
+    }
   },
   async restoreRecorte(id: string, deletedAt: string): Promise<void> {
     await request<{ restored: boolean }>(`/api/recortes/${id}/restore`, {

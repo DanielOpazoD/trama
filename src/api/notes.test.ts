@@ -89,4 +89,12 @@ describe('notesApi mutation contracts', () => {
       { method: 'POST' },
     ])
   })
+
+  it('rechaza remove si el servidor no devuelve deletedAt', async () => {
+    requestMock.mockResolvedValue({ ok: true, deletedAt: null })
+
+    await expect(notesApi.remove('note-1')).rejects.toThrow(
+      'DELETE /api/notes/:id did not return deletedAt',
+    )
+  })
 })

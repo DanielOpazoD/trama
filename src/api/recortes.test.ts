@@ -96,6 +96,14 @@ describe('recortesApi mutation contracts', () => {
     ])
   })
 
+  it('rechaza remove si el servidor no devuelve deletedAt', async () => {
+    requestMock.mockResolvedValue({ ok: true, deletedAt: null })
+
+    await expect(recortesApi.removeRecorte('r1')).rejects.toThrow(
+      'DELETE /api/recortes/:id did not return deletedAt',
+    )
+  })
+
   it('promote/unpromote transforman la fila snake_case a camelCase', async () => {
     const promoted = row({
       status: 'promoted',
