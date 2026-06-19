@@ -4,6 +4,8 @@ import { pathToFileURL } from 'node:url'
 import { resolveMultiuserSmokeEnv } from './multiuser-smoke-env.mjs'
 
 const ISOLATION_GREP = 'user B cannot discover user A fixtures'
+const ROUTE_CONTRACT_SPEC = 'e2e/runtime-api-routing.spec.ts'
+const ISOLATION_SPEC = 'e2e/multi-user-isolation.spec.ts'
 
 function splitRunnerArgs(argv, env) {
   const playwrightArgs = []
@@ -44,6 +46,17 @@ function formatEvidence() {
   ].join('\n')
 }
 
+function runPlaywrightSpec({ spawnSyncImpl, env, args }) {
+  return spawnSyncImpl(
+    process.execPath,
+    ['node_modules/.bin/playwright', 'test', ...args],
+    {
+      stdio: 'inherit',
+      env,
+    },
+  )
+}
+
 export async function runCutoverIsolationSmoke({
   env = process.env,
   argv = process.argv.slice(2),
@@ -69,18 +82,36 @@ export async function runCutoverIsolationSmoke({
     write(stdout, 'cutover isolation smoke: usando sesiones activas existentes de Clerk.')
   }
 
-  const result = spawnSyncImpl(
-    process.execPath,
-    [
-      'node_modules/.bin/playwright',
-      'test',
-      'e2e/multi-user-isolation.spec.ts',
-      '--grep',
-      ISOLATION_GREP,
-      ...playwrightArgs,
-    ],
-    { stdio: 'inherit', env: smokeEnv.env },
-  )
+  const routeContractResult = runPlaywrightSpec({
+    spawnSyncImpl,
+    env: smokeEnv.env,
+    args: [ROUTE_CONTRACT_SPEC, ...playwrightArgs],
+  })
+
+  if (routeContractResult.error) {
+    write(stderr, String(routeContractResult.error))
+    return { exitCode: 1 }
+  }
+
+  if (routeContractResult.status !== 0) {
+    write(stderr, 'cutover_route_contract: failed')
+    try {
+      await smokeEnv.cleanup()
+    } catch (error) {
+      write(
+        stderr,
+        'cutover isolation smoke: no se pudieron revocar todas las sesiones temporales.',
+      )
+      write(stderr, error instanceof Error ? error.message : String(error))
+    }
+    return { exitCode: routeContractResult.status ?? 1 }
+  }
+
+  const result = runPlaywrightSpec({
+    spawnSyncImpl,
+    env: smokeEnv.env,
+    args: [ISOLATION_SPEC, '--grep', ISOLATION_GREP, ...playwrightArgs],
+  })
 
   try {
     await smokeEnv.cleanup()

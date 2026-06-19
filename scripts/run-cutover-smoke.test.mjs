@@ -67,7 +67,25 @@ describe('cutover smoke runner', () => {
     })
 
     expect(result.exitCode).toBe(0)
-    expect(spawnSyncImpl).toHaveBeenCalledWith(
+    expect(spawnSyncImpl).toHaveBeenNthCalledWith(
+      1,
+      process.execPath,
+      [
+        'node_modules/.bin/playwright',
+        'test',
+        'e2e/runtime-api-routing.spec.ts',
+        '--project=chromium',
+      ],
+      expect.objectContaining({
+        stdio: 'inherit',
+        env: expect.objectContaining({
+          E2E_USER_A_TOKEN: 'token-a',
+          E2E_USER_B_TOKEN: 'token-b',
+        }),
+      }),
+    )
+    expect(spawnSyncImpl).toHaveBeenNthCalledWith(
+      2,
       process.execPath,
       [
         'node_modules/.bin/playwright',
@@ -84,5 +102,39 @@ describe('cutover smoke runner', () => {
       }),
     )
     expect(stdout.write.mock.calls.join('\n')).toContain('cutover_smoke: ok')
+  })
+
+  test('detiene el smoke estricto si el contrato de rutas falla', async () => {
+    const spawnSyncImpl = vi.fn(() => ({ status: 1 }))
+    const cleanup = vi.fn(async () => {})
+    const stderr = { write: vi.fn() }
+
+    const result = await runCutoverSmoke({
+      env: { E2E_BASE_URL: 'https://trama.example' },
+      argv: ['--project=chromium'],
+      runPreflight: vi.fn(async () => ({
+        status: 'ok',
+        exitCode: 0,
+        lines: ['cutover_preflight: ok', 'auth_strict: ok', 'anonymous_401: ok'],
+        hints: [],
+      })),
+      resolveSmokeEnv: vi.fn(async () => ({
+        mode: 'provided-tokens',
+        env: {
+          E2E_BASE_URL: 'https://trama.example',
+          E2E_USER_A_TOKEN: 'token-a',
+          E2E_USER_B_TOKEN: 'token-b',
+        },
+        cleanup,
+      })),
+      spawnSyncImpl,
+      stdout: { write: vi.fn() },
+      stderr,
+    })
+
+    expect(result.exitCode).toBe(1)
+    expect(spawnSyncImpl).toHaveBeenCalledTimes(1)
+    expect(cleanup).toHaveBeenCalled()
+    expect(stderr.write.mock.calls.join('\n')).toContain('cutover_route_contract: failed')
   })
 })

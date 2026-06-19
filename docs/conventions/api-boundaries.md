@@ -10,14 +10,25 @@ Para endpoints con más de una rama HTTP, SQL no trivial, IA, blobs o varias
 mutaciones, usa este patrón:
 
 ```ts
-import handler, { config } from './_lib/example-endpoint.js'
+import type { Config } from '@netlify/functions'
 
-export { config }
+import handler from './_lib/example-endpoint.js'
+
+export const config: Config = {
+  path: ['/api/example', '/api/example/:id'],
+}
+
 export default handler
 ```
 
 El módulo `_lib/example-endpoint.ts` contiene `withObservability(...)`, importa
-`getAuthedUser()`, instancia `getSql()` dentro del handler y exporta `config`.
+`getAuthedUser()` e instancia `getSql()` dentro del handler. `config.path` vive
+en `netlify/functions/*.mts`, no en `_lib`, porque Netlify debe poder descubrir
+la ruta pública `/api/*` desde el archivo función desplegable. Delegar el handler
+es correcto; delegar la configuración de ruta no.
+
+Regla corta: `config.path` vive en `netlify/functions/*.mts`.
+
 Así los tests pueden ejercitar la lógica sin agrandar la superficie Netlify.
 
 ## Contratos de error

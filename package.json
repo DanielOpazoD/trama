@@ -7,6 +7,8 @@
     "dev": "node_modules/.bin/vite",
     "build": "node_modules/.bin/tsc -b && node_modules/.bin/vite build",
     "check:legacy-fallback": "node scripts/check-legacy-fallback-prod.mjs",
+    "check:runtime-api-routes": "node scripts/runtime-api-routes.mjs",
+    "cleanup:runtime-fixtures": "node scripts/cleanup-runtime-fixtures.mjs",
     "check:hard-delete-allowlist": "node scripts/check-hard-delete-allowlist.mjs",
     "check:auth-rls-contracts": "node scripts/auth-rls-contracts.mjs",
     "check:migration-duplicates": "node scripts/check-migration-duplicates.mjs",

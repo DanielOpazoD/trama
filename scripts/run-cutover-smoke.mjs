@@ -4,6 +4,9 @@ import { pathToFileURL } from 'node:url'
 import { formatPreflightMarkdown, runCutoverPreflight } from './cutover-preflight.mjs'
 import { resolveMultiuserSmokeEnv } from './multiuser-smoke-env.mjs'
 
+const ROUTE_CONTRACT_SPEC = 'e2e/runtime-api-routing.spec.ts'
+const ISOLATION_SPEC = 'e2e/multi-user-isolation.spec.ts'
+
 function splitRunnerArgs(argv, env) {
   const playwrightArgs = []
   let baseUrl = env.E2E_BASE_URL
@@ -39,6 +42,17 @@ function formatCutoverSmokeEvidence({ preflight, revokedTokenPresent }) {
     '```',
     '',
   ].join('\n')
+}
+
+function runPlaywrightSpec({ spawnSyncImpl, env, args }) {
+  return spawnSyncImpl(
+    process.execPath,
+    ['node_modules/.bin/playwright', 'test', ...args],
+    {
+      stdio: 'inherit',
+      env,
+    },
+  )
 }
 
 export async function runCutoverSmoke({
@@ -87,16 +101,45 @@ export async function runCutoverSmoke({
     return { exitCode: 1 }
   }
 
-  const result = spawnSyncImpl(
-    process.execPath,
-    [
-      'node_modules/.bin/playwright',
-      'test',
-      'e2e/multi-user-isolation.spec.ts',
-      ...playwrightArgs,
-    ],
-    { stdio: 'inherit', env: smokeEnv.env },
-  )
+  const routeContractResult = runPlaywrightSpec({
+    spawnSyncImpl,
+    env: smokeEnv.env,
+    args: [ROUTE_CONTRACT_SPEC, ...playwrightArgs],
+  })
+
+  if (routeContractResult.error) {
+    try {
+      await smokeEnv.cleanup()
+    } catch (error) {
+      write(
+        stderr,
+        'cutover smoke: no se pudieron revocar todas las sesiones temporales.',
+      )
+      write(stderr, error instanceof Error ? error.message : String(error))
+    }
+    write(stderr, String(routeContractResult.error))
+    return { exitCode: 1 }
+  }
+
+  if (routeContractResult.status !== 0) {
+    try {
+      await smokeEnv.cleanup()
+    } catch (error) {
+      write(
+        stderr,
+        'cutover smoke: no se pudieron revocar todas las sesiones temporales.',
+      )
+      write(stderr, error instanceof Error ? error.message : String(error))
+    }
+    write(stderr, 'cutover_route_contract: failed')
+    return { exitCode: routeContractResult.status ?? 1 }
+  }
+
+  const result = runPlaywrightSpec({
+    spawnSyncImpl,
+    env: smokeEnv.env,
+    args: [ISOLATION_SPEC, ...playwrightArgs],
+  })
 
   try {
     await smokeEnv.cleanup()

@@ -113,7 +113,7 @@ function sourceForFunction(file: string): string {
   const wrapperPath = join(FUNCTIONS_DIR, file)
   const wrapperSource = readFileSync(wrapperPath, 'utf8')
   const endpointImport = wrapperSource.match(
-    /import\s+handler\s*,\s*\{\s*config\s*\}\s+from\s+['"]\.\/_lib\/([^'"]+)\.js['"]/,
+    /import\s+handler(?:\s*,\s*\{\s*config\s*\})?\s+from\s+['"]\.\/_lib\/([^'"]+)\.js['"]/,
   )
   if (!endpointImport?.[1]) return wrapperSource
   return readFileSync(join(LIB_DIR, `${endpointImport[1]}.ts`), 'utf8')

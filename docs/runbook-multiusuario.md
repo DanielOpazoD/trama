@@ -82,6 +82,52 @@ runtime, pero el front necesita rebuild por la `VITE_*`).
   solo el caso “usuario B no descubre fixtures de A”. No prueba anónimo = 401 ni
   token revocado; por eso no reemplaza `cutover:smoke` para producción.
 
+## Contrato runtime de rutas API
+
+El contrato de la app es siempre `/api/*`. Las rutas
+`/.netlify/functions/*` sirven solo como diagnóstico de bajo nivel: si la ruta
+nativa funciona pero `/api/*` devuelve 404/405 o HTML, la app sigue rota para
+usuarios reales y el smoke debe fallar.
+
+Antes de crear fixtures multiusuario, validar:
+
+```bash
+npm run check:runtime-api-routes
+E2E_BASE_URL=https://<sitio>.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+E2E_USER_B_TOKEN=<jwt de B> \
+npm run check:runtime-api-routes -- --probe
+E2E_BASE_URL=https://<sitio>.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+E2E_USER_B_TOKEN=<jwt de B> \
+node_modules/.bin/playwright test e2e/runtime-api-routing.spec.ts --project=chromium
+```
+
+Si un smoke anterior dejó fixtures conocidas antes de que `/:id` estuviera
+verificado, el cleanup opcional usa solo la API pública y trata `404` como éxito
+(ya no existe):
+
+```bash
+E2E_BASE_URL=https://<sitio>.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+npm run cleanup:runtime-fixtures
+```
+
+Reglas de aceptación:
+
+- `/api/* nunca debe devolver el HTML de la SPA`; toda respuesta API esperada
+  debe ser JSON.
+- Rutas privadas sin token deben responder 401.
+- Rutas de lista críticas (`entities`, `recortes`, `momentos`, `search`,
+  `notes`, `notas-feed`) deben estar montadas en producción.
+- Rutas `/:id` usadas para cleanup deben llegar al handler y responder 404 JSON
+  para IDs inexistentes; 405 o HTML 404 indica routing roto.
+- El E2E runtime crea y borra un recorte y un momento reales del owner para
+  probar que `DELETE /api/recortes/:id` y `DELETE /api/momentos/:id` no solo
+  enrutan, sino que limpian fixtures vivas.
+- `/.netlify/functions/*` no reemplaza este contrato: solo ayuda a aislar si el
+  problema es Netlify routing o lógica del handler.
+
 ## Verificación: smoke de aislamiento
 
 Con el deploy arriba y dos sesiones Clerk reales (usuario A y usuario B):
