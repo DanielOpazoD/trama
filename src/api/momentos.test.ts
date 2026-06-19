@@ -216,6 +216,34 @@ describe('momentosApi', () => {
     expect((requestMock.mock.calls[1]?.[1].body as FormData).get('file')).toBe(audio)
   })
 
+  it('expone aliases legibles para uploads privados sin cambiar rutas', async () => {
+    const uploadApi = momentosApi as unknown as {
+      uploadMedia: typeof momentosApi.momentoUpload
+      uploadAudio: typeof momentosApi.momentoAudioUpload
+    }
+    const image = new File(['img'], 'foto.webp', { type: 'image/webp' })
+    const audio = new File(['webm'], 'voz.webm', { type: 'audio/webm' })
+    requestMock
+      .mockResolvedValueOnce({ storageKey: 'photo-key', mime: 'image/webp', size: 3 })
+      .mockResolvedValueOnce({ storageKey: 'audio-key', mime: 'audio/webm', size: 4 })
+
+    await expect(uploadApi.uploadMedia(image)).resolves.toEqual({
+      storageKey: 'photo-key',
+      mime: 'image/webp',
+      size: 3,
+    })
+    await expect(uploadApi.uploadAudio(audio)).resolves.toEqual({
+      storageKey: 'audio-key',
+      mime: 'audio/webm',
+      size: 4,
+    })
+
+    expect(requestMock.mock.calls[0]?.[0]).toBe('/api/momentos-upload')
+    expect((requestMock.mock.calls[0]?.[1].body as FormData).get('file')).toBe(image)
+    expect(requestMock.mock.calls[1]?.[0]).toBe('/api/momentos-audio-upload')
+    expect((requestMock.mock.calls[1]?.[1].body as FormData).get('file')).toBe(audio)
+  })
+
   it('actualiza el permiso de un acceso compartido', async () => {
     requestMock.mockResolvedValue({
       userId: 'user-papa',

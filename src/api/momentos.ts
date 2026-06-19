@@ -252,6 +252,24 @@ export const momentosApi = {
     })
   },
 
+  /** Alias semántico para nuevos consumidores: media visual privada. */
+  async uploadMedia(file: File): Promise<{
+    storageKey: string
+    mime: string
+    size: number
+  }> {
+    return momentosApi.momentoUpload(file)
+  },
+
+  /** Alias semántico para nuevos consumidores: audio privado. */
+  async uploadAudio(file: File): Promise<{
+    storageKey: string
+    mime: string
+    size: number
+  }> {
+    return momentosApi.momentoAudioUpload(file)
+  },
+
   async listMomentoShareInvitations(): Promise<{ items: MomentoShareInvitation[] }> {
     return request('/api/momentos-share-invitations')
   },

@@ -43,6 +43,39 @@ const MUTATION_CONTRACTS = [
     file: 'netlify/functions/notas-attachments-upload.mts',
     endpoints: ['POST /api/notas-attachments-upload'],
   },
+  {
+    file: 'netlify/functions/momentos-upload.mts',
+    endpoints: ['POST /api/momentos-upload'],
+  },
+  {
+    file: 'netlify/functions/momentos-audio-upload.mts',
+    endpoints: ['POST /api/momentos-audio-upload'],
+  },
+  {
+    file: 'netlify/functions/recortes-image-upload.mts',
+    endpoints: ['POST /api/recortes-image-upload'],
+  },
+]
+
+const UPLOAD_ROUTE_CONTRACTS = [
+  {
+    file: 'netlify/functions/momentos-upload.mts',
+    clientFile: 'src/api/momentos.ts',
+    path: '/api/momentos-upload',
+    forbiddenClientPath: '/api/momentos/upload',
+  },
+  {
+    file: 'netlify/functions/momentos-audio-upload.mts',
+    clientFile: 'src/api/momentos.ts',
+    path: '/api/momentos-audio-upload',
+    forbiddenClientPath: '/api/momentos/audio-upload',
+  },
+  {
+    file: 'netlify/functions/recortes-image-upload.mts',
+    clientFile: 'src/api/recortes.ts',
+    path: '/api/recortes-image-upload',
+    forbiddenClientPath: '/api/recortes/image-upload',
+  },
 ]
 
 const ADHOC_ERROR_RESPONSE =
@@ -97,5 +130,21 @@ describe('mutation contracts guardrail', () => {
     expect(source).toMatch(
       /return ApiErrors\.internal\(requestId, 'Error interno del servidor'\)/,
     )
+  })
+
+  it('mantiene uploads privados en rutas hyphenated que no colisionan con :id', () => {
+    for (const {
+      file,
+      clientFile,
+      path,
+      forbiddenClientPath,
+    } of UPLOAD_ROUTE_CONTRACTS) {
+      const endpointSource = readFileSync(file, 'utf8')
+      const clientSource = readFileSync(clientFile, 'utf8')
+
+      expect(endpointSource, file).toContain(`path: '${path}'`)
+      expect(clientSource, clientFile).toContain(`'${path}'`)
+      expect(clientSource, clientFile).not.toContain(`'${forbiddenClientPath}'`)
+    }
   })
 })

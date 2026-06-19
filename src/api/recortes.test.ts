@@ -76,6 +76,38 @@ describe('recorteImageUrl', () => {
 })
 
 describe('recortesApi mutation contracts', () => {
+  it('sube media privada por FormData preservando el contrato de respuesta', async () => {
+    const file = new File(['media'], 'region.webp', { type: 'image/webp' })
+    requestMock
+      .mockResolvedValueOnce({
+        imageKey: 'user/region.webp',
+        mime: 'image/webp',
+        size: 5,
+      })
+      .mockResolvedValueOnce({
+        imageKey: 'user/region.webp',
+        mime: 'image/webp',
+        size: 5,
+      })
+
+    await expect(recortesApi.uploadRecorteMedia(file)).resolves.toEqual({
+      imageKey: 'user/region.webp',
+      mime: 'image/webp',
+      size: 5,
+    })
+    await expect(recortesApi.uploadRecorteImage(file)).resolves.toEqual({
+      imageKey: 'user/region.webp',
+      mime: 'image/webp',
+      size: 5,
+    })
+
+    expect(requestMock.mock.calls[0]?.[0]).toBe('/api/recortes-image-upload')
+    expect(requestMock.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' })
+    expect(requestMock.mock.calls[0]?.[1].body).toBeInstanceOf(FormData)
+    expect((requestMock.mock.calls[0]?.[1].body as FormData).get('file')).toBe(file)
+    expect(requestMock.mock.calls[1]?.[0]).toBe('/api/recortes-image-upload')
+  })
+
   it('remove/restore preservan deletedAt y endpoint restore', async () => {
     requestMock
       .mockResolvedValueOnce({ ok: true, deletedAt: '2026-06-18T11:00:00.000Z' })
