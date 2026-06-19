@@ -23,6 +23,10 @@ Tipos en `src/types/` (G1: split por dominio) que tenían copias duplicadas serv
 8. Si hay UI, hook en `src/state/` (con TanStack Query).
 9. Test al menos la lógica pura (prompts, validators, transforms) en `*.test.ts`.
 
+Para mutaciones privadas, ver también
+[`mutation-contracts.md`](./mutation-contracts.md): matriz de acción → status →
+error shape → side effects.
+
 > **Duplicados de entidades:** `/api/entities` POST usa el patrón canónico con `ApiErrors.conflict(...)`. Para conservar la UX específica, el servidor pone `details: { kind: 'possible_duplicate', suggestions: [...] }` y el cliente lo transforma en `DuplicateEntityError`. El parser legacy `{ error: 'possible_duplicate', suggestions }` queda solo para compatibilidad con despliegues antiguos.
 
 ## Patrón de añadir un nuevo tipo (entidad o relación)

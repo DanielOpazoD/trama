@@ -80,7 +80,7 @@ describe('momentosApi', () => {
   it('actualiza solo los campos definidos y cruza capturedAt/entityIds a snake_case', async () => {
     requestMock.mockResolvedValue(row)
 
-    await momentosApi.updateMomento('momento-1', {
+    const updated = await momentosApi.updateMomento('momento-1', {
       note: null,
       capturedAt: '2026-05-31T12:00:00.000Z',
       entityIds: ['entity-2'],
@@ -94,6 +94,45 @@ describe('momentosApi', () => {
         entity_ids: ['entity-2'],
       }),
     })
+    expect(updated).toMatchObject({
+      id: 'momento-1',
+      capturedAt: '2026-05-31T10:00:00.000Z',
+      entityIds: ['entity-1'],
+      createdAt: '2026-05-31T10:00:00.000Z',
+    })
+  })
+
+  it('delete y restore preservan contrato operacional y transforman restore', async () => {
+    requestMock
+      .mockResolvedValueOnce({ deletedAt: '2026-05-31T12:30:00.000Z' })
+      .mockResolvedValueOnce(row)
+
+    await expect(momentosApi.deleteMomento('momento-1')).resolves.toEqual({
+      deletedAt: '2026-05-31T12:30:00.000Z',
+    })
+    await expect(
+      momentosApi.restoreMomento('momento-1', '2026-05-31T12:30:00.000Z'),
+    ).resolves.toMatchObject({
+      id: 'momento-1',
+      capturedAt: '2026-05-31T10:00:00.000Z',
+      entityIds: ['entity-1'],
+      createdAt: '2026-05-31T10:00:00.000Z',
+    })
+
+    expect(requestMock.mock.calls[0]).toEqual([
+      '/api/momentos/momento-1',
+      { method: 'DELETE' },
+    ])
+    expect(requestMock.mock.calls[1]).toEqual([
+      '/api/momentos-restore',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'momento-1',
+          deletedAt: '2026-05-31T12:30:00.000Z',
+        }),
+      },
+    ])
   })
 
   it('usa endpoints hyphenated para preview, merge, restore y rescate de blobs', async () => {
@@ -174,6 +213,34 @@ describe('momentosApi', () => {
     expect(requestMock.mock.calls[1]?.[0]).toBe('/api/momentos-audio-upload')
     expect(requestMock.mock.calls[1]?.[1]).toMatchObject({ method: 'POST' })
     expect(requestMock.mock.calls[1]?.[1].body).toBeInstanceOf(FormData)
+    expect((requestMock.mock.calls[1]?.[1].body as FormData).get('file')).toBe(audio)
+  })
+
+  it('expone aliases legibles para uploads privados sin cambiar rutas', async () => {
+    const uploadApi = momentosApi as unknown as {
+      uploadMedia: typeof momentosApi.momentoUpload
+      uploadAudio: typeof momentosApi.momentoAudioUpload
+    }
+    const image = new File(['img'], 'foto.webp', { type: 'image/webp' })
+    const audio = new File(['webm'], 'voz.webm', { type: 'audio/webm' })
+    requestMock
+      .mockResolvedValueOnce({ storageKey: 'photo-key', mime: 'image/webp', size: 3 })
+      .mockResolvedValueOnce({ storageKey: 'audio-key', mime: 'audio/webm', size: 4 })
+
+    await expect(uploadApi.uploadMedia(image)).resolves.toEqual({
+      storageKey: 'photo-key',
+      mime: 'image/webp',
+      size: 3,
+    })
+    await expect(uploadApi.uploadAudio(audio)).resolves.toEqual({
+      storageKey: 'audio-key',
+      mime: 'audio/webm',
+      size: 4,
+    })
+
+    expect(requestMock.mock.calls[0]?.[0]).toBe('/api/momentos-upload')
+    expect((requestMock.mock.calls[0]?.[1].body as FormData).get('file')).toBe(image)
+    expect(requestMock.mock.calls[1]?.[0]).toBe('/api/momentos-audio-upload')
     expect((requestMock.mock.calls[1]?.[1].body as FormData).get('file')).toBe(audio)
   })
 

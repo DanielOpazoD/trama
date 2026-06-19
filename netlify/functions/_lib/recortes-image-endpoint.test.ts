@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext } from './test-utils'
+import { expectCanonicalError, mockContext } from './test-utils'
 
 /**
  * Endpoints de imagen interna de Recortes (Bloque B+): subida al store
@@ -39,7 +39,10 @@ describe('recortes-image-upload', () => {
       new Request('http://localhost/api/recortes-image-upload'),
       mockContext(),
     )
-    expect(method.status).toBe(405)
+    await expectCanonicalError(method, {
+      status: 405,
+      code: 'METHOD_NOT_ALLOWED',
+    })
 
     const json = await uploadHandler(
       new Request('http://localhost/api/recortes-image-upload', {
@@ -49,7 +52,7 @@ describe('recortes-image-upload', () => {
       }),
       mockContext(),
     )
-    expect(json.status).toBe(400)
+    await expectCanonicalError(json, { status: 400, code: 'VALIDATION' })
   })
 
   it('valida presencia, mime y tamaño antes de persistir el blob', async () => {
@@ -60,7 +63,7 @@ describe('recortes-image-upload', () => {
       }),
       mockContext(),
     )
-    expect(missing.status).toBe(400)
+    await expectCanonicalError(missing, { status: 400, code: 'VALIDATION' })
 
     const wrongMime = await uploadHandler(
       new Request('http://localhost/api/recortes-image-upload', {
@@ -69,7 +72,10 @@ describe('recortes-image-upload', () => {
       }),
       mockContext(),
     )
-    expect(wrongMime.status).toBe(415)
+    await expectCanonicalError(wrongMime, {
+      status: 415,
+      code: 'UNSUPPORTED_MEDIA_TYPE',
+    })
 
     const tooLarge = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'big.webp', {
       type: 'image/webp',
@@ -81,7 +87,10 @@ describe('recortes-image-upload', () => {
       }),
       mockContext(),
     )
-    expect(large.status).toBe(413)
+    await expectCanonicalError(large, {
+      status: 413,
+      code: 'PAYLOAD_TOO_LARGE',
+    })
     expect(blobMocks.set).not.toHaveBeenCalled()
   })
 

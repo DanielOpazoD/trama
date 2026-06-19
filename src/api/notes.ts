@@ -3,6 +3,7 @@
  * frontera (como el resto de src/api). Las etiquetas las deriva el server.
  */
 import { request } from './request'
+import { requireDeletedAt } from './mutation-contracts'
 
 export type Note = {
   id: string
@@ -93,7 +94,7 @@ export const notesApi = {
       `/api/notes/${id}`,
       { method: 'DELETE' },
     )
-    return { deletedAt: res.deletedAt ?? null }
+    return { deletedAt: requireDeletedAt(res.deletedAt, 'DELETE /api/notes/:id') }
   },
   /** Deshacer del remove: revive la fila (y sus anexos) cuyo deleted_at
       coincide exactamente con el que devolvió el DELETE. */

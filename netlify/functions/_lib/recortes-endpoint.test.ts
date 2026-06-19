@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  setupMockSql,
+} from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 vi.mock('./embeddings.js', () => ({
@@ -502,6 +507,61 @@ describe('recortes endpoint', () => {
     expect((await restore.json()).restored).toBe(true)
   })
 
+  it('DELETE inexistente o de otro usuario devuelve 404 canónico, no 200 no-op', async () => {
+    mockSqlResponses.push([])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}`, {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-recorte-delete' },
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-recorte-delete',
+    })
+  })
+
+  it('restore con deletedAt inválido devuelve 404 canónico', async () => {
+    mockSqlResponses.push([{ restored: false }])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/restore`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-request-id': 'rid-recorte-restore',
+        },
+        body: JSON.stringify({ deletedAt: '2026-06-11T10:00:00.000Z' }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-recorte-restore',
+    })
+  })
+
+  it('unpromote inexistente o no promovido devuelve 404 canónico', async () => {
+    mockSqlResponses.push([])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/unpromote`, {
+        method: 'POST',
+        headers: { 'x-request-id': 'rid-recorte-unpromote' },
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-recorte-unpromote',
+    })
+  })
+
   it('PATCH archiva y 404 cuando el recorte no existe', async () => {
     mockSqlResponses.push([{ ...ROW, status: 'archived' }])
     const ok = await recortesHandler(
@@ -523,7 +583,7 @@ describe('recortes endpoint', () => {
       }),
       mockContext({ id: ROW.id }),
     )
-    expect(missing.status).toBe(404)
+    await expectCanonicalError(missing, { status: 404, code: 'NOT_FOUND' })
   })
 })
 

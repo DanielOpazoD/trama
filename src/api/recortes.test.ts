@@ -1,5 +1,17 @@
-import { describe, expect, it } from 'vitest'
-import { recorteFromRow, recorteImageUrl, type RecorteRow } from './recortes'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  recorteFromRow,
+  recorteImageUrl,
+  recortesApi,
+  type PromoteRecorteInput,
+  type RecorteRow,
+} from './recortes'
+
+const requestMock = vi.hoisted(() => vi.fn())
+
+vi.mock('./request', () => ({
+  request: requestMock,
+}))
 
 function row(over: Partial<RecorteRow> = {}): RecorteRow {
   return {
@@ -21,6 +33,10 @@ function row(over: Partial<RecorteRow> = {}): RecorteRow {
     ...over,
   }
 }
+
+beforeEach(() => {
+  requestMock.mockReset()
+})
 
 describe('recorteFromRow — normalización de images[]', () => {
   it('usa recorte_images (evento multi-imagen) cuando hay filas', () => {
@@ -56,5 +72,114 @@ describe('recorteImageUrl', () => {
     expect(recorteImageUrl('user 1/blob a.jpg')).toBe(
       '/api/recortes-image/user%201/blob%20a.jpg',
     )
+  })
+})
+
+describe('recortesApi mutation contracts', () => {
+  it('sube media privada por FormData preservando el contrato de respuesta', async () => {
+    const file = new File(['media'], 'region.webp', { type: 'image/webp' })
+    requestMock
+      .mockResolvedValueOnce({
+        imageKey: 'user/region.webp',
+        mime: 'image/webp',
+        size: 5,
+      })
+      .mockResolvedValueOnce({
+        imageKey: 'user/region.webp',
+        mime: 'image/webp',
+        size: 5,
+      })
+
+    await expect(recortesApi.uploadRecorteMedia(file)).resolves.toEqual({
+      imageKey: 'user/region.webp',
+      mime: 'image/webp',
+      size: 5,
+    })
+    await expect(recortesApi.uploadRecorteImage(file)).resolves.toEqual({
+      imageKey: 'user/region.webp',
+      mime: 'image/webp',
+      size: 5,
+    })
+
+    expect(requestMock.mock.calls[0]?.[0]).toBe('/api/recortes-image-upload')
+    expect(requestMock.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' })
+    expect(requestMock.mock.calls[0]?.[1].body).toBeInstanceOf(FormData)
+    expect((requestMock.mock.calls[0]?.[1].body as FormData).get('file')).toBe(file)
+    expect(requestMock.mock.calls[1]?.[0]).toBe('/api/recortes-image-upload')
+  })
+
+  it('remove/restore preservan deletedAt y endpoint restore', async () => {
+    requestMock
+      .mockResolvedValueOnce({ ok: true, deletedAt: '2026-06-18T11:00:00.000Z' })
+      .mockResolvedValueOnce({ restored: true })
+
+    await expect(recortesApi.removeRecorte('r1')).resolves.toEqual({
+      deletedAt: '2026-06-18T11:00:00.000Z',
+    })
+    await recortesApi.restoreRecorte('r1', '2026-06-18T11:00:00.000Z')
+
+    expect(requestMock.mock.calls[0]).toEqual(['/api/recortes/r1', { method: 'DELETE' }])
+    expect(requestMock.mock.calls[1]).toEqual([
+      '/api/recortes/r1/restore',
+      {
+        method: 'POST',
+        body: JSON.stringify({ deletedAt: '2026-06-18T11:00:00.000Z' }),
+      },
+    ])
+  })
+
+  it('rechaza remove si el servidor no devuelve deletedAt', async () => {
+    requestMock.mockResolvedValue({ ok: true, deletedAt: null })
+
+    await expect(recortesApi.removeRecorte('r1')).rejects.toThrow(
+      'DELETE /api/recortes/:id did not return deletedAt',
+    )
+  })
+
+  it('promote/unpromote transforman la fila snake_case a camelCase', async () => {
+    const promoted = row({
+      status: 'promoted',
+      promoted_target: 'momento',
+      promoted_id: 'momento-1',
+      source: 'whatsapp',
+    })
+    const pending = row({
+      status: 'pending',
+      promoted_target: null,
+      promoted_id: null,
+    })
+    const input: PromoteRecorteInput = {
+      target: 'momento',
+      momento: {
+        kind: 'recorte',
+        payload: { bodyText: 'captura' },
+      },
+    }
+    requestMock.mockResolvedValueOnce(promoted).mockResolvedValueOnce(pending)
+
+    await expect(recortesApi.promoteRecorte('r1', input)).resolves.toMatchObject({
+      status: 'promoted',
+      promotedTarget: 'momento',
+      promotedId: 'momento-1',
+      captureSource: 'whatsapp',
+      createdAt: '2026-06-14T12:00:00.000Z',
+    })
+    await expect(recortesApi.unpromoteRecorte('r1')).resolves.toMatchObject({
+      status: 'pending',
+      promotedTarget: null,
+      promotedId: null,
+    })
+
+    expect(requestMock.mock.calls[0]).toEqual([
+      '/api/recortes/r1/promote',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+    ])
+    expect(requestMock.mock.calls[1]).toEqual([
+      '/api/recortes/r1/unpromote',
+      { method: 'POST' },
+    ])
   })
 })

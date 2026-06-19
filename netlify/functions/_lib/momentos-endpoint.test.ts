@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  setupMockSql,
+} from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 // embedSafe llama fetch a OpenAI — stubeamos a fail para forzar "sin embedding".
@@ -278,10 +283,17 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   it('DELETE devuelve 404 si no existía (UPDATE returning vacío)', async () => {
     mockSqlResponses.push([])
     const res = await handler(
-      new Request('http://localhost/api/momentos/nope', { method: 'DELETE' }),
+      new Request('http://localhost/api/momentos/nope', {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-momento-delete' },
+      }),
       mockContext({ id: 'nope' }),
     )
-    expect(res.status).toBe(404)
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-momento-delete',
+    })
   })
 
   it('PATCH devuelve 404 si el momento no existe', async () => {
@@ -289,12 +301,19 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     const res = await handler(
       new Request('http://localhost/api/momentos/x', {
         method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          'x-request-id': 'rid-momento-patch',
+        },
         body: JSON.stringify({ note: 'cambiada' }),
-        headers: { 'content-type': 'application/json' },
       }),
       mockContext({ id: 'x' }),
     )
-    expect(res.status).toBe(404)
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-momento-patch',
+    })
   })
 
   it('PATCH permite editar un momento compartido cuando el rol es editor', async () => {

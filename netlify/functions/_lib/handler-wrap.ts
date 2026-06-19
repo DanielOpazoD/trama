@@ -16,7 +16,6 @@
 import type { Context } from '@netlify/functions'
 import { persistError, redactLogValue, safeSql } from './observability'
 import { ApiErrors } from './api-error'
-import type { ApiErrorBody } from './api-error'
 import { UnauthenticatedError } from './auth.js'
 import { runWithoutRlsContext } from './user-rls.js'
 
@@ -86,22 +85,7 @@ export function withObservability(
           context: { durationMs: Date.now() - start },
           requestId,
         })
-        // 500 wrap con shape canónica (ApiErrorBody). El cliente parsea esto
-        // exactamente igual que cualquier otro error.
-        const body: ApiErrorBody = {
-          error: {
-            code: 'INTERNAL',
-            message: 'Error interno del servidor',
-            requestId,
-          },
-        }
-        return new Response(JSON.stringify(body), {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            'x-request-id': requestId,
-          },
-        })
+        return ApiErrors.internal(requestId, 'Error interno del servidor')
       }
     })
   }

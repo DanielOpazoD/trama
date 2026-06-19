@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext } from './test-utils'
+import { expectCanonicalError, mockContext } from './test-utils'
 
 const blobMocks = vi.hoisted(() => ({
   set: vi.fn(async () => {}),
@@ -28,13 +28,19 @@ describe('momentos upload endpoints', () => {
       new Request('http://localhost/api/momentos-upload'),
       mockContext(),
     )
-    expect(photoMethod.status).toBe(405)
+    await expectCanonicalError(photoMethod, {
+      status: 405,
+      code: 'METHOD_NOT_ALLOWED',
+    })
 
     const audioMethod = await audioUploadHandler(
       new Request('http://localhost/api/momentos-audio-upload'),
       mockContext(),
     )
-    expect(audioMethod.status).toBe(405)
+    await expectCanonicalError(audioMethod, {
+      status: 405,
+      code: 'METHOD_NOT_ALLOWED',
+    })
 
     const photoJson = await photoUploadHandler(
       new Request('http://localhost/api/momentos-upload', {
@@ -44,7 +50,7 @@ describe('momentos upload endpoints', () => {
       }),
       mockContext(),
     )
-    expect(photoJson.status).toBe(400)
+    await expectCanonicalError(photoJson, { status: 400, code: 'VALIDATION' })
 
     const audioJson = await audioUploadHandler(
       new Request('http://localhost/api/momentos-audio-upload', {
@@ -54,7 +60,7 @@ describe('momentos upload endpoints', () => {
       }),
       mockContext(),
     )
-    expect(audioJson.status).toBe(400)
+    await expectCanonicalError(audioJson, { status: 400, code: 'VALIDATION' })
   })
 
   it('valida presencia, mime y tamaño antes de persistir blobs', async () => {
@@ -66,7 +72,7 @@ describe('momentos upload endpoints', () => {
       }),
       mockContext(),
     )
-    expect(missing.status).toBe(400)
+    await expectCanonicalError(missing, { status: 400, code: 'VALIDATION' })
 
     const wrongPhotoMime = await photoUploadHandler(
       new Request('http://localhost/api/momentos-upload', {
@@ -75,7 +81,10 @@ describe('momentos upload endpoints', () => {
       }),
       mockContext(),
     )
-    expect(wrongPhotoMime.status).toBe(415)
+    await expectCanonicalError(wrongPhotoMime, {
+      status: 415,
+      code: 'UNSUPPORTED_MEDIA_TYPE',
+    })
 
     const wrongAudioMime = await audioUploadHandler(
       new Request('http://localhost/api/momentos-audio-upload', {
@@ -84,7 +93,10 @@ describe('momentos upload endpoints', () => {
       }),
       mockContext(),
     )
-    expect(wrongAudioMime.status).toBe(415)
+    await expectCanonicalError(wrongAudioMime, {
+      status: 415,
+      code: 'UNSUPPORTED_MEDIA_TYPE',
+    })
 
     const tooLarge = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'big.jpg', {
       type: 'image/jpeg',
@@ -96,7 +108,10 @@ describe('momentos upload endpoints', () => {
       }),
       mockContext(),
     )
-    expect(largePhoto.status).toBe(413)
+    await expectCanonicalError(largePhoto, {
+      status: 413,
+      code: 'PAYLOAD_TOO_LARGE',
+    })
     expect(blobMocks.set).not.toHaveBeenCalled()
   })
 

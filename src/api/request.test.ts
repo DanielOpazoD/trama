@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  ApiClientError,
   apiFetch,
   DuplicateEntityError,
   request,
@@ -205,5 +206,38 @@ describe('request error parsing', () => {
     await expect(
       request('/api/entities', { method: 'POST', body: '{}' }),
     ).rejects.toBeInstanceOf(DuplicateEntityError)
+  })
+
+  it('expone code/status/details/requestId del error canónico sin leer texto legacy', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () =>
+        Response.json(
+          {
+            error: {
+              code: 'VALIDATION',
+              message: 'Body inválido',
+              requestId: 'rid-client-contract',
+              details: { issues: [{ path: 'content', message: 'Required' }] },
+            },
+          },
+          { status: 400, headers: { 'x-request-id': 'rid-header' } },
+        ),
+      ),
+    )
+
+    await expect(
+      request('/api/notes', { method: 'POST', body: '{}' }),
+    ).rejects.toMatchObject({
+      name: 'ApiClientError',
+      code: 'VALIDATION',
+      status: 400,
+      message: 'Body inválido',
+      requestId: 'rid-client-contract',
+      details: { issues: [{ path: 'content', message: 'Required' }] },
+    })
+    await expect(
+      request('/api/notes', { method: 'POST', body: '{}' }),
+    ).rejects.toBeInstanceOf(ApiClientError)
   })
 })

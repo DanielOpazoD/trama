@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  setupMockSql,
+} from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 
@@ -127,11 +132,17 @@ describe('notes endpoint — integration', () => {
     const res = await handler(
       new Request('http://localhost/api/notes', {
         method: 'POST',
+        headers: { 'x-request-id': 'rid-note-validation' },
         body: JSON.stringify({ content: '' }),
       }),
       mockContext(),
     )
-    expect(res.status).toBe(400)
+    const body = await expectCanonicalError(res, {
+      status: 400,
+      code: 'VALIDATION',
+      requestId: 'rid-note-validation',
+    })
+    expect(body).toMatchObject({ error: { details: { issues: [{ path: 'content' }] } } })
     expect(
       mockSqlResponses.calls.some((c) => /INSERT INTO notes/i.test(c.template)),
     ).toBe(false)
@@ -175,11 +186,16 @@ describe('notes endpoint — integration', () => {
     const res = await handler(
       new Request('http://localhost/api/notes/nope', {
         method: 'PATCH',
+        headers: { 'x-request-id': 'rid-note-patch' },
         body: JSON.stringify({ pinned: true }),
       }),
       mockContext({ id: 'nope' }),
     )
-    expect(res.status).toBe(404)
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-note-patch',
+    })
   })
 
   it('DELETE hace soft-delete atómico (un CTE, nunca DELETE FROM) y devuelve deletedAt', async () => {
@@ -207,10 +223,17 @@ describe('notes endpoint — integration', () => {
   it('DELETE inexistente o de otro usuario devuelve 404, no 200 no-op', async () => {
     mockSqlResponses.push([])
     const res = await handler(
-      new Request('http://localhost/api/notes/n1', { method: 'DELETE' }),
+      new Request('http://localhost/api/notes/n1', {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-note-delete' },
+      }),
       mockContext({ id: 'n1' }),
     )
-    expect(res.status).toBe(404)
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-note-delete',
+    })
   })
 
   it('POST /:id/restore revive nota + anexos con el deleted_at exacto', async () => {
@@ -239,7 +262,7 @@ describe('notes endpoint — integration', () => {
       }),
       mockContext({ id: 'n1' }),
     )
-    expect(res.status).toBe(404)
+    await expectCanonicalError(res, { status: 404, code: 'NOT_FOUND' })
   })
 
   it('promote: nota inexistente devuelve 404', async () => {

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  mockSqlState,
+  setupMockSql,
+} from './test-utils'
 
 const blobMocks = {
   set: vi.fn(),
@@ -98,9 +104,43 @@ describe('notas attachments upload endpoint', () => {
       mockContext(),
     )
 
-    expect(res.status).toBe(400)
-    expect(await res.json()).toMatchObject({
-      error: { code: 'VALIDATION', message: 'Los anexos no usan cifrado de vault' },
+    const body = await expectCanonicalError(res, { status: 400, code: 'VALIDATION' })
+    expect(body).toMatchObject({
+      error: { message: 'Los anexos no usan cifrado de vault' },
+    })
+    expect(blobMocks.set).not.toHaveBeenCalled()
+    expect(
+      mockSqlState.calls.some((call) =>
+        /INSERT INTO notas_attachments/i.test(call.template),
+      ),
+    ).toBe(false)
+  })
+
+  it('rechaza MIME no soportado con error canónico antes de tocar blobs', async () => {
+    const form = new FormData()
+    form.set('ownerType', 'prompt')
+    form.set('ownerId', 'p1')
+    form.set(
+      'file',
+      new File(['contenido'], 'brief.exe', {
+        type: 'application/octet-stream',
+      }),
+    )
+
+    const res = await handler(
+      new Request('http://localhost/api/notas-attachments-upload', {
+        method: 'POST',
+        body: form,
+      }),
+      mockContext(),
+    )
+
+    const body = await expectCanonicalError(res, {
+      status: 415,
+      code: 'UNSUPPORTED_MEDIA_TYPE',
+    })
+    expect(body).toMatchObject({
+      error: { message: 'mimeType "application/octet-stream" no soportado para anexos' },
     })
     expect(blobMocks.set).not.toHaveBeenCalled()
     expect(

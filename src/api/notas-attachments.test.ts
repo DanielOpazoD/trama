@@ -42,15 +42,40 @@ describe('notasAttachmentsApi', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    await notasAttachmentsApi.upload({
+    await expect(
+      notasAttachmentsApi.upload({
+        ownerType: 'prompt',
+        ownerId: 'p1',
+        file: original,
+      }),
+    ).resolves.toMatchObject({
+      id: 'a1',
       ownerType: 'prompt',
       ownerId: 'p1',
-      file: original,
+      fileName: 'brief.md',
+      mimeType: 'text/markdown',
+      byteSize: original.size,
+      storageKey: 'user/a1.md',
+      url: '/api/notas-attachments-file/user/a1.md',
+      createdAt: '2026-06-01T00:00:00.000Z',
+      updatedAt: '2026-06-01T00:00:00.000Z',
     })
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/notas-attachments-upload',
       expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it('remove usa DELETE sobre el endpoint de anexo', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ ok: true }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await notasAttachmentsApi.remove('a1')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/notas-attachments/a1',
+      expect.objectContaining({ method: 'DELETE' }),
     )
   })
 })
