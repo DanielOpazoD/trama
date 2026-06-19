@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  setupMockSql,
+} from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 vi.mock('./embeddings.js', () => ({
@@ -512,13 +517,48 @@ describe('recortes endpoint', () => {
       mockContext({ id: ROW.id }),
     )
 
-    expect(res.status).toBe(404)
-    expect(res.headers.get('x-request-id')).toBe('rid-recorte-delete')
-    expect(await res.json()).toMatchObject({
-      error: {
-        code: 'NOT_FOUND',
-        requestId: 'rid-recorte-delete',
-      },
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-recorte-delete',
+    })
+  })
+
+  it('restore con deletedAt inválido devuelve 404 canónico', async () => {
+    mockSqlResponses.push([{ restored: false }])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/restore`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-request-id': 'rid-recorte-restore',
+        },
+        body: JSON.stringify({ deletedAt: '2026-06-11T10:00:00.000Z' }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-recorte-restore',
+    })
+  })
+
+  it('unpromote inexistente o no promovido devuelve 404 canónico', async () => {
+    mockSqlResponses.push([])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/unpromote`, {
+        method: 'POST',
+        headers: { 'x-request-id': 'rid-recorte-unpromote' },
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-recorte-unpromote',
     })
   })
 
@@ -543,7 +583,7 @@ describe('recortes endpoint', () => {
       }),
       mockContext({ id: ROW.id }),
     )
-    expect(missing.status).toBe(404)
+    await expectCanonicalError(missing, { status: 404, code: 'NOT_FOUND' })
   })
 })
 

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  mockSqlState,
+  setupMockSql,
+} from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 
@@ -18,8 +24,7 @@ describe('notas attachments endpoint', () => {
       mockContext(),
     )
 
-    expect(res.status).toBe(404)
-    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
+    await expectCanonicalError(res, { status: 404, code: 'NOT_FOUND' })
     expect(mockSqlState.calls[0]?.template).toMatch(/FROM notes/)
     expect(mockSqlState.calls[0]?.template).toMatch(/deleted_at IS NULL/)
     expect(mockSqlState.calls[0]?.values).toContain('legacy-single-user')
@@ -60,12 +65,18 @@ describe('notas attachments endpoint', () => {
     mockSqlResponses.push([])
 
     const res = await handler(
-      new Request('http://localhost/api/notas-attachments/a1', { method: 'DELETE' }),
+      new Request('http://localhost/api/notas-attachments/a1', {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-attachment-delete' },
+      }),
       mockContext({ id: 'a1' }),
     )
 
-    expect(res.status).toBe(404)
-    expect(await res.json()).toMatchObject({ error: { code: 'NOT_FOUND' } })
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-attachment-delete',
+    })
   })
 
   it('DELETE devuelve ok cuando soft-borra un anexo del usuario', async () => {

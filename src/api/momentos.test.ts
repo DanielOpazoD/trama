@@ -80,7 +80,7 @@ describe('momentosApi', () => {
   it('actualiza solo los campos definidos y cruza capturedAt/entityIds a snake_case', async () => {
     requestMock.mockResolvedValue(row)
 
-    await momentosApi.updateMomento('momento-1', {
+    const updated = await momentosApi.updateMomento('momento-1', {
       note: null,
       capturedAt: '2026-05-31T12:00:00.000Z',
       entityIds: ['entity-2'],
@@ -94,6 +94,45 @@ describe('momentosApi', () => {
         entity_ids: ['entity-2'],
       }),
     })
+    expect(updated).toMatchObject({
+      id: 'momento-1',
+      capturedAt: '2026-05-31T10:00:00.000Z',
+      entityIds: ['entity-1'],
+      createdAt: '2026-05-31T10:00:00.000Z',
+    })
+  })
+
+  it('delete y restore preservan contrato operacional y transforman restore', async () => {
+    requestMock
+      .mockResolvedValueOnce({ deletedAt: '2026-05-31T12:30:00.000Z' })
+      .mockResolvedValueOnce(row)
+
+    await expect(momentosApi.deleteMomento('momento-1')).resolves.toEqual({
+      deletedAt: '2026-05-31T12:30:00.000Z',
+    })
+    await expect(
+      momentosApi.restoreMomento('momento-1', '2026-05-31T12:30:00.000Z'),
+    ).resolves.toMatchObject({
+      id: 'momento-1',
+      capturedAt: '2026-05-31T10:00:00.000Z',
+      entityIds: ['entity-1'],
+      createdAt: '2026-05-31T10:00:00.000Z',
+    })
+
+    expect(requestMock.mock.calls[0]).toEqual([
+      '/api/momentos/momento-1',
+      { method: 'DELETE' },
+    ])
+    expect(requestMock.mock.calls[1]).toEqual([
+      '/api/momentos-restore',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          id: 'momento-1',
+          deletedAt: '2026-05-31T12:30:00.000Z',
+        }),
+      },
+    ])
   })
 
   it('usa endpoints hyphenated para preview, merge, restore y rescate de blobs', async () => {

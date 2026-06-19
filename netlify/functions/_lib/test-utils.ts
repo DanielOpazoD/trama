@@ -1,4 +1,5 @@
-import { vi, type Mock } from 'vitest'
+import { expect, vi, type Mock } from 'vitest'
+import type { ApiErrorCode } from './api-error'
 
 /**
  * Helper de testing para endpoints Netlify Functions.
@@ -127,4 +128,26 @@ export function makeFetchMock(): Mock {
     text: async () => '',
     json: async () => ({}),
   })
+}
+
+export async function expectCanonicalError(
+  response: Response,
+  opts: {
+    status: number
+    code: ApiErrorCode
+    requestId?: string
+  },
+) {
+  expect(response.status).toBe(opts.status)
+  if (opts.requestId) {
+    expect(response.headers.get('x-request-id')).toBe(opts.requestId)
+  }
+  const body = await response.json()
+  expect(body).toMatchObject({
+    error: {
+      code: opts.code,
+      ...(opts.requestId ? { requestId: opts.requestId } : {}),
+    },
+  })
+  return body
 }

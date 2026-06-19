@@ -179,10 +179,11 @@ export const momentosApi = {
       como verificación: si fue restaurado/re-borrado por otro flujo
       desde que se obtuvo, el server responde 409. */
   async restoreMomento(id: string, deletedAt: string): Promise<Momento> {
-    return request<Momento>('/api/momentos-restore', {
+    const row = await request<MomentoRow>('/api/momentos-restore', {
       method: 'POST',
       body: JSON.stringify({ id, deletedAt }),
     })
+    return momentoFromRow(row)
   },
 
   /** DD1: lista los storageKeys en el store global que NO están referenciados

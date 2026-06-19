@@ -9,7 +9,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockContext, mockSqlResponses, setupMockSql } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  setupMockSql,
+} from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 
@@ -69,13 +74,10 @@ describe('momentos-restore endpoint', () => {
       }),
       mockContext(),
     )
-    expect(res.status).toBe(409)
-    expect(res.headers.get('x-request-id')).toBe('rid-momento-restore')
-    expect(await res.json()).toMatchObject({
-      error: {
-        code: 'CONFLICT',
-        requestId: 'rid-momento-restore',
-      },
+    await expectCanonicalError(res, {
+      status: 409,
+      code: 'CONFLICT',
+      requestId: 'rid-momento-restore',
     })
   })
 
