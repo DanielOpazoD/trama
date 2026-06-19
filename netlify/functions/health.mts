@@ -46,7 +46,10 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
   }
   // Multi-user: Health es per-usuario. TODO conteo/costo/error se filtra por
   // user_id — sin esto, un usuario vería los agregados globales de la trama.
-  const { id: userId } = await getAuthedUser(req)
+  const { id: userId } = await getAuthedUser(req, {
+    requestId,
+    operation: 'health.read',
+  })
   const sql = getSql()
 
   type CountRow = { c: string }

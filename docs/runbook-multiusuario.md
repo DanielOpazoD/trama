@@ -128,6 +128,37 @@ Reglas de aceptación:
 - `/.netlify/functions/*` no reemplaza este contrato: solo ayuda a aislar si el
   problema es Netlify routing o lógica del handler.
 
+## Smoke productivo reportable
+
+Cuando el PR toca auth, rutas privadas, ownership, blobs, cache de superficies
+privadas o fallback legacy, deja evidencia Markdown con el comando reportable:
+
+```bash
+E2E_BASE_URL=https://<sitio-o-preview>.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+E2E_USER_B_TOKEN=<jwt de B> \
+npm run smoke:production-report
+```
+
+El reporte combina:
+
+- `cutover:preflight` estricto: anónimo = 401, health auth y fallback.
+- `check:runtime-api-routes -- --probe`: `/api/*` devuelve JSON y rutas críticas
+  están montadas.
+- Playwright smoke env-gated: runtime routes + aislamiento A/B.
+
+Resultado aceptable para comentario de PR:
+
+```text
+production_smoke: ok
+anonymous_401: ok
+runtime_api_route_probe: ok
+playwright_smoke: ok
+```
+
+Si falla, no copies tokens ni cookies en el comentario. Pega solo el Markdown
+redactado del comando y, si hace falta, el `requestId` del error.
+
 ## Verificación: smoke de aislamiento
 
 Con el deploy arriba y dos sesiones Clerk reales (usuario A y usuario B):

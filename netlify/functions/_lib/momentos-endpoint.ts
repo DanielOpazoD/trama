@@ -64,7 +64,10 @@ export default withObservability(
   'momentos',
   async (req: Request, context: Context, { requestId }) => {
     const sql = getSql()
-    const authedUser = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req, {
+      requestId,
+      operation: `momentos.${req.method.toLowerCase()}`,
+    })
     const userId = authedUser.id
     const id = context.params.id
 

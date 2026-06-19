@@ -41,7 +41,10 @@ function normalizeTitle(raw: string | null | undefined): string | null {
 export default withObservability(
   'notes',
   async (req: Request, context: Context, { requestId }) => {
-    const authedUser = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req, {
+      requestId,
+      operation: `notes.${req.method.toLowerCase()}`,
+    })
     const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id

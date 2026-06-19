@@ -29,7 +29,10 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   if (req.method !== 'GET') {
     return ApiErrors.methodNotAllowed(requestId)
   }
-  const { id: userId } = await getAuthedUser(req)
+  const { id: userId } = await getAuthedUser(req, {
+    requestId,
+    operation: 'search.read',
+  })
   const sql = getSql()
 
   const url = new URL(req.url)

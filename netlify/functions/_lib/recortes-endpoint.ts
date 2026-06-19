@@ -66,7 +66,10 @@ export default withObservability(
     const preflight = extensionPreflight(req)
     if (preflight) return preflight
 
-    const authedUser = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req, {
+      requestId,
+      operation: `recortes.${req.method.toLowerCase()}`,
+    })
     const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
