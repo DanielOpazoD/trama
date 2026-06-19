@@ -20,8 +20,10 @@ const REQUIRED_DOC_SNIPPETS = [
     file: 'docs/observability.md',
     snippets: [
       'Eventos operacionales multiusuario',
+      'Matriz de acción rápida',
       'auth.denied',
       'auth.fallback',
+      'blob.access.denied',
       'owner.mismatch',
       'smoke.passed',
       'smoke.failed',
@@ -33,6 +35,7 @@ const REQUIRED_DOC_SNIPPETS = [
     snippets: [
       'Smoke productivo reportable',
       'npm run smoke:production-report',
+      '--comment-pr',
       'production_smoke: ok',
       'runtime_api_route_probe: ok',
     ],
@@ -83,6 +86,33 @@ const REQUIRED_AUTH_CONTEXTS = [
   {
     file: 'netlify/functions/_lib/momentos-endpoint.ts',
     operation: 'momentos.${req.method.toLowerCase()}',
+  },
+]
+
+const REQUIRED_EVENT_SOURCE_SNIPPETS = [
+  {
+    file: 'scripts/multiuser-production-report.mjs',
+    snippets: ['smoke.passed', 'smoke.failed', 'commentProductionSmokeReport'],
+  },
+  {
+    file: 'netlify/functions/_lib/recortes-endpoint.ts',
+    snippets: ['owner.mismatch', "operation: 'recortes.delete'"],
+  },
+  {
+    file: 'netlify/functions/_lib/momentos-endpoint.ts',
+    snippets: ['owner.mismatch', "operation: 'momentos.delete'"],
+  },
+  {
+    file: 'netlify/functions/notas-attachments.mts',
+    snippets: ['owner.mismatch', 'blob.access.denied'],
+  },
+  {
+    file: 'netlify/functions/notas-attachments-file.mts',
+    snippets: ['blob.access.denied', "operation: 'attachment.blob.read'"],
+  },
+  {
+    file: 'netlify/functions/recortes-image.mts',
+    snippets: ['blob.access.denied', "operation: 'recorte.blob.read'"],
   },
 ]
 
@@ -221,6 +251,9 @@ export function validateOperationalObservabilityContracts({ root = process.cwd()
 
   for (const doc of REQUIRED_DOC_SNIPPETS) {
     addMissingSnippetFailures(failures, root, doc.file, doc.snippets)
+  }
+  for (const source of REQUIRED_EVENT_SOURCE_SNIPPETS) {
+    addMissingSnippetFailures(failures, root, source.file, source.snippets)
   }
 
   return { ok: failures.length === 0, failures }

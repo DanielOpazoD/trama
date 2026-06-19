@@ -21,6 +21,36 @@ function redactText(value) {
     .replace(/\bsk_(?:live|test|proj)_[A-Za-z0-9._-]+\b/g, '[redacted]')
 }
 
+function getArgValue(argv, name) {
+  const prefix = `--${name}=`
+  return argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length)
+}
+
+function isReportCliFlag(arg) {
+  return (
+    arg === '--json' ||
+    arg === '--markdown' ||
+    arg.startsWith('--comment-pr=') ||
+    arg.startsWith('--repo=')
+  )
+}
+
+function logSmokeEvent(report) {
+  console.error(
+    JSON.stringify({
+      event: report.ok ? 'smoke.passed' : 'smoke.failed',
+      category: 'operational',
+      severity: report.ok ? 'info' : 'error',
+      baseUrl: report.baseUrl,
+      generatedAt: report.generatedAt,
+      preflight: report.preflight.status,
+      runtimeApiRouteProbe: report.routeProbe.ok ? 'ok' : 'failed',
+      playwrightSmoke: report.playwright.ok ? 'ok' : 'failed',
+      ts: new Date().toISOString(),
+    }),
+  )
+}
+
 function runPlaywrightSmoke({ env, spawnSyncImpl, playwrightArgs }) {
   const result = spawnSyncImpl(
     process.execPath,
@@ -56,7 +86,7 @@ export async function runProductionSmokeReport({
     )
   }
 
-  const playwrightArgs = argv.filter((arg) => arg !== '--json' && arg !== '--markdown')
+  const playwrightArgs = argv.filter((arg) => !isReportCliFlag(arg))
   if (
     !playwrightArgs.some((arg) => arg === '--project' || arg.startsWith('--project='))
   ) {
@@ -73,13 +103,39 @@ export async function runProductionSmokeReport({
     playwrightArgs,
   })
 
-  return {
+  const report = {
     ok: preflight.status === 'ok' && routeProbe.ok && playwright.ok,
     baseUrl: normalizeBaseUrl(baseUrl),
     generatedAt: new Date().toISOString(),
     preflight,
     routeProbe,
     playwright,
+  }
+  logSmokeEvent(report)
+  return report
+}
+
+export function commentProductionSmokeReport({
+  report,
+  prNumber,
+  repo,
+  spawnSyncImpl = spawnSync,
+} = {}) {
+  if (!prNumber) throw new Error('commentProductionSmokeReport requires prNumber')
+  const markdown = formatProductionSmokeMarkdown(report)
+  const args = ['pr', 'comment', String(prNumber)]
+  if (repo) args.push('--repo', repo)
+  args.push('--body-file', '-')
+  const result = spawnSyncImpl('gh', args, {
+    input: markdown,
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
+  return {
+    ok: !result.error && result.status === 0,
+    status: result.status ?? 1,
+    stdout: redactText(result.stdout),
+    stderr: redactText(result.stderr ?? result.error?.message ?? ''),
   }
 }
 
@@ -137,11 +193,24 @@ export function formatProductionSmokeMarkdown(report) {
 
 async function main() {
   try {
+    const argv = process.argv.slice(2)
     const report = await runProductionSmokeReport()
     if (process.argv.includes('--json')) {
       process.stdout.write(`${JSON.stringify(report, null, 2)}\n`)
     } else {
       process.stdout.write(formatProductionSmokeMarkdown(report))
+    }
+    const commentPr = getArgValue(argv, 'comment-pr')
+    if (commentPr) {
+      const comment = commentProductionSmokeReport({
+        report,
+        prNumber: commentPr,
+        repo: getArgValue(argv, 'repo') ?? process.env.GITHUB_REPOSITORY,
+      })
+      if (!comment.ok) {
+        process.stderr.write(comment.stderr || 'production smoke PR comment failed\n')
+        process.exit(1)
+      }
     }
     process.exit(report.ok ? 0 : 1)
   } catch (error) {

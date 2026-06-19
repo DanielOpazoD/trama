@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import {
   formatProductionSmokeMarkdown,
@@ -6,6 +6,10 @@ import {
 } from './multiuser-production-report.mjs'
 
 describe('multiuser production smoke report', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   test('compone evidencia markdown sin exponer tokens', async () => {
     const runPreflight = vi.fn(async () => ({
       status: 'ok',
@@ -23,6 +27,7 @@ describe('multiuser production smoke report', () => {
       failures: [],
     }))
     const spawnSyncImpl = vi.fn(() => ({ status: 0 }))
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const report = await runProductionSmokeReport({
       env: {
@@ -71,9 +76,21 @@ describe('multiuser production smoke report', () => {
     expect(markdown).toContain('playwright_smoke: ok')
     expect(markdown).not.toContain('token-a-secret')
     expect(markdown).not.toContain('token-b-secret')
+    const events = consoleErrorSpy.mock.calls.map((call) => JSON.parse(call[0]))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'smoke.passed',
+          category: 'operational',
+          severity: 'info',
+          baseUrl: 'https://deploy-preview.example',
+        }),
+      ]),
+    )
   })
 
   test('marca failed cuando preflight o rutas fallan', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const report = await runProductionSmokeReport({
       env: {
         E2E_BASE_URL: 'https://trama.example',
@@ -99,5 +116,81 @@ describe('multiuser production smoke report', () => {
     expect(formatProductionSmokeMarkdown(report)).toContain(
       'desactiva ALLOW_LEGACY_FALLBACK',
     )
+    const events = consoleErrorSpy.mock.calls.map((call) => JSON.parse(call[0]))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'smoke.failed',
+          category: 'operational',
+          severity: 'error',
+          baseUrl: 'https://trama.example',
+        }),
+      ]),
+    )
+  })
+
+  test('puede comentar el markdown en un PR sin exponer tokens', async () => {
+    const spawnSyncImpl = vi.fn(() => ({ status: 0 }))
+    const report = {
+      ok: true,
+      baseUrl: 'https://deploy-preview.example',
+      generatedAt: '2026-06-19T00:00:00.000Z',
+      preflight: { lines: ['anonymous_401: ok'], hints: [] },
+      routeProbe: { ok: true, results: [], failures: [] },
+      playwright: { ok: true, status: 0 },
+    }
+    const { commentProductionSmokeReport } =
+      await import('./multiuser-production-report.mjs')
+
+    const result = commentProductionSmokeReport({
+      report,
+      prNumber: '249',
+      repo: 'DanielOpazoD/trama',
+      spawnSyncImpl,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(spawnSyncImpl).toHaveBeenCalledWith(
+      'gh',
+      ['pr', 'comment', '249', '--repo', 'DanielOpazoD/trama', '--body-file', '-'],
+      expect.objectContaining({
+        input: expect.stringContaining('production_smoke: ok'),
+        encoding: 'utf8',
+      }),
+    )
+  })
+
+  test('no pasa flags propios del reporte a Playwright', async () => {
+    const spawnSyncImpl = vi.fn(() => ({ status: 0 }))
+
+    await runProductionSmokeReport({
+      env: {
+        E2E_BASE_URL: 'https://deploy-preview.example/',
+        E2E_USER_A_TOKEN: 'token-a-secret',
+        E2E_USER_B_TOKEN: 'token-b-secret',
+      },
+      argv: ['--comment-pr=249', '--repo=DanielOpazoD/trama', '--project=chromium'],
+      runPreflight: vi.fn(async () => ({
+        status: 'ok',
+        exitCode: 0,
+        lines: ['anonymous_401: ok'],
+        hints: [],
+      })),
+      probeRuntimeApiRoutes: vi.fn(async () => ({
+        ok: true,
+        baseUrl: 'https://deploy-preview.example',
+        results: [],
+        failures: [],
+      })),
+      spawnSyncImpl,
+    })
+
+    expect(spawnSyncImpl.mock.calls[0]?.[1]).toEqual([
+      'node_modules/.bin/playwright',
+      'test',
+      'e2e/runtime-api-routing.spec.ts',
+      'e2e/multi-user-isolation.spec.ts',
+      '--project=chromium',
+    ])
   })
 })

@@ -53,6 +53,20 @@ Vocabulario permitido:
 | `smoke.passed`       | Smoke multiusuario productivo termina verde        | `info`           |
 | `smoke.failed`       | Smoke multiusuario productivo falla                | `error`          |
 
+Matriz de acción rápida:
+
+| Evento               | Origen principal                           | Acción esperada                                              |
+| -------------------- | ------------------------------------------ | ------------------------------------------------------------ |
+| `auth.denied`        | `withObservability` ante request sin auth  | Confirmar anónimo = 401 y que no esté activo fallback legacy |
+| `auth.fallback`      | `getAuthedUser()`                          | Revisar `ALLOW_LEGACY_FALLBACK` y owner legacy               |
+| `auth.verified`      | `getAuthedUser()`                          | Usar como correlación de owner para requestId                |
+| `owner.mismatch`     | Mutación/lectura por id scopiada por owner | Investigar intento cross-user o fixture inexistente          |
+| `blob.access.denied` | Lectura/delete de attachment/blob privado  | Revisar key namespace, owner y endpoint de blobs             |
+| `mutation.created`   | Smoke o mutación privada observable        | Confirmar cleanup/soft-delete posterior                      |
+| `mutation.deleted`   | Smoke o mutación privada observable        | Confirmar que el owner ya no lista el fixture                |
+| `smoke.passed`       | `smoke:production-report`                  | Pegar Markdown en PR/incidente                               |
+| `smoke.failed`       | `smoke:production-report`                  | Bloquear merge/deploy hasta aislar causa                     |
+
 El payload permitido debe caber en contexto operacional: `requestId`, `method`,
 `path`, `operation`, `userId`, `status`, `reason` y `details` ya redactado. No
 incluyas bodies, prompts, cookies, JWT, emails o contenido de notas. La

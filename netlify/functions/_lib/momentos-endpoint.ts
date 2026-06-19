@@ -20,6 +20,7 @@ import {
   type MomentoEntityLinkRow,
   type MomentoListRow,
 } from './momentos-list.js'
+import { logOperationalEvent } from './operational-events.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -510,6 +511,17 @@ export default withObservability(
     `)
       const deletedRow = result[0]
       if (!deletedRow) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'momentos.delete',
+          userId,
+          reason: 'momento_not_visible',
+          details: { id },
+        })
         return ApiErrors.notFound(requestId, 'Momento no encontrado')
       }
       return Response.json({ deletedAt: deletedRow.deleted_at })

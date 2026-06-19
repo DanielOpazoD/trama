@@ -4,6 +4,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
+import { logOperationalEvent } from './_lib/operational-events.js'
 
 type AttachmentRow = {
   id: string
@@ -34,10 +35,24 @@ export default withObservability(
         ownerType !== 'week' &&
         ownerType !== 'task'
       ) {
-        return ApiErrors.validation(requestId, 'ownerType debe ser note, prompt, week o task')
+        return ApiErrors.validation(
+          requestId,
+          'ownerType debe ser note, prompt, week o task',
+        )
       }
       if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
       if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.owner.read',
+          userId,
+          reason: 'attachment_owner_not_visible',
+          details: { ownerType, ownerId },
+        })
         return ApiErrors.notFound(requestId, 'Destino no encontrado')
       }
 
@@ -60,6 +75,28 @@ export default withObservability(
         RETURNING id
       `)
       if (rows.length === 0) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.delete',
+          userId,
+          reason: 'attachment_not_visible',
+          details: { id },
+        })
+        logOperationalEvent({
+          event: 'blob.access.denied',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.delete',
+          userId,
+          reason: 'attachment_delete_not_visible',
+          details: { id },
+        })
         return ApiErrors.notFound(requestId, 'Anexo no encontrado')
       }
       return Response.json({ ok: true })

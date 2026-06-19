@@ -29,6 +29,7 @@ import {
   sanitizeSuggestion,
   type EntityLite,
 } from './recorte-suggest-prompt.js'
+import { logOperationalEvent } from './operational-events.js'
 
 /**
  * Recortes — bandeja de entrada de capturas web (extensión de Chrome).
@@ -587,7 +588,20 @@ export default withObservability(
           image_url, image_key, capture_mode, status, promoted_target,
           promoted_id, captured_at, created_at, updated_at
       `)
-      if (rows.length === 0) return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+      if (rows.length === 0) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'recortes.patch',
+          userId,
+          reason: 'recorte_not_visible',
+          details: { id },
+        })
+        return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+      }
       return Response.json(rows[0])
     }
 
@@ -597,8 +611,20 @@ export default withObservability(
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         RETURNING deleted_at
       `)
-      if (!rows[0]?.deleted_at)
+      if (!rows[0]?.deleted_at) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'recortes.delete',
+          userId,
+          reason: 'recorte_not_visible',
+          details: { id },
+        })
         return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+      }
       return Response.json({ ok: true, deletedAt: rows[0].deleted_at })
     }
 

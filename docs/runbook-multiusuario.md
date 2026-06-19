@@ -140,6 +140,15 @@ E2E_USER_B_TOKEN=<jwt de B> \
 npm run smoke:production-report
 ```
 
+Para publicar la misma evidencia directamente en un PR, sin exponer tokens:
+
+```bash
+E2E_BASE_URL=https://deploy-preview-<n>--tramadaod.netlify.app \
+E2E_USER_A_TOKEN=<jwt de A> \
+E2E_USER_B_TOKEN=<jwt de B> \
+npm run smoke:production-report -- --comment-pr=<n> --repo=DanielOpazoD/trama
+```
+
 El reporte combina:
 
 - `cutover:preflight` estricto: anónimo = 401, health auth y fallback.

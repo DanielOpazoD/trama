@@ -65,6 +65,10 @@ describe('operational observability contracts', () => {
           file: 'docs/runbook-multiusuario.md',
           message: expect.stringContaining('smoke:production-report'),
         }),
+        expect.objectContaining({
+          file: 'docs/runbook-multiusuario.md',
+          message: expect.stringContaining('--comment-pr'),
+        }),
       ]),
     )
   })
