@@ -5,11 +5,13 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
+import { parseSearchParams, QueryParam } from './_lib/request-contracts.js'
 import { NoteCreateBody, NotePatchBody } from './_lib/note-schemas.js'
 import { RestoreBody } from './_lib/restore-schema.js'
 import { parseTags } from './_lib/note-tags.js'
 import { embedSafe, toPgVector } from './_lib/embeddings.js'
 import { momentoEmbedText } from './_lib/momento-embed.js'
+import { z } from 'zod'
 
 /**
  * Trama Notas — CRUD de apuntes rápidos (memos). Scope por usuario,
@@ -30,6 +32,17 @@ type NoteRow = {
   has_images: boolean
   has_audio: boolean
 }
+
+const NoteListQuery = z.object({
+  q: z.preprocess(
+    QueryParam.trimmedString({ max: 500 }).normalize,
+    z.string().max(500),
+  ),
+  tag: z.preprocess(
+    QueryParam.trimmedString({ max: 100 }).normalize,
+    z.string().max(100).transform((value) => value.toLowerCase()),
+  ),
+})
 
 /** Título corto opcional: recorta espacios y vacío → null. */
 function normalizeTitle(raw: string | null | undefined): string | null {
@@ -127,9 +140,9 @@ export default withObservability(
     }
 
     if (req.method === 'GET') {
-      const url = new URL(req.url)
-      const q = url.searchParams.get('q')?.trim()
-      const tag = url.searchParams.get('tag')?.trim().toLowerCase()
+      const parsedQuery = parseSearchParams(req, NoteListQuery, requestId)
+      if (!parsedQuery.ok) return parsedQuery.response
+      const { q, tag } = parsedQuery.data
 
       if (q) {
         const rows = await sqlTyped<NoteRow>(sql`

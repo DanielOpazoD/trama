@@ -20,7 +20,9 @@ describe('notas attachments endpoint', () => {
     mockSqlResponses.push([{ exists: false }])
 
     const res = await handler(
-      new Request('http://localhost/api/notas-attachments?ownerType=note&ownerId=n1'),
+      new Request(
+        'http://localhost/api/notas-attachments?ownerType=note&ownerId=%20n1%20',
+      ),
       mockContext(),
     )
 
@@ -30,6 +32,32 @@ describe('notas attachments endpoint', () => {
     expect(mockSqlState.calls[0]?.values).toContain('legacy-single-user')
     expect(
       mockSqlState.calls.some((call) => /FROM notas_attachments/i.test(call.template)),
+    ).toBe(false)
+  })
+
+  it('rechaza owner params inválidos con error canónico antes de ownership lookup', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/notas-attachments?ownerType=note&ownerId=', {
+        headers: { 'x-request-id': 'rid-attachment-query' },
+      }),
+      mockContext(),
+    )
+
+    const body = await expectCanonicalError(res, {
+      status: 400,
+      code: 'VALIDATION',
+      requestId: 'rid-attachment-query',
+    })
+    expect(body).toMatchObject({
+      error: {
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'ownerId' }] },
+      },
+    })
+    expect(
+      mockSqlState.calls.some((call) =>
+        /\bFROM\s+(notes|prompts|tasks|notas_attachments)\b/i.test(call.template),
+      ),
     ).toBe(false)
   })
 

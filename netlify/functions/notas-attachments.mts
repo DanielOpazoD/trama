@@ -4,6 +4,8 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
+import { parseSearchParams, QueryParam } from './_lib/request-contracts.js'
+import { z } from 'zod'
 
 type AttachmentRow = {
   id: string
@@ -17,6 +19,14 @@ type AttachmentRow = {
   updated_at: string
 }
 
+const AttachmentOwnerQuery = z.object({
+  ownerType: z.enum(['note', 'prompt', 'week', 'task']),
+  ownerId: z.preprocess(
+    QueryParam.trimmedString({ max: 200 }).normalize,
+    z.string().min(1).max(200),
+  ),
+})
+
 export default withObservability(
   'notas-attachments',
   async (req: Request, context: Context, { requestId }) => {
@@ -25,18 +35,9 @@ export default withObservability(
     const id = context.params.id
 
     if (req.method === 'GET') {
-      const url = new URL(req.url)
-      const ownerType = url.searchParams.get('ownerType')
-      const ownerId = url.searchParams.get('ownerId')
-      if (
-        ownerType !== 'note' &&
-        ownerType !== 'prompt' &&
-        ownerType !== 'week' &&
-        ownerType !== 'task'
-      ) {
-        return ApiErrors.validation(requestId, 'ownerType debe ser note, prompt, week o task')
-      }
-      if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
+      const parsedQuery = parseSearchParams(req, AttachmentOwnerQuery, requestId)
+      if (!parsedQuery.ok) return parsedQuery.response
+      const { ownerType, ownerId } = parsedQuery.data
       if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {
         return ApiErrors.notFound(requestId, 'Destino no encontrado')
       }

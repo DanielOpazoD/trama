@@ -98,6 +98,25 @@ describe('recortes endpoint', () => {
     expect(body[0].source_title).toBe('El taller')
   })
 
+  it('GET normaliza status por contrato y mantiene fallback sin filtro para valores desconocidos', async () => {
+    mockSqlResponses.push([ROW], [ROW])
+
+    const promoted = await recortesHandler(
+      new Request('http://localhost/api/recortes?status=%20promoted%20'),
+      mockContext(),
+    )
+    const unknown = await recortesHandler(
+      new Request('http://localhost/api/recortes?status=inventado'),
+      mockContext(),
+    )
+
+    expect(promoted.status).toBe(200)
+    expect(unknown.status).toBe(200)
+    const [promotedQuery, unknownQuery] = mockSqlResponses.calls
+    expect(promotedQuery?.values).toContain('promoted')
+    expect(unknownQuery?.values).toContain(null)
+  })
+
   it('POST crea un recorte (201 con la fila creada)', async () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([ROW]) // insert

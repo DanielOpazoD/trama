@@ -5,6 +5,7 @@ import { ApiErrors } from './api-error.js'
 import { getAuthedUser } from './auth.js'
 import { ensureUserRow } from './user-provisioning.js'
 import { parseJsonBody } from './zod-body.js'
+import { parseSearchParams } from './request-contracts.js'
 import {
   RecorteCreateBody,
   RecortePatchBody,
@@ -29,6 +30,7 @@ import {
   sanitizeSuggestion,
   type EntityLite,
 } from './recorte-suggest-prompt.js'
+import { z } from 'zod'
 
 /**
  * Recortes — bandeja de entrada de capturas web (extensión de Chrome).
@@ -59,6 +61,13 @@ type RecorteRow = {
   /** Imágenes del recorte-evento (multi-imagen). Solo lo trae el GET/list. */
   images?: Array<{ storage_key: string }> | null
 }
+
+const RecortesListQuery = z.object({
+  status: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : undefined),
+    z.enum(['pending', 'promoted', 'archived']).optional().catch(undefined),
+  ),
+})
 
 export default withObservability(
   'recortes',
@@ -516,12 +525,9 @@ export default withObservability(
     }
 
     if (req.method === 'GET') {
-      const url = new URL(req.url)
-      const status = url.searchParams.get('status')?.trim()
-      const statusFilter =
-        status === 'pending' || status === 'promoted' || status === 'archived'
-          ? status
-          : null
+      const parsedQuery = parseSearchParams(req, RecortesListQuery, requestId)
+      if (!parsedQuery.ok) return parsedQuery.response
+      const statusFilter = parsedQuery.data.status ?? null
       const rows = await sqlTyped<RecorteRow>(sql`
         SELECT id, text, source_url, source_title, source_author, note,
           image_url, image_key, capture_mode, status, promoted_target,
