@@ -19,6 +19,10 @@ function redactText(value) {
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
     .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted]')
     .replace(/\bsk_(?:live|test|proj)_[A-Za-z0-9._-]+\b/g, '[redacted]')
+    .replace(
+      /\b((?:E2E|SMOKE)_(?:USER_[AB]_TOKEN|REVOKED_TOKEN)|CLERK_SECRET_KEY)=\S+/g,
+      '$1=[redacted]',
+    )
 }
 
 function getArgValue(argv, name) {

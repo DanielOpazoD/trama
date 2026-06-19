@@ -108,14 +108,19 @@ describe('multiuser production smoke report', () => {
         results: [],
         failures: [{ path: '/api/notes', reason: 'received SPA/html fallback' }],
       })),
-      spawnSyncImpl: vi.fn(() => ({ status: 1, stderr: 'e2e failed' })),
+      spawnSyncImpl: vi.fn(() => ({
+        status: 1,
+        stderr: 'e2e failed E2E_USER_A_TOKEN=raw-token-secret',
+      })),
     })
 
     expect(report.ok).toBe(false)
+    expect(report.playwright.stderr).not.toContain('raw-token-secret')
     expect(formatProductionSmokeMarkdown(report)).toContain('production_smoke: failed')
     expect(formatProductionSmokeMarkdown(report)).toContain(
       'desactiva ALLOW_LEGACY_FALLBACK',
     )
+    expect(formatProductionSmokeMarkdown(report)).not.toContain('raw-token-secret')
     const events = consoleErrorSpy.mock.calls.map((call) => JSON.parse(call[0]))
     expect(events).toEqual(
       expect.arrayContaining([

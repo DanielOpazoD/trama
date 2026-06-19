@@ -68,8 +68,8 @@ Matriz de acción rápida:
 | `smoke.failed`       | `smoke:production-report`                  | Bloquear merge/deploy hasta aislar causa                     |
 
 El payload permitido debe caber en contexto operacional: `requestId`, `method`,
-`path`, `operation`, `userId`, `status`, `reason` y `details` ya redactado. No
-incluyas bodies, prompts, cookies, JWT, emails o contenido de notas. La
+`path sin querystring`, `operation`, `userId`, `status`, `reason` y `details` ya
+redactado. No incluyas bodies, prompts, cookies, JWT, emails o contenido de notas. La
 redacción estructurada de `redactLogValue()` cubre secretos y PII comunes, pero
 el contrato sigue siendo no logear contenido sensible si no aporta diagnóstico.
 

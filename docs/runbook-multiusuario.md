@@ -146,7 +146,7 @@ Para publicar la misma evidencia directamente en un PR, sin exponer tokens:
 E2E_BASE_URL=https://deploy-preview-<n>--tramadaod.netlify.app \
 E2E_USER_A_TOKEN=<jwt de A> \
 E2E_USER_B_TOKEN=<jwt de B> \
-npm run smoke:production-report -- --comment-pr=<n> --repo=DanielOpazoD/trama
+npm run smoke:production-report -- --comment-pr=<n> --repo=<owner>/<repo>
 ```
 
 El reporte combina:

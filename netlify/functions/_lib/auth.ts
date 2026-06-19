@@ -38,6 +38,8 @@ export class UnauthenticatedError extends Error {
 
 export type AuthOperationalContext = {
   requestId?: string
+  method?: string
+  path?: string
   operation?: string
 }
 
@@ -54,6 +56,8 @@ function logAuthOperationalEvent(
     severity,
     userId,
     ...(context?.requestId ? { requestId: context.requestId } : {}),
+    ...(context?.method ? { method: context.method } : {}),
+    ...(context?.path ? { path: context.path } : {}),
     ...(context?.operation ? { operation: context.operation } : {}),
     ...(reason ? { reason } : {}),
   })
@@ -130,6 +134,14 @@ export async function getAuthedUser(
   request: Request,
   operationalContext?: AuthOperationalContext,
 ): Promise<AuthedUser> {
+  const requestUrl = new URL(request.url)
+  const authOperationalContext = operationalContext
+    ? {
+        method: request.method,
+        path: requestUrl.pathname,
+        ...operationalContext,
+      }
+    : undefined
   const clerkConfigured = Boolean(readEnv('CLERK_SECRET_KEY'))
   const bearer = request.headers.get('authorization')?.replace('Bearer ', '').trim()
 
@@ -141,7 +153,7 @@ export async function getAuthedUser(
     if (!ownerId) throw new UnauthenticatedError()
     const user = { id: ownerId }
     setCurrentRlsUser(user.id)
-    logAuthOperationalEvent('auth.verified', 'info', user.id, operationalContext)
+    logAuthOperationalEvent('auth.verified', 'info', user.id, authOperationalContext)
     return user
   }
 
@@ -153,7 +165,7 @@ export async function getAuthedUser(
       'auth.fallback',
       'warn',
       user.id,
-      operationalContext,
+      authOperationalContext,
       'clerk_not_configured',
     )
     return user
@@ -185,7 +197,7 @@ export async function getAuthedUser(
           'auth.fallback',
           'warn',
           user.id,
-          operationalContext,
+          authOperationalContext,
           'legacy_owner_mapped',
         )
         return user
@@ -194,7 +206,7 @@ export async function getAuthedUser(
         emailFromJwtPayload(payload) ?? (await fetchEmailFromClerk(payload.sub))
       const user = { id: payload.sub, email }
       setCurrentRlsUser(user.id, user.email)
-      logAuthOperationalEvent('auth.verified', 'info', user.id, operationalContext)
+      logAuthOperationalEvent('auth.verified', 'info', user.id, authOperationalContext)
       return user
     } catch {
       // Token inválido — caer al fallback si está habilitado
@@ -210,7 +222,7 @@ export async function getAuthedUser(
       'auth.fallback',
       'warn',
       user.id,
-      operationalContext,
+      authOperationalContext,
       'legacy_fallback_allowed',
     )
     return user
