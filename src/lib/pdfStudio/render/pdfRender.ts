@@ -4,41 +4,26 @@
  * pdf.js depende de APIs del navegador (DOMMatrix, canvas, Worker) y no corre en
  * node/happy-dom — por eso este archivo está EXCLUIDO del coverage y el
  * componente que lo usa lo mockea en los tests. La librería se importa de forma
- * PEREZOSA (`await import('pdfjs-dist')`, ~1MB + worker) para no tocar el bundle
+ * PEREZOSA (vía `pdfjsLoader`, ~1MB + worker) para no tocar el bundle
  * principal: sólo se baja cuando el usuario entra a la sección PDF y se renderiza
  * la primera miniatura.
  *
- * El worker se referencia con `?url` (Vite lo emite como asset aparte y nos da su
- * URL), de modo que pdf.js corre fuera del hilo principal sin inlinearlo.
+ * El worker se referencia en el loader (Vite lo emite como asset aparte y nos da
+ * su URL), de modo que pdf.js corre fuera del hilo principal sin inlinearlo.
  */
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-
-type Pdfjs = typeof import('pdfjs-dist')
-type LoadingTask = ReturnType<Pdfjs['getDocument']>
-
-let libPromise: Promise<Pdfjs> | null = null
-async function getLib(): Promise<Pdfjs> {
-  if (!libPromise) {
-    libPromise = import('pdfjs-dist').then((lib) => {
-      lib.GlobalWorkerOptions.workerSrc = workerUrl
-      return lib
-    })
-  }
-  return libPromise
-}
+import { loadPdfjsDocument, type PdfjsLoadingTask } from '../pdfRuntime/pdfjsLoader'
 
 // Cache del loading task de pdf.js por File (la misma File se comparte entre
 // todas las páginas de un PDF importado → se abre una sola vez). Guardamos el
 // task (no sólo el doc) para poder `destroy()`-lo al desmontar. La Promise se
 // cachea de forma síncrona para deduplicar llamadas concurrentes.
-const taskCache = new Map<File, Promise<LoadingTask>>()
-function getTask(file: File): Promise<LoadingTask> {
+const taskCache = new Map<File, Promise<PdfjsLoadingTask>>()
+function getTask(file: File): Promise<PdfjsLoadingTask> {
   let p = taskCache.get(file)
   if (!p) {
     p = (async () => {
-      const lib = await getLib()
       const data = new Uint8Array(await file.arrayBuffer())
-      return lib.getDocument({ data })
+      return loadPdfjsDocument({ data })
     })()
     taskCache.set(file, p)
   }
@@ -109,9 +94,8 @@ export type PdfPreview = {
  * pide sólo las visibles) y las cachea; `dispose()` revoca todo. Browser-only.
  */
 export async function openPdfPreview(blob: Blob, maxWidth = 760): Promise<PdfPreview> {
-  const lib = await getLib()
   const data = new Uint8Array(await blob.arrayBuffer())
-  const task = lib.getDocument({ data })
+  const task = await loadPdfjsDocument({ data })
   const doc = await task.promise
   const cache = new Map<number, string>()
   return {

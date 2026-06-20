@@ -1,5 +1,6 @@
 import type { PDFDocument, PDFPage } from 'pdf-lib'
 import { imageCompressionPolicy, type PdfImageCompressionMode } from './assembleImages'
+import { loadPdfjsDocument, type PdfjsDocumentInit } from '../pdfRuntime/pdfjsLoader'
 import type {
   Annotation,
   PdfPage as PdfModelPage,
@@ -129,16 +130,11 @@ async function rasterizePdfPage(
   compression: PdfImageCompressionMode | undefined,
 ): Promise<RasterizedPage> {
   const policy = imageCompressionPolicy(compression)
-  const [pdfjs, worker] = await Promise.all([
-    import('pdfjs-dist'),
-    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
-  ])
-  pdfjs.GlobalWorkerOptions.workerSrc = worker.default
   const data = new Uint8Array(await source.file.arrayBuffer())
-  const task = pdfjs.getDocument({
+  const task = await loadPdfjsDocument({
     data,
     disableWorker: true,
-  } as unknown as Parameters<typeof pdfjs.getDocument>[0])
+  } as unknown as PdfjsDocumentInit)
   try {
     const doc = await task.promise
     const page = await doc.getPage(pageIndex + 1)

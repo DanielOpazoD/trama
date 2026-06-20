@@ -1,6 +1,7 @@
 import { ocrCanvasToJpegBlob } from './pdfOcrCanvas'
 import { isPdfOcrInput } from './pdfOcrInput'
 import type { OcrPage, PdfOcrPageText } from './pdfOcrTypes'
+import { loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 
 const INVISIBLE_TEXT_OPACITY = 0.01
 
@@ -57,7 +58,7 @@ function drawInvisibleOcrText({
 }
 
 export async function assembleSearchablePdf(file: File, pages: OcrPage[]): Promise<Blob> {
-  const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
+  const { PDFDocument, StandardFonts, rgb } = await loadPdfLib()
   const out = await PDFDocument.create()
   const font = await out.embedFont(StandardFonts.Helvetica)
 

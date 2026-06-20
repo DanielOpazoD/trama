@@ -10,6 +10,7 @@ import interRegularUrl from '../pdfStudio/fonts/inter-latin-400-normal.woff?url'
 import spectralRegularUrl from '../pdfStudio/fonts/spectral-latin-400-normal.woff?url'
 import spectralBoldUrl from '../pdfStudio/fonts/spectral-latin-700-normal.woff?url'
 import caveatRegularUrl from '../pdfStudio/fonts/caveat-latin-400-normal.woff?url'
+import { loadPdfFontkit, loadPdfLib } from '../pdfStudio/pdfRuntime/pdfLibLoader'
 
 /**
  * Compone el florilegio como un PDF de imprenta en A5: portada, colofón,
@@ -49,11 +50,11 @@ export async function buildLibroPdf(
   onProgress?: LibroProgress,
 ): Promise<Uint8Array> {
   onProgress?.('cargando tipografías…')
-  const { PDFDocument, rgb, degrees } = await import('pdf-lib')
-  const fk = await import('@pdf-lib/fontkit')
+  const { PDFDocument, rgb, degrees } = await loadPdfLib()
+  const fontkit = await loadPdfFontkit()
 
   const doc = await PDFDocument.create()
-  doc.registerFontkit((fk.default ?? fk) as Parameters<typeof doc.registerFontkit>[0])
+  doc.registerFontkit(fontkit as Parameters<typeof doc.registerFontkit>[0])
   doc.setTitle(options.title)
   doc.setCreator('Trama')
 

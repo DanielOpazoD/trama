@@ -32,6 +32,12 @@ se suben al backend.
 - `src/lib/pdfStudio/model/history.ts`: historial generico undo/redo.
 - `src/lib/pdfStudio/render/pdfRender.ts`: borde browser-only para miniaturas y preview
   con pdf.js.
+- `src/lib/pdfStudio/pdfRuntime/pdfjsLoader.ts`: frontera unica para cargar
+  `pdfjs-dist`, configurar el worker y abrir documentos desde rendering, OCR,
+  redacciones y preview de Libro.
+- `src/lib/pdfStudio/pdfRuntime/pdfLibLoader.ts`: frontera unica para imports
+  dinamicos de `pdf-lib` y `@pdf-lib/fontkit` usados por exportacion, OCR
+  buscable, imagenes a PDF y Libro.
 - `src/lib/pdfStudio/assemble/assemble.ts`: orquestador del pipeline de exportacion.
 - `src/lib/pdfStudio/assemble/assemblePipeline.ts`: tipos de fases, progreso y errores de
   exportacion.

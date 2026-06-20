@@ -99,6 +99,9 @@ jobs:
       - name: Frontend boundaries check
         run: npm run check:frontend-boundaries
 
+      - name: PDF runtime boundaries check
+        run: npm run check:pdf-runtime-boundaries
+
       - name: Client API contracts check
         run: npm run check:client-api-contracts
 
@@ -145,6 +148,11 @@ jobs:
       # G4: bundle-size budget. Falla si un chunk crece más de su tope.
       - name: Bundle size budget
         run: node scripts/check-bundle-size.mjs
+
+      # PDF Studio debe seguir lazy: el shell inicial no puede pre-cargar
+      # pdf-lib, pdf.js, OCR ni workers PDF por accidente.
+      - name: PDF lazy entrypoints check
+        run: npm run check:pdf-lazy-entrypoints
 
   e2e:
     runs-on: ubuntu-latest

@@ -1,6 +1,7 @@
 import type { PdfPage, PdfSource } from '../model/model'
 import { addImageSheetPage, resolveImagesPerPage } from './assembleImages'
 import type { DocSettings } from '../model/model'
+import { loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 
 type ImagesToSheetPdfFileOptions = {
   imagesPerPage?: NonNullable<DocSettings['imageLayout']>['imagesPerPage']
@@ -10,7 +11,7 @@ export async function imagesToSheetPdfFile(
   files: File[],
   { imagesPerPage = 1 }: ImagesToSheetPdfFileOptions = {},
 ): Promise<File> {
-  const { PDFDocument } = await import('pdf-lib')
+  const { PDFDocument } = await loadPdfLib()
   const out = await PDFDocument.create()
   const perPage = resolveImagesPerPage({ imageLayout: { imagesPerPage } })
 

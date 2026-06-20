@@ -1,21 +1,8 @@
-import {
-  PDFButton,
-  PDFCheckBox,
-  PDFDropdown,
-  PDFDocument,
-  type PDFImage,
-  PDFOptionList,
-  PDFPage,
-  PDFRadioGroup,
-  PDFSignature,
-  PDFTextField,
-  PDFName,
-  StandardFonts,
-  rgb,
-} from 'pdf-lib'
+import type { PDFDocument, PDFImage, PDFPage } from 'pdf-lib'
 import { dataUrlToBytes, isPngBytes } from '../assemble/assembleImages'
 import { FORM_FIELD_EMPTY_HINT } from './formFieldConstants'
 import type { PdfFormFieldDraft } from '../model/model'
+import { loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 
 const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
 
@@ -67,6 +54,7 @@ export type PdfFormFillResult = {
 type PdfForm = ReturnType<PDFDocument['getForm']>
 type PdfField = ReturnType<PdfForm['getFields']>[number]
 type PdfWidget = ReturnType<PdfField['acroField']['getWidgets']>[number]
+type PdfFormsRuntime = Awaited<ReturnType<typeof loadPdfLib>>
 
 function pageIndexForWidget(pdf: PDFDocument, form: PdfForm, widget: PdfWidget) {
   try {
@@ -106,7 +94,21 @@ function widgetInfo(
   })
 }
 
-function fieldInfo(pdf: PDFDocument, form: PdfForm, field: PdfField) {
+function fieldInfo(
+  pdf: PDFDocument,
+  form: PdfForm,
+  field: PdfField,
+  runtime: PdfFormsRuntime,
+) {
+  const {
+    PDFButton,
+    PDFCheckBox,
+    PDFDropdown,
+    PDFOptionList,
+    PDFRadioGroup,
+    PDFSignature,
+    PDFTextField,
+  } = runtime
   const name = field.getName()
   const base = {
     name,
@@ -153,17 +155,24 @@ function fieldInfo(pdf: PDFDocument, form: PdfForm, field: PdfField) {
   return { ...base, type: 'unknown' as const, value: null }
 }
 
-async function loadPdf(file: File): Promise<PDFDocument> {
-  return PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true })
+async function loadPdf(file: File): Promise<{
+  pdf: PDFDocument
+  runtime: PdfFormsRuntime
+}> {
+  const runtime = await loadPdfLib()
+  const pdf = await runtime.PDFDocument.load(await file.arrayBuffer(), {
+    ignoreEncryption: true,
+  })
+  return { pdf, runtime }
 }
 
 export async function inspectPdfForm(file: File): Promise<PdfFormInspection> {
-  const pdf = await loadPdf(file)
+  const { pdf, runtime } = await loadPdf(file)
   const form = pdf.getForm()
   const fields = pdf
     .getForm()
     .getFields()
-    .map((field) => fieldInfo(pdf, form, field))
+    .map((field) => fieldInfo(pdf, form, field, runtime))
     .sort((a, b) => a.name.localeCompare(b.name))
   return {
     fieldCount: fields.length,
@@ -176,7 +185,8 @@ export async function fillPdfForm(
   values: PdfFormFillValues,
   options: PdfFormFillOptions = {},
 ): Promise<PdfFormFillResult> {
-  const pdf = await loadPdf(file)
+  const { pdf, runtime } = await loadPdf(file)
+  const { PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFTextField } = runtime
   const form = pdf.getForm()
 
   for (const [name, rawValue] of Object.entries(values)) {
@@ -203,7 +213,11 @@ export async function fillPdfForm(
   }
 }
 
-function pdfRectForField(field: PdfFormFieldDraft, page: PDFPage) {
+function pdfRectForField(
+  field: PdfFormFieldDraft,
+  page: PDFPage,
+  runtime: PdfFormsRuntime,
+) {
   const w = page.getWidth()
   const h = page.getHeight()
   return {
@@ -211,7 +225,7 @@ function pdfRectForField(field: PdfFormFieldDraft, page: PDFPage) {
     y: h - (field.yRatio + field.hRatio) * h,
     width: field.wRatio * w,
     height: field.hRatio * h,
-    borderColor: rgb(0.29, 0.45, 0.33),
+    borderColor: runtime.rgb(0.29, 0.45, 0.33),
     borderWidth: 0.8,
   }
 }
@@ -219,18 +233,22 @@ function pdfRectForField(field: PdfFormFieldDraft, page: PDFPage) {
 type FieldWithWidgets = {
   acroField: {
     getWidgets(): {
-      MK(): { delete(key: PDFName): boolean } | undefined
+      MK(): { delete(key: unknown): boolean } | undefined
       getOrCreateBorderStyle(): { setWidth(width: number): void }
     }[]
   }
 }
 
-function clearWidgetChrome(field: FieldWithWidgets, options: { border?: boolean } = {}) {
+function clearWidgetChrome(
+  field: FieldWithWidgets,
+  runtime: PdfFormsRuntime,
+  options: { border?: boolean } = {},
+) {
   for (const widget of field.acroField.getWidgets()) {
     const appearance = widget.MK()
-    appearance?.delete(PDFName.of('BG'))
+    appearance?.delete(runtime.PDFName.of('BG'))
     if (options.border) {
-      appearance?.delete(PDFName.of('BC'))
+      appearance?.delete(runtime.PDFName.of('BC'))
       widget.getOrCreateBorderStyle().setWidth(0)
     }
   }
@@ -300,9 +318,9 @@ export async function writePdfFormFields(
   pageIds: string[],
   options: PdfFormFillOptions = {},
 ): Promise<PdfFormFillResult> {
-  const pdf = await loadPdf(file)
+  const { pdf, runtime } = await loadPdf(file)
   const form = pdf.getForm()
-  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  const font = await pdf.embedFont(runtime.StandardFonts.Helvetica)
   const existingNames = new Set(form.getFields().map((field) => field.getName()))
   const writtenNames = new Set<string>()
 
@@ -319,35 +337,35 @@ export async function writePdfFormFields(
       })
     }
     const page = pdf.getPage(pageIndex)
-    const rect = pdfRectForField(draft, page)
+    const rect = pdfRectForField(draft, page, runtime)
 
     if (draft.fieldKind === 'checkbox') {
       const field = form.createCheckBox(draft.name)
       applyFlags(field, draft)
       if (draft.value === true) field.check()
       field.addToPage(page, rect)
-      clearWidgetChrome(field)
+      clearWidgetChrome(field, runtime)
     } else if (draft.fieldKind === 'radio') {
       const field = form.createRadioGroup(draft.name)
       applyFlags(field, draft)
       const option = draft.options?.[0] ?? 'Sí'
       field.addOptionToPage(option, page, rect)
       if (draft.value === option) field.select(option)
-      clearWidgetChrome(field)
+      clearWidgetChrome(field, runtime)
     } else if (draft.fieldKind === 'signature') {
       const field = form.createButton(draft.name)
       applyFlags(field, draft)
       field.addToPage('', page, { ...rect, font })
       const image = await embedSignatureImage(pdf, draft.value)
       if (image) field.setImage(image)
-      clearWidgetChrome(field)
+      clearWidgetChrome(field, runtime)
     } else {
       const field = form.createTextField(draft.name)
       applyFlags(field, draft)
       field.setText(formTextValue(draft.value))
       field.addToPage(page, { ...rect, font })
       field.setFontSize(fontSizeForField(draft, page))
-      clearWidgetChrome(field, { border: true })
+      clearWidgetChrome(field, runtime, { border: true })
     }
     writtenNames.add(draft.name)
   }

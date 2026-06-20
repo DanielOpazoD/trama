@@ -24,6 +24,96 @@ DOM, Workers y modelo puro.
 - El hook de navegacion del editor mantiene la fuente de verdad logica; los
   helpers de apertura/geometry son el contrato testeado para la relacion entre
   pagina solicitada, pagina visible, zoom y layout.
+- `pdfjs-dist` y `pdfjs-dist/build/pdf.worker.min.mjs?url` solo se importan en
+  `src/lib/pdfStudio/pdfRuntime/pdfjsLoader.ts`. Los consumidores piden
+  `loadPdfjsDocument()` para que worker, cache y tipos vivan en un unico borde.
+- Los imports dinamicos de `pdf-lib` y `@pdf-lib/fontkit` solo se hacen en
+  `src/lib/pdfStudio/pdfRuntime/pdfLibLoader.ts`. Los flujos de exportacion,
+  OCR buscable, imagenes a PDF y Libro usan `loadPdfLib()` / `loadPdfFontkit()`.
+- Los imports estaticos de tipos desde `pdf-lib` siguen permitidos en modulos
+  PDF-only. El runtime de `pdf-lib` no se importa estaticamente desde
+  consumidores: incluso AcroForms usa `loadPdfLib()`.
+
+El guardrail ejecutable es:
+
+```bash
+npm run check:pdf-runtime-boundaries
+```
+
+Ese check bloquea nuevos imports runtime directos o estaticos de PDF.js, worker
+PDF.js, `pdf-lib` o fontkit fuera de los loaders compartidos.
+
+## Contrato de entrypoints lazy
+
+PDF Studio puede ser pesado, pero no puede entrar al shell inicial. El build
+debe mantener `pdf-lib`, PDF.js, OCR y workers PDF detras de imports dinamicos
+activados por la vista/accion del usuario.
+
+| Superficie            | PDF permitido en carga inicial | PDF permitido lazy                             | Razon                                                      |
+| --------------------- | ------------------------------ | ---------------------------------------------- | ---------------------------------------------------------- |
+| `dist/index.html`     | ninguno                        | `PdfStudioView` y derivados via dynamic import | Evita que el primer render pague costos de PDF Studio.     |
+| Shell/App inicial     | ninguno                        | vistas PDF lazy                                | Mantiene inicio, auth y mundo Notas independientes de PDF. |
+| `PdfStudioView`       | no aplica                      | `pdfjsLoader`, `pdfLibLoader`, workers         | La vista ya expresa intencion de usar PDF.                 |
+| Export/OCR/Form/Libro | no aplica                      | `vendor-pdf-lib`, `vendor-pdfjs`, `vendor-ocr` | Chunks pesados solo cuando el usuario ejecuta esos flujos. |
+| Workers PDF           | no aplica                      | workers dedicados                              | Mantienen trabajo pesado fuera del hilo principal.         |
+
+El guardrail ejecutable es:
+
+```bash
+npm run build
+npm run check:pdf-lazy-entrypoints
+```
+
+Ese check lee `dist/index.html` y el grafo de imports estaticos desde los
+assets iniciales. Los imports dinamicos a PDF se permiten; los imports
+estaticos o modulepreloads PDF desde el entrypoint inicial fallan.
+
+## Contrato de payload PDF
+
+El peso PDF se mide como lazy payload, no como bundle inicial. El objetivo no es
+eliminar todos los chunks repetidos (Vite puede partir el grafo entre workers y
+rutas lazy), sino hacer visibles las familias que crecen y evitar duplicacion
+accidental de fronteras.
+
+| Familia                  | Bases principales                                                  | Razon del budget                                           |
+| ------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `PDF lazy payload total` | todas las bases PDF lazy                                           | Techo global para Imprenta/Planillas/Libro/OCR.            |
+| `PDF viewer`             | `PdfStudioView`, `pdf.worker.min`, `vendor-pdfjs`                  | Render y preview; owns PDF.js compartido.                  |
+| `PDF assemble/export`    | `assemble`, `assembleImages`, `pdfExport.worker`, `vendor-pdf-lib` | Exportacion, redacciones, imagenes y vendors de escritura. |
+| `PDF OCR`                | `pdfOcr*`, `vendor-ocr`                                            | Reconocimiento local y armado buscable.                    |
+| `PDF forms`              | `pdfForms`, `pdfForm.worker`                                       | Inspeccion/relleno de AcroForms.                           |
+| `PDF libro`              | `buildLibro`, `libroPreview`                                       | Florilegio imprimible y preview del libro.                 |
+
+Antes de subir un budget, corre:
+
+```bash
+npm run build
+npm run bundle:report
+```
+
+Si el crecimiento cae en una familia, primero revisa si entro una dependencia
+nueva o si un import dejo de pasar por `pdfRuntime`. Solo sube el budget cuando
+el crecimiento es intencional y queda explicado en el PR.
+
+## Auditoria de workers y duplicacion
+
+El snapshot testeable vive en `scripts/fixtures/pdf-bundle-snapshot.mjs`. Es un
+contrato de forma, no de hash: registra bases logicas, workers y duplicaciones
+observadas para que el PR siguiente vea si cambio el grafo PDF.
+
+| Base               | Estado esperado | Decision                                                          |
+| ------------------ | --------------- | ----------------------------------------------------------------- |
+| `vendor-pdf-lib`   | duplicado x4    | Aceptado por grafo lazy/worker; se vigila por familia y total.    |
+| `vendor-pdfjs`     | duplicado x2    | Aceptado por viewer + usos con worker; no se fuerza merge manual. |
+| `vendor-ocr`       | duplicado x2    | Aceptado por OCR UI/worker; bajo budget propio.                   |
+| `pdf.worker.min`   | worker externo  | Necesario para PDF.js; se mide en `PDF viewer` y total.           |
+| `pdfExport.worker` | worker dedicado | Necesario para export pesado sin bloquear UI.                     |
+| `pdfForm.worker`   | worker dedicado | Necesario para AcroForms pesados.                                 |
+| `pdfOcr.worker`    | worker dedicado | Necesario para OCR local con progreso/cancelacion.                |
+
+Si aparece una duplicacion nueva, primero revisa `npm run
+check:pdf-runtime-boundaries`. Si el guardrail esta verde, el siguiente paso es
+leer el grafo de Vite/worker antes de intentar consolidar chunks a mano.
 
 ## Contrato de navegacion del editor
 

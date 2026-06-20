@@ -18,6 +18,8 @@
     "check:docs-drift": "node scripts/check-docs-drift.mjs",
     "check:structure-ratchets": "node scripts/check-structure-ratchets.mjs",
     "check:frontend-boundaries": "node scripts/check-frontend-boundaries.mjs",
+    "check:pdf-runtime-boundaries": "node scripts/pdf-runtime-boundaries.mjs",
+    "check:pdf-lazy-entrypoints": "node scripts/pdf-lazy-entrypoints.mjs",
     "check:client-api-contracts": "node scripts/client-api-contracts.mjs",
     "client-api-contracts:inventory": "node scripts/client-api-contracts.mjs --json",
     "check:cte-regression": "bash scripts/check-cte-regression.sh",
