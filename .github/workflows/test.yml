@@ -68,6 +68,13 @@ jobs:
       - name: API request contracts
         run: npm run check:api-request-contracts
 
+      # Contrato de servicios de dominio backend: los handlers de alto riesgo
+      # pueden orquestar auth/SQL/respuesta, pero los mappers/drafts/planes
+      # puros deben vivir en servicios testeables para no volver a handlers
+      # monolíticos.
+      - name: Backend domain services contract
+        run: npm run check:backend-domain-services
+
       # Contrato operacional multiusuario: vocabulario de eventos, redacción,
       # health productivo y smoke reportable deben quedar documentados y
       # conectados a auth/wrapper antes de mergear.

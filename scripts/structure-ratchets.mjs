@@ -96,12 +96,12 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 650,
+    maxLines: 645,
     files: ['netlify/functions/_lib/recortes-endpoint.ts'],
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 560,
+    maxLines: 520,
     files: ['netlify/functions/_lib/momentos-endpoint.ts'],
   },
   {
@@ -111,8 +111,13 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 460,
+    maxLines: 335,
     files: ['netlify/functions/_lib/search-endpoint.ts'],
+  },
+  {
+    group: 'server-large-surfaces',
+    maxLines: 1480,
+    files: ['netlify/functions/whatsapp-webhook.mts'],
   },
   {
     group: 'server-large-surfaces',

@@ -78,6 +78,15 @@ import {
 } from './_lib/whatsapp/interactive.js'
 import { sendWhatsAppContent } from './_lib/whatsapp/send.js'
 import type { CaptureIntent, CaptureKind } from './_lib/whatsapp/types.js'
+import {
+  buildCaptureReplyText,
+  helpMessage,
+  notLinkedMessage,
+  openInTramaLine,
+  openLinkText,
+  parseInlineTags,
+  welcomeMessage,
+} from './_lib/whatsapp/webhook-replies.js'
 
 /**
  * Webhook entrante de WhatsApp vía Twilio. Captura rápida desde el bolsillo:
@@ -99,20 +108,6 @@ function readEnv(key: string): string | undefined {
   } catch {
     return process.env[key]
   }
-}
-
-/** Línea de "abrir en Trama" a partir de una URL ya armada. */
-function openLinkText(url: string): string {
-  return `🔗 Ábrelo en Trama: ${url}`
-}
-
-/**
- * Línea de "abrir en Trama" de una confirmación. Centralizada porque se repite y
- * porque en el camino de botones (Card) este enlace se vuelve un botón [Abrir en
- * Trama] en vez de texto — un solo lugar para decidirlo.
- */
-function openInTramaLine(origin: string, kind: string): string {
-  return openLinkText(captureDeepLink(origin, kind))
 }
 
 /**
@@ -171,13 +166,7 @@ async function replyWithCapture(
       return emptyTwimlResponse()
     }
   }
-  const fix =
-    variant === 'foto'
-      ? '↩️ Responde con una descripción, o «deshacer» · «momento» · «nota».'
-      : variant === 'ambiguous'
-        ? '↩️ ¿No era así? Responde «deshacer», o reclasifícalo: nota · momento · tarea · entidad.'
-        : '↩️ ¿No era así? Responde «deshacer».'
-  return twimlResponse(`${bodyWithLink}\n${fix}`)
+  return twimlResponse(buildCaptureReplyText(bodyWithLink, variant))
 }
 
 /**
@@ -232,53 +221,7 @@ async function replyWithMenu(params: Record<string, string>): Promise<Response> 
       return emptyTwimlResponse()
     }
   }
-  return twimlResponse(HELP)
-}
-
-const HELP = [
-  'Trama 📚 — tu segundo cerebro, ahora desde WhatsApp.',
-  '',
-  'Captura al instante:',
-  '• nota: <texto>',
-  '• cita: <frase> — <autor>',
-  '• entidad: <nombre> (tipo)',
-  '• momento: <qué pasó>',
-  '• tarea: <qué hacer> — <detalle>',
-  'O escribe libremente y yo lo clasifico por ti.',
-  '',
-  '📷 Fotos: la imagen va a Recortes. Con «cita:» o «nota:» leo el texto (OCR).',
-  '🎤 Notas de voz: las transcribo y las guardo como Nota.',
-  '🔎 Pregunta: «buscar: <tema>» o «? <pregunta>» para consultar tu Trama.',
-  '',
-  'Después de guardar puedes responder:',
-  '• «título <texto>» para nombrarlo',
-  '• «etiqueta <palabras>» para clasificarlo',
-  '• «nota», «momento» o «entidad» para reclasificarlo',
-  '',
-  'Atajos: «deshacer» revierte lo último · «estado» muestra tu resumen.',
-].join('\n')
-
-const NOT_LINKED = [
-  'Tu número todavía no está conectado a Trama.',
-  'Abre Trama → Configuración → WhatsApp, genera un código y envíalo así:',
-  'vincular ABC123',
-].join('\n')
-
-/** Bienvenida tras conectar: confirma + invita a probar (onboarding). */
-function welcomeMessage(label?: string): string {
-  const head = label
-    ? `✅ ¡Listo! Conecté este dispositivo como «${label}».`
-    : '✅ ¡Listo! Tu número quedó conectado a Trama.'
-  return [
-    head,
-    '',
-    'Pruébalo ahora mismo:',
-    '• nota: comprar pan',
-    '• cita: el tiempo es relativo — Einstein',
-    '• momento: hoy empecé algo nuevo',
-    '',
-    'Escribe «ayuda» cuando quieras ver todo lo que puedo hacer.',
-  ].join('\n')
+  return twimlResponse(helpMessage())
 }
 
 /** Resuelve el dueño del número (bypass de RLS: aún no hay usuario en contexto). */
@@ -496,18 +439,6 @@ async function readCaptureText(
   }
   const t = rows[0]?.t
   return t && t.trim() ? t.trim() : null
-}
-
-/** "trabajo, ideas" / "#a #b" → ['trabajo','ideas'] (sin #, sin vacíos, máx 10). */
-function parseInlineTags(raw: string): string[] {
-  return [
-    ...new Set(
-      raw
-        .split(/[,\n]+|\s+/)
-        .map((t) => t.trim().replace(/^#/, '').slice(0, 40))
-        .filter((t) => t.length > 0),
-    ),
-  ].slice(0, 10)
 }
 
 /** Comando `título <texto>`: nombra la última captura (notas/entidades). */
@@ -1350,7 +1281,7 @@ export default withObservability(
     // Sin adjuntos, un mensaje vacío o "ayuda" muestra el menú. (Con media,
     // el Body suele ser el caption, así que no cortamos acá.)
     if (media.length === 0 && (parsed.kind === 'empty' || parsed.kind === 'help')) {
-      return twimlResponse(HELP)
+      return twimlResponse(helpMessage())
     }
 
     if (parsed.kind === 'link') {
@@ -1371,7 +1302,7 @@ export default withObservability(
 
     // parsed.kind === 'intent' | 'freeform' | 'undo' → necesita usuario vinculado.
     const userId = await resolveUserByPhone(phone)
-    if (!userId) return twimlResponse(NOT_LINKED)
+    if (!userId) return twimlResponse(notLinkedMessage())
 
     // A partir de acá, todas las escrituras corren bajo el RLS del dueño.
     setCurrentRlsUser(userId)

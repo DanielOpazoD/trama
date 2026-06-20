@@ -3,11 +3,7 @@ import { getSql, sqlTyped } from './db.js'
 import { withObservability } from './handler-wrap.js'
 import { ApiErrors } from './api-error.js'
 import { embedSafe, toPgVector } from './embeddings.js'
-import {
-  momentoEmbedText,
-  validatePayloadForKind,
-  type MomentoKind,
-} from './momento-embed.js'
+import { validatePayloadForKind, type MomentoKind } from './momento-embed.js'
 import { getAuthedUser } from './auth.js'
 import { parseJsonBody } from './zod-body.js'
 import { parseSearchParams, requestPath } from './request-contracts.js'
@@ -23,6 +19,11 @@ import {
   type MomentoListRow,
 } from './momentos-list.js'
 import { logOperationalEvent } from './operational-events.js'
+import {
+  buildMomentoCreateDraft,
+  buildMomentoPatchDraft,
+  ownerIdFromMomentoRow,
+} from './momentos-service.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -45,8 +46,6 @@ import { logOperationalEvent } from './operational-events.js'
  * (sin key, error de red), el momento se guarda igual sin embedding.
  */
 
-import { normalizeOrigin } from './origin.js'
-
 type MomentoResponseRow = Record<string, unknown>
 type EntityIdRow = { id: string }
 type MomentoLinkIdRow = { entity_id: string }
@@ -58,10 +57,6 @@ type CurrentMomentoRow = {
   access_role: 'owner' | 'viewer' | 'editor' | null
 }
 type DeletedMomentoRow = { id: string; deleted_at: string }
-
-function ownerIdFromRow(row: MomentoResponseRow | undefined, fallback: string): string {
-  return typeof row?.owner_user_id === 'string' ? row.owner_user_id : fallback
-}
 
 export default withObservability(
   'momentos',
@@ -108,7 +103,7 @@ export default withObservability(
       FROM momento_entities me
       JOIN entities e ON e.id = me.entity_id AND e.deleted_at IS NULL
       WHERE me.momento_id = ${id}
-        AND me.user_id = ${ownerIdFromRow(rows[0], userId)}
+        AND me.user_id = ${ownerIdFromMomentoRow(rows[0], userId)}
         AND me.deleted_at IS NULL
     `),
       )
@@ -251,27 +246,16 @@ export default withObservability(
       if (!parsed.ok) return parsed.response
       await ensureUserRow(sql, authedUser)
       const body = parsed.data
-
-      const kind: MomentoKind = body.kind
-      const payload = body.payload
+      const draft = buildMomentoCreateDraft(body)
 
       // Validación shape por kind — defiende contra "foto sin storageKey",
       // "nota vacía", etc. Validator puro extraído a _lib/momento-embed.ts.
-      const payloadError = validatePayloadForKind(kind, payload)
+      const payloadError = validatePayloadForKind(draft.kind, draft.payload)
       if (payloadError) {
         return ApiErrors.validation(requestId, payloadError)
       }
 
-      const note = body.note?.trim() || null
-      const origin = normalizeOrigin(body.origin)
-      const capturedAt =
-        typeof body.captured_at === 'string' && body.captured_at
-          ? body.captured_at
-          : new Date().toISOString()
-
-      const entityIds = Array.isArray(body.entity_ids)
-        ? body.entity_ids.filter((x): x is string => typeof x === 'string')
-        : []
+      const { kind, payload, note, origin, capturedAt, entityIds } = draft
       if (entityIds.length > 0) {
         const entityRows = await sqlTyped<EntityIdRow>(sql`
         SELECT id
@@ -286,7 +270,7 @@ export default withObservability(
       }
 
       // Best-effort embedding del texto agregado del momento.
-      const embedSource = momentoEmbedText(kind, payload, note)
+      const embedSource = draft.embedSource
       const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
 
       // Crear el momento + linkear sus entidades en UN solo CTE (atomicidad: el
@@ -359,37 +343,29 @@ export default withObservability(
       }
       const kind = currentRow.kind
       const ownerUserId = currentRow.user_id
-
-      // ξ-fix-3: detectamos qué cambia realmente para decidir si re-embedear.
-      // Antes este PATCH gastaba una llamada a OpenAI en CADA update aunque
-      // el cliente solo cambiara entity_ids o captured_at — caro y sin
-      // sentido. Ahora solo re-embedeamos cuando cambia payload o note.
-      const payloadChanged = body.payload !== undefined
-      const noteChanged = body.note !== undefined
-
-      const newPayload = payloadChanged
-        ? (body.payload as Record<string, unknown>)
-        : currentRow.payload
-      const newNote =
-        body.note === null
-          ? null
-          : typeof body.note === 'string'
-            ? body.note.trim() || null
-            : currentRow.note
-      const newCapturedAt =
-        typeof body.captured_at === 'string' && body.captured_at ? body.captured_at : null // null = no cambia
+      const draft = buildMomentoPatchDraft({
+        current: {
+          kind,
+          payload: currentRow.payload,
+          note: currentRow.note,
+        },
+        patch: body,
+      })
+      const newPayload = draft.payload
+      const newNote = draft.note
+      const newCapturedAt = draft.capturedAt
 
       // Validación shape post-merge (no aceptamos transiciones que dejen
       // el payload inconsistente con el kind).
-      if (payloadChanged) {
+      if (draft.payloadChanged) {
         const err = validatePayloadForKind(kind, newPayload)
         if (err) return ApiErrors.validation(requestId, err)
       }
 
       // Re-embed solo si cambió el texto fuente. Si no, conservamos el
       // embedding viejo (no se sobreescribe a null).
-      const shouldReembed = payloadChanged || noteChanged
-      const embedSource = shouldReembed ? momentoEmbedText(kind, newPayload, newNote) : ''
+      const shouldReembed = draft.shouldReembed
+      const embedSource = draft.embedSource
       const emb =
         shouldReembed && embedSource.length > 0 ? await embedSafe(embedSource) : null
 
@@ -435,10 +411,8 @@ export default withObservability(
       }
 
       // Reemplazar set de entityIds si viene.
-      if (Array.isArray(body.entity_ids)) {
-        const entityIds = body.entity_ids.filter(
-          (x): x is string => typeof x === 'string',
-        )
+      if (draft.entityIds) {
+        const entityIds = draft.entityIds
         if (entityIds.length > 0) {
           const entityRows = await runWithSystemRls(() =>
             sqlTyped<EntityIdRow>(sql`
