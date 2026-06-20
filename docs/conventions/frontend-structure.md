@@ -62,3 +62,22 @@ Cuando un PR reduce un archivo grande, agrega o ajusta
 `scripts/structure-ratchets.mjs` con margen pequeño. El objetivo no es castigar
 un archivo por una línea, sino impedir que vuelva a crecer sin una decisión
 explícita.
+
+## Surface Diet v1
+
+Las superficies adelgazadas mantienen una frontera simple: la vista conserva
+hooks y efectos; los modelos concentran decisiones puras; los componentes nuevos
+solo renderizan una sección con props explícitas.
+
+| Superficie           | Frontera extraída                                        | Contrato                                                          |
+| -------------------- | -------------------------------------------------------- | ----------------------------------------------------------------- |
+| `App.tsx`            | `appShell/*`                                             | Visibilidad del shell, chrome superior y capa de atención.        |
+| `NotasFeedView.tsx`  | `NotasFeedVirtualList` + `notasFeedViewModel`            | Render virtualizado y metadata de fila sin duplicar mutaciones.   |
+| `RecorteCard.tsx`    | `RecorteCardBody`, `RecorteCardMenu`, `recorteCardModel` | Media flags, cuerpo colapsable y acciones de triage aisladas.     |
+| `CommandPalette.tsx` | `CommandPaletteSearchMode` + `commandPaletteModel`       | Modo búsqueda separado del modo resultados, keys y conteos puros. |
+| `Settings.tsx`       | `SettingsNav`, `SettingsPanelContent`, `settingsModel`   | Índice declarativo de secciones y retorno OAuth por provider.     |
+
+Regla para futuros PR: si una de estas superficies necesita crecer, primero
+pregunta si la nueva lógica pertenece al modelo, a un componente presentacional
+o a la vista. Solo sube el ratchet si el crecimiento es una responsabilidad real
+de orquestación.

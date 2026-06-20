@@ -40,6 +40,9 @@ export const CAPTURA_STATUS_OPTIONS: Array<{
   { value: 'archived', label: 'Archivadas' },
 ]
 
+const STAGGER_CAP = 6
+const STAGGER_STEP_MS = 45
+
 export function initialSegmentFromSearch(search: string): NotasFeedSegment {
   const raw = new URLSearchParams(search).get('segment')
   return NOTAS_FEED_SEGMENTS.some((s) => s.value === raw)
@@ -85,6 +88,22 @@ export function selectedRecortesFromItems(
   return items
     .filter((item) => item.type === 'recorte' && selectedIds.has(item.id))
     .map((item) => (item as Extract<CaptureItem, { type: 'recorte' }>).recorte)
+}
+
+export function buildNotasFeedVirtualItemMeta({
+  item,
+  index,
+  reducedMotion,
+}: {
+  item: CaptureItem
+  index: number
+  reducedMotion: boolean
+}): { key: string; delay: string | undefined } {
+  return {
+    key: item.type === 'note' ? `note-${item.id}` : `recorte-${item.id}`,
+    delay:
+      reducedMotion || index >= STAGGER_CAP ? undefined : `${index * STAGGER_STEP_MS}ms`,
+  }
 }
 
 export function buildCalendarStats(notes: Note[]): {

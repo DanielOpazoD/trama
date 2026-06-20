@@ -17,9 +17,6 @@ import { extractUrl, hostLabel } from '../../lib/captureIntent'
 import { useRecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useRecorteFeedView } from '../../hooks/useRecorteFeedView'
 import { ViewHeader } from '../ViewHeader'
-import { NoteCard } from './NoteCard'
-import { RecorteCard } from '../recortes/RecorteCard'
-import { SelectableRecorte } from '../recortes/SelectableRecorte'
 import { RecorteSelectionBar } from '../recortes/RecorteSelectionBar'
 import { CapturasGalleryGrid } from '../recortes/CapturasGalleryGrid'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
@@ -31,6 +28,7 @@ import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { NotasFeedContent } from './NotasFeedContent'
 import { NotasFeedControls } from './NotasFeedControls'
 import { NotasFeedComposer } from './NotasFeedComposer'
+import { NotasFeedVirtualList } from './NotasFeedVirtualList'
 import { useMeasuredVirtualFeed } from './useMeasuredVirtualFeed'
 import {
   buildAllNoteTags,
@@ -53,11 +51,6 @@ const FocusedWriting = lazy(() =>
 )
 
 const ACCENT = 'var(--accent-sage)'
-
-// Cap del delay escalonado de entrada: hasta este índice cada ítem entra con un
-// pequeño retraso incremental; a partir de ahí, 0 (no escalonamos una lista larga).
-const STAGGER_CAP = 6
-const STAGGER_STEP_MS = 45
 
 /**
  * Feed unificado de capturas (fusión Notas + Recortes). La sección "notas" del
@@ -593,113 +586,58 @@ export function NotasFeedView({
           />
         }
         list={
-          <div
-            ref={listRef}
-            style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
-          >
-            {virtualItems.map((virtualRow) => {
-              const item = items[virtualRow.index]
-              if (!item) return null
-              const i = virtualRow.index
-              const isSelected = selected === i
-              const delay =
-                reducedMotion || i >= STAGGER_CAP ? undefined : `${i * STAGGER_STEP_MS}ms`
-              const selStyle = isSelected
-                ? { boxShadow: `0 0 0 2px ${ACCENT}`, borderRadius: '0.75rem' }
+          <NotasFeedVirtualList
+            listRef={listRef}
+            items={items}
+            virtualItems={virtualItems}
+            virtualizer={virtualizer}
+            selectedIndex={selected}
+            reducedMotion={reducedMotion}
+            recorteThumb={recorteThumb}
+            selectionMode={selectionMode}
+            selectedIds={selectedIds}
+            noteBusy={updateNote.isPending || deleteNote.isPending}
+            promotingNoteId={
+              promoteNote.isPending
+                ? (promoteNote.variables as string | undefined)
                 : undefined
-              return (
-                <div
-                  key={item.type === 'note' ? `note-${item.id}` : `recorte-${item.id}`}
-                  data-index={i}
-                  ref={virtualizer.measureElement}
-                  onMouseDown={() => setSelected(i)}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    transform: `translateY(${virtualRow.start - virtualizer.options.scrollMargin}px)`,
-                    paddingBottom: '0.625rem',
-                  }}
-                >
-                  <div
-                    className={reducedMotion ? undefined : 'animate-fade-up'}
-                    style={{ ...selStyle, animationDelay: delay }}
-                  >
-                    {item.type === 'note' ? (
-                      <NoteCard
-                        note={item.note}
-                        busy={updateNote.isPending || deleteNote.isPending}
-                        promoting={
-                          promoteNote.isPending && promoteNote.variables === item.id
-                        }
-                        onTogglePin={() =>
-                          updateNote.mutate({
-                            id: item.id,
-                            patch: { pinned: !item.note.pinned },
-                          })
-                        }
-                        onEdit={(patch) => updateNote.mutate({ id: item.id, patch })}
-                        onDelete={() => deleteNote.mutate(item.id)}
-                        onPromote={() =>
-                          promoteNote.mutate(item.id, {
-                            onSuccess: () =>
-                              toast.show({
-                                message: 'Nota promovida a Momento.',
-                                tone: 'success',
-                              }),
-                            onError: (e) =>
-                              toast.show({
-                                message:
-                                  e instanceof Error ? e.message : 'No se pudo promover',
-                                tone: 'error',
-                              }),
-                          })
-                        }
-                      />
-                    ) : (
-                      <SelectableRecorte
-                        selectionMode={selectionMode}
-                        selected={selectedIds.has(item.id)}
-                        onToggleSelect={() => toggleSelect(item.id)}
-                        label={`Seleccionar captura: ${
-                          item.recorte.sourceTitle ?? item.recorte.text.slice(0, 40)
-                        }`}
-                      >
-                        <ul className="contents">
-                          <RecorteCard
-                            recorte={item.recorte}
-                            thumbSize={recorteThumb}
-                            onPromote={(recorte, target, seed) =>
-                              setPromoting({ recorte, target, seed })
-                            }
-                            onArchive={() =>
-                              updateRecorte.mutate({
-                                id: item.id,
-                                patch: { status: 'archived' },
-                              })
-                            }
-                            onRestore={() =>
-                              updateRecorte.mutate({
-                                id: item.id,
-                                patch: { status: 'pending' },
-                              })
-                            }
-                            onDelete={() => deleteRecorte.mutate(item.id)}
-                            onSendImagesToPdf={
-                              onSendImagesToPdf
-                                ? (recorte) => onSendImagesToPdf([recorte])
-                                : undefined
-                            }
-                          />
-                        </ul>
-                      </SelectableRecorte>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+            }
+            onSelectIndex={setSelected}
+            onToggleNotePin={(note) =>
+              updateNote.mutate({
+                id: note.id,
+                patch: { pinned: !note.pinned },
+              })
+            }
+            onEditNote={(id, patch) => updateNote.mutate({ id, patch })}
+            onDeleteNote={(id) => deleteNote.mutate(id)}
+            onPromoteNote={(id) =>
+              promoteNote.mutate(id, {
+                onSuccess: () =>
+                  toast.show({
+                    message: 'Nota promovida a Momento.',
+                    tone: 'success',
+                  }),
+                onError: (e) =>
+                  toast.show({
+                    message: e instanceof Error ? e.message : 'No se pudo promover',
+                    tone: 'error',
+                  }),
+              })
+            }
+            onToggleRecorteSelect={toggleSelect}
+            onPromoteRecorte={(recorte, target, seed) =>
+              setPromoting({ recorte, target, seed })
+            }
+            onArchiveRecorte={(id) =>
+              updateRecorte.mutate({ id, patch: { status: 'archived' } })
+            }
+            onRestoreRecorte={(id) =>
+              updateRecorte.mutate({ id, patch: { status: 'pending' } })
+            }
+            onDeleteRecorte={(id) => deleteRecorte.mutate(id)}
+            onSendImagesToPdf={onSendImagesToPdf}
+          />
         }
       />
 

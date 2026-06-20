@@ -6,7 +6,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 650,
+    maxLines: 600,
     files: ['src/App.tsx'],
   },
   {
@@ -16,8 +16,25 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 420,
+    maxLines: 390,
     files: ['src/components/CommandPalette.tsx'],
+  },
+  {
+    group: 'app-shell-components',
+    maxLines: 90,
+    files: [
+      'src/components/appShell/ShellTopChrome.tsx',
+      'src/components/appShell/ShellAttentionLayer.tsx',
+      'src/components/appShell/appShellModel.ts',
+    ],
+  },
+  {
+    group: 'command-palette-components',
+    maxLines: 80,
+    files: [
+      'src/components/commandPalette/CommandPaletteSearchMode.tsx',
+      'src/components/commandPalette/commandPaletteModel.ts',
+    ],
   },
   {
     group: 'app-large-surfaces',
@@ -26,7 +43,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'notas-feed-surfaces',
-    maxLines: 760,
+    maxLines: 700,
     files: ['src/components/notas/NotasFeedView.tsx'],
   },
   {
@@ -45,19 +62,52 @@ export const STRUCTURE_RATCHETS = [
     files: ['src/components/notas/NotasFeedComposer.tsx'],
   },
   {
+    group: 'notas-feed-components',
+    maxLines: 225,
+    files: [
+      'src/components/notas/NotasFeedVirtualList.tsx',
+      'src/components/notas/notasFeedViewModel.ts',
+    ],
+  },
+  {
     group: 'recortes-surfaces',
-    maxLines: 440,
+    maxLines: 285,
     files: ['src/components/recortes/RecorteCard.tsx'],
   },
   {
     group: 'recortes-components',
     maxLines: 115,
-    files: ['src/components/recortes/RecorteMediaPreview.tsx'],
+    files: [
+      'src/components/recortes/RecorteMediaPreview.tsx',
+      'src/components/recortes/recorteCardModel.ts',
+    ],
+  },
+  {
+    group: 'recortes-components',
+    maxLines: 175,
+    files: [
+      'src/components/recortes/RecorteCardBody.tsx',
+      'src/components/recortes/RecorteCardMenu.tsx',
+    ],
   },
   {
     group: 'momentos-surfaces',
     maxLines: 420,
     files: ['src/components/MomentosView.tsx'],
+  },
+  {
+    group: 'settings-surfaces',
+    maxLines: 125,
+    files: ['src/components/Settings.tsx'],
+  },
+  {
+    group: 'settings-components',
+    maxLines: 75,
+    files: [
+      'src/components/settings/SettingsNav.tsx',
+      'src/components/settings/SettingsPanelContent.tsx',
+      'src/components/settings/settingsModel.ts',
+    ],
   },
   {
     group: 'settings-surfaces',

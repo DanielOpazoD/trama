@@ -9,7 +9,11 @@ import { useAskQuery, useRunQuery, useSaveQuery } from '../state/useSavedQueries
 import { useToast } from '../state/toast'
 import type { QueryHit, QueryInput } from '../api/query'
 import type { NotasSection } from '../types/notas'
-import { ItemRow, PeekPanel } from './CommandPaletteItems'
+import { CommandPaletteSearchMode } from './commandPalette/CommandPaletteSearchMode'
+import {
+  getCommandPaletteActiveLength,
+  type CommandPaletteMode,
+} from './commandPalette/commandPaletteModel'
 
 // El modo "resultados" (motor de consultas) se carga on-demand: el camino
 // común buscar/navegar no necesita su código, así el bundle del palette no
@@ -70,7 +74,7 @@ export function CommandPalette({
   // δ-unificado: segundo modo del palette. 'search' es el comportamiento
   // clásico (find/navigate). 'results' muestra los hits del motor de consultas
   // tras un "Preguntar" o correr una consulta guardada.
-  const [mode, setMode] = useState<'search' | 'results'>('search')
+  const [mode, setMode] = useState<CommandPaletteMode>('search')
   const [results, setResults] = useState<{
     hits: QueryHit[]
     ast: QueryInput | null
@@ -232,7 +236,11 @@ export function CommandPalette({
     if (!open) return
     // La lista activa para arrows/Enter depende del modo: items de búsqueda o
     // hits de resultados.
-    const activeLen = mode === 'results' ? (results?.hits.length ?? 0) : items.length
+    const activeLen = getCommandPaletteActiveLength({
+      mode,
+      itemCount: items.length,
+      hitCount: results?.hits.length ?? 0,
+    })
     function handler(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -345,46 +353,16 @@ export function CommandPalette({
               </>
             ) : (
               <>
-                <div className="flex">
-                  <ul className="max-h-[50vh] overflow-y-auto flex-1 min-w-0">
-                    {items.length === 0 && (
-                      <li className="px-5 py-6 text-ink-400 italic text-sm text-center">
-                        {running
-                          ? 'consultando…'
-                          : searching
-                            ? 'buscando…'
-                            : 'nada coincide'}
-                      </li>
-                    )}
-                    {items.map((item, idx) => (
-                      <li key={`${item.kind}-${itemKey(item)}`}>
-                        <button
-                          onClick={() => selectItem(item)}
-                          onMouseEnter={() => setFocusIdx(idx)}
-                          className={`w-full text-left px-5 py-2.5 flex items-baseline gap-3 transition-colors ${
-                            idx === focusIdx ? 'bg-paper-100/70' : 'hover:bg-paper-100/40'
-                          }`}
-                        >
-                          <ItemRow item={item} query={query} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {/* Peek: ficha del resultado resaltado (solo desktop). Navegar
-                      con ↑↓ hojea las fichas sin abrir nada. */}
-                  {items[focusIdx] && (
-                    <aside
-                      aria-label="Vista previa del resultado"
-                      className="hidden md:block w-72 shrink-0 border-l border-ink-100/60 bg-paper-100/30 max-h-[50vh] overflow-y-auto"
-                    >
-                      <PeekPanel item={items[focusIdx]} entities={entitiesForPeek} />
-                    </aside>
-                  )}
-                </div>
-                <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
-                  <span>↑↓ navegar · enter abrir · esc cerrar</span>
-                  <span>{items.length} resultados</span>
-                </div>
+                <CommandPaletteSearchMode
+                  items={items}
+                  query={query}
+                  running={running}
+                  searching={searching}
+                  focusIdx={focusIdx}
+                  entitiesForPeek={entitiesForPeek}
+                  onFocusIdx={setFocusIdx}
+                  onSelectItem={selectItem}
+                />
               </>
             )}
           </div>
@@ -392,14 +370,4 @@ export function CommandPalette({
       </div>
     </>
   )
-}
-
-function itemKey(item: Item): string {
-  if (item.kind === 'view') return item.view
-  if (item.kind === 'action') return item.action
-  if (item.kind === 'reveal') return `reveal-${item.moduleId}`
-  if (item.kind === 'ask') return 'ask'
-  if (item.kind === 'savedQuery') return `saved-${item.id}`
-  if (item.kind === 'entity') return item.id
-  return item.id
 }

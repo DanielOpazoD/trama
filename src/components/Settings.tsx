@@ -1,18 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { OAuthReturn } from '../lib/oauthReturn'
-import { CloseIcon, TramaMark } from './Icons'
-import { AppearancePanel } from './settings/AppearancePanel'
-import { PrivacyPanel } from './settings/PrivacyPanel'
-import { SpotifyPanel } from './settings/SpotifyPanel'
-import { ExtensionPanel } from './settings/ExtensionPanel'
-import { WhatsAppPanel } from './settings/WhatsAppPanel'
-import { XPanel } from './settings/XPanel'
-import { AIPanel } from './settings/AIPanel'
-import { SearchPanel } from './settings/SearchPanel'
-import { DataPanel } from './settings/DataPanel'
-import { HealthPanel } from './settings/HealthPanel'
-import { LogsPanel } from './settings/LogsPanel'
-import { PersonalizationPanel } from './settings/PersonalizationPanel'
+import { CloseIcon } from './Icons'
+import { SettingsNav } from './settings/SettingsNav'
+import { SettingsPanelContent } from './settings/SettingsPanelContent'
+import {
+  getInitialSettingsSection,
+  type SettingsSectionId,
+} from './settings/settingsModel'
 
 /**
  * Settings — modal full-screen con layout de dos columnas:
@@ -32,39 +26,6 @@ import { PersonalizationPanel } from './settings/PersonalizationPanel'
  * a SECTIONS, branch en el switch del render.
  */
 
-type SectionId =
-  | 'health'
-  | 'logs'
-  | 'appearance'
-  | 'personalization'
-  | 'privacy'
-  | 'spotify'
-  | 'extension'
-  | 'whatsapp'
-  | 'x'
-  | 'ai'
-  | 'search'
-  | 'data'
-
-const SECTIONS: Array<{ id: SectionId; label: string; hint: string }> = [
-  { id: 'health', label: 'Estado', hint: 'gasto, conteos, errores' },
-  { id: 'logs', label: 'Logs', hint: 'historial detallado' },
-  { id: 'appearance', label: 'Apariencia', hint: 'papel / noche' },
-  {
-    id: 'personalization',
-    label: 'Personalización',
-    hint: 'secciones · PIN · mundo default',
-  },
-  { id: 'privacy', label: 'Privacidad', hint: 'bloqueo por PIN' },
-  { id: 'spotify', label: 'Spotify', hint: 'sincronización' },
-  { id: 'extension', label: 'Extensión', hint: 'recortes desde Chrome' },
-  { id: 'whatsapp', label: 'WhatsApp', hint: 'capturar por mensaje' },
-  { id: 'x', label: 'X (Twitter)', hint: 'bookmarks' },
-  { id: 'ai', label: 'IA por tarea', hint: 'modelo por flujo' },
-  { id: 'search', label: 'Búsqueda', hint: 'embeddings + reindexado' },
-  { id: 'data', label: 'Datos', hint: 'export / import' },
-]
-
 export function Settings({
   open,
   onClose,
@@ -80,11 +41,17 @@ export function Settings({
   theme: 'paper' | 'night' | 'vela'
   onSetTheme: (t: 'paper' | 'night' | 'vela') => void
   // Sección inicial al abrir (p.ej. el retorno de un OAuth abre 'x'/'spotify').
-  initialSection?: SectionId
+  initialSection?: SettingsSectionId
   // Resultado de un callback OAuth, para que el panel lo muestre.
   oauthReturn?: OAuthReturn | null
 }) {
-  const [section, setSection] = useState<SectionId>(initialSection ?? 'health')
+  const [section, setSection] = useState<SettingsSectionId>(() =>
+    getInitialSettingsSection(initialSection),
+  )
+
+  useEffect(() => {
+    setSection(getInitialSettingsSection(initialSection))
+  }, [initialSection])
 
   useEffect(() => {
     if (!open) return
@@ -132,77 +99,16 @@ export function Settings({
         </header>
 
         <div className="flex-1 flex flex-col md:flex-row min-h-0">
-          {/* Rail de navegación — vertical en desktop, horizontal scrollable en mobile */}
-          <nav
-            className="md:w-52 shrink-0 md:border-r border-b md:border-b-0 border-ink-100/60
-                       p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto"
-            aria-label="Secciones de configuración"
-          >
-            {SECTIONS.map((s) => {
-              const active = section === s.id
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSection(s.id)}
-                  className={`group shrink-0 md:shrink text-left px-3 py-2 rounded-md transition-colors ${
-                    active
-                      ? 'bg-ink-100 text-ink-800'
-                      : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'
-                  }`}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <div className={`text-sm ${active ? 'font-medium' : ''}`}>
-                    {s.label}
-                  </div>
-                  <div className="hidden md:block text-micro text-ink-300 mt-0.5 leading-tight">
-                    {s.hint}
-                  </div>
-                </button>
-              )
-            })}
-          </nav>
+          <SettingsNav section={section} onSectionChange={setSection} />
 
           {/* Panel de contenido — scrollable */}
           <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
-            <div className="max-w-2xl mx-auto animate-fade-up">
-              {section === 'health' && <HealthPanel />}
-              {section === 'logs' && <LogsPanel />}
-              {section === 'appearance' && (
-                <AppearancePanel theme={theme} onSetTheme={onSetTheme} />
-              )}
-              {section === 'personalization' && <PersonalizationPanel />}
-              {section === 'privacy' && <PrivacyPanel />}
-              {section === 'spotify' && (
-                <SpotifyPanel
-                  oauthReturn={oauthReturn?.provider === 'spotify' ? oauthReturn : null}
-                />
-              )}
-              {section === 'extension' && <ExtensionPanel />}
-              {section === 'whatsapp' && <WhatsAppPanel />}
-              {section === 'x' && (
-                <XPanel
-                  oauthReturn={oauthReturn?.provider === 'x' ? oauthReturn : null}
-                />
-              )}
-              {section === 'ai' && <AIPanel />}
-              {section === 'search' && <SearchPanel />}
-              {section === 'data' && <DataPanel />}
-
-              {/* ι5: Colophon editorial — al pie de cada panel, como en
-                  un libro impreso ("compuesto en…" al final). Italic
-                  serif, ink-300 muted, ornament chico arriba. Gesto que
-                  hace que la app se sienta autorada, no generada.
-                  EE-brand #21: con TramaMark muy chico arriba — el
-                  equivalente al sello/logo del impresor al cierre. */}
-              <footer className="mt-16 pt-6 border-t border-ink-100/40 flex flex-col items-center gap-3">
-                <TramaMark size={14} className="text-ink-200" />
-                <p className="font-serif italic text-xs text-ink-300 leading-relaxed text-center">
-                  Trama — compuesto en Spectral e Inter,
-                  <br />
-                  primavera de {new Date().getFullYear()}
-                </p>
-              </footer>
-            </div>
+            <SettingsPanelContent
+              section={section}
+              theme={theme}
+              onSetTheme={onSetTheme}
+              oauthReturn={oauthReturn}
+            />
           </div>
         </div>
       </div>

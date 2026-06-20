@@ -96,4 +96,30 @@ describe('<Settings />', () => {
     await user.click(screen.getByRole('button', { name: /X \(Twitter\)/i }))
     expect(screen.getByText('panel x sin oauth')).toBeInTheDocument()
   })
+
+  it('sincroniza la sección cuando cambia initialSection', () => {
+    const { rerender } = render(
+      <Settings
+        open
+        onClose={() => {}}
+        theme="night"
+        onSetTheme={() => {}}
+        initialSection="spotify"
+      />,
+    )
+
+    expect(screen.getByText('panel spotify sin oauth')).toBeInTheDocument()
+
+    rerender(
+      <Settings
+        open
+        onClose={() => {}}
+        theme="night"
+        onSetTheme={() => {}}
+        initialSection="x"
+      />,
+    )
+
+    expect(screen.getByText('panel x sin oauth')).toBeInTheDocument()
+  })
 })

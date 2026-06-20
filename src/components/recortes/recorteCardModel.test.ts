@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Recorte, RecorteSuggestion } from '../../api'
 import {
   buildPromoteSeedFromSuggestion,
+  buildRecorteCardFlags,
   formatRecorteStamp,
   looksLikePlaceholder,
   recorteCaptureModeLabel,
@@ -79,5 +80,32 @@ describe('recorteCardModel', () => {
       entityName: 'Archivo',
       entityType: 'institucion',
     })
+  })
+
+  it('deriva flags de media sin repetir condiciones en el componente', () => {
+    expect(
+      buildRecorteCardFlags(
+        makeRecorte({
+          captureMode: 'video',
+          imageKey: 'video-key',
+          imageUrl: 'https://example.com/video-thumb.jpg',
+        }),
+      ),
+    ).toEqual({
+      hasVideo: true,
+      hasImage: false,
+      hasInternalImage: false,
+      hasPreview: true,
+    })
+
+    expect(
+      buildRecorteCardFlags(
+        makeRecorte({
+          captureMode: 'image',
+          imageKey: 'image-key',
+          images: [{ storageKey: 'image-key' }],
+        }),
+      ),
+    ).toMatchObject({ hasVideo: false, hasImage: true, hasInternalImage: true })
   })
 })
