@@ -104,4 +104,35 @@ describe('api request contracts', () => {
       rmSync(tmp, { recursive: true, force: true })
     }
   })
+
+  it('reporta archivos faltantes y continúa validando las demás superficies', () => {
+    const tmp = join(tmpdir(), `trama-api-contracts-${randomUUID()}`)
+    try {
+      const existingFile = 'netlify/functions/notas-attachments-upload.mts'
+      mkdirSync(join(tmp, 'netlify/functions'), { recursive: true })
+      writeFileSync(
+        join(tmp, existingFile),
+        `
+          requireMethod(req, requestId, ['POST'])
+          readFormData(req, requestId)
+          parseFormFields(formData, AttachmentUploadFields, requestId)
+        `,
+      )
+
+      const result = validateApiRequestContracts({
+        root: tmp,
+        contracts: [API_REQUEST_CONTRACTS[0], API_REQUEST_CONTRACTS[5]],
+      })
+
+      expect(result.ok).toBe(false)
+      expect(result.issues).toHaveLength(1)
+      expect(result.issues[0]).toMatchObject({
+        domain: 'search',
+        file: 'netlify/functions/_lib/search-endpoint.ts',
+      })
+      expect(result.issues[0]?.message).toContain('contract file could not be read:')
+    } finally {
+      rmSync(tmp, { recursive: true, force: true })
+    }
+  })
 })

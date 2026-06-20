@@ -63,7 +63,20 @@ export function validateApiRequestContracts({
   const issues = []
 
   for (const contract of contracts) {
-    const source = read(root, contract.file)
+    let source
+    try {
+      source = read(root, contract.file)
+    } catch (error) {
+      issues.push({
+        domain: contract.domain,
+        file: contract.file,
+        message: `contract file could not be read: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      })
+      continue
+    }
+
     for (const required of contract.requires) {
       if (!source.includes(required)) {
         issues.push({
