@@ -50,6 +50,10 @@ export function Settings({
   )
 
   useEffect(() => {
+    setSection(getInitialSettingsSection(initialSection))
+  }, [initialSection])
+
+  useEffect(() => {
     if (!open) return
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
