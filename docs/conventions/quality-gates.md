@@ -31,6 +31,7 @@ que protege cada grupo y que hacer si falla.
   usarse como evidencia de merge.
 - Los scripts CLI que comparan `import.meta.url` con
   `pathToFileURL(process.argv[1])` deben proteger `process.argv[1]` antes de
-  llamar a `pathToFileURL()`.
+  llamar a `pathToFileURL()` en la misma sentencia. El guard puede estar
+  formateado en varias lineas.
 - No se crea un runner universal: `npm scripts` sigue siendo la interfaz
   publica para humanos y CI.

@@ -50,7 +50,8 @@ agregalo a `QUALITY_GATES`.
 3. Si aparece en `package.json`, el comando debe estar enlazado en esa entrada.
 4. Si aparece en `.github/workflows/*`, agrega una entrada en `QUALITY_GATES`.
 5. Si el script usa `pathToFileURL(process.argv[1])`, el entrypoint debe tener
-   guard: `process.argv[1] && ...`.
+   guard en la misma sentencia: `process.argv[1] && ...`. Puede estar
+   formateado en varias lineas.
 6. Agrega test focalizado cuando el script sea un check, smoke parser o helper
    reutilizable.
 

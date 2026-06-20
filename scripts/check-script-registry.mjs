@@ -17,7 +17,8 @@ const SCRIPT_REF_RE = /(?:^|[\s('"=])(?:node|bash|sh)?\s*(scripts\/[^\s'"|&;)]+)
 const WORKFLOW_COMMAND_RE =
   /\b(?:npm run [A-Za-z0-9:_-]+|npm test|node scripts\/[^\s'"|&;)]+|bash scripts\/[^\s'"|&;)]+|scripts\/[^\s'"|&;)]+\.sh)\b/g
 const PATH_TO_FILE_URL_ARGV_RE = /pathToFileURL\(process\.argv\[1\]\)/g
-const PATH_TO_FILE_URL_ARGV_LINE_RE = /pathToFileURL\(process\.argv\[1\]\)/
+const ARGV_GUARD_LOOKBACK_CHARS = 200
+const ARGV_GUARD_RE = /process\.argv\[1\]\s*&&/
 
 function normalizePath(path) {
   return path.replaceAll('\\', '/')
@@ -266,10 +267,18 @@ function lineNumberForIndex(contents, index) {
   return contents.slice(0, index).split('\n').length
 }
 
-function hasArgvGuard(line) {
-  const useIndex = line.search(PATH_TO_FILE_URL_ARGV_LINE_RE)
-  if (useIndex < 0) return true
-  return line.slice(0, useIndex).includes('process.argv[1] &&')
+function hasArgvGuard(contents, index) {
+  const statementStart =
+    Math.max(
+      contents.lastIndexOf(';', index),
+      contents.lastIndexOf('{', index),
+      contents.lastIndexOf('}', index),
+    ) + 1
+  const context = contents.slice(
+    Math.max(statementStart, index - ARGV_GUARD_LOOKBACK_CHARS),
+    index,
+  )
+  return ARGV_GUARD_RE.test(context)
 }
 
 export function findUnsafeCliEntrypointIssues(root = process.cwd()) {
@@ -282,10 +291,7 @@ export function findUnsafeCliEntrypointIssues(root = process.cwd()) {
     let match = PATH_TO_FILE_URL_ARGV_RE.exec(contents)
     while (match) {
       const index = match.index
-      const lineStart = contents.lastIndexOf('\n', index) + 1
-      const lineEnd = contents.indexOf('\n', index)
-      const line = contents.slice(lineStart, lineEnd === -1 ? contents.length : lineEnd)
-      if (!hasArgvGuard(line)) {
+      if (!hasArgvGuard(contents, index)) {
         issues.push({
           code: 'unguarded-path-to-file-url',
           file,

@@ -207,6 +207,62 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     ])
   })
 
+  test('allows argv guard split across multiple formatted lines', () => {
+    const root = fixtureRoot({
+      'scripts/safe-multiline.mjs': `
+import { pathToFileURL } from 'node:url'
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  console.log('safe')
+}
+`,
+      'scripts/unsafe-multiline.mjs': `
+import { pathToFileURL } from 'node:url'
+if (
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  console.log('unsafe')
+}
+`,
+    })
+
+    expect(findUnsafeCliEntrypointIssues(root)).toEqual([
+      {
+        code: 'unguarded-path-to-file-url',
+        file: 'scripts/unsafe-multiline.mjs',
+        line: 4,
+        message: 'Guard process.argv[1] before passing it to pathToFileURL().',
+      },
+    ])
+  })
+
+  test('does not accept argv guard from a previous statement', () => {
+    const root = fixtureRoot({
+      'scripts/stale-guard.mjs': `
+import { pathToFileURL } from 'node:url'
+if (process.argv[1] && false) {
+  console.log('unrelated guard')
+}
+if (
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  console.log('unsafe')
+}
+`,
+    })
+
+    expect(findUnsafeCliEntrypointIssues(root)).toEqual([
+      {
+        code: 'unguarded-path-to-file-url',
+        file: 'scripts/stale-guard.mjs',
+        line: 7,
+        message: 'Guard process.argv[1] before passing it to pathToFileURL().',
+      },
+    ])
+  })
+
   test('current repository registry is internally consistent', () => {
     expect(
       findScriptRegistryIssues(process.cwd(), {
