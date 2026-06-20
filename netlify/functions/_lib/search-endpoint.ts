@@ -33,7 +33,10 @@ const SearchQueryParams = z.object({
     z.number().int().min(1).max(50),
   ),
   mode: z.preprocess(
-    (value) => (typeof value === 'string' && value ? value.toLowerCase() : 'hybrid'),
+    (value) => {
+      if (value === undefined || value === '') return 'hybrid'
+      return typeof value === 'string' ? value.toLowerCase() : value
+    },
     z.enum(['hybrid', 'lexical', 'semantic']),
   ),
   rerank: z.preprocess(

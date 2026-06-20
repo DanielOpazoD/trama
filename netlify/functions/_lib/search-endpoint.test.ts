@@ -108,6 +108,30 @@ describe('search endpoint', () => {
     expect(searchMocks.embedSafe).not.toHaveBeenCalled()
   })
 
+  it('rechaza mode duplicado en vez de convertirlo silenciosamente a hybrid', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/search?q=borges&mode=lexical&mode=semantic'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: 'VALIDATION',
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'mode' }] },
+      },
+    })
+    expect(
+      mockSqlResponses.calls.some((call) =>
+        /\bFROM\s+(entities|quotes|momentos|cronicas|chat_messages)\b/i.test(
+          call.template,
+        ),
+      ),
+    ).toBe(false)
+    expect(searchMocks.embedSafe).not.toHaveBeenCalled()
+  })
+
   it('mantiene compatibilidad: limit inválido cae al default y limit alto se clampa', async () => {
     mockSqlResponses.push([], [], [], [], [], [], [], [], [], [])
 
