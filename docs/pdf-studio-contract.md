@@ -70,6 +70,26 @@ Si el crecimiento cae en una familia, primero revisa si entro una dependencia
 nueva o si un import dejo de pasar por `pdfRuntime`. Solo sube el budget cuando
 el crecimiento es intencional y queda explicado en el PR.
 
+## Auditoria de workers y duplicacion
+
+El snapshot testeable vive en `scripts/fixtures/pdf-bundle-snapshot.mjs`. Es un
+contrato de forma, no de hash: registra bases logicas, workers y duplicaciones
+observadas para que el PR siguiente vea si cambio el grafo PDF.
+
+| Base               | Estado esperado | Decision                                                          |
+| ------------------ | --------------- | ----------------------------------------------------------------- |
+| `vendor-pdf-lib`   | duplicado x4    | Aceptado por grafo lazy/worker; se vigila por familia y total.    |
+| `vendor-pdfjs`     | duplicado x2    | Aceptado por viewer + usos con worker; no se fuerza merge manual. |
+| `vendor-ocr`       | duplicado x2    | Aceptado por OCR UI/worker; bajo budget propio.                   |
+| `pdf.worker.min`   | worker externo  | Necesario para PDF.js; se mide en `PDF viewer` y total.           |
+| `pdfExport.worker` | worker dedicado | Necesario para export pesado sin bloquear UI.                     |
+| `pdfForm.worker`   | worker dedicado | Necesario para AcroForms pesados.                                 |
+| `pdfOcr.worker`    | worker dedicado | Necesario para OCR local con progreso/cancelacion.                |
+
+Si aparece una duplicacion nueva, primero revisa `npm run
+check:pdf-runtime-boundaries`. Si el guardrail esta verde, el siguiente paso es
+leer el grafo de Vite/worker antes de intentar consolidar chunks a mano.
+
 ## Contrato de navegacion del editor
 
 Al abrir una miniatura o saltar de pagina, la pagina solicitada manda hasta que
