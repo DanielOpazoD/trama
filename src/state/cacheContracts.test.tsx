@@ -1,11 +1,9 @@
-import type { InfiniteData } from '@tanstack/react-query'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Note, Recorte } from '../api'
-import type { NotasFeedPage } from '../api/notasFeed'
 import * as apiModule from '../api'
+import { buildNota, buildNotasFeedData, buildRecorte } from '../test/factories/domain'
 import { makeQueryClient } from '../test-utils'
 import { queryKeys } from './queryClient'
 import { ToastProvider, useToast } from './toast'
@@ -62,68 +60,22 @@ function keysFrom(spy: ReturnType<typeof invalidatedKeys>) {
   return spy.mock.calls.map(([filters]) => filters?.queryKey)
 }
 
-function note(overrides: Partial<Note> = {}): Note {
-  return {
-    id: 'n1',
-    content: 'nota',
-    title: 'Nota',
-    tags: [],
-    pinned: false,
-    promotedMomentoId: null,
-    source: null,
-    createdAt: '2026-06-10T12:00:00.000Z',
-    updatedAt: '2026-06-10T12:00:00.000Z',
-    hasImages: false,
-    hasAudio: false,
-    ...overrides,
-  }
+function feedWithNote(n: ReturnType<typeof buildNota>) {
+  return buildNotasFeedData([
+    {
+      items: [{ type: 'note', id: n.id, createdAt: n.createdAt, note: n }],
+      nextCursor: null,
+    },
+  ])
 }
 
-function recorte(overrides: Partial<Recorte> = {}): Recorte {
-  return {
-    id: 'r1',
-    text: 'recorte',
-    sourceUrl: null,
-    sourceTitle: null,
-    sourceAuthor: null,
-    note: null,
-    imageUrl: null,
-    imageKey: null,
-    images: [],
-    captureMode: 'html',
-    status: 'pending',
-    promotedTarget: null,
-    promotedId: null,
-    captureSource: null,
-    capturedAt: null,
-    createdAt: '2026-06-10T12:00:00.000Z',
-    updatedAt: '2026-06-10T12:00:00.000Z',
-    ...overrides,
-  }
-}
-
-function feedWithNote(n: Note): InfiniteData<NotasFeedPage> {
-  return {
-    pageParams: [null],
-    pages: [
-      {
-        items: [{ type: 'note', id: n.id, createdAt: n.createdAt, note: n }],
-        nextCursor: null,
-      },
-    ],
-  }
-}
-
-function feedWithRecorte(r: Recorte): InfiniteData<NotasFeedPage> {
-  return {
-    pageParams: [null],
-    pages: [
-      {
-        items: [{ type: 'recorte', id: r.id, createdAt: r.createdAt, recorte: r }],
-        nextCursor: null,
-      },
-    ],
-  }
+function feedWithRecorte(r: ReturnType<typeof buildRecorte>) {
+  return buildNotasFeedData([
+    {
+      items: [{ type: 'recorte', id: r.id, createdAt: r.createdAt, recorte: r }],
+      nextCursor: null,
+    },
+  ])
 }
 
 afterEach(() => {
@@ -132,8 +84,8 @@ afterEach(() => {
 
 describe('state cache contracts', () => {
   it('notasFeed real: crear, eliminar y restaurar nota refresca el read-model activo', async () => {
-    const initial = note({ id: 'n1', title: 'Inicial' })
-    const created = note({ id: 'n2', title: 'Nueva' })
+    const initial = buildNota({ id: 'n1', title: 'Inicial' })
+    const created = buildNota({ id: 'n2', title: 'Nueva' })
     let feedNotes = [initial]
     vi.spyOn(apiModule.api, 'fetchNotasFeed').mockImplementation(async () => ({
       items: feedNotes.map((n) => ({
@@ -193,8 +145,8 @@ describe('state cache contracts', () => {
   })
 
   it('notasFeed real: crear, eliminar y restaurar recorte refresca el read-model activo', async () => {
-    const initial = recorte({ id: 'r1', text: 'Inicial' })
-    const created = recorte({ id: 'r2', text: 'Nuevo' })
+    const initial = buildRecorte({ id: 'r1', text: 'Inicial' })
+    const created = buildRecorte({ id: 'r2', text: 'Nuevo' })
     let feedRecortes = [initial]
     vi.spyOn(apiModule.api, 'fetchNotasFeed').mockImplementation(async () => ({
       items: feedRecortes.map((r) => ({
@@ -289,7 +241,7 @@ describe('state cache contracts', () => {
   it('nota: rollback optimista restaura notes y notasFeed si update falla', async () => {
     vi.spyOn(apiModule.api.notes, 'update').mockRejectedValue(new Error('boom'))
     const qc = makeQueryClient()
-    const previous = note({ title: 'Antes', pinned: false })
+    const previous = buildNota({ title: 'Antes', pinned: false })
     qc.setQueryData(queryKeys.notes, [previous])
     qc.setQueryData(FEED_KEY, feedWithNote(previous))
     const { result } = renderHook(() => useUpdateNote(), { wrapper: wrapWith(qc) })
@@ -360,7 +312,7 @@ describe('state cache contracts', () => {
 
   it('recorte: promote a quote invalida destino y superficies derivadas', async () => {
     vi.spyOn(apiModule.api, 'promoteRecorte').mockResolvedValue(
-      recorte({ status: 'promoted', promotedTarget: 'quote', promotedId: 'q1' }),
+      buildRecorte({ status: 'promoted', promotedTarget: 'quote', promotedId: 'q1' }),
     )
     const qc = makeQueryClient()
     const invalidateSpy = invalidatedKeys(qc)
@@ -389,7 +341,7 @@ describe('state cache contracts', () => {
 
   it('recorte: unpromote invalida origen y destinos posibles', async () => {
     vi.spyOn(apiModule.api, 'unpromoteRecorte').mockResolvedValue(
-      recorte({ status: 'pending', promotedTarget: null, promotedId: null }),
+      buildRecorte({ status: 'pending', promotedTarget: null, promotedId: null }),
     )
     const qc = makeQueryClient()
     const invalidateSpy = invalidatedKeys(qc)
@@ -415,7 +367,7 @@ describe('state cache contracts', () => {
   it('recorte: rollback optimista restaura recortes y notasFeed si update falla', async () => {
     vi.spyOn(apiModule.api, 'updateRecorte').mockRejectedValue(new Error('boom'))
     const qc = makeQueryClient()
-    const previous = recorte({ status: 'pending' })
+    const previous = buildRecorte({ status: 'pending' })
     qc.setQueryData(queryKeys.recortes, [previous])
     qc.setQueryData(FEED_KEY, feedWithRecorte(previous))
     const { result } = renderHook(() => useUpdateRecorte(), { wrapper: wrapWith(qc) })
@@ -433,7 +385,7 @@ describe('state cache contracts', () => {
   it('recorte: rollback de promote restaura todas las variantes cargadas de notasFeed', async () => {
     vi.spyOn(apiModule.api, 'promoteRecorte').mockRejectedValue(new Error('boom'))
     const qc = makeQueryClient()
-    const previous = recorte({ status: 'pending', promotedTarget: null })
+    const previous = buildRecorte({ status: 'pending', promotedTarget: null })
     qc.setQueryData(queryKeys.recortes, [previous])
     qc.setQueryData(FEED_PENDING_KEY, feedWithRecorte(previous))
     qc.setQueryData(FEED_ALL_KEY, feedWithRecorte(previous))

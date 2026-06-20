@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './test-utils'
+import { assertSqlValuesContainUser, buildApiRequest } from './test-fixtures'
 
 /**
  * Isolation tests cross-user — núcleo del modelo multi-user.
@@ -48,13 +49,14 @@ process.env['CLERK_SECRET_KEY'] = 'sk_test_xxxx'
 
 import handler from '../entities'
 
+const AUTHED_USER_ID = 'user_alice_id_xyz'
+
 function requestWithToken(method = 'GET', body?: unknown) {
-  const init: RequestInit = {
+  return buildApiRequest('/api/entities', {
     method,
-    headers: { authorization: 'Bearer alice-token' },
-  }
-  if (body !== undefined) init.body = JSON.stringify(body)
-  return new Request('http://localhost/api/entities', init)
+    token: 'alice-token',
+    json: body,
+  })
 }
 
 describe('isolation cross-user', () => {
@@ -66,21 +68,19 @@ describe('isolation cross-user', () => {
 
       // El SELECT debería haber sido ejecutado con un value que incluye el userId.
       // mockSqlState.calls[i].values es el array de valores interpolados.
-      const allValues = mockSqlState.calls.flatMap((c) => c.values)
-      expect(allValues).toContain('user_alice_id_xyz')
+      assertSqlValuesContainUser(mockSqlState.calls[0], AUTHED_USER_ID)
     })
 
     it('GET con cursor también incluye el userId', async () => {
       mockSqlResponses.reset()
       mockSqlResponses.push([]) // SELECT paginado
-      const req = new Request(
-        'http://localhost/api/entities?cursor=2024-01-01T00:00:00Z:abc&limit=20',
-        { method: 'GET', headers: { authorization: 'Bearer alice-token' } },
-      )
+      const req = buildApiRequest('/api/entities', {
+        token: 'alice-token',
+        query: { cursor: '2024-01-01T00:00:00Z:abc', limit: 20 },
+      })
       await handler(req, mockContext())
 
-      const allValues = mockSqlState.calls.flatMap((c) => c.values)
-      expect(allValues).toContain('user_alice_id_xyz')
+      assertSqlValuesContainUser(mockSqlState.calls[0], AUTHED_USER_ID)
     })
 
     it('POST (crear entidad) persiste el userId del authed user', async () => {
@@ -96,8 +96,9 @@ describe('isolation cross-user', () => {
         mockContext(),
       )
 
-      const allValues = mockSqlState.calls.flatMap((c) => c.values)
-      expect(allValues).toContain('user_alice_id_xyz')
+      expect(
+        mockSqlState.calls.some((call) => call.values.includes(AUTHED_USER_ID)),
+      ).toBe(true)
     })
 
     it('legacy mode (sin Clerk key) sigue usando legacy-single-user', async () => {
@@ -115,8 +116,9 @@ describe('isolation cross-user', () => {
         mockContext(),
       )
 
-      const allValues = mockSqlState.calls.flatMap((c) => c.values)
-      expect(allValues).toContain('legacy-single-user')
+      expect(
+        mockSqlState.calls.some((call) => call.values.includes('legacy-single-user')),
+      ).toBe(true)
 
       // Restaurar para no romper otros tests.
       if (original) process.env['CLERK_SECRET_KEY'] = original

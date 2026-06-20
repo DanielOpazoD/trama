@@ -5,6 +5,7 @@ import {
   mockSqlResponses,
   setupMockSql,
 } from './test-utils'
+import { buildApiRequest, buildJsonApiRequest, buildMomentoRow } from './test-fixtures'
 
 vi.mock('./db.js', () => setupMockSql())
 const embeddingMocks = vi.hoisted(() => ({
@@ -52,21 +53,17 @@ describe('momentos endpoint — integration (mock SQL)', () => {
 
   it('GET list devuelve items + nextCursor null cuando no hay más páginas', async () => {
     mockSqlResponses.push([
-      {
+      buildMomentoRow({
         id: 'm1',
         kind: 'nota',
         captured_at: '2026-05-24T12:00:00Z',
         payload: { bodyText: 'hola' },
-        note: null,
-        origin: { kind: 'manual' },
-        created_at: '2026-05-24T12:00:00Z',
-        updated_at: '2026-05-24T12:00:00Z',
-      },
+      }),
     ])
     // Bulk-fetch de links: array vacío (no hay vínculos).
     mockSqlResponses.push([])
 
-    const res = await handler(new Request('http://localhost/api/momentos'), mockContext())
+    const res = await handler(buildApiRequest('/api/momentos'), mockContext())
     expect(res.status).toBe(200)
     const body = (await res.json()) as { items: unknown[]; nextCursor: unknown }
     expect(body.items).toHaveLength(1)
@@ -75,8 +72,8 @@ describe('momentos endpoint — integration (mock SQL)', () => {
 
   it('GET list rechaza cursor duplicado antes de consultar timeline', async () => {
     const res = await handler(
-      new Request('http://localhost/api/momentos?cursor=a:b&cursor=c:d', {
-        headers: { 'x-request-id': 'rid-momentos-query' },
+      buildApiRequest('/api/momentos?cursor=a:b&cursor=c:d', {
+        requestId: 'rid-momentos-query',
       }),
       mockContext(),
     )
@@ -99,22 +96,18 @@ describe('momentos endpoint — integration (mock SQL)', () => {
 
   it('GET list propaga entity_ids del bulk fetch a cada item', async () => {
     mockSqlResponses.push([
-      {
+      buildMomentoRow({
         id: 'm1',
         kind: 'recorte',
         captured_at: '2026-05-24T12:00:00Z',
         payload: { title: 'X' },
-        note: null,
-        origin: { kind: 'manual' },
-        created_at: '2026-05-24T12:00:00Z',
-        updated_at: '2026-05-24T12:00:00Z',
-      },
+      }),
     ])
     mockSqlResponses.push([
       { momento_id: 'm1', entity_id: 'e1' },
       { momento_id: 'm1', entity_id: 'e2' },
     ])
-    const res = await handler(new Request('http://localhost/api/momentos'), mockContext())
+    const res = await handler(buildApiRequest('/api/momentos'), mockContext())
     const body = (await res.json()) as {
       items: Array<{ entity_ids: string[] }>
     }
@@ -124,19 +117,15 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   it('los reads de links excluyen entidades soft-borradas (P0 auditoría 2026-06)', async () => {
     // GET list: el bulk-fetch de links debe JOINear entities filtrando deleted_at.
     mockSqlResponses.push([
-      {
+      buildMomentoRow({
         id: 'm1',
         kind: 'nota',
         captured_at: '2026-05-24T12:00:00Z',
         payload: {},
-        note: null,
-        origin: { kind: 'manual' },
-        created_at: '2026-05-24T12:00:00Z',
-        updated_at: '2026-05-24T12:00:00Z',
-      },
+      }),
     ])
     mockSqlResponses.push([])
-    await handler(new Request('http://localhost/api/momentos'), mockContext())
+    await handler(buildApiRequest('/api/momentos'), mockContext())
     const bulkLinks = mockSqlResponses.calls[1]?.template ?? ''
     expect(bulkLinks).toMatch(/JOIN entities e ON e\.id = me\.entity_id/i)
     expect(bulkLinks).toMatch(/e\.deleted_at IS NULL/i)
@@ -144,22 +133,15 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     // GET :id: misma regla en la query de links del momento individual.
     mockSqlResponses.reset()
     mockSqlResponses.push([
-      {
+      buildMomentoRow({
         id: 'm1',
         kind: 'nota',
         captured_at: '2026-05-24T12:00:00Z',
         payload: {},
-        note: null,
-        origin: { kind: 'manual' },
-        created_at: '2026-05-24T12:00:00Z',
-        updated_at: '2026-05-24T12:00:00Z',
-      },
+      }),
     ])
     mockSqlResponses.push([])
-    await handler(
-      new Request('http://localhost/api/momentos/m1'),
-      mockContext({ id: 'm1' }),
-    )
+    await handler(buildApiRequest('/api/momentos/m1'), mockContext({ id: 'm1' }))
     const oneLinks = mockSqlResponses.calls[1]?.template ?? ''
     expect(oneLinks).toMatch(/JOIN entities e ON e\.id = me\.entity_id/i)
     expect(oneLinks).toMatch(/e\.deleted_at IS NULL/i)
@@ -168,7 +150,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   it('GET list incluye momentos propios y compartidos aceptados', async () => {
     mockSqlResponses.push([])
 
-    await handler(new Request('http://localhost/api/momentos'), mockContext())
+    await handler(buildApiRequest('/api/momentos'), mockContext())
 
     const listQuery = mockSqlResponses.calls[0]?.template ?? ''
     expect(listQuery).toMatch(/LEFT JOIN\s+momento_space_access/i)
@@ -181,20 +163,17 @@ describe('momentos endpoint — integration (mock SQL)', () => {
 
   it('GET :id devuelve el momento + entity_ids', async () => {
     mockSqlResponses.push([
-      {
+      buildMomentoRow({
         id: 'm1',
         kind: 'nota',
         captured_at: '2026-05-24T12:00:00Z',
         payload: {},
         note: 'x',
-        origin: { kind: 'manual' },
-        created_at: '2026-05-24T12:00:00Z',
-        updated_at: '2026-05-24T12:00:00Z',
-      },
+      }),
     ])
     mockSqlResponses.push([{ entity_id: 'e1' }])
     const res = await handler(
-      new Request('http://localhost/api/momentos/m1'),
+      buildApiRequest('/api/momentos/m1'),
       mockContext({ id: 'm1' }),
     )
     expect(res.status).toBe(200)
@@ -206,7 +185,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
   it('GET :id devuelve 404 si no existe', async () => {
     mockSqlResponses.push([]) // sin resultados
     const res = await handler(
-      new Request('http://localhost/api/momentos/nope'),
+      buildApiRequest('/api/momentos/nope'),
       mockContext({ id: 'nope' }),
     )
     expect(res.status).toBe(404)
@@ -216,9 +195,9 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([]) // delete no-op
     const res = await handler(
-      new Request('http://localhost/api/momentos/m-ajeno', {
+      buildApiRequest('/api/momentos/m-ajeno', {
         method: 'DELETE',
-        headers: { 'x-request-id': 'rid-momento-delete' },
+        requestId: 'rid-momento-delete',
       }),
       mockContext({ id: 'm-ajeno' }),
     )
@@ -245,10 +224,9 @@ describe('momentos endpoint — integration (mock SQL)', () => {
 
   it('POST con kind inválido devuelve 400', async () => {
     const res = await handler(
-      new Request('http://localhost/api/momentos', {
+      buildJsonApiRequest('/api/momentos', {
         method: 'POST',
-        body: JSON.stringify({ kind: 'meme', payload: {} }),
-        headers: { 'content-type': 'application/json' },
+        json: { kind: 'meme', payload: {} },
       }),
       mockContext(),
     )

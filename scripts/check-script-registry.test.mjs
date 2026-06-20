@@ -1,7 +1,3 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { mkdtempSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 
 import {
@@ -9,15 +5,10 @@ import {
   findUnsafeCliEntrypointIssues,
 } from './check-script-registry.mjs'
 import { QUALITY_GATES, SCRIPT_REGISTRY } from './script-registry.mjs'
+import { makeTempFixtureRoot } from './test-utils/temp-fixtures.mjs'
 
 function fixtureRoot(files) {
-  const root = mkdtempSync(join(tmpdir(), 'trama-script-registry-'))
-  for (const [file, contents] of Object.entries(files)) {
-    const fullPath = join(root, file)
-    mkdirSync(join(fullPath, '..'), { recursive: true })
-    writeFileSync(fullPath, contents)
-  }
-  return root
+  return makeTempFixtureRoot('trama-script-registry-', files).root
 }
 
 const minimalPackage = {
@@ -53,6 +44,43 @@ describe('script registry contract', () => {
             kind: 'check',
             critical: true,
             packageScripts: ['check:known'],
+            summary: 'Known registry check.',
+          },
+        ],
+        qualityGates: [
+          {
+            command: 'npm run check:known',
+            job: 'lint',
+            phase: 'static',
+            required: true,
+            summary: 'Known registry gate.',
+          },
+        ],
+      }),
+    ).toContainEqual({
+      code: 'script-unregistered',
+      file: 'scripts/missing.mjs',
+      message: 'Operational script is not listed in SCRIPT_REGISTRY.',
+    })
+  })
+
+  test('does not treat scripts/test-utils helpers as operational scripts', () => {
+    const root = fixtureRoot({
+      'package.json': JSON.stringify(minimalPackage),
+      '.github/workflows/test.yml': minimalWorkflow,
+      'scripts/known.mjs': 'export const known = true',
+      'scripts/test-utils/helper.mjs': 'export const helper = true',
+    })
+
+    expect(
+      findScriptRegistryIssues(root, {
+        registry: [
+          {
+            file: 'scripts/known.mjs',
+            domain: 'ci',
+            kind: 'check',
+            critical: true,
+            packageScripts: ['check:known'],
             summary: 'Known check.',
           },
         ],
@@ -62,15 +90,11 @@ describe('script registry contract', () => {
             job: 'lint',
             phase: 'static',
             required: true,
-            summary: 'Known gate.',
+            summary: 'Known registry gate.',
           },
         ],
       }),
-    ).toContainEqual({
-      code: 'script-unregistered',
-      file: 'scripts/missing.mjs',
-      message: 'Operational script is not listed in SCRIPT_REGISTRY.',
-    })
+    ).toEqual([])
   })
 
   test('flags package commands whose script file entry does not list the npm command', () => {

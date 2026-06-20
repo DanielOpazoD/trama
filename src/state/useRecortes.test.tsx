@@ -8,21 +8,7 @@ import {
   useRecortesQuery,
   useUpdateRecorte,
 } from './useRecortes'
-import type { ReactNode } from 'react'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { makeQueryClient } from '../test-utils'
-import { ToastProvider } from './toast'
-
-function makeWrapper() {
-  const qc = makeQueryClient()
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={qc}>
-        <ToastProvider>{children}</ToastProvider>
-      </QueryClientProvider>
-    )
-  }
-}
+import { createQueryClientHarness } from '../test/cache/queryClientHarness'
 
 /**
  * Hooks de Recortes: round-trip de query, archivo, borrado con Deshacer
@@ -106,7 +92,7 @@ afterEach(() => {
 describe('useRecortes', () => {
   it('query lista y transforma a camelCase', async () => {
     const { result } = renderHook(() => useRecortesQuery(), {
-      wrapper: makeWrapper(),
+      wrapper: createQueryClientHarness().wrapper,
     })
     await waitFor(() => expect(result.current.data).toHaveLength(1))
     expect(result.current.data![0]!.createdAt).toBe('2026-06-10T12:00:00.000Z')
@@ -114,7 +100,7 @@ describe('useRecortes', () => {
 
   it('update parchea estado (archivar)', async () => {
     const { result } = renderHook(() => useUpdateRecorte(), {
-      wrapper: makeWrapper(),
+      wrapper: createQueryClientHarness().wrapper,
     })
     await act(async () => {
       await result.current.mutateAsync({ id: 'r1', patch: { status: 'archived' } })
@@ -124,7 +110,7 @@ describe('useRecortes', () => {
 
   it('delete guarda el deletedAt para el Deshacer', async () => {
     const { result } = renderHook(() => useDeleteRecorte(), {
-      wrapper: makeWrapper(),
+      wrapper: createQueryClientHarness().wrapper,
     })
     await act(async () => {
       const res = await result.current.mutateAsync('r1')
@@ -133,7 +119,9 @@ describe('useRecortes', () => {
   })
 
   it('captura un enlace de forma optimista (enlace pelado) y enriquece después', async () => {
-    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    const { result } = renderHook(() => useCreateRecorte(), {
+      wrapper: createQueryClientHarness().wrapper,
+    })
     await act(async () => {
       await result.current.mutateAsync({ kind: 'link', url: 'https://example.com/x' })
     })
@@ -209,7 +197,9 @@ describe('useRecortes', () => {
         return jsonResp([ROW])
       }),
     )
-    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    const { result } = renderHook(() => useCreateRecorte(), {
+      wrapper: createQueryClientHarness().wrapper,
+    })
     await act(async () => {
       await expect(
         result.current.mutateAsync({ kind: 'link', url: 'https://example.com/x' }),
@@ -223,7 +213,9 @@ describe('useRecortes', () => {
 
   it('captura una imagen: la sube y crea un recorte de imagen con la imageKey', async () => {
     const file = new File(['x'], 'shot.webp', { type: 'image/webp' })
-    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    const { result } = renderHook(() => useCreateRecorte(), {
+      wrapper: createQueryClientHarness().wrapper,
+    })
     await act(async () => {
       await result.current.mutateAsync({ kind: 'image', file })
     })
@@ -254,7 +246,9 @@ describe('useRecortes', () => {
       }),
     )
     const file = new File(['video'], 'clip.mp4', { type: 'video/mp4' })
-    const { result } = renderHook(() => useCreateRecorte(), { wrapper: makeWrapper() })
+    const { result } = renderHook(() => useCreateRecorte(), {
+      wrapper: createQueryClientHarness().wrapper,
+    })
 
     await act(async () => {
       await result.current.mutateAsync({ kind: 'video', file })
@@ -270,7 +264,9 @@ describe('useRecortes', () => {
   })
 
   it('unpromote revierte: postea a /unpromote y devuelve el recorte a pending', async () => {
-    const { result } = renderHook(() => useUnpromoteRecorte(), { wrapper: makeWrapper() })
+    const { result } = renderHook(() => useUnpromoteRecorte(), {
+      wrapper: createQueryClientHarness().wrapper,
+    })
     await act(async () => {
       const res = await result.current.mutateAsync('r1')
       expect(res.status).toBe('pending')
@@ -283,7 +279,7 @@ describe('useRecortes', () => {
 
   it('promote postea el payload del destino para creación server-side', async () => {
     const { result } = renderHook(() => usePromoteRecorte(), {
-      wrapper: makeWrapper(),
+      wrapper: createQueryClientHarness().wrapper,
     })
     await act(async () => {
       const res = await result.current.mutateAsync({
