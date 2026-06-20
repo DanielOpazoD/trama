@@ -82,7 +82,14 @@ export function buildMomentoPatchDraft(params: {
         : current.note
   const capturedAt =
     typeof patch.captured_at === 'string' && patch.captured_at ? patch.captured_at : null
-  const shouldReembed = payloadChanged || noteChanged
+  const previousEmbedSource = momentoEmbedText(
+    current.kind,
+    current.payload,
+    current.note,
+  )
+  const nextEmbedSource = momentoEmbedText(current.kind, payload, note)
+  const shouldReembed =
+    (payloadChanged || noteChanged) && nextEmbedSource !== previousEmbedSource
 
   return {
     kind: current.kind,
@@ -93,6 +100,6 @@ export function buildMomentoPatchDraft(params: {
     payloadChanged,
     noteChanged,
     shouldReembed,
-    embedSource: shouldReembed ? momentoEmbedText(current.kind, payload, note) : '',
+    embedSource: shouldReembed ? nextEmbedSource : '',
   }
 }

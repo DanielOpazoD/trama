@@ -73,4 +73,23 @@ describe('momentos-service', () => {
     expect(draft.note).toBeNull()
     expect(draft.embedSource).toBe('Nuevo')
   })
+
+  it('does not re-embed when patched fields keep the same normalized text', () => {
+    const draft = buildMomentoPatchDraft({
+      current: {
+        kind: 'foto',
+        payload: { storageKey: 'old-key', width: 800, height: 600, caption: 'Playa' },
+        note: 'vacaciones',
+      },
+      patch: {
+        payload: { storageKey: 'new-key', width: 1200, height: 900, caption: 'Playa' },
+        note: '  vacaciones  ',
+      },
+    })
+
+    expect(draft.payloadChanged).toBe(true)
+    expect(draft.noteChanged).toBe(true)
+    expect(draft.shouldReembed).toBe(false)
+    expect(draft.embedSource).toBe('')
+  })
 })

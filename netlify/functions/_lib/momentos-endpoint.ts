@@ -365,45 +365,36 @@ export default withObservability(
       // Re-embed solo si cambió el texto fuente. Si no, conservamos el
       // embedding viejo (no se sobreescribe a null).
       const shouldReembed = draft.shouldReembed
+      const shouldUpdateContent = draft.payloadChanged || draft.noteChanged
       const embedSource = draft.embedSource
       const emb =
         shouldReembed && embedSource.length > 0 ? await embedSafe(embedSource) : null
 
-      // El UPDATE solo toca embedding cuando hubo cambio textual — si
-      // shouldReembed=false, lo dejamos como estaba (no se incluye en SET).
-      if (newCapturedAt && shouldReembed) {
+      // El UPDATE solo toca embedding cuando hubo cambio textual. Cambios de
+      // payload/note que no alteran el texto embebible se persisten sin gastar
+      // OpenAI ni sobreescribir el embedding actual.
+      if (newCapturedAt || shouldUpdateContent) {
         await runWithSystemRls(
           () => sql`
         UPDATE momentos
-        SET payload = ${JSON.stringify(newPayload)}::jsonb,
-            note = ${newNote},
-            captured_at = ${newCapturedAt}::timestamptz,
-            embedding = ${emb ? toPgVector(emb.vector) : null}::vector,
-            embedding_model = ${emb?.model ?? null},
-            embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
-            updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${ownerUserId}
-      `,
-        )
-      } else if (newCapturedAt) {
-        // Solo captured_at + posiblemente entityIds — sin re-embed.
-        await runWithSystemRls(
-          () => sql`
-        UPDATE momentos
-        SET captured_at = ${newCapturedAt}::timestamptz,
-            updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${ownerUserId}
-      `,
-        )
-      } else if (shouldReembed) {
-        await runWithSystemRls(
-          () => sql`
-        UPDATE momentos
-        SET payload = ${JSON.stringify(newPayload)}::jsonb,
-            note = ${newNote},
-            embedding = ${emb ? toPgVector(emb.vector) : null}::vector,
-            embedding_model = ${emb?.model ?? null},
-            embedding_at = ${emb ? new Date().toISOString() : null}::timestamptz,
+        SET payload = CASE
+              WHEN ${shouldUpdateContent} THEN ${JSON.stringify(newPayload)}::jsonb
+              ELSE payload
+            END,
+            note = CASE WHEN ${shouldUpdateContent} THEN ${newNote} ELSE note END,
+            captured_at = COALESCE(${newCapturedAt}::timestamptz, captured_at),
+            embedding = CASE
+              WHEN ${shouldReembed} THEN ${emb ? toPgVector(emb.vector) : null}::vector
+              ELSE embedding
+            END,
+            embedding_model = CASE
+              WHEN ${shouldReembed} THEN ${emb?.model ?? null}
+              ELSE embedding_model
+            END,
+            embedding_at = CASE
+              WHEN ${shouldReembed} THEN ${emb ? new Date().toISOString() : null}::timestamptz
+              ELSE embedding_at
+            END,
             updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${ownerUserId}
       `,
