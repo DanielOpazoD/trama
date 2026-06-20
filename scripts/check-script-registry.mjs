@@ -40,6 +40,7 @@ function walkFiles(root, dir = root) {
 
 function isOperationalScriptFile(file) {
   if (!file.startsWith('scripts/')) return false
+  if (file.startsWith('scripts/test-utils/')) return false
   if (TEST_FILE_RE.test(file)) return false
   const ext = file.slice(file.lastIndexOf('.'))
   return SCRIPT_EXTENSIONS.has(ext)

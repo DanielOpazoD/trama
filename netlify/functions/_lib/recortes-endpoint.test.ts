@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { buildApiRequest, buildJsonApiRequest, buildRecorteRow } from './test-fixtures'
 import {
   expectCanonicalError,
   mockContext,
@@ -57,7 +58,7 @@ function fakeReq(method: string, headers: Record<string, string>): Request {
  * validación Zod, shapes de respuesta y headers.
  */
 
-const ROW = {
+const ROW = buildRecorteRow({
   id: '6f9619ff-8b86-4d01-b42d-00cf4fc964ff',
   text: 'La memoria es un taller.',
   source_url: 'https://example.com/x',
@@ -73,7 +74,7 @@ const ROW = {
   captured_at: '2026-06-10T12:00:00.000Z',
   created_at: '2026-06-10T12:00:00.000Z',
   updated_at: '2026-06-10T12:00:00.000Z',
-}
+})
 
 beforeEach(() => {
   mockSqlResponses.reset()
@@ -98,10 +99,7 @@ describe('recortes endpoint', () => {
 
   it('GET lista los recortes del usuario', async () => {
     mockSqlResponses.push([ROW])
-    const res = await recortesHandler(
-      new Request('http://localhost/api/recortes'),
-      mockContext(),
-    )
+    const res = await recortesHandler(buildApiRequest('/api/recortes'), mockContext())
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body).toHaveLength(1)
@@ -112,11 +110,11 @@ describe('recortes endpoint', () => {
     mockSqlResponses.push([ROW], [ROW])
 
     const promoted = await recortesHandler(
-      new Request('http://localhost/api/recortes?status=%20promoted%20'),
+      buildApiRequest('/api/recortes', { query: { status: ' promoted ' } }),
       mockContext(),
     )
     const unknown = await recortesHandler(
-      new Request('http://localhost/api/recortes?status=inventado'),
+      buildApiRequest('/api/recortes', { query: { status: 'inventado' } }),
       mockContext(),
     )
 
@@ -130,9 +128,9 @@ describe('recortes endpoint', () => {
   it('DELETE emite owner.mismatch cuando el id no pertenece al usuario', async () => {
     mockSqlResponses.push([])
     const res = await recortesHandler(
-      new Request(`http://localhost/api/recortes/${ROW.id}`, {
+      buildApiRequest(`/api/recortes/${ROW.id}`, {
         method: 'DELETE',
-        headers: { 'x-request-id': 'rid-recorte-delete' },
+        requestId: 'rid-recorte-delete',
       }),
       mockContext({ id: ROW.id }),
     )
@@ -161,15 +159,14 @@ describe('recortes endpoint', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([ROW]) // insert
     const res = await recortesHandler(
-      new Request('http://localhost/api/recortes', {
+      buildJsonApiRequest('/api/recortes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        json: {
           text: 'La memoria es un taller.',
           sourceUrl: 'https://example.com/x',
           sourceTitle: 'El taller',
           capturedAt: '2026-06-10T12:00:00.000Z',
-        }),
+        },
       }),
       mockContext(),
     )
@@ -181,14 +178,13 @@ describe('recortes endpoint', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ ...ROW, capture_mode: 'region', image_key: 'u/abc.webp' }])
     const res = await recortesHandler(
-      new Request('http://localhost/api/recortes', {
+      buildJsonApiRequest('/api/recortes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        json: {
           text: 'Recorte visual de la página',
           captureMode: 'region',
           imageKey: 'u/abc.webp',
-        }),
+        },
       }),
       mockContext(),
     )
@@ -207,10 +203,9 @@ describe('recortes endpoint', () => {
 
   it('POST rechaza captureMode fuera del enum (Zod)', async () => {
     const res = await recortesHandler(
-      new Request('http://localhost/api/recortes', {
+      buildJsonApiRequest('/api/recortes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'x', captureMode: 'inventado' }),
+        json: { text: 'x', captureMode: 'inventado' },
       }),
       mockContext(),
     )
@@ -247,10 +242,9 @@ describe('recortes endpoint', () => {
 
   it('POST rechaza body inválido (Zod)', async () => {
     const res = await recortesHandler(
-      new Request('http://localhost/api/recortes', {
+      buildJsonApiRequest('/api/recortes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: '   ' }),
+        json: { text: '   ' },
       }),
       mockContext(),
     )

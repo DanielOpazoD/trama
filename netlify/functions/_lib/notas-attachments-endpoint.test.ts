@@ -6,6 +6,7 @@ import {
   mockSqlState,
   setupMockSql,
 } from './test-utils'
+import { TEST_USERS, buildApiRequest, buildNotasAttachmentRow } from './test-fixtures'
 
 vi.mock('./db.js', () => setupMockSql())
 
@@ -27,9 +28,9 @@ describe('notas attachments endpoint', () => {
     mockSqlResponses.push([{ exists: false }])
 
     const res = await handler(
-      new Request(
-        'http://localhost/api/notas-attachments?ownerType=note&ownerId=%20n1%20',
-      ),
+      buildApiRequest('/api/notas-attachments', {
+        query: { ownerType: 'note', ownerId: ' n1 ' },
+      }),
       mockContext(),
     )
 
@@ -44,8 +45,8 @@ describe('notas attachments endpoint', () => {
 
   it('rechaza owner params inválidos con error canónico antes de ownership lookup', async () => {
     const res = await handler(
-      new Request('http://localhost/api/notas-attachments?ownerType=note&ownerId=', {
-        headers: { 'x-request-id': 'rid-attachment-query' },
+      buildApiRequest('/api/notas-attachments?ownerType=note&ownerId=', {
+        requestId: 'rid-attachment-query',
       }),
       mockContext(),
     )
@@ -71,21 +72,21 @@ describe('notas attachments endpoint', () => {
   it('lista anexos solo cuando el prompt dueño sigue activo y pertenece al usuario', async () => {
     mockSqlResponses.push([{ exists: true }])
     mockSqlResponses.push([
-      {
+      buildNotasAttachmentRow({
         id: 'a1',
         owner_type: 'prompt',
         owner_id: 'p1',
         file_name: 'brief.md',
         mime_type: 'text/markdown',
         byte_size: 42,
-        storage_key: 'legacy-single-user/brief.md',
-        created_at: '2026-06-01T00:00:00.000Z',
-        updated_at: '2026-06-01T00:00:00.000Z',
-      },
+        storage_key: `${TEST_USERS.legacy.id}/brief.md`,
+      }),
     ])
 
     const res = await handler(
-      new Request('http://localhost/api/notas-attachments?ownerType=prompt&ownerId=p1'),
+      buildApiRequest('/api/notas-attachments', {
+        query: { ownerType: 'prompt', ownerId: 'p1' },
+      }),
       mockContext(),
     )
 
@@ -100,9 +101,9 @@ describe('notas attachments endpoint', () => {
     mockSqlResponses.push([])
 
     const res = await handler(
-      new Request('http://localhost/api/notas-attachments/a1', {
+      buildApiRequest('/api/notas-attachments/a1', {
         method: 'DELETE',
-        headers: { 'x-request-id': 'rid-attachment-delete' },
+        requestId: 'rid-attachment-delete',
       }),
       mockContext({ id: 'a1' }),
     )
@@ -137,7 +138,7 @@ describe('notas attachments endpoint', () => {
     mockSqlResponses.push([{ id: 'a1' }])
 
     const res = await handler(
-      new Request('http://localhost/api/notas-attachments/a1', { method: 'DELETE' }),
+      buildApiRequest('/api/notas-attachments/a1', { method: 'DELETE' }),
       mockContext({ id: 'a1' }),
     )
 
