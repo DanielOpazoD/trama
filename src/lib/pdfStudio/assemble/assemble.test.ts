@@ -614,6 +614,34 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(opts.opacity).toBe(0.75)
   })
 
+  it('la firma/timbre guardado exporta como imagen normal aunque tenga metadata local', async () => {
+    let doc = addImageSource(emptyDoc(), png())
+    doc = setPageAnnotations(doc, 0, [
+      makeImageAnnotation({
+        src: pngDataUrl(),
+        assetId: 'signature-1',
+        assetKind: 'signature',
+        label: 'Firma Daniel',
+        xRatio: 0.12,
+        yRatio: 0.18,
+        wRatio: 0.3,
+        hRatio: 0.08,
+        opacity: 0.9,
+      }),
+    ])
+
+    await assemble(doc)
+
+    expect(calls.embedPng).toHaveBeenCalledTimes(2)
+    expect(calls.drawImage).toHaveBeenCalledTimes(2)
+    const [_img, opts] = calls.drawImage.mock.calls[1] as [
+      unknown,
+      { x: number; y: number; width: number; height: number; opacity: number },
+    ]
+    expect(opts.opacity).toBe(0.9)
+    expect(opts.width).toBeCloseTo(110.0835)
+  })
+
   it('dibuja encabezado y pie configurados en todas las hojas exportadas', async () => {
     let doc = addImageSource(emptyDoc(), png('a.png'))
     doc = addImageSource(doc, png('b.png'))

@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  cloneAnnotation,
-  makeTextAnnotation,
-  translateAnnotation,
   type Annotation,
-  type ImageAnnotation,
   type TextAnnotation,
 } from '../../../../lib/pdfStudio/model/model'
 import {
@@ -25,7 +21,8 @@ import { usePdfTextEditorKeyboard } from './usePdfTextEditorKeyboard'
 import { usePdfTextEditorSelection } from './usePdfTextEditorSelection'
 import { defaultEditorTextStyle, resolveActiveEditorStyle } from './pdfEditorStyleState'
 import { type TextStyle, type Tool } from './editorStyle'
-import { createImageStampAnnotation, STAMP_ACCEPT } from './pdfImageStamp'
+import { STAMP_ACCEPT } from './pdfImageStamp'
+import { PdfTextEditorStampAssetSlot } from './PdfTextEditorStampAssetSlot'
 import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
 import { usePdfTextEditorViewport } from './usePdfTextEditorViewport'
@@ -42,8 +39,9 @@ import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFil
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
 import { usePdfTextEditorXMarks } from './usePdfTextEditorXMarks'
+import { usePdfTextEditorInsertions } from './usePdfTextEditorInsertions'
 import type { PdfTextEditorProps } from './PdfTextEditorProps'
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+
 type PdfTextEditorHistory = History<Record<number, Annotation[]>>
 export function PdfTextEditor({
   doc,
@@ -59,6 +57,7 @@ export function PdfTextEditor({
   onPrint,
   onSaveCopy,
   sessionZoom,
+  stampAssetUserKey,
 }: PdfTextEditorProps) {
   const total = doc.pages.length
   const fillMode = mode === 'fill'
@@ -194,56 +193,15 @@ export function PdfTextEditor({
       list.map((a) => (a.id === id && a.kind === 'text' ? { ...a, ...patch } : a)),
     )
   const annotationStyle = resolveActiveEditorStyle(selectedAnn, style)
-  function addText() {
-    const a = makeTextAnnotation({
-      text: 'Texto',
-      xRatio: 0.2,
-      yRatio: 0.2,
-      wRatio: 0.24,
-      hRatio: Math.max(0.055, style.sizeRatio * 1.7),
-      sizeRatio: style.sizeRatio,
-      color: style.color,
-      font: style.font,
-      bold: style.bold,
-      italic: style.italic,
-      opacity: style.opacity,
-      rotation: style.rotation,
+  const { addImageStamp, addText, duplicateImage, duplicateText, insertImageAnnotation } =
+    usePdfTextEditorInsertions({
+      activeLayout,
+      setAnnotations,
+      setEditingId,
+      setSelectedId,
+      setTool,
+      style,
     })
-    setTool('select')
-    setAnnotations((l) => [...l, a])
-    setSelectedId(a.id)
-    setEditingId(a.id) // se edita inline, sobre el cuadro, al toque
-  }
-
-  async function addImageStamp(file: File) {
-    const a = await createImageStampAnnotation({
-      file,
-      layout: activeLayout,
-      opacity: style.opacity,
-    })
-    if (!a) return
-    setTool('select')
-    setEditingId(null)
-    setAnnotations((l) => [...l, a])
-    setSelectedId(a.id)
-  }
-
-  /** Duplica un texto con un pequeño offset y lo selecciona. */
-  function duplicate(a: TextAnnotation) {
-    const { id: _id, kind: _kind, ...rest } = a
-    const copy = makeTextAnnotation({
-      ...rest,
-      xRatio: clamp01(a.xRatio + 0.03),
-      yRatio: clamp01(a.yRatio + 0.03),
-    })
-    setAnnotations((l) => [...l, copy])
-    setSelectedId(copy.id)
-  }
-  function duplicateImage(a: ImageAnnotation) {
-    const copy = translateAnnotation(cloneAnnotation(a), 0.03, 0.03)
-    setAnnotations((l) => [...l, copy])
-    setSelectedId(copy.id)
-  }
   const { startDrag, startResize, startDraw, startMarquee } =
     usePdfTextEditorInteractions({
       layout: activeLayout,
@@ -427,6 +385,14 @@ export function PdfTextEditor({
             onXMarkStrokeChange={setAllXMarkStroke}
             onAddText={addText}
             onAddImage={() => stampInputRef.current?.click()}
+            stampAssetMenu={
+              <PdfTextEditorStampAssetSlot
+                layout={activeLayout}
+                opacity={style.opacity ?? 1}
+                onInsert={insertImageAnnotation}
+                userKey={stampAssetUserKey}
+              />
+            }
             onAddFormField={templateToolsEnabled ? addFormField : undefined}
             onInspectForms={templateToolsEnabled ? onInspectForms : undefined}
             onSuggestFormFields={
@@ -447,7 +413,7 @@ export function PdfTextEditor({
               selectedAnn?.kind === 'image' ? 'Duplicar imagen' : 'Duplicar texto'
             }
             onDuplicate={() => {
-              if (selected) duplicate(selected)
+              if (selected) duplicateText(selected)
               else if (selectedAnn?.kind === 'image') duplicateImage(selectedAnn)
             }}
             hasSelection={!!selectedAnn}

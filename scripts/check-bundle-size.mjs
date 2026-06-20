@@ -34,7 +34,9 @@ const BUDGETS = {
   browser: 15,
   // Imprenta/PDF: chunks lazy pesados. No impactan el inicio, pero sí pueden
   // crecer sin ruido si entran nuevas dependencias de edición/export.
-  PdfStudioView: 70,
+  // +2 KB: shell lazy de Firma/Timbre Studio; el menú y persistencia viven en
+  // StampAssetMenuHost, chunk separado, para no cargar toda la biblioteca upfront.
+  PdfStudioView: 72,
   'pdf.worker.min': 380,
   'vendor-pdfjs': 140,
   'jspdf.es.min': 135,

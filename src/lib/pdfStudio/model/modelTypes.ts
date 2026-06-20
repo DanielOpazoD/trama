@@ -68,6 +68,9 @@ export type ShapeAnnotation = AnnotationBase & {
 export type ImageAnnotation = AnnotationBase & {
   kind: 'image'
   src: string
+  assetId?: string
+  assetKind?: 'signature' | 'stamp'
+  label?: string
   xRatio: number
   yRatio: number
   wRatio: number

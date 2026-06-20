@@ -7,14 +7,16 @@
  * autoguardado. Excluido del coverage: API de navegador, se verifica en el navegador.
  */
 import { isPdfTemplate, type ImageAsset, type PdfDoc } from '../model/model'
+import type { PdfStudioStampAsset } from '../stamps/stampAssets'
 
 const DB_NAME = 'trama-pdf-studio'
 const STORE = 'drafts'
 const SAVED_STORE = 'saved'
 const FOLDERS_STORE = 'folders'
+const STAMP_ASSETS_STORE = 'stamp-assets'
 // Versión del ESQUEMA de IndexedDB (sube al agregar stores). Distinta del formato
 // del record del borrador (`DATA_VERSION`), para no invalidar borradores viejos.
-const DB_VERSION = 3
+const DB_VERSION = 4
 const DATA_VERSION = 1
 
 type DraftRecord = {
@@ -52,6 +54,7 @@ export type SavedFolder = {
   createdAt: number
 }
 type SavedFolderRecord = SavedFolder & { userKey: string }
+type StampAssetRecord = PdfStudioStampAsset & { userKey: string }
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -63,10 +66,71 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(FOLDERS_STORE)) {
         db.createObjectStore(FOLDERS_STORE)
       }
+      if (!db.objectStoreNames.contains(STAMP_ASSETS_STORE)) {
+        db.createObjectStore(STAMP_ASSETS_STORE)
+      }
     }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => reject(req.error)
   })
+}
+
+/** Lista firmas/timbres locales del usuario. Best-effort y aislado por userKey. */
+export async function listStampAssets(userKey: string): Promise<PdfStudioStampAsset[]> {
+  try {
+    const db = await openDb()
+    const recs = await new Promise<StampAssetRecord[]>((resolve, reject) => {
+      const tx = db.transaction(STAMP_ASSETS_STORE, 'readonly')
+      const r = tx.objectStore(STAMP_ASSETS_STORE).getAll()
+      r.onsuccess = () => resolve((r.result as StampAssetRecord[]) ?? [])
+      r.onerror = () => reject(r.error)
+    })
+    db.close()
+    return recs
+      .filter((record) => record.userKey === userKey)
+      .map(({ userKey: _userKey, ...asset }) => asset)
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+  } catch {
+    return []
+  }
+}
+
+/** Guarda o actualiza una firma/timbre local. */
+export async function putStampAsset(
+  userKey: string,
+  asset: PdfStudioStampAsset,
+): Promise<void> {
+  try {
+    const db = await openDb()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STAMP_ASSETS_STORE, 'readwrite')
+      const rec: StampAssetRecord = { ...asset, userKey }
+      tx.objectStore(STAMP_ASSETS_STORE).put(rec, `${userKey}:${asset.id}`)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    })
+    db.close()
+  } catch {
+    // best-effort: el asset queda en memoria si IndexedDB falla.
+  }
+}
+
+/** Borra una firma/timbre del usuario actual sin afectar otros userKey. */
+export async function deleteStampAsset(userKey: string, id: string): Promise<void> {
+  try {
+    const db = await openDb()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STAMP_ASSETS_STORE, 'readwrite')
+      tx.objectStore(STAMP_ASSETS_STORE).delete(`${userKey}:${id}`)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    })
+    db.close()
+  } catch {
+    // no-op
+  }
 }
 
 /** Autoguarda el documento + la biblioteca del usuario. Best-effort. */

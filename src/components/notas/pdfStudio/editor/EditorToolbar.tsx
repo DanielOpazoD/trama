@@ -12,6 +12,7 @@ import {
   TextIcon,
   TrashIcon,
 } from '../../../Icons'
+import { type ReactNode } from 'react'
 import { type TextStyle, type Tool } from './editorStyle'
 import {
   Hint,
@@ -42,6 +43,7 @@ export function EditorToolbar({
   onXMarkStrokeChange,
   onAddText,
   onAddImage,
+  stampAssetMenu,
   onAddFormField,
   onInspectForms,
   onSuggestFormFields,
@@ -71,6 +73,7 @@ export function EditorToolbar({
   onXMarkStrokeChange: (next: number) => void
   onAddText: () => void
   onAddImage: () => void
+  stampAssetMenu?: ReactNode
   onAddFormField?: (kind: PdfFormFieldKind) => void
   onInspectForms?: () => void
   onSuggestFormFields?: () => void
@@ -205,6 +208,7 @@ export function EditorToolbar({
       </ToolbarGroup>
 
       <ToolbarGroup label="Insertar">
+        {!isTemplateDesign ? stampAssetMenu : null}
         {!isTemplateDesign ? (
           <Hint content="Estampar una imagen sobre la página">
             <button

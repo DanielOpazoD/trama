@@ -24,4 +24,5 @@ export type PdfTextEditorProps = {
   onPrint?: (edits: PdfTextEditorResult) => void
   onSaveCopy?: (edits: PdfTextEditorResult) => void
   sessionZoom?: number
+  stampAssetUserKey?: string
 }

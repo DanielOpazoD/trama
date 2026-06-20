@@ -83,6 +83,10 @@ se suben al backend.
 - `src/lib/pdfStudio/assemble/assembleImages.ts`: lectura/compresion/embedding de imagenes.
 - `src/lib/pdfStudio/assemble/assembleAnnotations.ts`: dibujo vectorial de texto,
   resaltados, formas e imagenes estampadas.
+- `src/lib/pdfStudio/stamps/stampAssets.ts`: contrato puro de firmas/timbres
+  locales, conversion a `ImageAnnotation` y helpers de aislamiento por usuario.
+- `src/components/notas/pdfStudio/stamps/StampAssetMenu.tsx`: menu compacto para
+  guardar, administrar e insertar firmas/timbres visuales.
 - `src/components/notas/pdfStudio/PdfStudioView.tsx`: composicion de la vista de
   documento con modos `editor` y `templates`.
 - `PdfTextEditor.tsx`: composicion del modal de edicion con paginas consecutivas
@@ -149,6 +153,33 @@ para sobrevivir reordenamiento de paginas. Al exportar, `usePdfStudioExport`
 primero ensambla el PDF visual y luego escribe esos campos como AcroForms reales.
 La firma simple no es una firma digital criptografica: es un trazo o imagen
 ubicada dentro de un campo de firma de oficina.
+
+## Firma y Timbre visual
+
+`Imprenta` tambien ofrece una biblioteca local de firmas y timbres visuales.
+Esta biblioteca vive en IndexedDB, aislada por `userKey`, y no agrega backend,
+tablas, blobs ni sincronizacion cloud. En un navegador compartido, un usuario no
+ve las firmas/timbres guardados por otro usuario porque cada record se guarda bajo
+la clave compuesta `userKey:id`.
+
+Los assets viven en `src/lib/pdfStudio/stamps/stampAssets.ts` y contienen:
+`id`, `kind` (`signature` o `stamp`), `name`, `src`, `mimeType`, dimensiones y
+fechas de creacion/actualizacion/ultimo uso. La UI del editor los muestra desde
+un menu compacto con tabs `Firmas`, `Timbres` y `Recientes`. Desde ese menu se
+puede subir una imagen PNG/JPEG, dibujar una firma, renombrar, eliminar e
+insertar el asset en la pagina activa.
+
+Al insertarse, una firma/timbre se transforma en una `ImageAnnotation` normal con
+metadata opcional (`assetId`, `assetKind`, `label`). Esto mantiene una sola capa
+de edicion: mover, redimensionar, duplicar, bloquear, cambiar opacidad y exportar
+siguen usando los mismos flujos de imagen estampada. La exportacion no trata
+estos assets como un tipo especial; `assembleAnnotations` embebe el data URL como
+PNG/JPEG y lo dibuja en las coordenadas de la pagina.
+
+Esta funcion NO es firma digital legal ni criptografica. Es una marca visual de
+oficina para documentos imprimibles o PDFs operativos. La decision v1 es
+local-only para mantener privacidad, evitar RLS/storage prematuros y no convertir
+un gesto de oficina en una plataforma de credenciales.
 
 ### Planillas imprimibles
 

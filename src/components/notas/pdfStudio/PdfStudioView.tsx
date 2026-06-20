@@ -370,6 +370,7 @@ export function PdfStudioView({
           onMailMerge={templatesEnabled ? printMailMergeTemplate : undefined}
           onSaveCopy={templatesEnabled ? saveFilledTemplateCopy : undefined}
           sessionZoom={editorSessionZoom}
+          stampAssetUserKey={workspace.userKey}
         />
       )}
       {previewModal}
