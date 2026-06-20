@@ -21,10 +21,14 @@ vi.stubGlobal(
 import handler from '../momentos'
 
 describe('momentos endpoint — integration (mock SQL)', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     mockSqlResponses.reset()
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   })
   afterEach(() => {
+    consoleLogSpy.mockRestore()
     vi.unstubAllGlobals()
     vi.stubGlobal(
       'fetch',
@@ -58,6 +62,30 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     const body = (await res.json()) as { items: unknown[]; nextCursor: unknown }
     expect(body.items).toHaveLength(1)
     expect(body.nextCursor).toBeNull()
+  })
+
+  it('GET list rechaza cursor duplicado antes de consultar timeline', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/momentos?cursor=a:b&cursor=c:d', {
+        headers: { 'x-request-id': 'rid-momentos-query' },
+      }),
+      mockContext(),
+    )
+
+    const body = await expectCanonicalError(res, {
+      status: 400,
+      code: 'VALIDATION',
+      requestId: 'rid-momentos-query',
+    })
+    expect(body).toMatchObject({
+      error: {
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'cursor' }] },
+      },
+    })
+    expect(
+      mockSqlResponses.calls.some((call) => /\bFROM momentos\b/i.test(call.template)),
+    ).toBe(false)
   })
 
   it('GET list propaga entity_ids del bulk fetch a cada item', async () => {
@@ -173,6 +201,37 @@ describe('momentos endpoint — integration (mock SQL)', () => {
       mockContext({ id: 'nope' }),
     )
     expect(res.status).toBe(404)
+  })
+
+  it('DELETE emite owner.mismatch cuando el id no pertenece al usuario', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([]) // delete no-op
+    const res = await handler(
+      new Request('http://localhost/api/momentos/m-ajeno', {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-momento-delete' },
+      }),
+      mockContext({ id: 'm-ajeno' }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-momento-delete',
+    })
+    const events = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'owner.mismatch',
+          category: 'operational',
+          severity: 'warn',
+          requestId: 'rid-momento-delete',
+          operation: 'momentos.delete',
+          userId: 'legacy-single-user',
+        }),
+      ]),
+    )
   })
 
   it('POST con kind inválido devuelve 400', async () => {

@@ -42,6 +42,7 @@ describe('search endpoint', () => {
       mockContext(),
     )
     expect(method.status).toBe(405)
+    expect(method.headers.get('Allow')).toBe('GET')
 
     mockSqlResponses.reset()
     const empty = await handler(
@@ -69,7 +70,8 @@ describe('search endpoint', () => {
     expect(await res.json()).toMatchObject({
       error: {
         code: 'VALIDATION',
-        message: 'mode debe ser uno de: hybrid, lexical, semantic',
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'mode' }] },
       },
     })
     expect(
@@ -80,6 +82,74 @@ describe('search endpoint', () => {
       ),
     ).toBe(false)
     expect(searchMocks.embedSafe).not.toHaveBeenCalled()
+  })
+
+  it('rechaza query params duplicados para evitar ambigüedad de contrato', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/search?q=borges&q=bioy'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: 'VALIDATION',
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'q' }] },
+      },
+    })
+    expect(
+      mockSqlResponses.calls.some((call) =>
+        /\bFROM\s+(entities|quotes|momentos|cronicas|chat_messages)\b/i.test(
+          call.template,
+        ),
+      ),
+    ).toBe(false)
+    expect(searchMocks.embedSafe).not.toHaveBeenCalled()
+  })
+
+  it('rechaza mode duplicado en vez de convertirlo silenciosamente a hybrid', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/search?q=borges&mode=lexical&mode=semantic'),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      error: {
+        code: 'VALIDATION',
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'mode' }] },
+      },
+    })
+    expect(
+      mockSqlResponses.calls.some((call) =>
+        /\bFROM\s+(entities|quotes|momentos|cronicas|chat_messages)\b/i.test(
+          call.template,
+        ),
+      ),
+    ).toBe(false)
+    expect(searchMocks.embedSafe).not.toHaveBeenCalled()
+  })
+
+  it('mantiene compatibilidad: limit inválido cae al default y limit alto se clampa', async () => {
+    mockSqlResponses.push([], [], [], [], [], [], [], [], [], [])
+
+    const invalidLimit = await handler(
+      new Request('http://localhost/api/search?q=memoria&mode=lexical&limit=abc'),
+      mockContext(),
+    )
+    const clampedLimit = await handler(
+      new Request('http://localhost/api/search?q=memoria&mode=lexical&limit=999'),
+      mockContext(),
+    )
+
+    expect(invalidLimit.status).toBe(200)
+    expect(clampedLimit.status).toBe(200)
+    const limitValues = mockSqlResponses.calls
+      .filter((call) => /\bLIMIT \?/.test(call.template))
+      .map((call) => call.values.at(-1))
+    expect(limitValues).toEqual([30, 30, 30, 30, 30, 100, 100, 100, 100, 100])
   })
 
   it('ejecuta búsqueda léxica aislada por user_id y devuelve shapes camelCase', async () => {

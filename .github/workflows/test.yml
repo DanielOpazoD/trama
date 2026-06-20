@@ -62,6 +62,18 @@ jobs:
       - name: Runtime API routes contract
         run: npm run check:runtime-api-routes
 
+      # Contrato de request parsing: superficies privadas de alto riesgo deben
+      # validar method/query/form-data con helpers compartidos antes de SQL,
+      # blobs o LLM. Evita volver a parsing manual disperso en cada handler.
+      - name: API request contracts
+        run: npm run check:api-request-contracts
+
+      # Contrato operacional multiusuario: vocabulario de eventos, redacción,
+      # health productivo y smoke reportable deben quedar documentados y
+      # conectados a auth/wrapper antes de mergear.
+      - name: Operational observability contracts
+        run: npm run check:operational-observability
+
       # Gate de soft-delete: bloquea `DELETE FROM` nuevos fuera del allowlist
       # (los hard-deletes legítimos están enumerados en el script). Antes el
       # script existía pero no corría en ningún job.

@@ -74,7 +74,9 @@ describe('structure ratchets', () => {
       const source = readFileSync(handler, 'utf8')
 
       expect(source).toMatch(/import \{ withObservability \} from '\.\/handler-wrap\.js'/)
-      expect(source).toMatch(/import \{ ApiErrors \} from '\.\/api-error\.js'/)
+      expect(source).toMatch(
+        /import \{ ApiErrors \} from '\.\/api-error\.js'|from '\.\/request-contracts\.js'/,
+      )
       expect(source).toMatch(/export default withObservability\(/)
       expect(source).not.toMatch(/\bnew Response\s*\(/)
     }

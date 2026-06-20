@@ -5,6 +5,7 @@ import { ApiErrors } from './api-error.js'
 import { getAuthedUser } from './auth.js'
 import { ensureUserRow } from './user-provisioning.js'
 import { parseJsonBody } from './zod-body.js'
+import { parseSearchParams } from './request-contracts.js'
 import {
   RecorteCreateBody,
   RecortePatchBody,
@@ -29,6 +30,8 @@ import {
   sanitizeSuggestion,
   type EntityLite,
 } from './recorte-suggest-prompt.js'
+import { z } from 'zod'
+import { logOperationalEvent } from './operational-events.js'
 
 /**
  * Recortes — bandeja de entrada de capturas web (extensión de Chrome).
@@ -60,13 +63,23 @@ type RecorteRow = {
   images?: Array<{ storage_key: string }> | null
 }
 
+const RecortesListQuery = z.object({
+  status: z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : undefined),
+    z.enum(['pending', 'promoted', 'archived']).optional().catch(undefined),
+  ),
+})
+
 export default withObservability(
   'recortes',
   async (req: Request, context: Context, { requestId }) => {
     const preflight = extensionPreflight(req)
     if (preflight) return preflight
 
-    const authedUser = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req, {
+      requestId,
+      operation: `recortes.${req.method.toLowerCase()}`,
+    })
     const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
@@ -516,12 +529,9 @@ export default withObservability(
     }
 
     if (req.method === 'GET') {
-      const url = new URL(req.url)
-      const status = url.searchParams.get('status')?.trim()
-      const statusFilter =
-        status === 'pending' || status === 'promoted' || status === 'archived'
-          ? status
-          : null
+      const parsedQuery = parseSearchParams(req, RecortesListQuery, requestId)
+      if (!parsedQuery.ok) return parsedQuery.response
+      const statusFilter = parsedQuery.data.status ?? null
       const rows = await sqlTyped<RecorteRow>(sql`
         SELECT id, text, source_url, source_title, source_author, note,
           image_url, image_key, capture_mode, status, promoted_target,
@@ -584,7 +594,20 @@ export default withObservability(
           image_url, image_key, capture_mode, status, promoted_target,
           promoted_id, captured_at, created_at, updated_at
       `)
-      if (rows.length === 0) return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+      if (rows.length === 0) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'recortes.patch',
+          userId,
+          reason: 'recorte_not_visible',
+          details: { id },
+        })
+        return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+      }
       return Response.json(rows[0])
     }
 
@@ -594,8 +617,20 @@ export default withObservability(
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         RETURNING deleted_at
       `)
-      if (!rows[0]?.deleted_at)
+      if (!rows[0]?.deleted_at) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'recortes.delete',
+          userId,
+          reason: 'recorte_not_visible',
+          details: { id },
+        })
         return ApiErrors.notFound(requestId, 'Recorte no encontrado')
+      }
       return Response.json({ ok: true, deletedAt: rows[0].deleted_at })
     }
 

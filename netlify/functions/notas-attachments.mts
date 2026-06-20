@@ -4,6 +4,9 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
+import { parseSearchParams, QueryParam } from './_lib/request-contracts.js'
+import { z } from 'zod'
+import { logOperationalEvent } from './_lib/operational-events.js'
 
 type AttachmentRow = {
   id: string
@@ -17,6 +20,14 @@ type AttachmentRow = {
   updated_at: string
 }
 
+const AttachmentOwnerQuery = z.object({
+  ownerType: z.enum(['note', 'prompt', 'week', 'task']),
+  ownerId: z.preprocess(
+    QueryParam.trimmedString({ max: 200 }).normalize,
+    z.string().min(1).max(200),
+  ),
+})
+
 export default withObservability(
   'notas-attachments',
   async (req: Request, context: Context, { requestId }) => {
@@ -25,19 +36,21 @@ export default withObservability(
     const id = context.params.id
 
     if (req.method === 'GET') {
-      const url = new URL(req.url)
-      const ownerType = url.searchParams.get('ownerType')
-      const ownerId = url.searchParams.get('ownerId')
-      if (
-        ownerType !== 'note' &&
-        ownerType !== 'prompt' &&
-        ownerType !== 'week' &&
-        ownerType !== 'task'
-      ) {
-        return ApiErrors.validation(requestId, 'ownerType debe ser note, prompt, week o task')
-      }
-      if (!ownerId) return ApiErrors.validation(requestId, 'ownerId requerido')
+      const parsedQuery = parseSearchParams(req, AttachmentOwnerQuery, requestId)
+      if (!parsedQuery.ok) return parsedQuery.response
+      const { ownerType, ownerId } = parsedQuery.data
       if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.owner.read',
+          userId,
+          reason: 'attachment_owner_not_visible',
+          details: { ownerType, ownerId },
+        })
         return ApiErrors.notFound(requestId, 'Destino no encontrado')
       }
 
@@ -60,6 +73,28 @@ export default withObservability(
         RETURNING id
       `)
       if (rows.length === 0) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.delete',
+          userId,
+          reason: 'attachment_not_visible',
+          details: { id },
+        })
+        logOperationalEvent({
+          event: 'blob.access.denied',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.delete',
+          userId,
+          reason: 'attachment_delete_not_visible',
+          details: { id },
+        })
         return ApiErrors.notFound(requestId, 'Anexo no encontrado')
       }
       return Response.json({ ok: true })

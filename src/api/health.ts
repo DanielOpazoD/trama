@@ -31,6 +31,13 @@ export type HealthResponse = {
     legacyOwnerMapped: boolean
     mode: 'legacy-single-user' | 'clerk-with-legacy-fallback' | 'clerk'
   }
+  operational: {
+    requestId: string
+    databaseReachable: boolean
+    runtimeApiRoutesContract: 'check:runtime-api-routes'
+    productionSmokeCommand: 'npm run smoke:production-report'
+    logRedaction: 'structured-redaction'
+  }
   byProvider: Array<{
     provider: string
     model: string
