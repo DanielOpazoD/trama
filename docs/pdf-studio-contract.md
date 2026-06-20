@@ -43,6 +43,31 @@ npm run check:pdf-runtime-boundaries
 Ese check bloquea nuevos imports runtime directos o estaticos de PDF.js, worker
 PDF.js, `pdf-lib` o fontkit fuera de los loaders compartidos.
 
+## Contrato de entrypoints lazy
+
+PDF Studio puede ser pesado, pero no puede entrar al shell inicial. El build
+debe mantener `pdf-lib`, PDF.js, OCR y workers PDF detras de imports dinamicos
+activados por la vista/accion del usuario.
+
+| Superficie            | PDF permitido en carga inicial | PDF permitido lazy                             | Razon                                                      |
+| --------------------- | ------------------------------ | ---------------------------------------------- | ---------------------------------------------------------- |
+| `dist/index.html`     | ninguno                        | `PdfStudioView` y derivados via dynamic import | Evita que el primer render pague costos de PDF Studio.     |
+| Shell/App inicial     | ninguno                        | vistas PDF lazy                                | Mantiene inicio, auth y mundo Notas independientes de PDF. |
+| `PdfStudioView`       | no aplica                      | `pdfjsLoader`, `pdfLibLoader`, workers         | La vista ya expresa intencion de usar PDF.                 |
+| Export/OCR/Form/Libro | no aplica                      | `vendor-pdf-lib`, `vendor-pdfjs`, `vendor-ocr` | Chunks pesados solo cuando el usuario ejecuta esos flujos. |
+| Workers PDF           | no aplica                      | workers dedicados                              | Mantienen trabajo pesado fuera del hilo principal.         |
+
+El guardrail ejecutable es:
+
+```bash
+npm run build
+npm run check:pdf-lazy-entrypoints
+```
+
+Ese check lee `dist/index.html` y el grafo de imports estaticos desde los
+assets iniciales. Los imports dinamicos a PDF se permiten; los imports
+estaticos o modulepreloads PDF desde el entrypoint inicial fallan.
+
 ## Contrato de payload PDF
 
 El peso PDF se mide como lazy payload, no como bundle inicial. El objetivo no es
