@@ -15,4 +15,12 @@ describe('script temp fixture helpers', () => {
     expect(existsSync(join(fixture.root, 'scripts/check.mjs'))).toBe(true)
     expect(readFileSync(join(fixture.root, 'package.json'), 'utf8')).toContain('"check"')
   })
+
+  test('rejects fixture paths that escape the temporary root', () => {
+    expect(() =>
+      makeTempFixtureRoot('script-contract-', {
+        '../escape.mjs': 'export const escaped = true',
+      }),
+    ).toThrow(/outside fixture root/)
+  })
 })
