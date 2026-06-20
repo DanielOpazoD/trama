@@ -1,10 +1,11 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PdfStudioStampAsset } from '../../../../lib/pdfStudio/stamps/stampAssets'
 import { StampAssetMenu } from './StampAssetMenu'
 
 const pngSrc =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
+const originalPrompt = window.prompt
 
 function asset(
   id: string,
@@ -41,6 +42,19 @@ function setup(overrides: Partial<Parameters<typeof StampAssetMenu>[0]> = {}) {
 }
 
 describe('<StampAssetMenu />', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    if (originalPrompt === undefined) {
+      Reflect.deleteProperty(window, 'prompt')
+      return
+    }
+    Object.defineProperty(window, 'prompt', {
+      value: originalPrompt,
+      configurable: true,
+      writable: true,
+    })
+  })
+
   it('abre un menú compacto con estados vacíos para firmas y timbres', () => {
     setup()
 
@@ -101,5 +115,9 @@ describe('<StampAssetMenu />', () => {
     const buttons = screen.getAllByRole('button', { name: /Insertar/i })
     expect(buttons[0]).toHaveAccessibleName('Insertar Timbre reciente')
     expect(buttons[1]).toHaveAccessibleName('Insertar Firma antigua')
+  })
+
+  it('restaura el prompt global después de los tests que lo mockean', () => {
+    expect(window.prompt).toBe(originalPrompt)
   })
 })

@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createImageAnnotationFromStampAsset,
   createStampAssetFromDataUrl,
+  createStampAssetFromFile,
   deleteStampAssetRecord,
   filterStampAssetsForUser,
   renameStampAsset,
@@ -30,6 +31,10 @@ function asset(overrides: Partial<PdfStudioStampAsset> = {}): PdfStudioStampAsse
 }
 
 describe('pdfStudio/stamps/stampAssets', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('mantiene la biblioteca aislada por userKey en records locales', () => {
     const records = [
       { userKey: 'user-a', asset: asset({ id: 'a', name: 'Firma A' }) },
@@ -116,5 +121,41 @@ describe('pdfStudio/stamps/stampAssets', () => {
     expect(annotation.hRatio).toBeGreaterThan(0)
     expect(annotation.xRatio).toBeGreaterThanOrEqual(0)
     expect(annotation.yRatio).toBeGreaterThanOrEqual(0)
+  })
+
+  it('rechaza archivos con MIME no soportado aunque la extensión parezca válida', async () => {
+    const file = new File(['gif'], 'firma.jpg', { type: 'image/gif' })
+
+    await expect(
+      createStampAssetFromFile({
+        file,
+        id: 'asset-file',
+        kind: 'signature',
+      }),
+    ).resolves.toBeNull()
+  })
+
+  it('normaliza fallos de decodificación de imagen a null', async () => {
+    vi.stubGlobal(
+      'Image',
+      class {
+        onload: (() => void) | null = null
+        onerror: (() => void) | null = null
+
+        set src(_value: string) {
+          queueMicrotask(() => this.onerror?.())
+        }
+      },
+    )
+
+    const file = new File(['not-an-image'], 'firma.png', { type: 'image/png' })
+
+    await expect(
+      createStampAssetFromFile({
+        file,
+        id: 'broken-image',
+        kind: 'signature',
+      }),
+    ).resolves.toBeNull()
   })
 })

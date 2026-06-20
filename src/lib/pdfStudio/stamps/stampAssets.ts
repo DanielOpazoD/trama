@@ -119,18 +119,31 @@ export async function createStampAssetFromFile({
   now?: number
 }): Promise<PdfStudioStampAsset | null> {
   if (!isStampAssetFile(file)) return null
-  const src = await fileToDataUrl(file)
-  const size = await readImageSize(src)
-  return createStampAssetFromDataUrl({
-    id,
-    kind,
-    name: file.name.replace(/\.[^.]+$/, ''),
-    src,
-    mimeType: resolveStampMimeType(file),
-    width: size.width,
-    height: size.height,
-    now,
-  })
+  try {
+    const mimeType = resolveStampMimeType(file)
+    if (!mimeType) return null
+    const src = await fileToDataUrl(file)
+    const dataUrlMimeType = resolveStampDataUrlMimeType(src)
+    if (
+      dataUrlMimeType === 'unsupported' ||
+      (dataUrlMimeType && dataUrlMimeType !== mimeType)
+    ) {
+      return null
+    }
+    const size = await readImageSize(src)
+    return createStampAssetFromDataUrl({
+      id,
+      kind,
+      name: file.name.replace(/\.[^.]+$/, ''),
+      src,
+      mimeType,
+      width: size.width,
+      height: size.height,
+      now,
+    })
+  } catch {
+    return null
+  }
 }
 
 export function createImageAnnotationFromStampAsset({
@@ -163,17 +176,32 @@ function cleanAssetName(name: string, fallback: string): string {
 }
 
 function isStampAssetFile(file: File): boolean {
-  return (
-    file.type === 'image/png' ||
-    file.type === 'image/jpeg' ||
-    /\.(png|jpe?g)$/i.test(file.name)
-  )
+  return resolveStampMimeType(file) !== null
 }
 
-function resolveStampMimeType(file: File): PdfStudioStampAsset['mimeType'] {
-  return file.type === 'image/png' || /\.png$/i.test(file.name)
+function resolveStampMimeType(file: File): PdfStudioStampAsset['mimeType'] | null {
+  const mimeFromType =
+    file.type === 'image/png'
+      ? 'image/png'
+      : file.type === 'image/jpeg'
+        ? 'image/jpeg'
+        : null
+  const mimeFromName = /\.png$/i.test(file.name)
     ? 'image/png'
-    : 'image/jpeg'
+    : /\.(jpe?g)$/i.test(file.name)
+      ? 'image/jpeg'
+      : null
+  if (mimeFromType && mimeFromName && mimeFromType !== mimeFromName) return null
+  return mimeFromType ?? mimeFromName
+}
+
+function resolveStampDataUrlMimeType(
+  src: string,
+): PdfStudioStampAsset['mimeType'] | 'unsupported' | null {
+  const mime = /^data:([^;,]+)[;,]/i.exec(src)?.[1]?.toLowerCase()
+  if (!mime) return null
+  if (mime === 'image/png' || mime === 'image/jpeg') return mime
+  return 'unsupported'
 }
 
 function fileToDataUrl(file: File): Promise<string> {

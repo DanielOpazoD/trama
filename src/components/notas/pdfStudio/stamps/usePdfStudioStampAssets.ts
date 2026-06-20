@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   createStampAssetFromDataUrl,
   createStampAssetFromFile,
@@ -15,11 +15,15 @@ import {
 
 export function usePdfStudioStampAssets(userKey: string) {
   const [assets, setAssets] = useState<PdfStudioStampAsset[]>([])
+  const removedIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     let alive = true
+    removedIdsRef.current = new Set()
+    setAssets([])
     void listStampAssets(userKey).then((list) => {
-      if (alive) setAssets(list)
+      if (!alive) return
+      setAssets((current) => mergeLoadedAssets(list, current, removedIdsRef.current))
     })
     return () => {
       alive = false
@@ -78,6 +82,7 @@ export function usePdfStudioStampAssets(userKey: string) {
   }
 
   function remove(id: string) {
+    removedIdsRef.current.add(id)
     setAssets((list) => list.filter((asset) => asset.id !== id))
     void deleteStampAsset(userKey, id)
   }
@@ -110,6 +115,21 @@ export function usePdfStudioStampAssets(userKey: string) {
 
 function sortAssets(assets: PdfStudioStampAsset[]): PdfStudioStampAsset[] {
   return [...assets].sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+function mergeLoadedAssets(
+  loaded: PdfStudioStampAsset[],
+  current: PdfStudioStampAsset[],
+  removedIds: Set<string>,
+): PdfStudioStampAsset[] {
+  const merged = new Map<string, PdfStudioStampAsset>()
+  for (const asset of loaded) {
+    if (!removedIds.has(asset.id)) merged.set(asset.id, asset)
+  }
+  for (const asset of current) {
+    merged.set(asset.id, asset)
+  }
+  return sortAssets([...merged.values()])
 }
 
 function nextAssetId(kind: PdfStudioStampKind): string {

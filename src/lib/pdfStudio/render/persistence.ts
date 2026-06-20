@@ -77,21 +77,24 @@ function openDb(): Promise<IDBDatabase> {
 
 /** Lista firmas/timbres locales del usuario. Best-effort y aislado por userKey. */
 export async function listStampAssets(userKey: string): Promise<PdfStudioStampAsset[]> {
+  let db: IDBDatabase | null = null
   try {
-    const db = await openDb()
+    db = await openDb()
+    const activeDb = db
     const recs = await new Promise<StampAssetRecord[]>((resolve, reject) => {
-      const tx = db.transaction(STAMP_ASSETS_STORE, 'readonly')
+      const tx = activeDb.transaction(STAMP_ASSETS_STORE, 'readonly')
       const r = tx.objectStore(STAMP_ASSETS_STORE).getAll()
       r.onsuccess = () => resolve((r.result as StampAssetRecord[]) ?? [])
       r.onerror = () => reject(r.error)
     })
-    db.close()
     return recs
       .filter((record) => record.userKey === userKey)
       .map(({ userKey: _userKey, ...asset }) => asset)
       .sort((a, b) => b.updatedAt - a.updatedAt)
   } catch {
     return []
+  } finally {
+    db?.close()
   }
 }
 
@@ -100,36 +103,42 @@ export async function putStampAsset(
   userKey: string,
   asset: PdfStudioStampAsset,
 ): Promise<void> {
+  let db: IDBDatabase | null = null
   try {
-    const db = await openDb()
+    db = await openDb()
+    const activeDb = db
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STAMP_ASSETS_STORE, 'readwrite')
+      const tx = activeDb.transaction(STAMP_ASSETS_STORE, 'readwrite')
       const rec: StampAssetRecord = { ...asset, userKey }
       tx.objectStore(STAMP_ASSETS_STORE).put(rec, `${userKey}:${asset.id}`)
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
       tx.onabort = () => reject(tx.error)
     })
-    db.close()
   } catch {
     // best-effort: el asset queda en memoria si IndexedDB falla.
+  } finally {
+    db?.close()
   }
 }
 
 /** Borra una firma/timbre del usuario actual sin afectar otros userKey. */
 export async function deleteStampAsset(userKey: string, id: string): Promise<void> {
+  let db: IDBDatabase | null = null
   try {
-    const db = await openDb()
+    db = await openDb()
+    const activeDb = db
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STAMP_ASSETS_STORE, 'readwrite')
+      const tx = activeDb.transaction(STAMP_ASSETS_STORE, 'readwrite')
       tx.objectStore(STAMP_ASSETS_STORE).delete(`${userKey}:${id}`)
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
       tx.onabort = () => reject(tx.error)
     })
-    db.close()
   } catch {
     // no-op
+  } finally {
+    db?.close()
   }
 }
 
