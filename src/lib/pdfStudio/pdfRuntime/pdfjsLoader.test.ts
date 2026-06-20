@@ -42,4 +42,25 @@ describe('pdfjsLoader', () => {
     })
     await expect(task.promise).resolves.toEqual({ numPages: 1 })
   })
+
+  it('retries after a worker import failure', async () => {
+    vi.doMock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => {
+      throw new Error('worker unavailable')
+    })
+    vi.doMock('pdfjs-dist', () => ({
+      GlobalWorkerOptions: { workerSrc: '' },
+      getDocument: vi.fn(),
+    }))
+    const { loadPdfjs } = await import('./pdfjsLoader')
+
+    await expect(loadPdfjs()).rejects.toThrow()
+
+    vi.doMock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({
+      default: '/assets/retried.worker.mjs',
+    }))
+
+    await expect(loadPdfjs()).resolves.toMatchObject({
+      GlobalWorkerOptions: { workerSrc: '/assets/retried.worker.mjs' },
+    })
+  })
 })

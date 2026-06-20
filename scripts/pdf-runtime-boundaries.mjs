@@ -25,6 +25,22 @@ const RUNTIME_IMPORT_CHECKS = [
   },
 ]
 
+function isTypeOnlyPdfLibImport(block) {
+  if (block.trimStart().startsWith('import type ')) return true
+
+  const namedImport = block.match(/^import\s*\{([\s\S]*?)\}\s*from\s+['"]pdf-lib['"]/)
+  if (!namedImport) return false
+
+  const specifiers = namedImport[1]
+    .split(',')
+    .map((specifier) => specifier.trim())
+    .filter(Boolean)
+  return (
+    specifiers.length > 0 &&
+    specifiers.every((specifier) => specifier.startsWith('type '))
+  )
+}
+
 function staticRuntimePdfLibImports(lines) {
   const issues = []
   for (let index = 0; index < lines.length; index += 1) {
@@ -44,11 +60,13 @@ function staticRuntimePdfLibImports(lines) {
       block.push(lines[index])
     }
 
-    if (!/\sfrom\s+['"]pdf-lib['"]/.test(block.join('\n'))) continue
+    const joinedBlock = block.join('\n')
+    if (!/\sfrom\s+['"]pdf-lib['"]/.test(joinedBlock)) continue
+    if (isTypeOnlyPdfLibImport(joinedBlock)) continue
     issues.push({
       check: 'pdf-lib-static-loader',
       line: startLine,
-      text: block.join('\n').trim(),
+      text: joinedBlock.trim(),
       reason:
         'el runtime estatico de pdf-lib debe cargarse via pdfLibLoader; import type esta permitido',
     })
@@ -77,6 +95,9 @@ function readSourceFiles(root) {
   })
 }
 
+/**
+ * Finds direct PDF runtime imports that bypass the shared PDF Studio loaders.
+ */
 export function findPdfRuntimeBoundaryIssues({ root = process.cwd() } = {}) {
   const resolvedRoot = resolve(root)
   const issues = []
@@ -107,6 +128,9 @@ export function findPdfRuntimeBoundaryIssues({ root = process.cwd() } = {}) {
   return issues
 }
 
+/**
+ * Formats boundary violations for human-readable CI output.
+ */
 export function formatPdfRuntimeBoundaryIssues(issues) {
   if (issues.length === 0) {
     return 'PDF runtime boundaries OK.'
