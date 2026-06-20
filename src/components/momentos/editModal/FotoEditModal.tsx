@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../../api'
-import { apiFetch } from '../../../api/request'
+import { requestBlob } from '../../../api/request'
 import { editImage } from '../../../lib/imageEditor'
 import type { Momento, MomentoPayload } from '../../../types'
 import { useUpdateMomento, useToast } from '../../../state'
@@ -148,10 +148,9 @@ export function FotoEditModal({
       original = item.file
     } else {
       try {
-        const res = await apiFetch(momentoMediaUrl(item.storageKey))
-        if (!res.ok) throw new Error('No se pudo bajar la imagen')
-        original = new File([await res.blob()], `foto-${idx + 1}.jpg`, {
-          type: res.headers.get('Content-Type') || 'image/jpeg',
+        const blob = await requestBlob(momentoMediaUrl(item.storageKey))
+        original = new File([blob], `foto-${idx + 1}.jpg`, {
+          type: blob.type || 'image/jpeg',
         })
       } catch (err) {
         toast.show({

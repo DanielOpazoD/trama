@@ -1,19 +1,17 @@
 /**
  * Exportar las fotos de un dueño (semana/tarea): bajar todas, o armar un PDF
  * con dos imágenes por hoja. Los blobs viven detrás de un endpoint autenticado,
- * así que se bajan con `apiFetch` (lleva el bearer de Clerk). jsPDF se importa
+ * así que se bajan con `requestBlob` (lleva el bearer de Clerk). jsPDF se importa
  * de forma perezosa para no engordar el bundle principal (solo se carga al
  * exportar).
  */
-import { apiFetch } from '../api/request'
+import { requestBlob } from '../api/request'
 import { downloadBlob } from './downloadBlob'
 
 export type ExportablePhoto = { url: string; fileName: string }
 
 async function fetchBlob(url: string): Promise<Blob> {
-  const res = await apiFetch(url)
-  if (!res.ok) throw new Error(`No se pudo bajar la imagen (${res.status})`)
-  return res.blob()
+  return requestBlob(url)
 }
 
 /** Baja cada imagen como archivo, en serie (un respiro entre cada una para que

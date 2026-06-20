@@ -46,6 +46,30 @@ error shape → side effects.
 
 > **Duplicados de entidades:** `/api/entities` POST usa el patrón canónico con `ApiErrors.conflict(...)`. Para conservar la UX específica, el servidor pone `details: { kind: 'possible_duplicate', suggestions: [...] }` y el cliente lo transforma en `DuplicateEntityError`. El parser legacy `{ error: 'possible_duplicate', suggestions }` queda solo para compatibilidad con despliegues antiguos.
 
+## Contrato de cliente API
+
+El cliente tiene tres bordes permitidos:
+
+| Caso                              | Helper          | Regla                                                                                                                |
+| --------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| JSON de endpoints propios         | `request<T>()`  | Parsea `ApiErrors` y lanza `ApiClientError`/`DuplicateEntityError`.                                                  |
+| Streaming/raw con `Response` real | `apiFetch()`    | Solo cuando el consumidor necesita `body`, headers o protocolo streaming. Debe manejar `response.ok` explícitamente. |
+| Blobs privados                    | `requestBlob()` | Usa auth + `ApiErrors`; no repetir `fetch + response.ok + response.blob()` en componentes.                           |
+
+Matriz de blobs privados:
+
+| Superficie                     | Endpoint/ruta                     | Consumidor esperado                                          | Excepción                                                                                |
+| ------------------------------ | --------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Anexos de Notas/Tareas         | `/api/notas-attachments-file/*`   | `requestBlob()` directo o vía `useAuthenticatedMediaState()` | Ninguna en UI.                                                                           |
+| Media de Momentos              | `/api/momentos-file/*`            | `requestBlob()` directo o vía `useAuthenticatedMediaState()` | Solo fallback legacy sin auth para claves antiguas `legacy-single-user/*` o sin carpeta. |
+| Imágenes de Recortes           | `/api/recortes-image/*`           | `requestBlob()` o inyección `fetchBlob` en helpers puros     | `imageUrl` externa puede usar `fetch()` directo.                                         |
+| Fuentes/bitmaps locales no API | URLs externas, `blob:`/object-url | `fetch()` directo allowlisteado                              | Debe estar documentado en `scripts/client-api-contracts.mjs`.                            |
+
+`npm run check:client-api-contracts` bloquea `fetch()` directo fuera del allowlist
+y bloquea volver a usar `apiFetch()` manual en descargas privadas conocidas.
+Ver la matriz operativa en
+[`client-api-contracts.md`](./client-api-contracts.md).
+
 ## Patrón de añadir un nuevo tipo (entidad o relación)
 
 **Vía migración nueva.** Insertás en `entity_types` o `relationship_types` con `ON CONFLICT (slug) DO NOTHING` para idempotencia. El extractor, suggest, reclassify y chat leen los tipos en runtime — ningún código React hace falta cambiar.

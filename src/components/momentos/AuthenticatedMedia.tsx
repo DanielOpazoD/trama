@@ -1,11 +1,11 @@
 import { useEffect, useState, type ImgHTMLAttributes } from 'react'
-import { apiFetch } from '../../api/request'
+import { ApiClientError, requestBlob } from '../../api/request'
 import { momentoMediaUrl } from './helpers'
 
 // Endpoints de blobs autenticados: el browser no adjunta el bearer de Clerk a
-// un `<img src>` directo (da 401), así que estos se bajan con apiFetch (header
-// Authorization) y se sirven como object-URL. Aplica a media de Momentos y a
-// los anexos de Notas/Tareas.
+// un `<img src>` directo (da 401), así que estos se bajan con `requestBlob`
+// (header Authorization) y se sirven como object-URL. Aplica a media de
+// Momentos y a los anexos de Notas/Tareas.
 function shouldFetchWithApiClient(src: string): boolean {
   return (
     src.startsWith('/api/momentos-file/') ||
@@ -14,8 +14,9 @@ function shouldFetchWithApiClient(src: string): boolean {
   )
 }
 
-function shouldRetryLegacyMediaWithoutAuth(src: string, response: Response): boolean {
-  if (response.status !== 401 && response.status !== 404) return false
+function shouldRetryLegacyMediaWithoutAuth(src: string, error: unknown): boolean {
+  if (!(error instanceof ApiClientError)) return false
+  if (error.status !== 401 && error.status !== 404) return false
   const prefix = '/api/momentos-file/'
   if (!src.startsWith(prefix)) return false
   const keyPath = src.slice(prefix.length)
@@ -28,16 +29,18 @@ function shouldRetryLegacyMediaWithoutAuth(src: string, response: Response): boo
 }
 
 async function fetchMediaBlob(src: string, signal: AbortSignal): Promise<Blob> {
-  const response = await apiFetch(src, { signal })
-  if (response.ok) return response.blob()
-
-  if (shouldRetryLegacyMediaWithoutAuth(src, response)) {
+  try {
+    return await requestBlob(src, { signal })
+  } catch (error) {
+    if (!shouldRetryLegacyMediaWithoutAuth(src, error)) throw error
     const legacyResponse = await fetch(src, { signal, headers: {} })
     if (legacyResponse.ok) return legacyResponse.blob()
-    throw new Error(`media ${legacyResponse.status}`)
+    const legacyError = new Error(`media ${legacyResponse.status}`) as Error & {
+      cause?: unknown
+    }
+    legacyError.cause = error
+    throw legacyError
   }
-
-  throw new Error(`media ${response.status}`)
 }
 
 type MediaStatus = 'idle' | 'loading' | 'ready' | 'error'

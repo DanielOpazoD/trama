@@ -13,7 +13,7 @@ import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
 import type { Recorte } from '../../api'
-import { apiFetch } from '../../api/request'
+import { requestBlob } from '../../api/request'
 import { useToast } from '../../state'
 import { recortesToPdfFiles } from '../../lib/pdfStudio/import/recortesToPdfFiles'
 
@@ -89,7 +89,7 @@ export function NotasWorld({
   const sendImagesToPdf = useCallback(
     async (recortes: Recorte[]) => {
       const { files, failures } = await recortesToPdfFiles(recortes, {
-        fetcher: apiFetch,
+        fetchBlob: requestBlob,
       })
       if (files.length === 0) {
         toast.show({

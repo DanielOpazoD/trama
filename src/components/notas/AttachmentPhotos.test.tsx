@@ -8,7 +8,7 @@ vi.mock('../../lib/imageCompression', () => ({
   compressImage: (file: File) => Promise.resolve(file),
 }))
 
-// La exportación (descarga/PDF) toca apiFetch/canvas/jsPDF/Blob: la mockeamos
+// La exportación (descarga/PDF) toca requestBlob/canvas/jsPDF/Blob: la mockeamos
 // para verificar el cableado de los botones sin ejecutar browser-APIs.
 const exportMocks = vi.hoisted(() => ({
   downloadAllImages: vi.fn(() => Promise.resolve()),

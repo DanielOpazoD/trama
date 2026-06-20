@@ -9,7 +9,7 @@ import {
 import { compressImage } from '../../lib/imageCompression'
 import { editImage } from '../../lib/imageEditor'
 import { downloadAllImages, exportImagesToPdf } from '../../lib/photoExport'
-import { apiFetch } from '../../api/request'
+import { requestBlob } from '../../api/request'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { CameraIcon, TrashIcon, DownloadIcon, FilePdfIcon } from '../Icons'
 import { AttachmentLightbox } from './AttachmentLightbox'
@@ -106,9 +106,7 @@ export function AttachmentPhotos({
   // él) o null si no hubo cambios / error.
   async function runEdit(photo: NotasAttachment): Promise<string | null> {
     try {
-      const res = await apiFetch(photo.url)
-      if (!res.ok) throw new Error('No se pudo bajar la imagen')
-      const original = new File([await res.blob()], photo.fileName, {
+      const original = new File([await requestBlob(photo.url)], photo.fileName, {
         type: photo.mimeType,
       })
       const edited = await editImage(original, {
@@ -318,7 +316,7 @@ export function AttachmentPhotos({
 /**
  * Una miniatura. El blob vive detrás de un endpoint autenticado, así que NO se
  * puede usar como `<img src>` directo (el browser no manda el bearer de Clerk →
- * 401). Lo bajamos con apiFetch y lo servimos como object-URL vía el hook
+ * 401). Lo bajamos con requestBlob y lo servimos como object-URL vía el hook
  * compartido; mientras viaja, una caja de papel; si falla, queda esa caja.
  * Clic en la miniatura → abre el visor (donde se navega y se edita).
  */

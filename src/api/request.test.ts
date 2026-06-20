@@ -4,6 +4,7 @@ import {
   apiFetch,
   DuplicateEntityError,
   request,
+  requestBlob,
   setApiAuthTokenProvider,
 } from './request'
 import { enterDemoMode, exitDemoMode } from '../lib/demo'
@@ -156,6 +157,73 @@ describe('request auth', () => {
     expect(audio.ok).toBe(true)
     expect(audio.headers.get('Content-Type')).toBe('audio/wav')
     expect((await audio.arrayBuffer()).byteLength).toBeGreaterThan(44)
+    exitDemoMode()
+  })
+
+  it('requestBlob baja media autenticada sin forzar JSON parsing', async () => {
+    setApiAuthTokenProvider(async () => 'clerk-token')
+    const fetchMock = vi.fn<typeof fetch>(
+      async () =>
+        new Response(new Blob(['media'], { type: 'image/webp' }), {
+          status: 200,
+          headers: { 'Content-Type': 'image/webp' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const blob = await requestBlob('/api/recortes-image/user/foto.webp')
+
+    expect(blob.type).toBe('image/webp')
+    expect(await blob.text()).toBe('media')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/recortes-image/user/foto.webp',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer clerk-token',
+          'X-AI-Mode': 'auto',
+        }),
+      }),
+    )
+  })
+
+  it('requestBlob preserva ApiClientError canónico en non-2xx', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () =>
+        Response.json(
+          {
+            error: {
+              code: 'UNAUTHENTICATED',
+              message: 'Sesión requerida',
+              requestId: 'rid-blob',
+            },
+          },
+          { status: 401, headers: { 'x-request-id': 'rid-header' } },
+        ),
+      ),
+    )
+
+    await expect(
+      requestBlob('/api/notas-attachments-file/u/a.jpg'),
+    ).rejects.toMatchObject({
+      name: 'ApiClientError',
+      code: 'UNAUTHENTICATED',
+      status: 401,
+      message: 'Sesión requerida',
+      requestId: 'rid-blob',
+    })
+  })
+
+  it('requestBlob sirve media demo local sin tocar red', async () => {
+    enterDemoMode()
+    const fetchMock = vi.fn<typeof fetch>()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const blob = await requestBlob('/api/momentos-file/demo/cuaderno.svg')
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(blob.type).toBe('image/svg+xml')
+    expect(await blob.text()).toContain('<svg')
     exitDemoMode()
   })
 })
