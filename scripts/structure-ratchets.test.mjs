@@ -97,4 +97,22 @@ describe('structure ratchets', () => {
     expect(maxFor('netlify/functions/_lib/search-endpoint.ts')).toBeLessThanOrEqual(335)
     expect(maxFor('netlify/functions/whatsapp-webhook.mts')).toBeLessThanOrEqual(1480)
   })
+
+  it('declara ratchets frontend para superficies adelgazadas', () => {
+    const entries = STRUCTURE_RATCHETS.flatMap((ratchet) =>
+      ratchet.files.map((file) => ({ ...ratchet, file })),
+    )
+    const maxFor = (file) => entries.find((entry) => entry.file === file)?.maxLines
+
+    expect(maxFor('src/App.tsx')).toBeLessThanOrEqual(600)
+    expect(maxFor('src/components/notas/NotasFeedView.tsx')).toBeLessThanOrEqual(700)
+    expect(maxFor('src/components/recortes/RecorteCard.tsx')).toBeLessThanOrEqual(285)
+    expect(maxFor('src/components/CommandPalette.tsx')).toBeLessThanOrEqual(390)
+    expect(maxFor('src/components/Settings.tsx')).toBeLessThanOrEqual(125)
+    expect(maxFor('src/components/notas/NotasFeedVirtualList.tsx')).toBeLessThanOrEqual(
+      225,
+    )
+    expect(maxFor('src/components/appShell/ShellTopChrome.tsx')).toBeLessThanOrEqual(90)
+    expect(maxFor('src/components/recortes/RecorteCardMenu.tsx')).toBeLessThanOrEqual(175)
+  })
 })

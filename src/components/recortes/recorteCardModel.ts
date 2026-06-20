@@ -1,4 +1,5 @@
 import type { Recorte, RecorteSuggestion, RecorteTarget } from '../../api'
+import { youtubeThumb } from '../../lib/youtubeThumb'
 import type { PromoteSeed } from './PromoteModal'
 
 const TARGET_LABEL: Record<RecorteTarget, string> = {
@@ -41,6 +42,29 @@ export function looksLikePlaceholder(text: string, recorte: Recorte): boolean {
   if (t === 'imagen guardada' || t === 'recorte visual de la página') return true
   if (recorte.sourceTitle && t === recorte.sourceTitle.trim().toLowerCase()) return true
   return false
+}
+
+export function recorteHasMediaPreview(recorte: Recorte): boolean {
+  return (
+    !!recorte.imageKey ||
+    !!recorte.imageUrl ||
+    youtubeThumb(recorte.sourceUrl ?? '') !== null
+  )
+}
+
+export function buildRecorteCardFlags(recorte: Recorte): {
+  hasVideo: boolean
+  hasImage: boolean
+  hasInternalImage: boolean
+  hasPreview: boolean
+} {
+  const hasVideo = recorte.captureMode === 'video' && !!recorte.imageKey
+  return {
+    hasVideo,
+    hasImage: !hasVideo && !!(recorte.imageKey || recorte.imageUrl),
+    hasInternalImage: !!(recorte.imageKey || recorte.images.length > 0) && !hasVideo,
+    hasPreview: recorteHasMediaPreview(recorte),
+  }
 }
 
 export function buildPromoteSeedFromSuggestion(

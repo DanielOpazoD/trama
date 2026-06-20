@@ -4,38 +4,23 @@ import { recorteImageUrl } from '../../api/recortes'
 import { requestBlob } from '../../api/request'
 import { useSuggestRecorte, useUpdateRecorte } from '../../state'
 import { useToast } from '../../state/toast'
-import {
-  ArrowRightIcon,
-  ChevronDownIcon,
-  EntitiesIcon,
-  MomentosIcon,
-  PrinterIcon,
-  QuoteIcon,
-  SparkleIcon,
-  TextIcon,
-  TrashIcon,
-} from '../Icons'
-import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
+import { ArrowRightIcon } from '../Icons'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
-import {
-  hasRecorteMediaPreview,
-  hostOf,
-  RecorteMediaPreview,
-  type LinkMediaSize,
-} from './RecorteMediaPreview'
+import { hostOf, RecorteMediaPreview, type LinkMediaSize } from './RecorteMediaPreview'
 import { RecorteLightbox } from './RecorteLightbox'
 import { recorteToLightboxEntries } from './recorteViewer'
 import type { PromoteSeed } from './PromoteModal'
-import { markdownToPreview } from './recorteMarkdownPreview'
-import { AIThinkingLabel } from '../AIThinkingLabel'
 import { RecorteSuggestionBanner } from './RecorteSuggestionBanner'
 import {
+  buildRecorteCardFlags,
   buildPromoteSeedFromSuggestion,
   formatRecorteStamp,
   looksLikePlaceholder,
   recorteCaptureModeLabel,
   recorteTargetLabel,
 } from './recorteCardModel'
+import { RecorteCardBody } from './RecorteCardBody'
+import { RecorteCardMenu } from './RecorteCardMenu'
 
 // Alto (px) a partir del cual el texto de una captura se colapsa con un botón
 // sin palabras. Más corto que la nota (~6-7 líneas): una captura no debe
@@ -90,12 +75,9 @@ export function RecorteCard({
   const [suggestion, setSuggestion] = useState<RecorteSuggestion | null>(null)
   const [ocrBusy, setOcrBusy] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const hasVideo = r.captureMode === 'video' && !!r.imageKey
-  const hasImage = !hasVideo && !!(r.imageKey || r.imageUrl)
-  const hasInternalImage = !!(r.imageKey || r.images.length > 0) && !hasVideo
   // ¿Hay alguna imagen (propia o derivada de YouTube) que muestre el marco?
   // Si no, el origen se anuncia como eyebrow discreto sobre el título.
-  const hasPreview = hasRecorteMediaPreview(r)
+  const { hasImage, hasInternalImage, hasPreview } = buildRecorteCardFlags(r)
   const dateLabel = formatRecorteStamp(r.capturedAt ?? r.createdAt)
 
   // Colapso del cuerpo: igual que NoteCard, las capturas largas se recortan a
@@ -199,59 +181,14 @@ export function RecorteCard({
         )}
       </div>
 
-      <div className={`relative ${overflowing && !expanded ? 'pb-8' : ''}`}>
-        <p
-          ref={bodyRef}
-          className="mt-1.5 overflow-hidden whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700"
-          style={overflowing && !expanded ? { maxHeight: COLLAPSED_MAX_PX } : undefined}
-        >
-          {r.captureMode === 'html' || r.captureMode === 'article'
-            ? markdownToPreview(r.text)
-            : `«${r.text}»`}
-        </p>
-        {overflowing && !expanded && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-b from-transparent via-paper-100/90 to-paper-100"
-          />
-        )}
-
-        {overflowing && !expanded && (
-          <div
-            data-testid="recorte-collapse-control"
-            className="absolute inset-x-0 bottom-1 flex justify-center"
-          >
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              aria-expanded={false}
-              aria-label="Leer la captura completa"
-              title="Leer completa"
-              className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full border border-ink-100/70 bg-paper-50/90 text-ink-300 shadow-sm shadow-ink-900/5 backdrop-blur transition-colors hover:bg-paper-50 hover:text-ink-700"
-            >
-              <ChevronDownIcon size={16} className="transition-transform duration-300" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      {overflowing && expanded && (
-        <div className="mt-1 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setExpanded(false)}
-            aria-expanded={true}
-            aria-label="Mostrar menos"
-            title="Mostrar menos"
-            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
-          >
-            <ChevronDownIcon
-              size={16}
-              className="rotate-180 transition-transform duration-300"
-            />
-          </button>
-        </div>
-      )}
+      <RecorteCardBody
+        recorte={r}
+        bodyRef={bodyRef}
+        overflowing={overflowing}
+        expanded={expanded}
+        collapsedMaxPx={COLLAPSED_MAX_PX}
+        onExpandedChange={setExpanded}
+      />
 
       {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
 
@@ -291,117 +228,23 @@ export function RecorteCard({
             </button>
           )}
 
-          <OverflowMenu
-            label="Acciones del recorte"
-            width="w-52"
-            triggerClassName="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
-          >
-            {(close) => (
-              <>
-                {r.status === 'pending' && (
-                  <>
-                    <OverflowMenuItem
-                      onClick={() => {
-                        onPromote(r, 'quote')
-                        close()
-                      }}
-                    >
-                      <QuoteIcon size={13} /> → cita
-                    </OverflowMenuItem>
-                    <OverflowMenuItem
-                      onClick={() => {
-                        onPromote(r, 'entity')
-                        close()
-                      }}
-                    >
-                      <EntitiesIcon size={13} /> → entidad
-                    </OverflowMenuItem>
-                    <OverflowMenuItem
-                      onClick={() => {
-                        onPromote(r, 'momento')
-                        close()
-                      }}
-                    >
-                      <MomentosIcon size={13} /> → momento
-                    </OverflowMenuItem>
-                    {!suggestion && (
-                      <OverflowMenuItem
-                        onClick={() => {
-                          void handleSuggest()
-                          close()
-                        }}
-                        disabled={suggest.isPending}
-                      >
-                        {suggest.isPending ? (
-                          <AIThinkingLabel />
-                        ) : (
-                          <>
-                            <SparkleIcon size={13} /> sugerir destino
-                          </>
-                        )}
-                      </OverflowMenuItem>
-                    )}
-                    {hasImage && (
-                      <OverflowMenuItem
-                        onClick={() => {
-                          void handleOcr()
-                          close()
-                        }}
-                        disabled={ocrBusy}
-                      >
-                        {ocrBusy ? (
-                          <AIThinkingLabel state="reading" />
-                        ) : (
-                          <>
-                            <TextIcon size={13} /> extraer texto
-                          </>
-                        )}
-                      </OverflowMenuItem>
-                    )}
-                    {onSendImagesToPdf && hasInternalImage && (
-                      <OverflowMenuItem
-                        onClick={() => {
-                          onSendImagesToPdf(r)
-                          close()
-                        }}
-                      >
-                        <PrinterIcon size={13} /> → Imprenta
-                      </OverflowMenuItem>
-                    )}
-                    <OverflowMenuItem
-                      onClick={() => {
-                        onArchive()
-                        close()
-                      }}
-                    >
-                      Archivar
-                    </OverflowMenuItem>
-                  </>
-                )}
-
-                {deleting ? (
-                  <>
-                    <OverflowMenuItem
-                      danger
-                      onClick={() => {
-                        onDelete()
-                        close()
-                      }}
-                    >
-                      <TrashIcon size={13} /> Sí, eliminar
-                    </OverflowMenuItem>
-                    <OverflowMenuItem onClick={() => setDeleting(false)}>
-                      Cancelar
-                    </OverflowMenuItem>
-                  </>
-                ) : (
-                  <OverflowMenuItem danger onClick={() => setDeleting(true)}>
-                    <TrashIcon size={13} /> Eliminar
-                  </OverflowMenuItem>
-                )}
-              </>
-            )}
-          </OverflowMenu>
+          <RecorteCardMenu
+            recorte={r}
+            suggestionReady={!!suggestion}
+            suggestBusy={suggest.isPending}
+            ocrBusy={ocrBusy}
+            hasImage={hasImage}
+            hasInternalImage={hasInternalImage}
+            deleting={deleting}
+            onPromote={onPromote}
+            onSuggest={() => void handleSuggest()}
+            onOcr={() => void handleOcr()}
+            onArchive={onArchive}
+            onDelete={onDelete}
+            onCancelDelete={() => setDeleting(false)}
+            onStartDelete={() => setDeleting(true)}
+            onSendImagesToPdf={onSendImagesToPdf}
+          />
         </div>
       </div>
 

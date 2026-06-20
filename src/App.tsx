@@ -23,23 +23,20 @@ import { useAchievements } from './hooks/useAchievements'
 import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
 import { useAppModals } from './hooks/useAppModals'
 import { Sidebar } from './components/Sidebar'
-import { TopBar } from './components/TopBar'
 import { Onboarding } from './components/Onboarding'
 import { ToastHost } from './components/ToastHost'
 import { PreviewBanner } from './components/PreviewBanner'
-import { AskBar } from './components/AskBar'
-import { ReadingMode } from './components/ReadingMode'
 import { Splash } from './components/Splash'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { RightPanel, type PendingProposal } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
 import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
-import { MobileBottomNav } from './components/MobileBottomNav'
-import { SectionAccentBand } from './components/SectionAccentBand'
-import { FocusModeExitButton } from './components/FocusModeExitButton'
 import { ShellOverlays } from './components/ShellOverlays'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
+import { ShellTopChrome } from './components/appShell/ShellTopChrome'
+import { ShellAttentionLayer } from './components/appShell/ShellAttentionLayer'
+import { buildShellVisibility, type EntityTab } from './components/appShell/appShellModel'
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
@@ -131,7 +128,7 @@ function Shell({
   // ρ-struct: tab activo de Entidades — vive en App para que TopBar
   // pueda exponerlo como tabs contextuales. Antes era state local de
   // EntitiesWorkbench; ahora controlado desde acá.
-  const [entitiesTab, setEntitiesTab] = useState<'listado' | 'vinculos'>('listado')
+  const [entitiesTab, setEntitiesTab] = useState<EntityTab>('listado')
   const modals = useAppModals()
   const { openModal } = modals
   // Retorno de un OAuth (X / Spotify): el callback redirige acá con
@@ -198,6 +195,12 @@ function Shell({
   const showDetail = !showProposal && selectedEntityId !== null
   const rightPanelOpen = showProposal || showDetail
   const shareInvitations = shareInvitationsQuery.data?.items ?? []
+  const shellVisibility = buildShellVisibility({
+    focusMode,
+    isMobile,
+    rightPanelOpen,
+    view,
+  })
 
   async function handleShareInvitationResponse(id: string, action: 'accept' | 'reject') {
     try {
@@ -265,7 +268,7 @@ function Shell({
       {/* Sidebar — se oculta en focus mode para liberar todo el viewport
           al contenido. En mobile el sidebar también se oculta; en su
           lugar montamos la MobileBottomNav abajo. */}
-      {!focusMode && !isMobile && (
+      {shellVisibility.desktopSidebar && (
         <div className="animate-shell-sidebar shrink-0 h-full flex">
           <Sidebar
             view={view}
@@ -285,64 +288,30 @@ function Shell({
       )}
 
       <main className="flex-1 relative overflow-hidden flex flex-col">
-        {!focusMode && (
-          <div className="animate-shell-topbar">
-            <TopBar
-              view={view}
-              world={world}
-              onChangeWorld={onChangeWorld}
-              onSortes={() => modals.openModal('sortes')}
-              actions={
-                <MomentoNotificationsCenter
-                  invitations={shareInvitations}
-                  pending={respondShareInvitation.isPending}
-                  onRespond={handleShareInvitationResponse}
-                />
-              }
-              breadcrumb={
-                // Si hay una entidad seleccionada y existe en cache,
-                // muestra "View › Nombre" — orientación visual estilo
-                // Codex (path-style) en lugar de solo el título de vista.
-                showDetail && selectedEntityId
-                  ? {
-                      label: 'entidad',
-                      onClickRoot: () => setSelectedEntityId(null),
-                    }
-                  : null
-              }
-              tabs={
-                // ρ-struct: tabs contextuales para la vista activa.
-                // Por ahora solo Entidades tiene tabs (Listado/Vínculos).
-                // Si más adelante otra vista necesita tabs, se agrega un
-                // branch acá.
-                view === 'entidades'
-                  ? {
-                      items: [
-                        { value: 'listado', label: 'Listado' },
-                        { value: 'vinculos', label: 'Vínculos' },
-                      ],
-                      active: entitiesTab,
-                      onChange: (v) => setEntitiesTab(v as 'listado' | 'vinculos'),
-                      'aria-label': 'Sub-secciones de Entidades',
-                    }
-                  : null
-              }
+        <ShellTopChrome
+          visibility={shellVisibility}
+          view={view}
+          world={world}
+          rightPanelOpen={rightPanelOpen}
+          showDetail={showDetail}
+          selectedEntityId={selectedEntityId}
+          entitiesTab={entitiesTab}
+          actions={
+            <MomentoNotificationsCenter
+              invitations={shareInvitations}
+              pending={respondShareInvitation.isPending}
+              onRespond={handleShareInvitationResponse}
             />
-            {/* Section accent band — banda 2px del color de la vista activa. */}
-            <SectionAccentBand view={view} />
-          </div>
-        )}
-        {/* Nav principal en móvil — barra SUPERIOR, unificada con el mundo Notas
-            (antes vivía abajo). En focus mode o con el RightPanel abierto se oculta. */}
-        {!focusMode && isMobile && !rightPanelOpen && (
-          <MobileBottomNav
-            view={view}
-            onChangeView={(v) => {
-              setView(v)
-              if (v !== 'grafo') setSelectedEntityId(null)
-            }}
-          />
-        )}
+          }
+          onChangeWorld={onChangeWorld}
+          onChangeView={(v) => {
+            setView(v)
+            if (v !== 'grafo') setSelectedEntityId(null)
+          }}
+          onOpenSortes={() => modals.openModal('sortes')}
+          onClearSelectedEntity={() => setSelectedEntityId(null)}
+          onEntitiesTabChange={setEntitiesTab}
+        />
         <div className="flex-1 relative overflow-hidden animate-shell-main">
           <div key={view} className="animate-view-fade h-full">
             <ViewRouter
@@ -359,53 +328,23 @@ function Shell({
             />
           </div>
 
-          {/* Fade mask debajo del scroll — desvanece el contenido a
-              paper-50 antes de llegar al AskBar. Sin esto el texto que
-              cae al final se ve filtrarse detrás de la barra (que es
-              semitransparente con backdrop-blur). Solo aparece donde
-              hay AskBar visible. */}
-          {!focusMode &&
-            view !== 'chat' &&
-            view !== 'grafo' &&
-            !(isMobile && rightPanelOpen) && (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-gradient-to-b from-transparent via-paper-50/75 to-paper-50"
-              />
-            )}
-
-          {/* ρ-consistency: AskBar oculto en Grafo (tapa nodos) y Chat
-              (la conversación tiene su propio input). Antes solo se
-              ocultaba en Chat — en Grafo competía con los nodos centrales
-              y forzaba a scrollear o esconder lo más interesante. */}
-          {!focusMode &&
-            view !== 'chat' &&
-            view !== 'grafo' &&
-            !(isMobile && rightPanelOpen) && (
-              <AskBar
-                view={view}
-                selectedEntityId={selectedEntityId}
-                busy={showProposal}
-                onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
-                onOpenThread={(threadId) => {
-                  setPendingChatThreadId(threadId)
-                  setView('chat')
-                }}
-                onOpenReading={() => modals.openModal('reading')}
-              />
-            )}
-
-          <ReadingMode
-            open={modals.reading}
-            onClose={() => modals.closeModal('reading')}
+          <ShellAttentionLayer
+            visibility={shellVisibility}
+            focusMode={focusMode}
+            view={view}
+            selectedEntityId={selectedEntityId}
+            showProposal={showProposal}
+            readingOpen={modals.reading}
             onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
+            onOpenThread={(threadId) => {
+              setPendingChatThreadId(threadId)
+              setView('chat')
+            }}
+            onOpenReading={() => modals.openModal('reading')}
+            onCloseReading={() => modals.closeModal('reading')}
+            onExitFocusMode={exitFocusMode}
           />
         </div>
-
-        {/* Pill flotante de salida de focus mode — sin esto el usuario
-            podría no saber cómo volver al shell completo. Discreto en
-            la esquina superior derecha; click o tecla `\` para salir. */}
-        {focusMode && <FocusModeExitButton onExit={exitFocusMode} />}
       </main>
 
       <ShellOverlays

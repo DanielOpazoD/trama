@@ -3,6 +3,7 @@ import type { CaptureItem, Note, Recorte } from '../../api'
 import {
   buildAllNoteTags,
   buildCalendarStats,
+  buildNotasFeedVirtualItemMeta,
   buildNotasFeedFilter,
   buildTagCounts,
   initialSegmentFromSearch,
@@ -204,5 +205,32 @@ describe('notasFeedViewModel', () => {
     ]
 
     expect(selectedRecortesFromItems(items, new Set(['n1', 'r1']))).toEqual([recorte])
+  })
+
+  it('deriva keys y delay visual para filas virtuales sin tocar React', () => {
+    expect(
+      buildNotasFeedVirtualItemMeta({
+        item: {
+          type: 'note',
+          id: 'n1',
+          createdAt: '2026-06-10T12:00:00.000Z',
+          note: makeNote({ id: 'n1' }),
+        },
+        index: 2,
+        reducedMotion: false,
+      }),
+    ).toEqual({ key: 'note-n1', delay: '90ms' })
+    expect(
+      buildNotasFeedVirtualItemMeta({
+        item: {
+          type: 'recorte',
+          id: 'r1',
+          createdAt: '2026-06-11T12:00:00.000Z',
+          recorte: makeRecorte({ id: 'r1' }),
+        },
+        index: 8,
+        reducedMotion: false,
+      }),
+    ).toEqual({ key: 'recorte-r1', delay: undefined })
   })
 })
