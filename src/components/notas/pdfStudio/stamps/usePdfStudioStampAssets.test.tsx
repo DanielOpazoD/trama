@@ -59,6 +59,7 @@ function deferred<T>() {
 }
 
 beforeEach(() => {
+  window.localStorage.clear()
   listStampAssetsMock.mockReset()
   putStampAssetMock.mockReset()
   deleteStampAssetMock.mockReset()
@@ -90,6 +91,7 @@ describe('usePdfStudioStampAssets', () => {
     const { result } = renderHook(() => usePdfStudioStampAssets('user-a'))
 
     await waitFor(() => expect(result.current.assets).toEqual([cloudAsset]))
+    expect(result.current.syncStatus).toBe('cloud')
     expect(cloudListMock).toHaveBeenCalled()
     expect(putStampAssetMock).toHaveBeenCalledWith('user-a', cloudAsset)
   })
@@ -102,6 +104,24 @@ describe('usePdfStudioStampAssets', () => {
     const { result } = renderHook(() => usePdfStudioStampAssets('user-a'))
 
     await waitFor(() => expect(result.current.assets).toEqual([cached]))
+    expect(result.current.syncStatus).toBe('local')
+  })
+
+  it('marca la biblioteca como local si falla la creación cloud optimista', async () => {
+    cloudListMock.mockResolvedValueOnce([])
+    cloudCreateMock.mockRejectedValueOnce(new Error('offline'))
+    const { result } = renderHook(() => usePdfStudioStampAssets('user-a'))
+
+    await act(async () => {
+      await result.current.createSignatureFromDataUrl({
+        name: 'Firma dibujada',
+        src: pngSrc,
+        width: 320,
+        height: 120,
+      })
+    })
+
+    await waitFor(() => expect(result.current.syncStatus).toBe('local'))
   })
 
   it('no permite que una hidratación tardía borre assets creados localmente', async () => {
@@ -166,6 +186,35 @@ describe('usePdfStudioStampAssets', () => {
       'user-a',
       expect.objectContaining({ id: createdId }),
     )
+    expect(cloudCreateMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ id: createdId }),
+    )
+  })
+
+  it('no reimporta desde IndexedDB un asset eliminado antes de recargar', async () => {
+    cloudListMock.mockResolvedValueOnce([])
+    listStampAssetsMock.mockResolvedValueOnce([])
+    const { result, unmount } = renderHook(() => usePdfStudioStampAssets('user-a'))
+
+    await act(async () => {
+      await result.current.createSignatureFromDataUrl({
+        name: 'Firma dibujada',
+        src: pngSrc,
+        width: 320,
+        height: 120,
+      })
+    })
+    const createdId = result.current.assets[0]!.id
+    act(() => result.current.remove(createdId))
+    unmount()
+
+    cloudCreateMock.mockClear()
+    cloudListMock.mockResolvedValueOnce([])
+    listStampAssetsMock.mockResolvedValueOnce([asset({ id: createdId })])
+    const next = renderHook(() => usePdfStudioStampAssets('user-a'))
+
+    await waitFor(() => expect(next.result.current.syncStatus).toBe('cloud'))
+    expect(next.result.current.assets).toEqual([])
     expect(cloudCreateMock).not.toHaveBeenCalledWith(
       expect.objectContaining({ id: createdId }),
     )

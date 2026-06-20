@@ -12,6 +12,7 @@ import {
   menuTrigger,
 } from '../editor/EditorToolbarPrimitives'
 import { StampSignatureDrawDialog } from './StampSignatureDrawDialog'
+import type { PdfStudioStampSyncStatus } from './usePdfStudioStampAssets'
 
 type StampTab = PdfStudioStampKind | 'recent'
 
@@ -21,9 +22,11 @@ export function StampAssetMenu({
   onCreateSignatureFromDataUrl,
   onDelete,
   onRename,
+  syncStatus,
   onUse,
 }: {
   assets: PdfStudioStampAsset[]
+  syncStatus: PdfStudioStampSyncStatus
   onCreateFromFile: (
     kind: PdfStudioStampKind,
     file: File,
@@ -92,9 +95,17 @@ export function StampAssetMenu({
               </div>
 
               <div className="flex items-center justify-between gap-2 px-1">
-                <span className="text-micro uppercase tracking-wide text-ink-400">
-                  {tabLabel(tab)}
-                </span>
+                <div className="min-w-0">
+                  <span className="block text-micro uppercase tracking-wide text-ink-400">
+                    {tabLabel(tab)}
+                  </span>
+                  <span
+                    className="block truncate text-micro text-ink-300"
+                    title={syncStatusLabel(syncStatus)}
+                  >
+                    {syncStatusLabel(syncStatus)}
+                  </span>
+                </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
@@ -277,7 +288,7 @@ function StampEmptyState({ tab }: { tab: StampTab }) {
     <div className="rounded-md border border-dashed border-ink-100 bg-paper-100/60 px-3 py-5 text-center">
       <p className="text-caption font-medium text-ink-700">{copy}</p>
       <p className="mt-1 text-micro text-ink-400">
-        Se guardan localmente para este usuario.
+        Se guardan para este usuario y quedan disponibles al reabrir.
       </p>
     </div>
   )
@@ -293,4 +304,10 @@ function tabLabel(tab: StampTab): string {
   if (tab === 'stamp') return 'Timbres guardados'
   if (tab === 'recent') return 'Últimos usados'
   return 'Firmas guardadas'
+}
+
+function syncStatusLabel(status: PdfStudioStampSyncStatus): string {
+  if (status === 'syncing') return 'Sincronizando'
+  if (status === 'local') return 'Guardado local'
+  return 'Guardado en nube'
 }

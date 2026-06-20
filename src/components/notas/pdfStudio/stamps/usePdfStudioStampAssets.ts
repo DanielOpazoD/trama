@@ -14,14 +14,18 @@ import {
   putStampAsset,
 } from '../../../../lib/pdfStudio/render/persistence'
 
+const REMOVED_STAMP_ASSETS_PREFIX = 'trama:pdf-stamp-assets:removed:'
+
 export function usePdfStudioStampAssets(userKey: string) {
   const [assets, setAssets] = useState<PdfStudioStampAsset[]>([])
+  const [syncStatus, setSyncStatus] = useState<PdfStudioStampSyncStatus>('syncing')
   const removedIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     let alive = true
-    removedIdsRef.current = new Set()
+    removedIdsRef.current = loadRemovedStampAssetIds(userKey)
     setAssets([])
+    setSyncStatus('syncing')
     void hydrateStampAssets(userKey)
     return () => {
       alive = false
@@ -42,6 +46,7 @@ export function usePdfStudioStampAssets(userKey: string) {
           for (const asset of visibleCloudAssets) {
             void putStampAsset(currentUserKey, asset)
           }
+          setSyncStatus('cloud')
           return
         }
 
@@ -52,8 +57,9 @@ export function usePdfStudioStampAssets(userKey: string) {
           mergeLoadedAssets(visibleLocalAssets, current, removedIdsRef.current),
         )
         for (const asset of visibleLocalAssets) {
-          void pdfStampAssetsApi.create(asset).catch(() => undefined)
+          void syncAssetToCloud(asset)
         }
+        setSyncStatus('cloud')
       } catch {
         const localAssets = await listStampAssets(currentUserKey)
         if (!alive) return
@@ -61,6 +67,7 @@ export function usePdfStudioStampAssets(userKey: string) {
         setAssets((current) =>
           mergeLoadedAssets(visibleLocalAssets, current, removedIdsRef.current),
         )
+        setSyncStatus('local')
       }
     }
   }, [userKey])
@@ -75,9 +82,11 @@ export function usePdfStudioStampAssets(userKey: string) {
       kind,
     })
     if (!asset) return null
+    forgetRemovedStampAssetId(userKey, asset.id)
+    removedIdsRef.current.delete(asset.id)
     setAssets((list) => sortAssets([asset, ...list]))
     void putStampAsset(userKey, asset)
-    void pdfStampAssetsApi.create(asset).catch(() => undefined)
+    void syncAssetToCloud(asset)
     return asset
   }
 
@@ -101,9 +110,11 @@ export function usePdfStudioStampAssets(userKey: string) {
       width,
       height,
     })
+    forgetRemovedStampAssetId(userKey, asset.id)
+    removedIdsRef.current.delete(asset.id)
     setAssets((list) => sortAssets([asset, ...list]))
     void putStampAsset(userKey, asset)
-    void pdfStampAssetsApi.create(asset).catch(() => undefined)
+    void syncAssetToCloud(asset)
     return asset
   }
 
@@ -121,6 +132,7 @@ export function usePdfStudioStampAssets(userKey: string) {
 
   function remove(id: string) {
     removedIdsRef.current.add(id)
+    rememberRemovedStampAssetId(userKey, id)
     setAssets((list) => list.filter((asset) => asset.id !== id))
     void deleteStampAsset(userKey, id)
     void pdfStampAssetsApi.remove(id).catch(() => undefined)
@@ -149,9 +161,19 @@ export function usePdfStudioStampAssets(userKey: string) {
     createSignatureFromDataUrl,
     remove,
     rename,
+    syncStatus,
     touch,
   }
+
+  function syncAssetToCloud(asset: PdfStudioStampAsset) {
+    return pdfStampAssetsApi
+      .create(asset)
+      .then(() => setSyncStatus('cloud'))
+      .catch(() => setSyncStatus('local'))
+  }
 }
+
+export type PdfStudioStampSyncStatus = 'syncing' | 'cloud' | 'local'
 
 function sortAssets(assets: PdfStudioStampAsset[]): PdfStudioStampAsset[] {
   return [...assets].sort((a, b) => b.updatedAt - a.updatedAt)
@@ -177,6 +199,47 @@ function filterRemovedAssets(
   removedIds: Set<string>,
 ): PdfStudioStampAsset[] {
   return loaded.filter((asset) => !removedIds.has(asset.id))
+}
+
+function removedStampAssetsKey(userKey: string): string {
+  return `${REMOVED_STAMP_ASSETS_PREFIX}${userKey}`
+}
+
+function loadRemovedStampAssetIds(userKey: string): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = window.localStorage.getItem(removedStampAssetsKey(userKey))
+    const parsed = raw ? (JSON.parse(raw) as unknown) : []
+    return new Set(
+      Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [],
+    )
+  } catch {
+    return new Set()
+  }
+}
+
+function saveRemovedStampAssetIds(userKey: string, ids: Set<string>): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(
+      removedStampAssetsKey(userKey),
+      JSON.stringify([...ids].slice(-200)),
+    )
+  } catch {
+    // best-effort: runtime ref still protects the current session.
+  }
+}
+
+function rememberRemovedStampAssetId(userKey: string, id: string): void {
+  const ids = loadRemovedStampAssetIds(userKey)
+  ids.add(id)
+  saveRemovedStampAssetIds(userKey, ids)
+}
+
+function forgetRemovedStampAssetId(userKey: string, id: string): void {
+  const ids = loadRemovedStampAssetIds(userKey)
+  if (!ids.delete(id)) return
+  saveRemovedStampAssetIds(userKey, ids)
 }
 
 function nextAssetId(kind: PdfStudioStampKind): string {

@@ -160,6 +160,14 @@ const SCRIPT_ENTRIES = [
     summary: 'Verifica que el schema de WhatsApp conserva columnas esperadas.',
   },
   {
+    file: 'scripts/check-pdf-stamp-assets-schema.mjs',
+    domain: 'pdf',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:pdf-stamp-assets-schema'],
+    summary: 'Verifica constraints reales de data URL para firmas y timbres PDF.',
+  },
+  {
     file: 'scripts/cleanup-runtime-fixtures.mjs',
     domain: 'multiuser',
     kind: 'tool',
@@ -562,6 +570,13 @@ export const QUALITY_GATES = [
     phase: 'whatsapp',
     required: true,
     summary: 'Schema WhatsApp tras migraciones.',
+  },
+  {
+    command: 'npm run check:pdf-stamp-assets-schema',
+    job: 'migrations',
+    phase: 'pdf',
+    required: true,
+    summary: 'Constraints reales de data URL para firmas y timbres PDF.',
   },
   {
     command: 'npm run test:whatsapp-it',

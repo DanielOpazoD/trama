@@ -462,6 +462,7 @@ export function buildSeed(): Store {
         ...ts(0),
       },
     ],
+    pdf_stamp_assets: [],
     recortes,
     favoritos,
     'reading-tables': readingTables,

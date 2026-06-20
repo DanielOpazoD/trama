@@ -172,7 +172,10 @@ puede subir una imagen PNG/JPEG, dibujar una firma, renombrar, eliminar e
 insertar el asset en la pagina activa. Crear/renombrar/eliminar/tocar un asset
 actualiza primero la UI y cache local, y luego sincroniza contra
 `/api/pdf-stamp-assets`; si la red falla, la marca queda disponible localmente
-hasta la siguiente hidratacion.
+hasta la siguiente hidratacion. El menu muestra una senal discreta:
+`Sincronizando`, `Guardado en nube` o `Guardado local`. No es una cola global;
+solo comunica si la biblioteca visible esta respaldada por la DB o por el cache
+local del navegador.
 
 Al insertarse, una firma/timbre se transforma en una `ImageAnnotation` normal con
 metadata opcional (`assetId`, `assetKind`, `label`). Esto mantiene una sola capa
@@ -187,6 +190,14 @@ privada por cuenta: no hay biblioteca compartida, no hay blobs publicos y no se
 sincronizan timbres entre usuarios. Si un usuario exporta un PDF que contiene la
 firma/timbre, esa imagen queda embebida en el PDF final como cualquier otra
 anotacion de imagen.
+
+Checks especificos:
+
+- `npm run check:pdf-stamp-assets-schema`: corre contra una DB migrada y valida
+  que las constraints reales acepten el mismo contrato de data URL que el
+  endpoint (`;`, `,` y MIME case-insensitive).
+- `npm run e2e:pdf-stamps-smoke`: smoke opt-in de Playwright para crear,
+  reabrir y eliminar una firma desde el menu de Imprenta.
 
 ### Planillas imprimibles
 
