@@ -1,4 +1,6 @@
 import type { MomentoKind } from './momento-embed.js'
+import { QueryParam } from './request-contracts.js'
+import { z } from 'zod'
 
 export type MomentoListRow = {
   id: string
@@ -20,37 +22,53 @@ function isValidKind(v: unknown): v is MomentoKind {
   return v === 'nota' || v === 'recorte' || v === 'foto'
 }
 
-export function parseMomentosListParams(url: URL): {
+export const MomentosListQuery = z.object({
+  kind: z.preprocess(
+    (value) => {
+      const kind = typeof value === 'string' ? value.trim() : null
+      return isValidKind(kind) ? kind : null
+    },
+    z.union([z.literal('nota'), z.literal('recorte'), z.literal('foto'), z.null()]),
+  ),
+  limit: z.preprocess(
+    QueryParam.clampedInteger({ defaultValue: 50, min: 1, max: 200 }).normalize,
+    z.number().int().min(1).max(200),
+  ),
+  cursor: z.preprocess(
+    QueryParam.trimmedString({ max: 200 }).normalize,
+    z.string().max(200),
+  ),
+})
+
+export type MomentosListQueryT = z.infer<typeof MomentosListQuery>
+
+export function buildMomentosListParams(query: MomentosListQueryT): {
   limit: number
   validKind: MomentoKind | null
   cursorTs: string | null
   cursorId: string | null
 } {
-  const kind = url.searchParams.get('kind')
-  const limitParam = url.searchParams.get('limit')
-  const cursor = url.searchParams.get('cursor')
-
-  const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : 50
-  const limit = Number.isFinite(parsedLimit)
-    ? Math.min(Math.max(parsedLimit, 1), 200)
-    : 50
-
   let cursorTs: string | null = null
   let cursorId: string | null = null
-  if (cursor) {
-    const idx = cursor.lastIndexOf(':')
+  if (query.cursor) {
+    const idx = query.cursor.lastIndexOf(':')
     if (idx > 0) {
-      cursorTs = cursor.slice(0, idx)
-      cursorId = cursor.slice(idx + 1)
+      cursorTs = query.cursor.slice(0, idx)
+      cursorId = query.cursor.slice(idx + 1)
     }
   }
 
   return {
-    limit,
-    validKind: isValidKind(kind) ? kind : null,
+    limit: query.limit,
+    validKind: query.kind,
     cursorTs,
     cursorId,
   }
+}
+
+export function parseMomentosListParams(url: URL) {
+  const parsed = MomentosListQuery.parse(Object.fromEntries(url.searchParams.entries()))
+  return buildMomentosListParams(parsed)
 }
 
 export function groupMomentoEntityLinks(

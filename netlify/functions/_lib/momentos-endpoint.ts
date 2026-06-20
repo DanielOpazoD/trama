@@ -10,13 +10,15 @@ import {
 } from './momento-embed.js'
 import { getAuthedUser } from './auth.js'
 import { parseJsonBody } from './zod-body.js'
+import { parseSearchParams, requestPath } from './request-contracts.js'
 import { MomentoCreateBody, MomentoPatchBody } from './momento-schemas.js'
 import { ensureUserRow } from './user-provisioning.js'
 import { runWithSystemRls } from './user-rls.js'
 import {
   buildMomentosListResponse,
+  buildMomentosListParams,
   groupMomentoEntityLinks,
-  parseMomentosListParams,
+  MomentosListQuery,
   type MomentoEntityLinkRow,
   type MomentoListRow,
 } from './momentos-list.js'
@@ -118,8 +120,11 @@ export default withObservability(
 
     // ---------------- GET list ----------------
     if (req.method === 'GET') {
-      const url = new URL(req.url)
-      const { limit, validKind, cursorTs, cursorId } = parseMomentosListParams(url)
+      const parsedQuery = parseSearchParams(req, MomentosListQuery, requestId)
+      if (!parsedQuery.ok) return parsedQuery.response
+      const { limit, validKind, cursorTs, cursorId } = buildMomentosListParams(
+        parsedQuery.data,
+      )
 
       let rows: MomentoListRow[]
       if (cursorTs && cursorId && validKind) {
@@ -516,7 +521,7 @@ export default withObservability(
           severity: 'warn',
           requestId,
           method: req.method,
-          path: new URL(req.url).pathname,
+          path: requestPath(req),
           operation: 'momentos.delete',
           userId,
           reason: 'momento_not_visible',

@@ -64,6 +64,30 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     expect(body.nextCursor).toBeNull()
   })
 
+  it('GET list rechaza cursor duplicado antes de consultar timeline', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/momentos?cursor=a:b&cursor=c:d', {
+        headers: { 'x-request-id': 'rid-momentos-query' },
+      }),
+      mockContext(),
+    )
+
+    const body = await expectCanonicalError(res, {
+      status: 400,
+      code: 'VALIDATION',
+      requestId: 'rid-momentos-query',
+    })
+    expect(body).toMatchObject({
+      error: {
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'cursor' }] },
+      },
+    })
+    expect(
+      mockSqlResponses.calls.some((call) => /\bFROM momentos\b/i.test(call.template)),
+    ).toBe(false)
+  })
+
   it('GET list propaga entity_ids del bulk fetch a cada item', async () => {
     mockSqlResponses.push([
       {

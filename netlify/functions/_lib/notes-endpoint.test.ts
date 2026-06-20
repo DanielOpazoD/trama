@@ -59,7 +59,7 @@ describe('notes endpoint — integration', () => {
     mockSqlResponses.push([NOTE_ROW], [NOTE_ROW])
 
     const byText = await handler(
-      new Request('http://localhost/api/notes?q=memoria'),
+      new Request('http://localhost/api/notes?q=%20memoria%20'),
       mockContext(),
     )
     const byTag = await handler(
@@ -77,6 +77,30 @@ describe('notes endpoint — integration', () => {
     expect(tag?.template).toMatch(/deleted_at IS NULL/i)
     expect(tag?.template).toMatch(/user_id =/i)
     expect(tag?.values).toContain('memoria')
+  })
+
+  it('GET rechaza query params duplicados antes de consultar notas', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/notes?q=uno&q=dos', {
+        headers: { 'x-request-id': 'rid-note-query' },
+      }),
+      mockContext(),
+    )
+
+    const body = await expectCanonicalError(res, {
+      status: 400,
+      code: 'VALIDATION',
+      requestId: 'rid-note-query',
+    })
+    expect(body).toMatchObject({
+      error: {
+        message: 'Query params inválidos',
+        details: { issues: [{ path: 'q' }] },
+      },
+    })
+    expect(
+      mockSqlResponses.calls.some((call) => /\bFROM notes\b/i.test(call.template)),
+    ).toBe(false)
   })
 
   it('POST con content válido crea (201) y deriva tags', async () => {

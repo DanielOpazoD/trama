@@ -4,8 +4,9 @@ import { fuseRanked, type Ranked } from './rrf.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 import { resolveAIInvocation } from './ai-mode.js'
 import { withObservability } from './handler-wrap.js'
-import { ApiErrors } from './api-error.js'
 import { getAuthedUser } from './auth.js'
+import { parseSearchParams, QueryParam, requireMethod } from './request-contracts.js'
+import { z } from 'zod'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -25,30 +26,39 @@ import { getAuthedUser } from './auth.js'
  *   limit   — optional, default 15, max 50
  *   mode    — 'hybrid' (default) | 'lexical' | 'semantic'
  */
+const SearchQueryParams = z.object({
+  q: z.preprocess(QueryParam.trimmedString({ max: 500 }).normalize, z.string().max(500)),
+  limit: z.preprocess(
+    QueryParam.clampedInteger({ defaultValue: 15, min: 1, max: 50 }).normalize,
+    z.number().int().min(1).max(50),
+  ),
+  mode: z.preprocess(
+    (value) => {
+      if (value === undefined || value === '') return 'hybrid'
+      return typeof value === 'string' ? value.toLowerCase() : value
+    },
+    z.enum(['hybrid', 'lexical', 'semantic']),
+  ),
+  rerank: z.preprocess(
+    QueryParam.boolean({ defaultValue: false }).normalize,
+    z.boolean(),
+  ),
+})
+
 export default withObservability('search', async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'GET') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
+  const methodError = requireMethod(req, requestId, ['GET'])
+  if (methodError) return methodError
   const { id: userId } = await getAuthedUser(req, {
     requestId,
     operation: 'search.read',
   })
   const sql = getSql()
 
-  const url = new URL(req.url)
-  const q = (url.searchParams.get('q') ?? '').trim()
-  const limitParam = url.searchParams.get('limit')
-  const limit = Math.min(Math.max(Number.parseInt(limitParam ?? '15', 10) || 15, 1), 50)
-  const mode = (url.searchParams.get('mode') ?? 'hybrid').toLowerCase()
-  if (mode !== 'hybrid' && mode !== 'lexical' && mode !== 'semantic') {
-    return ApiErrors.validation(
-      requestId,
-      'mode debe ser uno de: hybrid, lexical, semantic',
-    )
-  }
+  const parsedQuery = parseSearchParams(req, SearchQueryParams, requestId)
+  if (!parsedQuery.ok) return parsedQuery.response
+  const { q, limit, mode, rerank: wantsRerank } = parsedQuery.data
   // ?rerank=true activa el LLM-as-reranker (lento, ~1-2s; alta calidad).
   // No lo usa la sidebar (que debe ser fast). Sí lo usa el chat RAG.
-  const wantsRerank = url.searchParams.get('rerank') === 'true'
 
   if (!q) {
     return Response.json({

@@ -19,9 +19,26 @@ Tipos en `src/types/` (G1: split por dominio) que tenían copias duplicadas serv
 4. Para GET/POST/PATCH/DELETE en el mismo path, branch por `req.method`.
 5. **Errores SIEMPRE via `ApiErrors`** (de `./_lib/api-error.js`). Nunca `new Response('texto', { status: 4xx })` directo. El shape canónico es `{ error: { code, message, requestId, details? } }` y se devuelve con header `x-request-id`. Helpers disponibles: `validation`, `notFound`, `conflict`, `methodNotAllowed`, `rateLimited`, `aiDisabled`, `payloadTooLarge`, `unsupportedMediaType`, `unprocessable`, `upstream`, `internal`. El cliente parsea esto y tira `ApiClientError` con `code`/`message`/`requestId` accesibles.
 6. **Mutaciones privadas verifican filas afectadas.** En `PATCH`, `DELETE`, restore y acciones equivalentes sobre tablas con `user_id`, el SQL debe hacer `RETURNING` o un CTE que permita saber si la fila primaria se tocó. Si el resultado viene vacío, responde `ApiErrors.notFound(...)`. No devuelvas 200/204 cuando no se mutó nada: eso oculta recursos ajenos, IDs malos y drift operacional.
-7. Agrega el cliente en `src/api/`.
-8. Si hay UI, hook en `src/state/` (con TanStack Query).
-9. Test al menos la lógica pura (prompts, validators, transforms) en `*.test.ts`.
+7. **Requests privados con contrato explícito.** Si la ruta parsea method, query params o multipart/form-data en una superficie privada de alto riesgo, usa `netlify/functions/_lib/request-contracts.ts`:
+   - `requireMethod(req, requestId, ['GET'])` para 405 con `Allow`.
+   - `parseSearchParams(req, Schema, requestId)` para query params Zod con `details.issues`.
+   - `readFormData(req, requestId)` + `parseFormFields(...)` para uploads antes de tocar blobs.
+8. Agrega el cliente en `src/api/`.
+9. Si hay UI, hook en `src/state/` (con TanStack Query).
+10. Test al menos la lógica pura (prompts, validators, transforms) en `*.test.ts`.
+
+## Matriz de contratos de request
+
+| Superficie                      | Helper obligatorio                                   | Motivo operacional                                           |
+| ------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| `search`                        | `requireMethod` + `parseSearchParams`                | Evita SQL/embeddings/LLM con query ambigua o método inválido |
+| `notes` GET                     | `parseSearchParams`                                  | Normaliza búsqueda/tag antes de consultar datos privados     |
+| `recortes` GET                  | `parseSearchParams`                                  | Mantiene filtros compatibles pero explícitos                 |
+| `momentos` GET list             | `parseSearchParams`                                  | Valida paginación/cursor antes del timeline privado          |
+| `notas-attachments` GET         | `parseSearchParams`                                  | Valida owner antes del lookup de propiedad                   |
+| `notas-attachments-upload` POST | `requireMethod` + `readFormData` + `parseFormFields` | Falla antes de blobs/metadata con errores canónicos          |
+
+`npm run check:api-request-contracts` bloquea drift en estas superficies. No es una prohibición global de `URLSearchParams`: rutas simples o públicas pueden seguir manuales si no están en la matriz. Para sumar una superficie, agrega el endpoint al script con una razón corta y un test que demuestre el helper en una ruta real.
 
 Para mutaciones privadas, ver también
 [`mutation-contracts.md`](./mutation-contracts.md): matriz de acción → status →

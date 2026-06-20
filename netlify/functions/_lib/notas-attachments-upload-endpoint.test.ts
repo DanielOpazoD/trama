@@ -24,6 +24,47 @@ describe('notas attachments upload endpoint', () => {
     blobMocks.set.mockReset()
   })
 
+  it('rechaza métodos no POST con Allow explícito', async () => {
+    const res = await handler(
+      new Request('http://localhost/api/notas-attachments-upload', {
+        method: 'GET',
+        headers: { 'x-request-id': 'rid-upload-method' },
+      }),
+      mockContext(),
+    )
+
+    await expectCanonicalError(res, {
+      status: 405,
+      code: 'METHOD_NOT_ALLOWED',
+      requestId: 'rid-upload-method',
+    })
+    expect(res.headers.get('Allow')).toBe('POST')
+  })
+
+  it('rechaza requests que no son multipart antes de provisionar blobs', async () => {
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      new Request('http://localhost/api/notas-attachments-upload', {
+        method: 'POST',
+        body: JSON.stringify({ ownerType: 'prompt', ownerId: 'p1' }),
+      }),
+      mockContext(),
+    )
+
+    const body = await expectCanonicalError(res, {
+      status: 400,
+      code: 'VALIDATION',
+    })
+    expect(body).toMatchObject({ error: { message: 'Esperaba multipart/form-data' } })
+    expect(blobMocks.set).not.toHaveBeenCalled()
+    expect(
+      mockSqlState.calls.some((call) =>
+        /INSERT INTO notas_attachments/i.test(call.template),
+      ),
+    ).toBe(false)
+  })
+
   it('acepta anexos privados no cifrados y persiste metadata por usuario', async () => {
     mockSqlResponses.push([])
     mockSqlResponses.push([{ exists: true }])
@@ -43,7 +84,7 @@ describe('notas attachments upload endpoint', () => {
 
     const form = new FormData()
     form.set('ownerType', 'prompt')
-    form.set('ownerId', 'p1')
+    form.set('ownerId', ' p1 ')
     form.set(
       'file',
       new File(['contenido privado del anexo'], 'brief.md', {
@@ -76,6 +117,7 @@ describe('notas attachments upload endpoint', () => {
       /INSERT INTO notas_attachments/i.test(call.template),
     )
     expect(insert?.values).toContain('legacy-single-user')
+    expect(insert?.values).toContain('p1')
     expect(insert?.values).toContain('brief.md')
     expect(insert?.values).toContain('text/markdown')
     expect(insert?.values).toContain(27)

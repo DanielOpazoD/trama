@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import {
+  buildMomentosListParams,
   buildMomentosListResponse,
   groupMomentoEntityLinks,
+  MomentosListQuery,
   parseMomentosListParams,
   type MomentoListRow,
 } from './momentos-list'
@@ -43,6 +45,34 @@ describe('momentos-list helpers', () => {
       validKind: null,
       cursorTs: null,
       cursorId: null,
+    })
+  })
+
+  test('MomentosListQuery mantiene defaults compatibles y trim de kind/cursor', () => {
+    const parsed = MomentosListQuery.parse({
+      limit: 'abc',
+      kind: ' foto ',
+      cursor: ' 2026-05-24T12:00:00.000Z:m1 ',
+    })
+
+    expect(parsed).toEqual({
+      limit: 50,
+      kind: 'foto',
+      cursor: '2026-05-24T12:00:00.000Z:m1',
+    })
+    expect(buildMomentosListParams(parsed)).toEqual({
+      limit: 50,
+      validKind: 'foto',
+      cursorTs: '2026-05-24T12:00:00.000Z',
+      cursorId: 'm1',
+    })
+  })
+
+  test('MomentosListQuery clampa limit y degrada kind desconocido sin romper listados', () => {
+    expect(MomentosListQuery.parse({ limit: '999', kind: 'otro' })).toEqual({
+      limit: 200,
+      kind: null,
+      cursor: '',
     })
   })
 

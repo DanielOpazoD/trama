@@ -8,6 +8,7 @@
     "build": "node_modules/.bin/tsc -b && node_modules/.bin/vite build",
     "check:legacy-fallback": "node scripts/check-legacy-fallback-prod.mjs",
     "check:runtime-api-routes": "node scripts/runtime-api-routes.mjs",
+    "check:api-request-contracts": "node scripts/api-request-contracts.mjs",
     "check:operational-observability": "node scripts/operational-observability-contracts.mjs",
     "cleanup:runtime-fixtures": "node scripts/cleanup-runtime-fixtures.mjs",
     "check:hard-delete-allowlist": "node scripts/check-hard-delete-allowlist.mjs",
