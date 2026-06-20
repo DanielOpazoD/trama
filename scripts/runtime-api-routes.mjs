@@ -446,7 +446,7 @@ export async function runRuntimeApiRouteProbeCli({
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const argv = process.argv.slice(2)
   if (argv.includes('--probe')) {
     process.exit(await runRuntimeApiRouteProbeCli({ argv }))

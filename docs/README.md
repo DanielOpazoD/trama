@@ -13,19 +13,21 @@ Documentación pensada para Daniel — usuario único, no programador — cuando
 - [**incidentes.md**](incidentes.md) — síntomas comunes (la app no carga, el chat no responde, los embeddings no se generan) y qué hacer.
 - [**escala.md**](escala.md) — cuándo y cómo activar los modos de escala (paginación de quotes, modo explorar del grafo, etc.).
 - [**migracion-multi-user.md**](migracion-multi-user.md) — plan y runbook de cutover multi-user. El código ya soporta Clerk, `user_id` y fallback legacy; úsalo cuando vayas a apagar `ALLOW_LEGACY_FALLBACK`.
+- [**conventions/quality-gates.md**](conventions/quality-gates.md) — matriz de checks, smokes y gates de CI: qué protege cada comando y qué hacer si falla.
 
 ## Cuándo abrir cada uno
 
-| Síntoma                                       | Runbook                                            |
-| --------------------------------------------- | -------------------------------------------------- |
-| Hice `git push` y quiero ver si subió         | [deploy.md](deploy.md)                             |
-| Cambié algo en el schema y el deploy falló    | [migraciones.md](migraciones.md)                   |
-| Necesito hacer una copia de seguridad ya      | [datos.md](datos.md)                               |
-| La IA está respondiendo raro o lento          | [ai.md](ai.md)                                     |
-| Quiero saber cuánto he gastado en IA este mes | [ai.md](ai.md)                                     |
-| La app no abre / muestra error genérico       | [incidentes.md](incidentes.md)                     |
-| Tengo 5000+ entidades y va lento              | [escala.md](escala.md)                             |
-| Quiero compartir Trama con alguien más        | [migracion-multi-user.md](migracion-multi-user.md) |
+| Síntoma                                       | Runbook                                                      |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| Hice `git push` y quiero ver si subió         | [deploy.md](deploy.md)                                       |
+| Cambié algo en el schema y el deploy falló    | [migraciones.md](migraciones.md)                             |
+| Necesito hacer una copia de seguridad ya      | [datos.md](datos.md)                                         |
+| La IA está respondiendo raro o lento          | [ai.md](ai.md)                                               |
+| Quiero saber cuánto he gastado en IA este mes | [ai.md](ai.md)                                               |
+| La app no abre / muestra error genérico       | [incidentes.md](incidentes.md)                               |
+| Tengo 5000+ entidades y va lento              | [escala.md](escala.md)                                       |
+| Quiero compartir Trama con alguien más        | [migracion-multi-user.md](migracion-multi-user.md)           |
+| Falló un check de CI o no sé qué comando usar | [conventions/quality-gates.md](conventions/quality-gates.md) |
 
 ## Convención de los runbooks
 
