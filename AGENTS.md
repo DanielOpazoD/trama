@@ -33,18 +33,19 @@ Este archivo lo lee Codex automáticamente al entrar al proyecto. Acá viven sol
 
 ## Índice de convenciones (docs/conventions/)
 
-| Doc                                                                 | Cubre                                                                                               |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [**filosofia-estetica.md**](docs/conventions/filosofia-estetica.md) | Norte estético: 4 principios rectores, vocabulario visual, anti-patrones, excepciones deliberadas   |
-| [**design.md**](docs/conventions/design.md)                         | Type scale, icon sizes, tracking, animaciones, vertical rhythm, accesibilidad, patterns canónicos δ |
-| [**frontend-structure.md**](docs/conventions/frontend-structure.md) | Patrón vista/componentes/modelos y ratchets para evitar mega-componentes                            |
-| [**data.md**](docs/conventions/data.md)                             | `getSql()`, hooks de estado `src/state/`, Netlify Blobs, costos + observabilidad + request-id       |
-| [**cache-contracts.md**](docs/conventions/cache-contracts.md)       | TanStack Query, optimistic updates, undo e invalidaciones por dominio                               |
-| [**llm.md**](docs/conventions/llm.md)                               | Abstracción `_lib/llm/`, providers, caminos de propuesta IA                                         |
-| [**api.md**](docs/conventions/api.md)                               | Schemas Zod, patrón de añadir endpoint, ApiErrors canónicos, tipos                                  |
-| [**api-boundaries.md**](docs/conventions/api-boundaries.md)         | Wrappers finos Netlify, contratos operacionales, tests y ratchets backend                           |
-| [**dominios.md**](docs/conventions/dominios.md)                     | Grafo, Chat, Momentos (ξ), Tareas — patrones específicos de cada vista                              |
-| [**roadmap.md**](docs/conventions/roadmap.md)                       | Decisiones aplazadas (multi-user, CRDTs, xyflow, etc.)                                              |
+| Doc                                                                           | Cubre                                                                                               |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| [**filosofia-estetica.md**](docs/conventions/filosofia-estetica.md)           | Norte estético: 4 principios rectores, vocabulario visual, anti-patrones, excepciones deliberadas   |
+| [**design.md**](docs/conventions/design.md)                                   | Type scale, icon sizes, tracking, animaciones, vertical rhythm, accesibilidad, patterns canónicos δ |
+| [**frontend-structure.md**](docs/conventions/frontend-structure.md)           | Patrón vista/componentes/modelos y ratchets para evitar mega-componentes                            |
+| [**data.md**](docs/conventions/data.md)                                       | `getSql()`, hooks de estado `src/state/`, Netlify Blobs, costos + observabilidad + request-id       |
+| [**cache-contracts.md**](docs/conventions/cache-contracts.md)                 | TanStack Query, optimistic updates, undo e invalidaciones por dominio                               |
+| [**llm.md**](docs/conventions/llm.md)                                         | Abstracción `_lib/llm/`, providers, caminos de propuesta IA                                         |
+| [**api.md**](docs/conventions/api.md)                                         | Schemas Zod, patrón de añadir endpoint, ApiErrors canónicos, tipos                                  |
+| [**api-boundaries.md**](docs/conventions/api-boundaries.md)                   | Wrappers finos Netlify, contratos operacionales, tests y ratchets backend                           |
+| [**backend-domain-services.md**](docs/conventions/backend-domain-services.md) | Handlers Netlify delegando lógica pura a servicios de dominio testeables                            |
+| [**dominios.md**](docs/conventions/dominios.md)                               | Grafo, Chat, Momentos (ξ), Tareas — patrones específicos de cada vista                              |
+| [**roadmap.md**](docs/conventions/roadmap.md)                                 | Decisiones aplazadas (multi-user, CRDTs, xyflow, etc.)                                              |
 
 ## Runbooks operacionales (docs/)
 

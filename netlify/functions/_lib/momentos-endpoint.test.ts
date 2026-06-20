@@ -7,7 +7,13 @@ import {
 } from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
-// embedSafe llama fetch a OpenAI — stubeamos a fail para forzar "sin embedding".
+const embeddingMocks = vi.hoisted(() => ({
+  embedSafe: vi.fn(),
+  toPgVector: vi.fn((vector: number[]) => `[${vector.join(',')}]`),
+}))
+vi.mock('./embeddings.js', () => embeddingMocks)
+// Cualquier fetch externo queda stubbeado; embeddings se controlan con el mock
+// explícito de embedSafe para poder testear si el endpoint pide re-embed.
 vi.stubGlobal(
   'fetch',
   vi.fn().mockResolvedValue({
@@ -25,6 +31,9 @@ describe('momentos endpoint — integration (mock SQL)', () => {
 
   beforeEach(() => {
     mockSqlResponses.reset()
+    embeddingMocks.embedSafe.mockReset()
+    embeddingMocks.embedSafe.mockResolvedValue(null)
+    embeddingMocks.toPgVector.mockClear()
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   })
   afterEach(() => {
@@ -426,6 +435,119 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     expect(lookup).toMatch(/msa\.owner_user_id = m\.user_id/i)
     const update = mockSqlResponses.calls.find((c) => /UPDATE momentos/i.test(c.template))
     expect(update?.template).toMatch(/WHERE id = \? AND deleted_at IS NULL/)
+  })
+
+  it('PATCH persiste metadata de foto sin recalcular embedding cuando el texto no cambia', async () => {
+    mockSqlResponses.push([]) // set_config app.rls_bypass para lookup
+    mockSqlResponses.push([
+      {
+        kind: 'foto',
+        payload: {
+          storageKey: 'old-key',
+          width: 800,
+          height: 600,
+          caption: 'Playa',
+        },
+        note: 'vacaciones',
+        user_id: 'legacy-single-user',
+        access_role: 'owner',
+      },
+    ])
+    mockSqlResponses.push([]) // set_config app.rls_bypass para update
+    mockSqlResponses.push([]) // update
+    mockSqlResponses.push([]) // set_config app.rls_bypass para SELECT final
+    mockSqlResponses.push([
+      {
+        id: 'm-foto',
+        kind: 'foto',
+        captured_at: '2026-05-24T12:00:00Z',
+        payload: {
+          storageKey: 'new-key',
+          width: 1200,
+          height: 900,
+          caption: 'Playa',
+        },
+        note: 'vacaciones',
+        origin: { kind: 'manual' },
+        created_at: '2026-05-24T12:00:00Z',
+        updated_at: '2026-05-24T12:01:00Z',
+        owner_user_id: 'legacy-single-user',
+        access_role: 'owner',
+      },
+    ])
+    mockSqlResponses.push([]) // set_config app.rls_bypass para links
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      new Request('http://localhost/api/momentos/m-foto', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          payload: {
+            storageKey: 'new-key',
+            width: 1200,
+            height: 900,
+            caption: 'Playa',
+          },
+          note: '  vacaciones  ',
+        }),
+        headers: { 'content-type': 'application/json' },
+      }),
+      mockContext({ id: 'm-foto' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(embeddingMocks.embedSafe).not.toHaveBeenCalled()
+    const update = mockSqlResponses.calls.find((c) => /UPDATE momentos/i.test(c.template))
+    expect(update?.template).toMatch(/SET payload = CASE/i)
+    expect(update?.template).toMatch(/ELSE embedding/i)
+  })
+
+  it('PATCH recalcula embedding cuando cambia el texto indexable', async () => {
+    embeddingMocks.embedSafe.mockResolvedValue({
+      vector: [0.1, 0.2],
+      model: 'test-model',
+    })
+    mockSqlResponses.push([]) // set_config app.rls_bypass para lookup
+    mockSqlResponses.push([
+      {
+        kind: 'nota',
+        payload: { bodyText: 'original' },
+        note: null,
+        user_id: 'legacy-single-user',
+        access_role: 'owner',
+      },
+    ])
+    mockSqlResponses.push([]) // set_config app.rls_bypass para update
+    mockSqlResponses.push([]) // update
+    mockSqlResponses.push([]) // set_config app.rls_bypass para SELECT final
+    mockSqlResponses.push([
+      {
+        id: 'm-nota',
+        kind: 'nota',
+        captured_at: '2026-05-24T12:00:00Z',
+        payload: { bodyText: 'editada' },
+        note: null,
+        origin: { kind: 'manual' },
+        created_at: '2026-05-24T12:00:00Z',
+        updated_at: '2026-05-24T12:01:00Z',
+        owner_user_id: 'legacy-single-user',
+        access_role: 'owner',
+      },
+    ])
+    mockSqlResponses.push([]) // set_config app.rls_bypass para links
+    mockSqlResponses.push([])
+
+    const res = await handler(
+      new Request('http://localhost/api/momentos/m-nota', {
+        method: 'PATCH',
+        body: JSON.stringify({ payload: { bodyText: 'editada' } }),
+        headers: { 'content-type': 'application/json' },
+      }),
+      mockContext({ id: 'm-nota' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(embeddingMocks.embedSafe).toHaveBeenCalledWith('editada')
   })
 
   it('métodos no soportados devuelven 405', async () => {

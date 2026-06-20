@@ -9,6 +9,7 @@
     "check:legacy-fallback": "node scripts/check-legacy-fallback-prod.mjs",
     "check:runtime-api-routes": "node scripts/runtime-api-routes.mjs",
     "check:api-request-contracts": "node scripts/api-request-contracts.mjs",
+    "check:backend-domain-services": "node scripts/backend-domain-services.mjs",
     "check:operational-observability": "node scripts/operational-observability-contracts.mjs",
     "cleanup:runtime-fixtures": "node scripts/cleanup-runtime-fixtures.mjs",
     "check:hard-delete-allowlist": "node scripts/check-hard-delete-allowlist.mjs",

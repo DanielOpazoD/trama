@@ -1,12 +1,24 @@
 import { getSql, sqlTyped } from './db.js'
 import { embedSafe, toPgVector } from './embeddings.js'
-import { fuseRanked, type Ranked } from './rrf.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 import { resolveAIInvocation } from './ai-mode.js'
 import { withObservability } from './handler-wrap.js'
 import { getAuthedUser } from './auth.js'
 import { parseSearchParams, QueryParam, requireMethod } from './request-contracts.js'
 import { z } from 'zod'
+import {
+  buildEmptySearchPayload,
+  buildSearchModePlan,
+  buildSearchResponse,
+  fuseSearchBranches,
+  fuseSingleSearchBranch,
+  type ChatSearchItem,
+  type CronicaSearchItem,
+  type EntitySearchItem,
+  type MomentoSearchItem,
+  type QuoteSearchItem,
+  type SearchMode,
+} from './search-service.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -61,57 +73,21 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   // No lo usa la sidebar (que debe ser fast). Sí lo usa el chat RAG.
 
   if (!q) {
-    return Response.json({
-      entities: [],
-      quotes: [],
-      momentos: [],
-      cronicas: [],
-      chat: [],
-    })
+    return Response.json(buildEmptySearchPayload())
   }
 
-  const wantsLexical = mode !== 'semantic'
-  const wantsSemantic = mode !== 'lexical'
+  const { wantsLexical, wantsSemantic, fusedWidth } = buildSearchModePlan(
+    mode as SearchMode,
+    limit,
+    wantsRerank,
+  )
 
   // Lexical: tsvector match + trigram-similarity boost on name.
-  type EntityLex = {
-    id: string
-    name: string
-    type: string
-    description: string | null
-    year: number | null
-    rank: number
-  }
-  type QuoteLex = {
-    id: string
-    entity_id: string
-    entity_name: string
-    text: string
-    source: string | null
-    rank: number
-  }
-  type MomentoLex = {
-    id: string
-    kind: string
-    captured_at: string
-    text: string
-    rank: number
-  }
-  type CronicaLex = {
-    id: string
-    year: number
-    month: number
-    text: string
-    rank: number
-  }
-  type ChatLex = {
-    id: string
-    thread_id: string
-    thread_title: string | null
-    role: string
-    text: string
-    rank: number
-  }
+  type EntityLex = EntitySearchItem & { rank: number }
+  type QuoteLex = QuoteSearchItem & { rank: number }
+  type MomentoLex = MomentoSearchItem & { rank: number }
+  type CronicaLex = CronicaSearchItem & { rank: number }
+  type ChatLex = ChatSearchItem & { rank: number }
 
   // Texto representativo de un momento: el cuerpo si lo hay, si no el
   // caption/título/fuente, si no la nota. NULLIF descarta strings vacías del
@@ -267,30 +243,13 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   // cuando una rama trae noise, mejor combinación cuando ambas tienen señal.
   // Ver _lib/rrf.ts para el detalle.
 
-  function toRanked<T extends { id: string }>(list: T[]): Ranked<T>[] {
-    return list.map((item) => ({ id: item.id, item }))
-  }
-
-  // RRF deja una lista cruda. Para el rerank LLM tomamos un overhead más
-  // ancho (limit × 2) así el reranker tiene margen real para subir cosas.
-  const fusedWidth = wantsRerank ? Math.min(limit * 2, 30) : limit
-
-  const entitiesFusedFull = fuseRanked([toRanked(lex), toRanked(semanticEntities)]).slice(
-    0,
-    fusedWidth,
-  )
-  const quotesFusedFull = fuseRanked([toRanked(lexQ), toRanked(semanticQuotes)]).slice(
-    0,
-    fusedWidth,
-  )
+  const entitiesFusedFull = fuseSearchBranches(lex, semanticEntities, fusedWidth)
+  const quotesFusedFull = fuseSearchBranches(lexQ, semanticQuotes, fusedWidth)
   // Momentos: léxico + semántico. Crónicas y chat: una sola rama léxica
   // (fuseRanked de una lista = ranking por esa lista, mismo shape de salida).
-  const momentosFused = fuseRanked([toRanked(lexM), toRanked(semanticMomentos)]).slice(
-    0,
-    limit,
-  )
-  const cronicasFused = fuseRanked([toRanked(lexC)]).slice(0, limit)
-  const chatFused = fuseRanked([toRanked(lexChat)]).slice(0, limit)
+  const momentosFused = fuseSearchBranches(lexM, semanticMomentos, limit)
+  const cronicasFused = fuseSingleSearchBranch(lexC, limit)
+  const chatFused = fuseSingleSearchBranch(lexChat, limit)
 
   // ---------- Rerank opcional vía LLM ----------
   // Solo si el caller lo pidió (?rerank=true). El LLM-as-reranker reordena
@@ -346,88 +305,18 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
     }
   }
 
-  // Aplica el reorden del LLM si está disponible; si no, el orden RRF.
-  function applyRerank<T extends { item: { id: string } }>(
-    fused: T[],
-    reordered: string[] | null,
-  ): T[] {
-    if (!reordered) return fused
-    const map = new Map(fused.map((e) => [e.item.id, e]))
-    const result: T[] = []
-    for (const id of reordered) {
-      const hit = map.get(id)
-      if (hit) result.push(hit)
-    }
-    return result
-  }
-
-  const entitiesFinal = applyRerank(entitiesFusedFull, entitiesReorderedIds)
-    .slice(0, limit)
-    .map((entry, idx) => ({
-      id: entry.item.id,
-      name: entry.item.name,
-      type: entry.item.type,
-      description: entry.item.description,
-      year: entry.item.year,
-      score: entry.score,
-      lexicalRank: entry.ranks[0],
-      semanticRank: entry.ranks[1],
-      finalRank: idx + 1,
-      reranked: !!entitiesReorderedIds,
-      // Compat con clientes anteriores.
-      lexical: 0,
-      semantic: 0,
-    }))
-
-  const quotesFinal = applyRerank(quotesFusedFull, quotesReorderedIds)
-    .slice(0, limit)
-    .map((entry, idx) => ({
-      id: entry.item.id,
-      entityId: entry.item.entity_id,
-      entityName: entry.item.entity_name,
-      text: entry.item.text,
-      source: entry.item.source,
-      score: entry.score,
-      lexicalRank: entry.ranks[0],
-      semanticRank: entry.ranks[1],
-      finalRank: idx + 1,
-      reranked: !!quotesReorderedIds,
-      lexical: 0,
-      semantic: 0,
-    }))
-
-  const momentosFinal = momentosFused.map((entry) => ({
-    id: entry.item.id,
-    kind: entry.item.kind,
-    text: entry.item.text,
-    capturedAt: entry.item.captured_at,
-    score: entry.score,
-  }))
-
-  const cronicasFinal = cronicasFused.map((entry) => ({
-    id: entry.item.id,
-    year: entry.item.year,
-    month: entry.item.month,
-    text: entry.item.text,
-    score: entry.score,
-  }))
-
-  const chatFinal = chatFused.map((entry) => ({
-    id: entry.item.id,
-    threadId: entry.item.thread_id,
-    threadTitle: entry.item.thread_title,
-    role: entry.item.role,
-    text: entry.item.text,
-    score: entry.score,
-  }))
-
-  return Response.json({
-    entities: entitiesFinal,
-    quotes: quotesFinal,
-    momentos: momentosFinal,
-    cronicas: cronicasFinal,
-    chat: chatFinal,
-    mode,
-    reranked: wantsRerank && (!!entitiesReorderedIds || !!quotesReorderedIds),
-  })
+  return Response.json(
+    buildSearchResponse({
+      mode: mode as SearchMode,
+      wantsRerank,
+      limit,
+      entitiesFused: entitiesFusedFull,
+      quotesFused: quotesFusedFull,
+      momentosFused,
+      cronicasFused,
+      chatFused,
+      entitiesReorderedIds,
+      quotesReorderedIds,
+    }),
+  )
 })

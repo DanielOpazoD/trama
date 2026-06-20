@@ -32,6 +32,12 @@ import {
 } from './recorte-suggest-prompt.js'
 import { z } from 'zod'
 import { logOperationalEvent } from './operational-events.js'
+import {
+  buildRecorteCreateDraft,
+  buildRecortePatchDraft,
+  buildRecorteSuggestionResponse,
+  recorteImageSourceKeys,
+} from './recortes-service.js'
 
 /**
  * Recortes — bandeja de entrada de capturas web (extensión de Chrome).
@@ -157,12 +163,7 @@ export default withObservability(
           new Set(entityRows.map((e) => e.id)),
           new Set(entityTypes),
         )
-        return Response.json({
-          ...suggestion,
-          relatedEntities: entityRows.filter((e) =>
-            suggestion.relatedEntityIds.includes(e.id),
-          ),
-        })
+        return Response.json(buildRecorteSuggestionResponse(suggestion, entityRows))
       } catch {
         return ApiErrors.internal(requestId, 'La IA no pudo sugerir ahora')
       }
@@ -374,8 +375,10 @@ export default withObservability(
             WHERE recorte_id = ${id} AND user_id = ${userId}
             ORDER BY position ASC
           `)
-          const sourceKeys =
-            imgRows.length > 0 ? imgRows.map((r) => r.storage_key) : [rec.image_key]
+          const sourceKeys = recorteImageSourceKeys({
+            imageKey: rec.image_key,
+            images: imgRows,
+          })
           const copiedKeys: string[] = []
           for (const key of sourceKeys) {
             const copied = await copyRecorteImageToMomentos(key, userId)
@@ -554,16 +557,16 @@ export default withObservability(
       await ensureUserRow(sql, authedUser)
       const parsed = await parseJsonBody(req, RecorteCreateBody, requestId)
       if (!parsed.ok) return cors(parsed.response)
-      const b = parsed.data
+      const b = buildRecorteCreateDraft(parsed.data)
       const rows = await sqlTyped<RecorteRow>(sql`
         INSERT INTO recortes (
           text, source_url, source_title, source_author, note, image_url,
           image_key, capture_mode, captured_at, user_id
         ) VALUES (
-          ${b.text}, ${b.sourceUrl ?? null}, ${b.sourceTitle ?? null},
-          ${b.sourceAuthor ?? null}, ${b.note ?? null}, ${b.imageUrl ?? null},
-          ${b.imageKey ?? null}, ${b.captureMode ?? null},
-          ${b.capturedAt ?? null}::timestamptz, ${userId}
+          ${b.text}, ${b.sourceUrl}, ${b.sourceTitle},
+          ${b.sourceAuthor}, ${b.note}, ${b.imageUrl},
+          ${b.imageKey}, ${b.captureMode},
+          ${b.capturedAt}::timestamptz, ${userId}
         )
         RETURNING id, text, source_url, source_title, source_author, note,
           image_url, image_key, capture_mode, status, promoted_target,
@@ -575,14 +578,14 @@ export default withObservability(
     if (req.method === 'PATCH' && id) {
       const parsed = await parseJsonBody(req, RecortePatchBody, requestId)
       if (!parsed.ok) return parsed.response
-      const b = parsed.data
+      const b = buildRecortePatchDraft(parsed.data)
       const rows = await sqlTyped<RecorteRow>(sql`
         UPDATE recortes
-        SET text = COALESCE(${b.text ?? null}, text),
-            source_title = COALESCE(${b.sourceTitle ?? null}, source_title),
-            source_author = COALESCE(${b.sourceAuthor ?? null}, source_author),
-            image_url = COALESCE(${b.imageUrl ?? null}, image_url),
-            note = CASE WHEN ${b.note !== undefined} THEN ${b.note ?? null} ELSE note END,
+        SET text = COALESCE(${b.text}, text),
+            source_title = COALESCE(${b.sourceTitle}, source_title),
+            source_author = COALESCE(${b.sourceAuthor}, source_author),
+            image_url = COALESCE(${b.imageUrl}, image_url),
+            note = CASE WHEN ${b.noteProvided} THEN ${b.note} ELSE note END,
             status = CASE
                        WHEN ${b.status === 'archived'} THEN 'archived'
                        WHEN ${b.status === 'pending'} THEN 'pending'
