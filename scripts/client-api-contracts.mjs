@@ -40,6 +40,30 @@ const DIRECT_FETCH_ALLOWLIST = [
   },
 ]
 
+const RAW_API_FETCH_ALLOWLIST = [
+  {
+    file: 'src/api/chat.ts',
+    count: 1,
+    reason: 'streaming chat response',
+    requires: [
+      'const response = await apiFetch(`/api/chat/threads/${threadId}/messages`',
+      'response.body',
+    ],
+  },
+  {
+    file: 'src/lib/clientErrorTracking.ts',
+    count: 1,
+    reason: 'fire-and-forget client error telemetry',
+    requires: ["void apiFetch('/api/error-log'", "method: 'POST'"],
+  },
+  {
+    file: 'src/lib/webVitals.ts',
+    count: 1,
+    reason: 'fire-and-forget web vitals telemetry',
+    requires: ["void apiFetch('/api/web-vitals'", "method: 'POST'"],
+  },
+]
+
 const PRIVATE_BLOB_CONTRACTS = [
   {
     file: 'src/components/notas/AttachmentsPanel.tsx',
@@ -107,6 +131,10 @@ function countDirectFetches(source) {
   return source.match(/\bfetch\s*\(/g)?.length ?? 0
 }
 
+function countRawApiFetches(source) {
+  return source.match(/\bapiFetch\s*\(/g)?.length ?? 0
+}
+
 function textChecks(contract, source) {
   const missingRequired = []
   const presentForbidden = []
@@ -148,6 +176,9 @@ function sourceOrNull(projectRoot, file) {
 export function buildClientApiInventory(root = process.cwd()) {
   const projectRoot = resolve(root)
   const allowByFile = new Map(DIRECT_FETCH_ALLOWLIST.map((entry) => [entry.file, entry]))
+  const rawApiAllowByFile = new Map(
+    RAW_API_FETCH_ALLOWLIST.map((entry) => [entry.file, entry]),
+  )
   const directFetches = allSourceFiles(projectRoot)
     .map((file) => {
       const rel = relative(projectRoot, file)
@@ -155,6 +186,25 @@ export function buildClientApiInventory(root = process.cwd()) {
       const count = countDirectFetches(source)
       if (count === 0) return null
       const allowed = allowByFile.get(rel)
+      return {
+        file: rel,
+        count,
+        allowed: Boolean(allowed),
+        reason: allowed?.reason ?? null,
+        expectedCount: allowed?.count ?? null,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.file.localeCompare(b.file))
+
+  const rawApiFetches = allSourceFiles(projectRoot)
+    .filter((file) => relative(projectRoot, file) !== 'src/api/request.ts')
+    .map((file) => {
+      const rel = relative(projectRoot, file)
+      const source = readFileSync(file, 'utf8')
+      const count = countRawApiFetches(source)
+      if (count === 0) return null
+      const allowed = rawApiAllowByFile.get(rel)
       return {
         file: rel,
         count,
@@ -200,10 +250,13 @@ export function buildClientApiInventory(root = process.cwd()) {
     generatedBy: 'scripts/client-api-contracts.mjs',
     requestExports,
     directFetches,
+    rawApiFetches,
     privateBlobConsumers,
     summary: {
       directFetchFiles: directFetches.length,
       allowedDirectFetchFiles: directFetches.filter((entry) => entry.allowed).length,
+      rawApiFetchFiles: rawApiFetches.length,
+      allowedRawApiFetchFiles: rawApiFetches.filter((entry) => entry.allowed).length,
       privateBlobConsumers: privateBlobConsumers.length,
       privateBlobConsumersOk: privateBlobConsumers.filter((entry) => entry.ok).length,
     },
@@ -229,6 +282,26 @@ function inventoryFailures(inventory, root) {
     }
   }
   for (const contract of DIRECT_FETCH_ALLOWLIST) {
+    const source = sourceOrNull(projectRoot, contract.file)
+    if (source === null) continue
+    pushMissingTextFailures(failures, contract, source)
+  }
+  for (const entry of inventory.rawApiFetches) {
+    if (!entry.allowed) {
+      failures.push({
+        file: entry.file,
+        message: `${entry.file} usa apiFetch() crudo; usa request(), requestResponse() o requestBlob(), o justifica una excepción en scripts/client-api-contracts.mjs.`,
+      })
+      continue
+    }
+    if (entry.expectedCount !== entry.count) {
+      failures.push({
+        file: entry.file,
+        message: `${entry.file} declara ${entry.expectedCount} apiFetch() crudo(s) permitidos por "${entry.reason}", pero tiene ${entry.count}.`,
+      })
+    }
+  }
+  for (const contract of RAW_API_FETCH_ALLOWLIST) {
     const source = sourceOrNull(projectRoot, contract.file)
     if (source === null) continue
     pushMissingTextFailures(failures, contract, source)

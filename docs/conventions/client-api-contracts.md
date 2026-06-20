@@ -57,8 +57,10 @@ desde `response.status` si el endpoint es propio.
 
 ## Allowlist De `fetch()`
 
-La lista vive en `scripts/client-api-contracts.mjs` y debe ser pequeña. Cada
-entrada declara:
+Las listas viven en `scripts/client-api-contracts.mjs` y deben ser pequeñas.
+`DIRECT_FETCH_ALLOWLIST` cubre `fetch()` sin contrato Trama. `RAW_API_FETCH_ALLOWLIST`
+cubre `apiFetch()` crudo cuando el consumidor necesita `Response` real.
+Cada entrada declara:
 
 - `file`: ruta exacta del consumidor.
 - `count`: número exacto de `fetch()` directos permitidos.
@@ -76,11 +78,23 @@ Allowlist actual:
 | `src/components/momentos/AuthenticatedMedia.tsx`                  |       1 | Fallback legacy Momentos |
 | `src/components/notas/pdfStudio/shell/usePdfStudioPageActions.ts` |       1 | Bitmap browser-only      |
 
+Allowlist actual de `apiFetch()` crudo:
+
+| Archivo                          | Llamadas | Razón                               |
+| -------------------------------- | -------: | ----------------------------------- |
+| `src/api/chat.ts`                |        1 | Streaming de respuesta de chat      |
+| `src/lib/clientErrorTracking.ts` |        1 | Telemetría fire-and-forget          |
+| `src/lib/webVitals.ts`           |        1 | Métricas web-vitals fire-and-forget |
+
 Si aparece un nuevo `fetch()`, el PR debe elegir una de dos rutas:
 
 1. Mover el caso a `request<T>`, `requestResponse()` o `requestBlob()`.
 2. Agregar una entrada al allowlist con razón específica y test que cubra el
    comportamiento.
+
+Si aparece un nuevo `apiFetch()`, la barra es parecida pero más estricta: debe
+necesitar `Response.body`, headers crudos o una llamada fire-and-forget. Para
+CRUD JSON o blobs privados, usar el helper de nivel más alto.
 
 ## Inventario Ejecutable
 
@@ -107,6 +121,8 @@ auditoría o debugging:
   "summary": {
     "directFetchFiles": 6,
     "allowedDirectFetchFiles": 6,
+    "rawApiFetchFiles": 3,
+    "allowedRawApiFetchFiles": 3,
     "privateBlobConsumers": 8,
     "privateBlobConsumersOk": 8
   }
@@ -212,6 +228,19 @@ errores a mano. En descargas privadas, el equivalente casi siempre es:
 ```ts
 const blob = await requestBlob(url)
 ```
+
+### `usa apiFetch() crudo`
+
+El archivo está usando el transporte crudo directamente. Elegir el helper más
+estrecho:
+
+```ts
+await request('/api/notes')
+await requestBlob('/api/notas-attachments-file/u/foto.jpg')
+```
+
+Solo allowlistear si el código necesita `Response.body`, headers crudos o una
+llamada fire-and-forget documentada.
 
 ### Falla Solo En CI
 

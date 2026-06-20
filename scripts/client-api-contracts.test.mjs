@@ -47,6 +47,21 @@ function createFixture() {
   )
   write(
     root,
+    'src/api/chat.ts',
+    "import { apiFetch } from './request'\nexport async function f(threadId) { const response = await apiFetch(`/api/chat/threads/${threadId}/messages`); return response.body }\n",
+  )
+  write(
+    root,
+    'src/lib/clientErrorTracking.ts',
+    "import { apiFetch } from '../api/request'\nexport function f() { void apiFetch('/api/error-log', { method: 'POST' }) }\n",
+  )
+  write(
+    root,
+    'src/lib/webVitals.ts',
+    "import { apiFetch } from '../api/request'\nexport function f() { void apiFetch('/api/web-vitals', { method: 'POST' }) }\n",
+  )
+  write(
+    root,
     'src/components/notas/AttachmentsPanel.tsx',
     "import { requestBlob } from '../../api/request'\nasync function f(attachment) { return requestBlob(attachment.url) }\n",
   )
@@ -131,6 +146,27 @@ describe('checkClientApiContracts', () => {
     )
   })
 
+  it('rechaza apiFetch crudo en consumidores nuevos sin excepción documentada', () => {
+    const root = createFixture()
+    write(
+      root,
+      'src/components/notas/BadApiDownloader.tsx',
+      "import { apiFetch } from '../../api/request'\nexport async function f(url) { return apiFetch(url) }\n",
+    )
+
+    const result = checkClientApiContracts(root)
+
+    expect(result.ok).toBe(false)
+    expect(result.failures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'src/components/notas/BadApiDownloader.tsx',
+          message: expect.stringContaining('usa apiFetch() crudo'),
+        }),
+      ]),
+    )
+  })
+
   it('rechaza aumentar el número de fetch directos de una excepción allowlisteada', () => {
     const root = createFixture()
     write(
@@ -206,6 +242,8 @@ describe('checkClientApiContracts', () => {
     expect(inventory.summary).toEqual({
       directFetchFiles: 6,
       allowedDirectFetchFiles: 6,
+      rawApiFetchFiles: 3,
+      allowedRawApiFetchFiles: 3,
       privateBlobConsumers: 8,
       privateBlobConsumersOk: 8,
     })
@@ -227,6 +265,17 @@ describe('checkClientApiContracts', () => {
           ok: true,
           missingRequired: [],
           presentForbidden: [],
+        }),
+      ]),
+    )
+    expect(inventory.rawApiFetches).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'src/api/chat.ts',
+          allowed: true,
+          reason: 'streaming chat response',
+          count: 1,
+          expectedCount: 1,
         }),
       ]),
     )
