@@ -22,6 +22,7 @@ import {
   classifyBundleEntry,
   summarizeBundleEntries,
 } from './bundle-budget.mjs'
+import { PDF_AGGREGATE_BUDGETS } from './pdf-bundle-families.mjs'
 
 // Budgets en KB (gzip). Ajustables, pero pedí justificación.
 const BUDGETS = {
@@ -62,35 +63,7 @@ const BUDGETS = {
   index: 110,
 }
 
-const AGGREGATE_BUDGETS = [
-  {
-    name: 'PDF lazy payload total',
-    // Suma gzip de los chunks/worker PDF lazy. No mide initial path; sí evita
-    // que PDF Studio/Imprenta crezcan por duplicación silenciosa entre workers.
-    budget: 2450,
-    bases: [
-      'PdfStudioView',
-      'assemble',
-      'assembleImages',
-      'buildLibro',
-      'html2canvas.esm',
-      'jspdf.es.min',
-      'libroPreview',
-      'pdf.worker.min',
-      'pdfExport.worker',
-      'pdfForm.worker',
-      'pdfForms',
-      'pdfOcr',
-      'pdfOcr.worker',
-      'pdfOcrInput',
-      'pdfOcrProgress',
-      'pdfOcrRecognition',
-      'vendor-pdf-lib',
-      'vendor-pdfjs',
-      'vendor-ocr',
-    ],
-  },
-]
+const AGGREGATE_BUDGETS = [...PDF_AGGREGATE_BUDGETS]
 
 const DIST = 'dist/assets'
 const MAX_UNBUDGETED_KB = 10

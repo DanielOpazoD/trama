@@ -7,6 +7,7 @@ import { createPdfFontResolver } from './assembleFontResolver'
 import { readPngSize, resolveImagesPerPage } from './assembleImages'
 import { addImageSheetFromDoc } from './assembleImageSheets'
 import { countImages, emitLifecycle } from './assembleProgress'
+import { loadPdfFontkit, loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 import {
   addRedactedRasterPage,
   annotationsWithoutRedactions,
@@ -53,7 +54,7 @@ export async function assemble(
 ): Promise<AssembleResult> {
   const emit = createProgressEmitter(options.onProgress)
   throwIfAborted(options.signal, 'load-fonts')
-  const { PDFDocument, rgb, degrees } = await import('pdf-lib')
+  const { PDFDocument, rgb, degrees } = await loadPdfLib()
   const out = await PDFDocument.create()
 
   emitLifecycle(emit, 'load-fonts', 'start')
@@ -63,8 +64,7 @@ export async function assemble(
     ),
   )
   if (hasEmbeddedText) {
-    const fk = await import('@pdf-lib/fontkit')
-    out.registerFontkit(fk.default ?? fk)
+    out.registerFontkit(await loadPdfFontkit())
   }
   emitLifecycle(emit, 'load-fonts', 'complete')
   throwIfAborted(options.signal, 'validate-images')

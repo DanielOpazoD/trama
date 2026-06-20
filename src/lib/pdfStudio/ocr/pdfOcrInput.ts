@@ -6,6 +6,7 @@ import {
 } from './pdfOcrCanvas'
 import { assertOcrNotCancelled, emitOcrProgress } from './pdfOcrProgress'
 import type { PdfOcrOptions, RenderedOcrPage } from './pdfOcrTypes'
+import { loadPdfjsDocument, type PdfjsDocumentInit } from '../pdfRuntime/pdfjsLoader'
 
 export function isPdfOcrInput(file: File): boolean {
   return file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
@@ -22,16 +23,11 @@ async function renderPdfPages(
   file: File,
   options: PdfOcrOptions,
 ): Promise<RenderedOcrPage[]> {
-  const [pdfjs, worker] = await Promise.all([
-    import('pdfjs-dist'),
-    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
-  ])
-  pdfjs.GlobalWorkerOptions.workerSrc = worker.default
   const data = new Uint8Array(await file.arrayBuffer())
-  const task = pdfjs.getDocument({
+  const task = await loadPdfjsDocument({
     data,
     disableWorker: true,
-  } as unknown as Parameters<typeof pdfjs.getDocument>[0])
+  } as unknown as PdfjsDocumentInit)
 
   try {
     const doc = await task.promise

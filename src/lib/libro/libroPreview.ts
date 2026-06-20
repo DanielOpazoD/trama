@@ -1,23 +1,23 @@
 /**
  * Vista previa del libro: renderiza las primeras páginas del PDF recién
- * compuesto como imágenes, con el MISMO pdf.js lazy del PDF Studio. El
+ * compuesto como imágenes, con el MISMO loader lazy del PDF Studio. El
  * usuario hojea la edición antes de descargarla.
  */
+import {
+  loadPdfjsDocument,
+  type PdfjsDocumentInit,
+} from '../pdfStudio/pdfRuntime/pdfjsLoader'
+
 export async function renderPdfPreviewPages(
   bytes: Uint8Array,
   maxPages = 4,
 ): Promise<string[]> {
-  const [pdfjs, worker] = await Promise.all([
-    import('pdfjs-dist'),
-    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
-  ])
-  pdfjs.GlobalWorkerOptions.workerSrc = worker.default
   // Copia defensiva: getDocument puede transferir el buffer al worker y
   // dejaría los bytes originales (los que se descargan) desprendidos.
-  const task = pdfjs.getDocument({
+  const task = await loadPdfjsDocument({
     data: bytes.slice(),
     disableWorker: true,
-  } as unknown as Parameters<typeof pdfjs.getDocument>[0])
+  } as unknown as PdfjsDocumentInit)
   const doc = await task.promise
   try {
     const out: string[] = []

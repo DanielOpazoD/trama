@@ -24,6 +24,51 @@ DOM, Workers y modelo puro.
 - El hook de navegacion del editor mantiene la fuente de verdad logica; los
   helpers de apertura/geometry son el contrato testeado para la relacion entre
   pagina solicitada, pagina visible, zoom y layout.
+- `pdfjs-dist` y `pdfjs-dist/build/pdf.worker.min.mjs?url` solo se importan en
+  `src/lib/pdfStudio/pdfRuntime/pdfjsLoader.ts`. Los consumidores piden
+  `loadPdfjsDocument()` para que worker, cache y tipos vivan en un unico borde.
+- Los imports dinamicos de `pdf-lib` y `@pdf-lib/fontkit` solo se hacen en
+  `src/lib/pdfStudio/pdfRuntime/pdfLibLoader.ts`. Los flujos de exportacion,
+  OCR buscable, imagenes a PDF y Libro usan `loadPdfLib()` / `loadPdfFontkit()`.
+- Los imports estaticos de tipos desde `pdf-lib` siguen permitidos en modulos
+  PDF-only. El runtime de `pdf-lib` no se importa estaticamente desde
+  consumidores: incluso AcroForms usa `loadPdfLib()`.
+
+El guardrail ejecutable es:
+
+```bash
+npm run check:pdf-runtime-boundaries
+```
+
+Ese check bloquea nuevos imports runtime directos o estaticos de PDF.js, worker
+PDF.js, `pdf-lib` o fontkit fuera de los loaders compartidos.
+
+## Contrato de payload PDF
+
+El peso PDF se mide como lazy payload, no como bundle inicial. El objetivo no es
+eliminar todos los chunks repetidos (Vite puede partir el grafo entre workers y
+rutas lazy), sino hacer visibles las familias que crecen y evitar duplicacion
+accidental de fronteras.
+
+| Familia                  | Bases principales                                                  | Razon del budget                                           |
+| ------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `PDF lazy payload total` | todas las bases PDF lazy                                           | Techo global para Imprenta/Planillas/Libro/OCR.            |
+| `PDF viewer`             | `PdfStudioView`, `pdf.worker.min`, `vendor-pdfjs`                  | Render y preview; owns PDF.js compartido.                  |
+| `PDF assemble/export`    | `assemble`, `assembleImages`, `pdfExport.worker`, `vendor-pdf-lib` | Exportacion, redacciones, imagenes y vendors de escritura. |
+| `PDF OCR`                | `pdfOcr*`, `vendor-ocr`                                            | Reconocimiento local y armado buscable.                    |
+| `PDF forms`              | `pdfForms`, `pdfForm.worker`                                       | Inspeccion/relleno de AcroForms.                           |
+| `PDF libro`              | `buildLibro`, `libroPreview`                                       | Florilegio imprimible y preview del libro.                 |
+
+Antes de subir un budget, corre:
+
+```bash
+npm run build
+npm run bundle:report
+```
+
+Si el crecimiento cae en una familia, primero revisa si entro una dependencia
+nueva o si un import dejo de pasar por `pdfRuntime`. Solo sube el budget cuando
+el crecimiento es intencional y queda explicado en el PR.
 
 ## Contrato de navegacion del editor
 
