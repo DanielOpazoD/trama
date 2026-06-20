@@ -137,6 +137,7 @@ export const STRUCTURE_RATCHETS = [
       'netlify/functions/momentos.mts',
       'netlify/functions/entities.mts',
       'netlify/functions/search.mts',
+      'netlify/functions/pdf-stamp-assets.mts',
     ],
   },
   {
@@ -163,6 +164,11 @@ export const STRUCTURE_RATCHETS = [
     group: 'server-api-endpoints',
     maxLines: 335,
     files: ['netlify/functions/_lib/search-endpoint.ts'],
+  },
+  {
+    group: 'server-api-endpoints',
+    maxLines: 220,
+    files: ['netlify/functions/_lib/pdf-stamp-assets-endpoint.ts'],
   },
   {
     group: 'server-large-surfaces',

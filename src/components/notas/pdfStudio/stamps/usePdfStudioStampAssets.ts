@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { pdfStampAssetsApi } from '../../../../api/pdfStampAssets'
 import {
   createStampAssetFromDataUrl,
   createStampAssetFromFile,
@@ -21,12 +22,46 @@ export function usePdfStudioStampAssets(userKey: string) {
     let alive = true
     removedIdsRef.current = new Set()
     setAssets([])
-    void listStampAssets(userKey).then((list) => {
-      if (!alive) return
-      setAssets((current) => mergeLoadedAssets(list, current, removedIdsRef.current))
-    })
+    void hydrateStampAssets(userKey)
     return () => {
       alive = false
+    }
+
+    async function hydrateStampAssets(currentUserKey: string) {
+      try {
+        const cloudAssets = await pdfStampAssetsApi.list()
+        if (!alive) return
+        if (cloudAssets.length > 0) {
+          const visibleCloudAssets = filterRemovedAssets(
+            cloudAssets,
+            removedIdsRef.current,
+          )
+          setAssets((current) =>
+            mergeLoadedAssets(visibleCloudAssets, current, removedIdsRef.current),
+          )
+          for (const asset of visibleCloudAssets) {
+            void putStampAsset(currentUserKey, asset)
+          }
+          return
+        }
+
+        const localAssets = await listStampAssets(currentUserKey)
+        if (!alive) return
+        const visibleLocalAssets = filterRemovedAssets(localAssets, removedIdsRef.current)
+        setAssets((current) =>
+          mergeLoadedAssets(visibleLocalAssets, current, removedIdsRef.current),
+        )
+        for (const asset of visibleLocalAssets) {
+          void pdfStampAssetsApi.create(asset).catch(() => undefined)
+        }
+      } catch {
+        const localAssets = await listStampAssets(currentUserKey)
+        if (!alive) return
+        const visibleLocalAssets = filterRemovedAssets(localAssets, removedIdsRef.current)
+        setAssets((current) =>
+          mergeLoadedAssets(visibleLocalAssets, current, removedIdsRef.current),
+        )
+      }
     }
   }, [userKey])
 
@@ -42,6 +77,7 @@ export function usePdfStudioStampAssets(userKey: string) {
     if (!asset) return null
     setAssets((list) => sortAssets([asset, ...list]))
     void putStampAsset(userKey, asset)
+    void pdfStampAssetsApi.create(asset).catch(() => undefined)
     return asset
   }
 
@@ -67,6 +103,7 @@ export function usePdfStudioStampAssets(userKey: string) {
     })
     setAssets((list) => sortAssets([asset, ...list]))
     void putStampAsset(userKey, asset)
+    void pdfStampAssetsApi.create(asset).catch(() => undefined)
     return asset
   }
 
@@ -79,12 +116,14 @@ export function usePdfStudioStampAssets(userKey: string) {
       if (target) void putStampAsset(userKey, target)
       return next
     })
+    void pdfStampAssetsApi.rename(id, name).catch(() => undefined)
   }
 
   function remove(id: string) {
     removedIdsRef.current.add(id)
     setAssets((list) => list.filter((asset) => asset.id !== id))
     void deleteStampAsset(userKey, id)
+    void pdfStampAssetsApi.remove(id).catch(() => undefined)
   }
 
   function touch(id: string): PdfStudioStampAsset | null {
@@ -100,6 +139,7 @@ export function usePdfStudioStampAssets(userKey: string) {
       if (touched) void putStampAsset(userKey, touched)
       return next
     })
+    void pdfStampAssetsApi.touch(id).catch(() => undefined)
     return touched
   }
 
@@ -130,6 +170,13 @@ function mergeLoadedAssets(
     merged.set(asset.id, asset)
   }
   return sortAssets([...merged.values()])
+}
+
+function filterRemovedAssets(
+  loaded: PdfStudioStampAsset[],
+  removedIds: Set<string>,
+): PdfStudioStampAsset[] {
+  return loaded.filter((asset) => !removedIds.has(asset.id))
 }
 
 function nextAssetId(kind: PdfStudioStampKind): string {
