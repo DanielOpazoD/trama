@@ -282,6 +282,6 @@ export function runOperationalObservabilityContractsCli({
   return result.ok ? 0 : 1
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   process.exit(runOperationalObservabilityContractsCli())
 }
