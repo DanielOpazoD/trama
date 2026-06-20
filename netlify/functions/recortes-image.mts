@@ -3,6 +3,7 @@ import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { logOperationalEvent } from './_lib/operational-events.js'
 
 /**
  * GET /api/recortes-image/:key
@@ -53,6 +54,16 @@ export default withObservability(
     // ajeno → 404 (no filtramos existencia: misma respuesta que key inexistente).
     const slashIdx = key.indexOf('/')
     if (slashIdx <= 0 || key.slice(0, slashIdx) !== userId) {
+      logOperationalEvent({
+        event: 'blob.access.denied',
+        severity: 'warn',
+        requestId,
+        method: req.method,
+        path: new URL(req.url).pathname,
+        operation: 'recorte.blob.read',
+        userId,
+        reason: 'storage_key_owner_mismatch',
+      })
       return ApiErrors.notFound(requestId, 'No encontrado')
     }
 

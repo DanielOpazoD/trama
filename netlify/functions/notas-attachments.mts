@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
 import { parseSearchParams, QueryParam } from './_lib/request-contracts.js'
 import { z } from 'zod'
+import { logOperationalEvent } from './_lib/operational-events.js'
 
 type AttachmentRow = {
   id: string
@@ -39,6 +40,17 @@ export default withObservability(
       if (!parsedQuery.ok) return parsedQuery.response
       const { ownerType, ownerId } = parsedQuery.data
       if (!(await attachmentOwnerExists(sql, ownerType, ownerId, userId))) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.owner.read',
+          userId,
+          reason: 'attachment_owner_not_visible',
+          details: { ownerType, ownerId },
+        })
         return ApiErrors.notFound(requestId, 'Destino no encontrado')
       }
 
@@ -61,6 +73,28 @@ export default withObservability(
         RETURNING id
       `)
       if (rows.length === 0) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.delete',
+          userId,
+          reason: 'attachment_not_visible',
+          details: { id },
+        })
+        logOperationalEvent({
+          event: 'blob.access.denied',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: new URL(req.url).pathname,
+          operation: 'attachment.delete',
+          userId,
+          reason: 'attachment_delete_not_visible',
+          details: { id },
+        })
         return ApiErrors.notFound(requestId, 'Anexo no encontrado')
       }
       return Response.json({ ok: true })

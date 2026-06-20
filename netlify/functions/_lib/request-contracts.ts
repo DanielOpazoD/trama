@@ -84,6 +84,10 @@ export function requireMethod(
   return response
 }
 
+export function requestPath(req: Request): string {
+  return new URL(req.url).pathname
+}
+
 export function parseSearchParams<T>(
   req: Request,
   schema: z.ZodType<T>,

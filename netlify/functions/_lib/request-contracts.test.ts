@@ -6,6 +6,7 @@ import {
   QueryParam,
   readFormData,
   requireMethod,
+  requestPath,
 } from './request-contracts'
 
 const SearchParams = z.object({
@@ -67,6 +68,12 @@ describe('request contracts', () => {
     )
 
     expect(response).toBeNull()
+  })
+
+  it('requestPath centraliza el pathname para logs sin repetir parsing en handlers', () => {
+    expect(requestPath(new Request('http://localhost/api/momentos/m1?cursor=abc'))).toBe(
+      '/api/momentos/m1',
+    )
   })
 
   it('parseSearchParams normaliza strings, enteros clampados y booleanos', () => {

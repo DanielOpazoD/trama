@@ -33,6 +33,13 @@ function health(alerts: HealthAlert[]): HealthResponse {
       legacyOwnerMapped: false,
       mode: 'legacy-single-user',
     },
+    operational: {
+      requestId: 'rid-health-alerts',
+      databaseReachable: true,
+      runtimeApiRoutesContract: 'check:runtime-api-routes',
+      productionSmokeCommand: 'npm run smoke:production-report',
+      logRedaction: 'structured-redaction',
+    },
     byProvider: [],
     recentErrors: [],
     alerts,

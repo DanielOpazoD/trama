@@ -10,7 +10,7 @@ import {
 } from './momento-embed.js'
 import { getAuthedUser } from './auth.js'
 import { parseJsonBody } from './zod-body.js'
-import { parseSearchParams } from './request-contracts.js'
+import { parseSearchParams, requestPath } from './request-contracts.js'
 import { MomentoCreateBody, MomentoPatchBody } from './momento-schemas.js'
 import { ensureUserRow } from './user-provisioning.js'
 import { runWithSystemRls } from './user-rls.js'
@@ -22,6 +22,7 @@ import {
   type MomentoEntityLinkRow,
   type MomentoListRow,
 } from './momentos-list.js'
+import { logOperationalEvent } from './operational-events.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -66,7 +67,10 @@ export default withObservability(
   'momentos',
   async (req: Request, context: Context, { requestId }) => {
     const sql = getSql()
-    const authedUser = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req, {
+      requestId,
+      operation: `momentos.${req.method.toLowerCase()}`,
+    })
     const userId = authedUser.id
     const id = context.params.id
 
@@ -512,6 +516,17 @@ export default withObservability(
     `)
       const deletedRow = result[0]
       if (!deletedRow) {
+        logOperationalEvent({
+          event: 'owner.mismatch',
+          severity: 'warn',
+          requestId,
+          method: req.method,
+          path: requestPath(req),
+          operation: 'momentos.delete',
+          userId,
+          reason: 'momento_not_visible',
+          details: { id },
+        })
         return ApiErrors.notFound(requestId, 'Momento no encontrado')
       }
       return Response.json({ deletedAt: deletedRow.deleted_at })

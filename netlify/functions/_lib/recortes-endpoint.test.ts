@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   expectCanonicalError,
   mockContext,
@@ -86,6 +86,16 @@ beforeEach(() => {
 })
 
 describe('recortes endpoint', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore()
+  })
+
   it('GET lista los recortes del usuario', async () => {
     mockSqlResponses.push([ROW])
     const res = await recortesHandler(
@@ -115,6 +125,36 @@ describe('recortes endpoint', () => {
     const [promotedQuery, unknownQuery] = mockSqlResponses.calls
     expect(promotedQuery?.values).toContain('promoted')
     expect(unknownQuery?.values).toContain(null)
+  })
+
+  it('DELETE emite owner.mismatch cuando el id no pertenece al usuario', async () => {
+    mockSqlResponses.push([])
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}`, {
+        method: 'DELETE',
+        headers: { 'x-request-id': 'rid-recorte-delete' },
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 404,
+      code: 'NOT_FOUND',
+      requestId: 'rid-recorte-delete',
+    })
+    const events = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'owner.mismatch',
+          category: 'operational',
+          severity: 'warn',
+          requestId: 'rid-recorte-delete',
+          operation: 'recortes.delete',
+          userId: 'legacy-single-user',
+        }),
+      ]),
+    )
   })
 
   it('POST crea un recorte (201 con la fila creada)', async () => {

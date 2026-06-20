@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { expectCanonicalError, mockContext } from './test-utils'
 
 /**
@@ -138,8 +138,15 @@ describe('recortes-image-upload', () => {
 })
 
 describe('recortes-image (servir)', () => {
+  let consoleLogSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
     blobMocks.getWithMetadata.mockReset()
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore()
   })
 
   it('rechaza métodos no GET', async () => {
@@ -157,6 +164,18 @@ describe('recortes-image (servir)', () => {
     )
     expect(res.status).toBe(404)
     expect(blobMocks.getWithMetadata).not.toHaveBeenCalled()
+    const events = consoleLogSpy.mock.calls.map((call) => JSON.parse(call[0] as string))
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'blob.access.denied',
+          category: 'operational',
+          severity: 'warn',
+          operation: 'recorte.blob.read',
+          userId: 'legacy-single-user',
+        }),
+      ]),
+    )
   })
 
   it('sirve el blob cuando el prefijo coincide con el usuario', async () => {

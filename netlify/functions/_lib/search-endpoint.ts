@@ -45,7 +45,10 @@ const SearchQueryParams = z.object({
 export default withObservability('search', async (req: Request, _ctx, { requestId }) => {
   const methodError = requireMethod(req, requestId, ['GET'])
   if (methodError) return methodError
-  const { id: userId } = await getAuthedUser(req)
+  const { id: userId } = await getAuthedUser(req, {
+    requestId,
+    operation: 'search.read',
+  })
   const sql = getSql()
 
   const parsedQuery = parseSearchParams(req, SearchQueryParams, requestId)
