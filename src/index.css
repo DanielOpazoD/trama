@@ -654,6 +654,20 @@ html.dark .paper-grain::before {
     filter: brightness(0.94) sepia(0.06);
   }
 
+  .stamp-checker {
+    background-image:
+      linear-gradient(45deg, rgba(34, 34, 34, 0.05) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(34, 34, 34, 0.05) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, rgba(34, 34, 34, 0.05) 75%),
+      linear-gradient(-45deg, transparent 75%, rgba(34, 34, 34, 0.05) 75%);
+    background-position:
+      0 0,
+      0 6px,
+      6px -6px,
+      -6px 0;
+    background-size: 12px 12px;
+  }
+
   @keyframes node-spring-in {
     0% {
       opacity: 0;

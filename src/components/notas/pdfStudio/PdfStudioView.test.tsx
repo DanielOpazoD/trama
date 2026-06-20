@@ -28,6 +28,9 @@ const mocks = vi.hoisted(() => ({
   putSavedDoc: vi.fn(),
   putSavedFolder: vi.fn(),
   deleteSavedDoc: vi.fn(),
+  listStampAssets: vi.fn(),
+  putStampAsset: vi.fn(),
+  deleteStampAsset: vi.fn(),
   uploadPdfStudioSavedPdf: vi.fn(),
   editImage: vi.fn(),
   imagesToSheetPdfFile: vi.fn(),
@@ -65,6 +68,9 @@ vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
   putSavedDoc: mocks.putSavedDoc,
   putSavedFolder: mocks.putSavedFolder,
   deleteSavedDoc: mocks.deleteSavedDoc,
+  listStampAssets: mocks.listStampAssets,
+  putStampAsset: mocks.putStampAsset,
+  deleteStampAsset: mocks.deleteStampAsset,
   isSavedTemplate: (saved: { kind?: string; doc: { formFields?: unknown[] } }) =>
     (saved.kind ??
       ((saved.doc.formFields?.length ?? 0) > 0 ? 'template' : 'creation')) === 'template',
@@ -160,9 +166,12 @@ beforeEach(() => {
   mocks.clearDraft.mockResolvedValue(undefined)
   mocks.listSavedDocs.mockResolvedValue([]) // sin guardados por defecto
   mocks.listSavedFolders.mockResolvedValue([])
+  mocks.listStampAssets.mockResolvedValue([])
   mocks.putSavedDoc.mockResolvedValue(undefined)
   mocks.putSavedFolder.mockResolvedValue(undefined)
   mocks.deleteSavedDoc.mockResolvedValue(undefined)
+  mocks.putStampAsset.mockResolvedValue(undefined)
+  mocks.deleteStampAsset.mockResolvedValue(undefined)
   mocks.uploadPdfStudioSavedPdf.mockResolvedValue({
     id: 'remote-pdf-1',
     savedDocId: 'saved-1',

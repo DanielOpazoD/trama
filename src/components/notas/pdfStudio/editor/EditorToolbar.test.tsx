@@ -239,6 +239,15 @@ describe('<EditorToolbar />', () => {
     expect(p.onAddImage).toHaveBeenCalledOnce()
   })
 
+  it('reserva una entrada de menú para firmas y timbres sin acoplar el toolbar', () => {
+    setup({ stampAssetMenu: <button type="button">Firma y timbre</button> })
+
+    const insert = screen.getByRole('group', { name: 'Insertar' })
+    expect(insert).toContainElement(
+      screen.getByRole('button', { name: 'Firma y timbre' }),
+    )
+  })
+
   it('aplica fuente, negrita y color por onApplyStyle', () => {
     const p = setup()
     fireEvent.click(screen.getByRole('button', { name: 'Texto' }))
