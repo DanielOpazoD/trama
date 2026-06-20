@@ -154,7 +154,7 @@ export function formatPdfLazyEntrypointIssues(issues) {
     .join('\n')
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const distRoot = process.argv[2] ?? 'dist'
   const issues = findPdfLazyEntrypointIssues(distRoot)
   if (issues.length > 0) {

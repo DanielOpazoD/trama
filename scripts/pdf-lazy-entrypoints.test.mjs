@@ -87,3 +87,13 @@ test('reports a missing build output as a contract issue', () => {
     },
   ])
 })
+
+test('can be imported when process.argv[1] is absent', async () => {
+  const originalArgv = process.argv
+  process.argv = [originalArgv[0]]
+  try {
+    await expect(import('./pdf-lazy-entrypoints.mjs?argv-missing')).resolves.toBeDefined()
+  } finally {
+    process.argv = originalArgv
+  }
+})
