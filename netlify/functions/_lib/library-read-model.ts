@@ -274,6 +274,10 @@ export async function fetchLibraryRows(
   params: LibraryFetchParams,
 ): Promise<LibraryItemRow[]> {
   const { q, tab, tipo, fuente, incluyeEliminados } = params
+  // Escapa los comodines de LIKE (`%`, `_`, `\`) en la búsqueda. Sin esto, un
+  // término como "informe_medico" trataría el guion bajo como comodín (los
+  // nombres de archivo los usan mucho) y daría falsos positivos.
+  const qLike = q.replace(/[\\%_]/g, '\\$&')
 
   return sqlTyped<LibraryItemRow>(sql`
     WITH base AS (
@@ -489,7 +493,7 @@ export async function fetchLibraryRows(
       )
       AND (${tipo} = '' OR file_type = ${tipo})
       AND (${fuente} = '' OR source = ${fuente})
-      AND (${q} = '' OR title ILIKE '%' || ${q} || '%')
+      AND (${q} = '' OR title ILIKE '%' || ${qLike} || '%' ESCAPE '\\')
     ORDER BY updated_at DESC
   `)
 }

@@ -21,7 +21,7 @@ export function BibliotecaEmptyState() {
         No se encontraron archivos
       </h3>
       <p className="mt-3 text-sm text-ink-400 leading-relaxed">
-        Prueba cambiando los filtros o subiendo un archivo.
+        Prueba con otra búsqueda o cambiando los filtros.
       </p>
     </div>
   )
