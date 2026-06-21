@@ -64,6 +64,7 @@ export function NotasWorld({
   const toast = useToast()
   const [searchOpen, setSearchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pendingPdfFiles, setPendingPdfFiles] = useState<File[]>([])
   const { theme, setTheme } = useTheme()
   const { isVisible } = useModuleVisibility()
@@ -138,6 +139,8 @@ export function NotasWorld({
         onSectionIntent={preloadNotasSection}
         onOpenSearch={() => setSearchOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
       />
 
       <NotasMobileTabs
@@ -156,59 +159,63 @@ export function NotasWorld({
         {/* Imprenta/Planillas son layouts tipo app de ANCHO COMPLETO: reciben el
             topbar como prop y lo montan DENTRO del área de trabajo, para que su
             panel lateral llegue hasta el borde superior. */}
-        <SectionPinGate key={section} sectionId={`notas:${section}`}>
-          {section === 'pdf' || section === 'planillas' ? (
-            <Suspense
-              fallback={
-                <div className="py-10 flex justify-center">
-                  <LoadingHint
-                    text={
-                      section === 'planillas' ? 'cargando Planillas' : 'cargando Imprenta'
-                    }
-                    size="sm"
-                  />
-                </div>
-              }
-            >
-              <PdfStudioView
-                externalFiles={section === 'pdf' ? pendingPdfFiles : []}
-                onExternalFilesConsumed={() => setPendingPdfFiles([])}
-                topBar={<NotasTopBar section={section} />}
-                studioMode={section === 'planillas' ? 'templates' : 'editor'}
-              />
-            </Suspense>
-          ) : (
-            <>
-              <NotasTopBar section={section} />
-              {/* id="main-scroll": el feed virtualizado (useMainScrollVirtualizer)
+        <div key={section} className="h-full animate-view-fade">
+          <SectionPinGate sectionId={`notas:${section}`}>
+            {section === 'pdf' || section === 'planillas' ? (
+              <Suspense
+                fallback={
+                  <div className="py-10 flex justify-center">
+                    <LoadingHint
+                      text={
+                        section === 'planillas'
+                          ? 'cargando Planillas'
+                          : 'cargando Imprenta'
+                      }
+                      size="sm"
+                    />
+                  </div>
+                }
+              >
+                <PdfStudioView
+                  externalFiles={section === 'pdf' ? pendingPdfFiles : []}
+                  onExternalFilesConsumed={() => setPendingPdfFiles([])}
+                  topBar={<NotasTopBar section={section} />}
+                  studioMode={section === 'planillas' ? 'templates' : 'editor'}
+                />
+              </Suspense>
+            ) : (
+              <>
+                <NotasTopBar section={section} />
+                {/* id="main-scroll": el feed virtualizado (useMainScrollVirtualizer)
                   se ata a este contenedor. El mundo trama y el mundo notas son
                   mutuamente excluyentes, así que solo existe un #main-scroll. */}
-              <div id="main-scroll" className="h-full overflow-y-auto">
-                <div
-                  data-testid="notas-world-content"
-                  className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
-                >
-                  {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
-                  {section === 'notas' && (
-                    <Suspense
-                      fallback={
-                        <div className="py-10 flex justify-center">
-                          <LoadingHint text="cargando Notas" size="sm" />
-                        </div>
-                      }
-                    >
-                      <NotasFeedView onSendImagesToPdf={sendImagesToPdf} />
-                    </Suspense>
-                  )}
-                  {section === 'tareas' && <TareasView />}
-                  {section === 'prompts' && <PromptsView />}
-                  {section === 'claves' && <ClavesView />}
-                  {section === 'biblioteca' && <BibliotecaView />}
+                <div id="main-scroll" className="h-full overflow-y-auto">
+                  <div
+                    data-testid="notas-world-content"
+                    className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
+                  >
+                    {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
+                    {section === 'notas' && (
+                      <Suspense
+                        fallback={
+                          <div className="py-10 flex justify-center">
+                            <LoadingHint text="cargando Notas" size="sm" />
+                          </div>
+                        }
+                      >
+                        <NotasFeedView onSendImagesToPdf={sendImagesToPdf} />
+                      </Suspense>
+                    )}
+                    {section === 'tareas' && <TareasView />}
+                    {section === 'prompts' && <PromptsView />}
+                    {section === 'claves' && <ClavesView />}
+                    {section === 'biblioteca' && <BibliotecaView />}
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-        </SectionPinGate>
+              </>
+            )}
+          </SectionPinGate>
+        </div>
       </main>
 
       {/* Buscador global — overlay abierto desde el chrome. */}

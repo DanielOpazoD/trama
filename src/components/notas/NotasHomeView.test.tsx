@@ -164,4 +164,25 @@ describe('<NotasHomeView />', () => {
     expect(onNavigate).toHaveBeenNthCalledWith(1, 'notas')
     expect(onNavigate).toHaveBeenNthCalledWith(2, 'tareas')
   })
+
+  it('muestra una carga estable antes de declarar el inicio vacío', () => {
+    const resolvers: Array<(response: Response) => void> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolvers.push(resolve)
+          }),
+      ),
+    )
+
+    renderWithProviders(<NotasHomeView onNavigate={vi.fn()} />)
+
+    expect(screen.getByLabelText('Cargando inicio de Notas')).toBeInTheDocument()
+    expect(screen.queryByText('Tu centro de trabajo está listo.')).toBeNull()
+    expect(screen.queryByRole('button', { name: /nueva clave/i })).toBeNull()
+
+    resolvers.forEach((resolve) => resolve(jsonResponse([])))
+  })
 })

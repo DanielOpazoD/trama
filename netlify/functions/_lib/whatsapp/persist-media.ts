@@ -106,13 +106,19 @@ export async function persistImageMomento(
   userId: string,
   storageKey: string,
   caption: string,
+  capturedAt?: string | null,
 ): Promise<CaptureResult> {
   const payload =
     caption.trim().length > 0 ? { storageKey, caption: caption.trim() } : { storageKey }
   const rows = await sqlTyped<{ id: string }>(sql`
     INSERT INTO momentos (kind, captured_at, payload, note, origin, user_id)
     VALUES (
-      'foto', NOW(), ${JSON.stringify(payload)}::jsonb, ${null}, ${WHATSAPP_ORIGIN}::jsonb, ${userId}
+      'foto',
+      COALESCE(${capturedAt ?? null}::timestamptz, NOW()),
+      ${JSON.stringify(payload)}::jsonb,
+      ${null},
+      ${WHATSAPP_ORIGIN}::jsonb,
+      ${userId}
     )
     RETURNING id
   `)
@@ -133,6 +139,7 @@ export async function persistImageMomentoEpisode(
   userId: string,
   storageKeys: string[],
   caption: string,
+  capturedAt?: string | null,
 ): Promise<CaptureResult> {
   const items = storageKeys.map((storageKey) => ({ storageKey }))
   const payload =
@@ -140,7 +147,12 @@ export async function persistImageMomentoEpisode(
   const rows = await sqlTyped<{ id: string }>(sql`
     INSERT INTO momentos (kind, captured_at, payload, note, origin, user_id)
     VALUES (
-      'foto', NOW(), ${JSON.stringify(payload)}::jsonb, ${null}, ${WHATSAPP_ORIGIN}::jsonb, ${userId}
+      'foto',
+      COALESCE(${capturedAt ?? null}::timestamptz, NOW()),
+      ${JSON.stringify(payload)}::jsonb,
+      ${null},
+      ${WHATSAPP_ORIGIN}::jsonb,
+      ${userId}
     )
     RETURNING id
   `)

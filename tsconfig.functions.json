@@ -21,6 +21,7 @@
   },
   "include": [
     "netlify/functions",
+    "src/lib/photoExif.ts",
     "src/schemas/momento.ts",
     "src/lib/youtubeThumb.ts",
     "src/types/biblioteca.ts"

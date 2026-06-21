@@ -543,21 +543,23 @@ function WorldShell() {
   // completa y se le pasa el control de cambio de mundo.
   return (
     <div className="h-screen w-screen overflow-hidden">
-      {world === 'trama' ? (
-        <Shell
-          world={world}
-          onChangeWorld={changeWorld}
-          onRevealNotasModule={revealNotasModule}
-        />
-      ) : (
-        <Suspense fallback={<div className="h-screen w-screen bg-paper-50" />}>
-          <NotasWorld
+      <div key={world} className="h-full animate-view-fade">
+        {world === 'trama' ? (
+          <Shell
             world={world}
             onChangeWorld={changeWorld}
-            initialSection={pendingNotasSection ?? undefined}
+            onRevealNotasModule={revealNotasModule}
           />
-        </Suspense>
-      )}
+        ) : (
+          <Suspense fallback={<div className="h-screen w-screen bg-paper-50" />}>
+            <NotasWorld
+              world={world}
+              onChangeWorld={changeWorld}
+              initialSection={pendingNotasSection ?? undefined}
+            />
+          </Suspense>
+        )}
+      </div>
       {/* Los toasts son globales A AMBOS mundos: vivía dentro de Shell (solo
           Trama) y los toasts del mundo Notas — incluido el Deshacer de la ola
           transversal — no se renderizaban nunca. */}

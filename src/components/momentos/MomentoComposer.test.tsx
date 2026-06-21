@@ -62,6 +62,11 @@ function makeComposer(overrides: Partial<Composer> = {}): Composer {
     setPhotoCaption: vi.fn(),
     photoNote: '',
     setPhotoNote: vi.fn(),
+    photoCapturedAtSuggestion: null,
+    photoDateMode: 'now',
+    setPhotoDateMode: vi.fn(),
+    customPhotoCapturedAt: '',
+    setCustomPhotoCapturedAt: vi.fn(),
     ...overrides,
   } as unknown as Composer
   return base
@@ -155,5 +160,50 @@ describe('<MomentoComposer />', () => {
       expect.objectContaining({ outputType: 'image/jpeg' }),
     )
     await waitFor(() => expect(replacePhotoDraft).toHaveBeenCalledWith(0, edited))
+  })
+
+  it('muestra confirmación compacta para usar fecha EXIF, ahora o personalizada', async () => {
+    const setPhotoDateMode = vi.fn()
+    const setCustomPhotoCapturedAt = vi.fn()
+    const composer = makeComposer({
+      kind: 'foto',
+      photoCapturedAtSuggestion: '2026-06-19T23:10:00.000',
+      photoDateMode: 'photo',
+      setPhotoDateMode,
+      customPhotoCapturedAt: '',
+      setCustomPhotoCapturedAt,
+    } as Partial<Composer>)
+
+    render(<MomentoComposer composer={composer} defaultExpanded />)
+    const user = userEvent.setup()
+
+    expect(screen.getByText(/fecha detectada/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /usar fecha de la foto/i }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /usar ahora/i }))
+    expect(setPhotoDateMode).toHaveBeenCalledWith('now')
+
+    await user.click(screen.getByRole('button', { name: /elegir fecha personalizada/i }))
+    expect(setPhotoDateMode).toHaveBeenCalledWith('custom')
+  })
+
+  it('muestra input datetime-local cuando la fecha personalizada está activa', () => {
+    const setCustomPhotoCapturedAt = vi.fn()
+    render(
+      <MomentoComposer
+        composer={makeComposer({
+          kind: 'foto',
+          photoCapturedAtSuggestion: '2026-06-19T23:10:00.000',
+          photoDateMode: 'custom',
+          customPhotoCapturedAt: '2026-06-18T09:30',
+          setCustomPhotoCapturedAt,
+        } as Partial<Composer>)}
+        defaultExpanded
+      />,
+    )
+
+    expect(screen.getByLabelText(/fecha personalizada/i)).toHaveValue('2026-06-18T09:30')
   })
 })
