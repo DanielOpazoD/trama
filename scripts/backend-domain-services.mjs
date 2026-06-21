@@ -65,23 +65,16 @@ export const BACKEND_DOMAIN_SERVICE_CONTRACTS = [
   {
     domain: 'whatsapp',
     endpoint: 'netlify/functions/whatsapp-webhook.mts',
-    service: 'netlify/functions/_lib/whatsapp/webhook-replies.ts',
-    endpointRequires: [
-      'buildCaptureReplyText',
-      'helpMessage',
-      'notLinkedMessage',
-      'parseInlineTags',
-      'welcomeMessage',
-    ],
+    service: 'netlify/functions/_lib/whatsapp/webhook-endpoint.ts',
+    endpointRequires: ['whatsappWebhookHandler', './_lib/whatsapp/webhook-endpoint.js'],
     serviceRequires: [
-      'export function buildCaptureReplyText',
-      'export function helpMessage',
-      'export function notLinkedMessage',
-      'export function parseInlineTags',
-      'export function welcomeMessage',
+      "'whatsapp-webhook'",
+      'validateTwilioSignature',
+      'resolveUserByPhone',
+      'claimInboundMessage',
     ],
-    endpointMaxLines: 1480,
-    serviceMaxLines: 120,
+    endpointMaxLines: 90,
+    serviceMaxLines: 1400,
   },
 ]
 

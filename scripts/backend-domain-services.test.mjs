@@ -50,7 +50,7 @@ describe('backend domain services contract', () => {
         }),
         expect.objectContaining({
           endpoint: 'netlify/functions/whatsapp-webhook.mts',
-          service: 'netlify/functions/_lib/whatsapp/webhook-replies.ts',
+          service: 'netlify/functions/_lib/whatsapp/webhook-endpoint.ts',
           ok: true,
         }),
       ]),

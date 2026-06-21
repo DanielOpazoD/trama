@@ -95,7 +95,10 @@ describe('structure ratchets', () => {
     expect(maxFor('netlify/functions/_lib/momentos-endpoint.ts')).toBeLessThanOrEqual(520)
     expect(maxFor('netlify/functions/_lib/entities-endpoint.ts')).toBeLessThanOrEqual(480)
     expect(maxFor('netlify/functions/_lib/search-endpoint.ts')).toBeLessThanOrEqual(335)
-    expect(maxFor('netlify/functions/whatsapp-webhook.mts')).toBeLessThanOrEqual(1480)
+    expect(maxFor('netlify/functions/whatsapp-webhook.mts')).toBeLessThanOrEqual(90)
+    expect(
+      maxFor('netlify/functions/_lib/whatsapp/webhook-endpoint.ts'),
+    ).toBeLessThanOrEqual(1400)
   })
 
   it('declara ratchets frontend para superficies adelgazadas', () => {
