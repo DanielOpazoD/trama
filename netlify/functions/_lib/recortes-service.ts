@@ -23,6 +23,7 @@ export type RecorteRow = {
   status: 'pending' | 'promoted' | 'archived'
   promoted_target: 'quote' | 'entity' | 'momento' | null
   promoted_id: string | null
+  source?: string | null
   captured_at: string | null
   created_at: string
   updated_at: string
