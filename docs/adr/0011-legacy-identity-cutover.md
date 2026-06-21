@@ -4,6 +4,19 @@ Fecha: 2026-06-21
 
 Estado: Aceptado
 
+## Estado Operacional
+
+Verificado en producción el 2026-06-21.
+
+`legacy-single-user` ya no es camino operativo normal: producción responde bajo
+Clerk estricto, requests anónimos reciben 401, `health.auth.mode` reporta
+`clerk` con token válido, y el smoke A/B de aislamiento pasa lectura, mutación y
+blobs. Desde este punto, las referencias a legacy deben distinguir:
+
+- **Resuelto**: fallback legacy anónimo y defaults operativos de DB.
+- **Pendiente opcional**: reasignación de datos/blobs históricos que siguen bajo
+  `legacy-single-user`.
+
 ## Contexto
 
 Trama nació como aplicación single-user. Durante el rollout multiusuario se
