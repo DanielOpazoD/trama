@@ -65,6 +65,11 @@ jobs:
       - name: Legacy identity cutover contracts
         run: npm run check:legacy-identity-contracts
 
+      # Ningún INSERT productivo a tablas privadas puede depender del default
+      # legacy: user_id debe estar presente en la lista de columnas.
+      - name: User id write contracts
+        run: npm run check:user-id-writes
+
       # Contrato runtime de rutas: los wrappers pueden delegar handler a _lib,
       # pero config.path vive en netlify/functions/*.mts para que Netlify monte
       # /api/* de forma verificable antes de deployar.

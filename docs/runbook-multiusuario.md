@@ -43,11 +43,14 @@ Gates obligatorios:
 
 ```bash
 npm run check:legacy-identity-contracts
+npm run check:user-id-writes
 npm run check:legacy-identity-schema
 ```
 
 `check:legacy-identity-contracts` es estático y corre sin DB: revisa que toda
 tabla con default legacy histórico tenga una migración posterior `DROP DEFAULT`.
+`check:user-id-writes` revisa que los `INSERT INTO` productivos a tablas
+privadas escriban `user_id` explícitamente y no dependan del default removido.
 `check:legacy-identity-schema` corre contra Postgres real en el job
 `migrations`, después de aplicar todas las migraciones, y confirma que la DB
 migrada quedó sin defaults legacy efectivos.
@@ -338,13 +341,13 @@ soft-borra todas las fixtures de A.
 
 ## Quality gates por dominio crítico
 
-| Dominio          | Gate vivo                                                              | Evidencia mínima                                                                             |
-| ---------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Auth             | Anónimo, token revocado y PAT inválido no acceden                      | `npm run check:legacy-fallback`, `npm run smoke:multiuser:prod`, `npm run e2e:multiuser`     |
-| Identidad legacy | `legacy-single-user` es compatibilidad histórica, no default operativo | `npm run check:legacy-identity-contracts`, `npm run check:legacy-identity-schema`            |
-| RLS              | Toda tabla `user_id` tiene RLS, FK a `users` y contexto seguro         | `netlify/functions/_lib/isolation-guardrail.test.ts`, `query.integration.test.ts`            |
-| Soft delete      | Delete/restore privado usa scope por dueño y 0 filas no es 2xx         | `npm run check:hard-delete-allowlist`, `npm run check:cte-regression`, tests de endpoints    |
-| Blobs            | List/download/delete validan dueño activo antes de tocar store         | smoke multiusuario, `notas-attachments-*`, `momentos-file` y tests de endpoints autenticados |
+| Dominio          | Gate vivo                                                              | Evidencia mínima                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Auth             | Anónimo, token revocado y PAT inválido no acceden                      | `npm run check:legacy-fallback`, `npm run smoke:multiuser:prod`, `npm run e2e:multiuser`                          |
+| Identidad legacy | `legacy-single-user` es compatibilidad histórica, no default operativo | `npm run check:legacy-identity-contracts`, `npm run check:user-id-writes`, `npm run check:legacy-identity-schema` |
+| RLS              | Toda tabla `user_id` tiene RLS, FK a `users` y contexto seguro         | `netlify/functions/_lib/isolation-guardrail.test.ts`, `query.integration.test.ts`                                 |
+| Soft delete      | Delete/restore privado usa scope por dueño y 0 filas no es 2xx         | `npm run check:hard-delete-allowlist`, `npm run check:cte-regression`, tests de endpoints                         |
+| Blobs            | List/download/delete validan dueño activo antes de tocar store         | smoke multiusuario, `notas-attachments-*`, `momentos-file` y tests de endpoints autenticados                      |
 
 ## Inventario ejecutable Auth/RLS
 

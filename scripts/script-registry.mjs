@@ -328,6 +328,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Verifica que wrappers Netlify exporten config.path runtime.',
   },
   {
+    file: 'scripts/user-id-write-contracts.mjs',
+    domain: 'auth',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:user-id-writes'],
+    summary:
+      'Impide que INSERTs productivos a tablas privadas dependan de DEFAULT user_id.',
+  },
+  {
     file: 'scripts/search-scale-benchmark.mjs',
     domain: 'search',
     kind: 'benchmark',
@@ -448,6 +457,13 @@ export const QUALITY_GATES = [
     phase: 'auth',
     required: true,
     summary: 'legacy-single-user no puede seguir como DEFAULT operativo.',
+  },
+  {
+    command: 'npm run check:user-id-writes',
+    job: 'lint',
+    phase: 'auth',
+    required: true,
+    summary: 'INSERTs privados escriben user_id explícito.',
   },
   {
     command: 'npm run check:runtime-api-routes',
