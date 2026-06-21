@@ -3,9 +3,16 @@
  *
  * Devuelve filas en la MISMA forma snake_case que `GET /api/biblioteca`
  * (item_kind, item_id, …) para que el transform de `src/api/biblioteca.ts`
- * corra igual que con el backend real. Aplica los filtros que la vista usa en
- * PR2 (tab, q, orden) y pagina por offset (cursor numérico opaco), espejo de
- * `netlify/functions/_lib/library-read-model.ts`.
+ * corra igual que con el backend real. Aplica los filtros que la vista usa
+ * (tab, q, orden, tipo, fuente, incluyeEliminados) y pagina por offset (cursor
+ * numérico opaco), espejo de `netlify/functions/_lib/library-read-model.ts`.
+ *
+ * PR4: además del GET, maneja el PATCH de acciones (renombrar / papelera /
+ * restaurar) contra una capa de overrides EN MEMORIA (espejo conceptual de
+ * `library_item_overrides`): renombrar pisa el título y `deleted` oculta el item
+ * de la lista normal y lo muestra bajo `incluyeEliminados`. Persiste durante la
+ * sesión (no toca localStorage; al recargar vuelve al seed), suficiente para
+ * recorrer rename/delete/undo/restore + la papelera en modo prueba.
  *
  * Autocontenido a propósito: NO importa el `_lib` del backend (rompería la
  * frontera frontend↔backend). La lista sembrada vive acá.
@@ -243,6 +250,29 @@ const SEED: LibraryItemRow[] = [
   },
 ]
 
+/**
+ * Capa de overrides en memoria (espejo de `library_item_overrides`). Clave
+ * lógica `kind:itemId`. Vive en el módulo: persiste durante la sesión y se
+ * pierde al recargar (modo prueba, sin DB). Solo modelamos lo que PR4 usa:
+ * título renombrado y la marca de papelera.
+ */
+type DemoOverride = { title?: string; deleted?: boolean }
+const demoOverrides = new Map<string, DemoOverride>()
+
+function overrideKey(kind: string, itemId: string): string {
+  return `${kind}:${itemId}`
+}
+
+/** Aplica los overrides en memoria a una fila del seed. */
+function applyOverride(row: LibraryItemRow): LibraryItemRow & { deleted: boolean } {
+  const ov = demoOverrides.get(overrideKey(row.item_kind, row.item_id))
+  return {
+    ...row,
+    title: ov?.title ?? row.title,
+    deleted: ov?.deleted ?? false,
+  }
+}
+
 /** Normaliza para comparar títulos sin distinguir mayúsculas/acentos. */
 function foldTitle(value: string): string {
   return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -287,6 +317,9 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
   // igual que el backend (`file_type = tipo` / `source = fuente`).
   const tipo = params.get('tipo') ?? ''
   const fuente = params.get('fuente') ?? ''
+  // Papelera (PR4): incluyeEliminados muestra los ocultos en vez de los visibles.
+  const incluyeEliminados =
+    params.get('incluyeEliminados') === 'true' || params.get('incluyeEliminados') === '1'
   // Clamp a 1..100 como el contrato del backend: un limit negativo o enorme
   // rompería el slicing y podría generar un nextCursor negativo.
   const parsedLimit = Number.parseInt(params.get('limit') ?? '', 10)
@@ -296,8 +329,14 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
   const cursorRaw = Number.parseInt(params.get('cursor') ?? '0', 10)
   const offset = Number.isFinite(cursorRaw) && cursorRaw > 0 ? cursorRaw : 0
 
+  // Aplicar overrides (título / papelera) sobre el seed, luego filtrar por el
+  // estado de papelera (la lista normal oculta los eliminados y viceversa).
+  let rows = SEED.map(applyOverride).filter((row) =>
+    incluyeEliminados ? row.deleted : !row.deleted,
+  )
+
   // Filtro por pestaña: imagenes → solo image; archivos → todo menos image.
-  let rows = SEED.filter((row) => {
+  rows = rows.filter((row) => {
     if (tab === 'imagenes') return row.file_type === 'image'
     if (tab === 'archivos') return row.file_type !== 'image'
     return true
@@ -340,7 +379,34 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
 
   const total = sorted.length
   const start = Math.min(offset, total)
-  const items = sorted.slice(start, start + limit)
+  // Sacamos el flag interno `deleted` antes de devolver: la fila del endpoint no
+  // lo lleva (el read-model real ya filtró por deleted_at en SQL).
+  const items = sorted
+    .slice(start, start + limit)
+    .map(({ deleted: _deleted, ...row }) => row)
   const nextCursor = start + limit < total ? String(start + limit) : null
   return { items, nextCursor }
+}
+
+/**
+ * Maneja un PATCH /api/biblioteca-item/:kind/:id contra la capa de overrides en
+ * memoria. `{ displayTitle }` renombra; `{ deleted }` manda a / saca de la
+ * papelera. Devuelve `{ ok: true }` (forma del endpoint real). kind/itemId
+ * vienen del path ya decodificados.
+ */
+export function routeDemoBibliotecaMutation(
+  kind: string,
+  itemId: string,
+  body: Record<string, unknown>,
+): { ok: true } {
+  const key = overrideKey(kind, itemId)
+  const current = demoOverrides.get(key) ?? {}
+  if (typeof body.displayTitle === 'string') {
+    current.title = body.displayTitle.trim()
+  }
+  if (typeof body.deleted === 'boolean') {
+    current.deleted = body.deleted
+  }
+  demoOverrides.set(key, current)
+  return { ok: true }
 }

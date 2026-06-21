@@ -1,4 +1,4 @@
-import { request } from './request'
+import { request, requestBlob } from './request'
 import type {
   BibliotecaListParams,
   BibliotecaListResult,
@@ -103,6 +103,37 @@ export function libraryItemServeUrl(item: LibraryItem): string | null {
   return `${endpoint}/${encodeStorageKey(item.storageKey)}`
 }
 
+/**
+ * ¿Se puede descargar este item? Solo si tiene una URL de servir (los dominios
+ * sin endpoint de blob — pdf-studio, pdf-stamp data-url — no son descargables y
+ * la UI oculta la acción). El download reusa esa misma URL autenticada.
+ */
+export function canDownloadLibraryItem(item: LibraryItem): boolean {
+  return libraryItemServeUrl(item) !== null
+}
+
+/** Path del endpoint de acciones, con kind/id codificados para la URL. */
+function libraryItemPath(kind: LibraryItemKind, itemId: string): string {
+  return `/api/biblioteca-item/${encodeURIComponent(kind)}/${encodeURIComponent(itemId)}`
+}
+
+/**
+ * Dispara la descarga de un blob en el navegador como `filename`. Crea un
+ * object-url efímero y un <a download> sintético; lo revoca tras el click.
+ */
+function triggerBlobDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  // Revocar en el próximo tick: algunos navegadores cancelan la descarga si la
+  // URL se revoca de forma síncrona justo después del click.
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
 export const bibliotecaApi = {
   async list(params: BibliotecaListParams = {}): Promise<BibliotecaListResult> {
     const query = buildQuery(params)
@@ -112,5 +143,40 @@ export const bibliotecaApi = {
       items: response.items.map(libraryItemFromRow),
       nextCursor: response.nextCursor,
     }
+  },
+
+  /** Renombra un item (upsert de display_title en el override). */
+  async rename(
+    kind: LibraryItemKind,
+    itemId: string,
+    displayTitle: string,
+  ): Promise<void> {
+    await request(libraryItemPath(kind, itemId), {
+      method: 'PATCH',
+      body: JSON.stringify({ displayTitle }),
+    })
+  },
+
+  /** Manda a la papelera (deleted=true) o restaura (deleted=false). */
+  async setDeleted(
+    kind: LibraryItemKind,
+    itemId: string,
+    deleted: boolean,
+  ): Promise<void> {
+    await request(libraryItemPath(kind, itemId), {
+      method: 'PATCH',
+      body: JSON.stringify({ deleted }),
+    })
+  },
+
+  /**
+   * Descarga el blob del item (fetch autenticado de su URL de servir) y lo
+   * guarda con el nombre del item. Lanza si el item no es descargable (sin URL).
+   */
+  async download(item: LibraryItem): Promise<void> {
+    const url = libraryItemServeUrl(item)
+    if (!url) throw new Error('Este archivo no se puede descargar')
+    const blob = await requestBlob(url)
+    triggerBlobDownload(blob, item.title)
   },
 }

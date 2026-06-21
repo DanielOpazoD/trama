@@ -18,23 +18,29 @@ export function BibliotecaToolbar({
   onChangeVista,
   tipo,
   fuente,
+  incluyeEliminados,
   onChangeTipo,
   onChangeFuente,
+  onToggleEliminados,
 }: {
   vista: BibliotecaVista
   onChangeVista: (next: BibliotecaVista) => void
   tipo: LibraryFileType | ''
   fuente: LibrarySource | ''
+  incluyeEliminados: boolean
   onChangeTipo: (next: LibraryFileType | '') => void
   onChangeFuente: (next: LibrarySource | '') => void
+  onToggleEliminados: (next: boolean) => void
 }) {
   return (
     <div className="flex items-center gap-1.5">
       <FilterPopover
         tipo={tipo}
         fuente={fuente}
+        incluyeEliminados={incluyeEliminados}
         onChangeTipo={onChangeTipo}
         onChangeFuente={onChangeFuente}
+        onToggleEliminados={onToggleEliminados}
       />
 
       <span aria-hidden className="h-5 w-px bg-ink-100" />

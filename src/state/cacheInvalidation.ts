@@ -74,6 +74,13 @@ export function invalidateRecorteUnpromoteSurface(queryClient: QueryClient): voi
   ])
 }
 
+export function invalidateBibliotecaSurface(queryClient: QueryClient): void {
+  // El prefijo `['biblioteca', 'infinite']` cubre TODAS las variantes de filtro
+  // (tab/q/orden/tipo/fuente) y la papelera, así que un solo invalidate
+  // reconcilia la lista entera tras renombrar / eliminar / restaurar.
+  invalidateMany(queryClient, [queryKeys.bibliotecaInfinite])
+}
+
 export function invalidateMomentosSurface(queryClient: QueryClient): void {
   invalidateMany(queryClient, [
     queryKeys.momentosInfinite,

@@ -104,3 +104,36 @@ export function formatShortDate(iso: string): string {
   if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleDateString('es', { day: 'numeric', month: 'short' })
 }
+
+/**
+ * Extrae la extensión de un nombre de archivo (con el punto, p. ej. `.pdf`), o
+ * '' si no tiene una "de verdad". Reglas conservadoras para no inventar
+ * extensiones donde no las hay:
+ *   - el punto no puede ser el primero (`.gitignore` no tiene extensión)
+ *   - debe haber algo antes del punto
+ *   - 1..8 caracteres alfanuméricos tras el último punto
+ */
+export function fileExtension(name: string): string {
+  const dot = name.lastIndexOf('.')
+  if (dot <= 0 || dot === name.length - 1) return ''
+  const ext = name.slice(dot + 1)
+  return /^[A-Za-z0-9]{1,8}$/.test(ext) ? name.slice(dot) : ''
+}
+
+/**
+ * Resuelve el nombre final al renombrar, preservando la extensión del original
+ * si el usuario la quitó. Ej.: original `a.pdf`, escrito `b` → `b.pdf`. Si el
+ * usuario tipeó SU propia extensión (la misma u otra) se respeta tal cual.
+ * Recorta espacios; devuelve '' si el nombre queda vacío (el caller valida).
+ */
+export function resolveRenamedTitle(original: string, typed: string): string {
+  const trimmed = typed.trim()
+  if (!trimmed) return ''
+  const originalExt = fileExtension(original)
+  if (!originalExt) return trimmed
+  // Si ya termina con la extensión original (sin distinguir mayúsculas), o si el
+  // usuario escribió otra extensión propia, no tocamos nada.
+  if (trimmed.toLowerCase().endsWith(originalExt.toLowerCase())) return trimmed
+  if (fileExtension(trimmed)) return trimmed
+  return `${trimmed}${originalExt}`
+}
