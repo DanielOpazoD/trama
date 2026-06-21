@@ -29,6 +29,29 @@
 Deploy de producción después de cambiar variables (las functions las leen en
 runtime, pero el front necesita rebuild por la `VITE_*`).
 
+## Contrato de identidad legacy
+
+Desde `20260621010000_legacy_user_id_drop_defaults`,
+`legacy-single-user` queda como compatibilidad histórica, no como default
+operativo. Las tablas privadas que nacieron durante el rollout multiusuario ya
+no tienen `user_id DEFAULT 'legacy-single-user'`: cada handler debe resolver
+usuario con `getAuthedUser()` y escribir `user_id` explícitamente. Si una
+mutación nueva olvida `user_id`, Postgres debe fallar con `NOT NULL` en vez de
+crear filas silenciosamente bajo el tenant histórico.
+
+Gates obligatorios:
+
+```bash
+npm run check:legacy-identity-contracts
+npm run check:legacy-identity-schema
+```
+
+`check:legacy-identity-contracts` es estático y corre sin DB: revisa que toda
+tabla con default legacy histórico tenga una migración posterior `DROP DEFAULT`.
+`check:legacy-identity-schema` corre contra Postgres real en el job
+`migrations`, después de aplicar todas las migraciones, y confirma que la DB
+migrada quedó sin defaults legacy efectivos.
+
 ## Lectura correcta de señales
 
 - **CI verde no equivale a cutover multiusuario**: CI prueba contratos locales,
@@ -310,15 +333,18 @@ soft-borra todas las fixtures de A.
 - [ ] Usuario B no lista, borra ni descarga blobs/anexos de A.
 - [ ] Logs no contienen token, body, password ni detalles sensibles.
 - [ ] RLS cubre toda tabla versionada con `user_id`.
+- [ ] `legacy-single-user` no aparece como `DEFAULT` efectivo de `user_id` en
+      tablas privadas (`check:legacy-identity-*` verdes).
 
 ## Quality gates por dominio crítico
 
-| Dominio     | Gate vivo                                                      | Evidencia mínima                                                                             |
-| ----------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Auth        | Anónimo, token revocado y PAT inválido no acceden              | `npm run check:legacy-fallback`, `npm run smoke:multiuser:prod`, `npm run e2e:multiuser`     |
-| RLS         | Toda tabla `user_id` tiene RLS, FK a `users` y contexto seguro | `netlify/functions/_lib/isolation-guardrail.test.ts`, `query.integration.test.ts`            |
-| Soft delete | Delete/restore privado usa scope por dueño y 0 filas no es 2xx | `npm run check:hard-delete-allowlist`, `npm run check:cte-regression`, tests de endpoints    |
-| Blobs       | List/download/delete validan dueño activo antes de tocar store | smoke multiusuario, `notas-attachments-*`, `momentos-file` y tests de endpoints autenticados |
+| Dominio          | Gate vivo                                                              | Evidencia mínima                                                                             |
+| ---------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Auth             | Anónimo, token revocado y PAT inválido no acceden                      | `npm run check:legacy-fallback`, `npm run smoke:multiuser:prod`, `npm run e2e:multiuser`     |
+| Identidad legacy | `legacy-single-user` es compatibilidad histórica, no default operativo | `npm run check:legacy-identity-contracts`, `npm run check:legacy-identity-schema`            |
+| RLS              | Toda tabla `user_id` tiene RLS, FK a `users` y contexto seguro         | `netlify/functions/_lib/isolation-guardrail.test.ts`, `query.integration.test.ts`            |
+| Soft delete      | Delete/restore privado usa scope por dueño y 0 filas no es 2xx         | `npm run check:hard-delete-allowlist`, `npm run check:cte-regression`, tests de endpoints    |
+| Blobs            | List/download/delete validan dueño activo antes de tocar store         | smoke multiusuario, `notas-attachments-*`, `momentos-file` y tests de endpoints autenticados |
 
 ## Inventario ejecutable Auth/RLS
 
@@ -350,9 +376,17 @@ otro → A revoca desde "quién tiene acceso" → B deja de ver.
 
 ## Rollback
 
-`ALLOW_LEGACY_FALLBACK=true` + redeploy restaura el comportamiento previo
-(requests sin token vuelven a caer al usuario legacy). Las llaves de Clerk
-pueden quedarse: con token válido el flujo es idéntico.
+`ALLOW_LEGACY_FALLBACK=true` + redeploy restaura el fallback de auth previo
+(requests sin token vuelven a caer al usuario legacy), pero **no restaura** los
+defaults de base de datos quitados por
+`20260621010000_legacy_user_id_drop_defaults`. Ese cambio es deliberadamente
+fail-closed: si un handler no escribe `user_id`, debe fallar incluso durante un
+rollback de auth.
+
+Si una emergencia demuestra que una ruta productiva legítima dependía del
+default legacy, la reversión correcta es crear una migración nueva y temporal
+que restaure el default solo para la tabla afectada, con comentario de incidente
+y test que cubra el handler. No editar la migración ya aplicada.
 
 ## Después del cutover
 
