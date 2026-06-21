@@ -41,31 +41,33 @@ mutaciones privadas y smokes productivos.
 
 Vocabulario permitido:
 
-| Evento               | Cuándo aparece                                     | Severidad típica |
-| -------------------- | -------------------------------------------------- | ---------------- |
-| `auth.denied`        | Request privada termina en 401                     | `warn`           |
-| `auth.fallback`      | Clerk no está configurado, owner legacy o fallback | `warn`           |
-| `auth.verified`      | Token/PAT válido resuelve owner                    | `info`           |
-| `owner.mismatch`     | Recurso existe pero no pertenece al owner actual   | `warn`           |
-| `blob.access.denied` | Blob/attachment privado rechaza acceso cross-user  | `warn`           |
-| `mutation.created`   | Mutación crea fixture o entidad privada observable | `info`           |
-| `mutation.deleted`   | Mutación borra/soft-delete fixture privada         | `info`           |
-| `smoke.passed`       | Smoke multiusuario productivo termina verde        | `info`           |
-| `smoke.failed`       | Smoke multiusuario productivo falla                | `error`          |
+| Evento                    | Cuándo aparece                                                  | Severidad típica |
+| ------------------------- | --------------------------------------------------------------- | ---------------- |
+| `auth.denied`             | Request privada termina en 401                                  | `warn`           |
+| `auth.fallback`           | Clerk no está configurado, owner legacy o fallback              | `warn`           |
+| `auth.verified`           | Token/PAT válido resuelve owner                                 | `info`           |
+| `owner.mismatch`          | Recurso existe pero no pertenece al owner actual                | `warn`           |
+| `blob.access.denied`      | Blob/attachment privado rechaza acceso cross-user               | `warn`           |
+| `mutation.created`        | Mutación crea fixture o entidad privada observable              | `info`           |
+| `mutation.deleted`        | Mutación borra/soft-delete fixture privada                      | `info`           |
+| `smoke.passed`            | Smoke multiusuario productivo termina verde                     | `info`           |
+| `smoke.failed`            | Smoke multiusuario productivo falla                             | `error`          |
+| `storage.manifest.failed` | Registro en `storage_assets` falla después de validar ownership | `error`          |
 
 Matriz de acción rápida:
 
-| Evento               | Origen principal                           | Acción esperada                                              |
-| -------------------- | ------------------------------------------ | ------------------------------------------------------------ |
-| `auth.denied`        | `withObservability` ante request sin auth  | Confirmar anónimo = 401 y que no esté activo fallback legacy |
-| `auth.fallback`      | `getAuthedUser()`                          | Revisar `ALLOW_LEGACY_FALLBACK` y owner legacy               |
-| `auth.verified`      | `getAuthedUser()`                          | Usar como correlación de owner para requestId                |
-| `owner.mismatch`     | Mutación/lectura por id scopiada por owner | Investigar intento cross-user o fixture inexistente          |
-| `blob.access.denied` | Lectura/delete de attachment/blob privado  | Revisar key namespace, owner y endpoint de blobs             |
-| `mutation.created`   | Smoke o mutación privada observable        | Confirmar cleanup/soft-delete posterior                      |
-| `mutation.deleted`   | Smoke o mutación privada observable        | Confirmar que el owner ya no lista el fixture                |
-| `smoke.passed`       | `smoke:production-report`                  | Pegar Markdown en PR/incidente                               |
-| `smoke.failed`       | `smoke:production-report`                  | Bloquear merge/deploy hasta aislar causa                     |
+| Evento                    | Origen principal                           | Acción esperada                                              |
+| ------------------------- | ------------------------------------------ | ------------------------------------------------------------ |
+| `auth.denied`             | `withObservability` ante request sin auth  | Confirmar anónimo = 401 y que no esté activo fallback legacy |
+| `auth.fallback`           | `getAuthedUser()`                          | Revisar `ALLOW_LEGACY_FALLBACK` y owner legacy               |
+| `auth.verified`           | `getAuthedUser()`                          | Usar como correlación de owner para requestId                |
+| `owner.mismatch`          | Mutación/lectura por id scopiada por owner | Investigar intento cross-user o fixture inexistente          |
+| `blob.access.denied`      | Lectura/delete de attachment/blob privado  | Revisar key namespace, owner y endpoint de blobs             |
+| `mutation.created`        | Smoke o mutación privada observable        | Confirmar cleanup/soft-delete posterior                      |
+| `mutation.deleted`        | Smoke o mutación privada observable        | Confirmar que el owner ya no lista el fixture                |
+| `smoke.passed`            | `smoke:production-report`                  | Pegar Markdown en PR/incidente                               |
+| `smoke.failed`            | `smoke:production-report`                  | Bloquear merge/deploy hasta aislar causa                     |
+| `storage.manifest.failed` | `recordStorageAsset()`                     | Revisar DB/RLS y reintentar; usar `keyHash`, no storage key  |
 
 El payload permitido debe caber en contexto operacional: `requestId`, `method`,
 `path sin querystring`, `operation`, `userId`, `status`, `reason` y `details` ya
@@ -153,7 +155,15 @@ TTFT = Time to First Token (relevante para streaming).
 
 Decisiones aplazadas, documentadas para no re-discutirlas:
 
-- **Sentry / Datadog / similar**: no es necesario hoy (app privada, low volume). El stack interno con `error_log` + `logEvent` cubre los casos relevantes sin enviar stacks a otro SaaS. Si en el futuro el volume justifica un SaaS, considerar Sentry (gratis hasta 5k events/month).
+- **Sentry / Datadog / similar**: no es dependencia de runtime hoy. El stack
+  interno con `error_log` + `logEvent` cubre los casos relevantes sin enviar
+  stacks a otro SaaS. Si en el futuro el volumen justifica Sentry, la
+  integracion debe ser privacy-first: tags seguros (`requestId`, `route`,
+  `operation`, `release`, `userPresent`), redaccion de payloads/breadcrumbs,
+  source maps controlados y cero contenido de notas, recortes, prompts, PDFs,
+  attachments, emails, tokens o storage keys completas.
+- **Chrome DevTools AI como runtime**: no se integra en la app. Se usa solo como
+  herramienta manual de debugging siguiendo `docs/devtools-ai-debugging.md`.
 - **OpenTelemetry**: idem — el costo de instrumentación supera el valor mientras siga siendo una app privada de bajo tráfico.
 - **PagerDuty / on-call**: la app no es crítica de negocio. Si se rompe a la madrugada, espera.
 - **APM real**: Netlify deja ver latencia per-function en su dashboard; no agregamos otra capa.

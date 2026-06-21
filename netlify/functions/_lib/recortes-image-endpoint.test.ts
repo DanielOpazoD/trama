@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { expectCanonicalError, mockContext } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  mockSqlState,
+  setupMockSql,
+} from './test-utils'
 
 /**
  * Endpoints de imagen interna de Recortes (Bloque B+): subida al store
@@ -19,6 +25,7 @@ vi.mock('@netlify/blobs', () => ({
     getWithMetadata: blobMocks.getWithMetadata,
   })),
 }))
+vi.mock('./db.js', () => setupMockSql())
 
 import uploadHandler from '../recortes-image-upload'
 import serveHandler from '../recortes-image'
@@ -32,6 +39,7 @@ function formWithFile(file: File) {
 describe('recortes-image-upload', () => {
   beforeEach(() => {
     blobMocks.set.mockClear()
+    mockSqlResponses.reset()
   })
 
   it('rechaza métodos no POST y bodies que no sean multipart', async () => {
@@ -92,9 +100,16 @@ describe('recortes-image-upload', () => {
       code: 'PAYLOAD_TOO_LARGE',
     })
     expect(blobMocks.set).not.toHaveBeenCalled()
+    expect(
+      mockSqlState.calls.some((call) =>
+        /INSERT INTO storage_assets/i.test(call.template),
+      ),
+    ).toBe(false)
   })
 
   it('sube la imagen namespaced por usuario y devuelve imageKey', async () => {
+    mockSqlResponses.push([], [{ id: 'asset-recorte-image' }])
+
     const res = await uploadHandler(
       new Request('http://localhost/api/recortes-image-upload', {
         method: 'POST',
@@ -112,9 +127,25 @@ describe('recortes-image-upload', () => {
     expect(blobMocks.set).toHaveBeenCalledWith(body.imageKey, expect.any(ArrayBuffer), {
       metadata: { mime: 'image/webp', size: '3' },
     })
+    const manifestInsert = mockSqlState.calls.find((call) =>
+      /INSERT INTO storage_assets/i.test(call.template),
+    )
+    expect(manifestInsert?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'recortes-media',
+        'recorte-upload',
+        body.imageKey,
+        'netlify-blobs',
+        'image/webp',
+        3,
+      ]),
+    )
   })
 
   it('sube videos de recortes al mismo store de media', async () => {
+    mockSqlResponses.push([], [{ id: 'asset-recorte-video' }])
+
     const res = await uploadHandler(
       new Request('http://localhost/api/recortes-image-upload', {
         method: 'POST',
@@ -134,6 +165,20 @@ describe('recortes-image-upload', () => {
     expect(blobMocks.set).toHaveBeenCalledWith(body.imageKey, expect.any(ArrayBuffer), {
       metadata: { mime: 'video/mp4', size: '4' },
     })
+    const manifestInsert = mockSqlState.calls.find((call) =>
+      /INSERT INTO storage_assets/i.test(call.template),
+    )
+    expect(manifestInsert?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'recortes-media',
+        'recorte-upload',
+        body.imageKey,
+        'netlify-blobs',
+        'video/mp4',
+        4,
+      ]),
+    )
   })
 })
 

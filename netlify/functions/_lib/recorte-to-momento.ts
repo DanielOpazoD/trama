@@ -1,4 +1,4 @@
-import { getStore } from '@netlify/blobs'
+import { createNetlifyBlobStorageAdapter } from './storage-adapter.js'
 
 /**
  * Promoción de una captura de imagen a un Momento foto: copia del blob entre
@@ -39,7 +39,7 @@ function randomKey(): string {
  */
 export async function removeBlob(storeName: string, key: string): Promise<void> {
   try {
-    await getStore(storeName).delete(key)
+    await createNetlifyBlobStorageAdapter(storeName).delete(key)
   } catch {
     // best-effort: si la limpieza falla, queda un huérfano (no rompe el flujo).
   }
@@ -60,17 +60,18 @@ export async function copyRecorteImageToStore(
   imageKey: string,
   userId: string,
 ): Promise<{ storageKey: string; mime: string; size: number } | null> {
-  const source = getStore('recortes-media')
-  const blob = await source.getWithMetadata(imageKey, { type: 'arrayBuffer' })
+  const source = createNetlifyBlobStorageAdapter('recortes-media')
+  const blob = await source.getWithMetadata<ArrayBuffer>(imageKey, 'arrayBuffer')
   if (!blob) return null
 
   const mime = typeof blob.metadata.mime === 'string' ? blob.metadata.mime : 'image/jpeg'
   const buffer = blob.data
   const storageKey = `${userId}/${randomKey()}.${extFromMime(mime)}`
 
-  const dest = getStore(destStoreName)
-  await dest.set(storageKey, buffer, {
-    metadata: { mime, size: String(buffer.byteLength) },
+  const dest = createNetlifyBlobStorageAdapter(destStoreName)
+  await dest.put(storageKey, buffer, {
+    mime,
+    size: String(buffer.byteLength),
   })
 
   return { storageKey, mime, size: buffer.byteLength }

@@ -105,6 +105,12 @@ jobs:
       - name: Operational observability contracts
         run: npm run check:operational-observability
 
+      # Frontera de storage: el cliente y los handlers no deben importar
+      # @netlify/blobs directo. El adapter centraliza provider actual
+      # (Netlify Blobs) y deja preparada una migración futura.
+      - name: Storage boundaries contract
+        run: npm run check:storage-boundaries
+
       # Gate de soft-delete: bloquea `DELETE FROM` nuevos fuera del allowlist
       # (los hard-deletes legítimos están enumerados en el script). Antes el
       # script existía pero no corría en ningún job.

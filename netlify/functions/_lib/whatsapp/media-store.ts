@@ -1,5 +1,5 @@
-import { getStore } from '@netlify/blobs'
 import { extFromMime } from './media.js'
+import { createNetlifyBlobStorageAdapter } from '../storage-adapter.js'
 
 /**
  * Sube un buffer de media al store de Netlify Blobs y devuelve la key con
@@ -23,9 +23,9 @@ export async function storeMedia(
   mime: string,
 ): Promise<string> {
   const key = `${userId}/${randomHex()}.${extFromMime(mime)}`
-  const store = getStore(storeName)
-  await store.set(key, buffer, {
-    metadata: { mime, size: String(buffer.byteLength) },
+  await createNetlifyBlobStorageAdapter(storeName).put(key, buffer, {
+    mime,
+    size: String(buffer.byteLength),
   })
   return key
 }

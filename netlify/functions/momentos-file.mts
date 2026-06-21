@@ -1,5 +1,4 @@
 import type { Config, Context } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -9,6 +8,7 @@ import {
   storageKeyBelongsToUser,
 } from './_lib/legacy-identity.js'
 import { runWithSystemRls } from './_lib/user-rls.js'
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
 
 /**
  * GET /api/momentos-file/:key
@@ -133,8 +133,9 @@ export default withObservability(
       return ApiErrors.notFound(requestId, 'No encontrado')
     }
 
-    const store = getStore('momentos-media')
-    const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
+    const blob = await createNetlifyBlobStorageAdapter(
+      'momentos-media',
+    ).getWithMetadata<ArrayBuffer>(key, 'arrayBuffer')
     if (!blob) {
       return ApiErrors.notFound(requestId, 'No encontrado')
     }

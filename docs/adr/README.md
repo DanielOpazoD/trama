@@ -16,20 +16,21 @@ Usamos un MADR-lite — ver [`template.md`](./template.md).
 
 ## Índice
 
-| #                                                  | Título                                                       | Status   | Date       |
-| -------------------------------------------------- | ------------------------------------------------------------ | -------- | ---------- |
-| [0001](./0001-neon-http-vs-pool.md)                | Neon HTTP serverless en lugar de connection pool             | Accepted | 2026-05-15 |
-| [0002](./0002-zod-runtime-validation.md)           | Zod en bodies de POST/PUT como defense-in-depth              | Accepted | 2026-05-17 |
-| [0003](./0003-soft-delete-everywhere.md)           | Soft delete consistente en todas las tablas de dominio       | Accepted | 2026-05-15 |
-| [0004](./0004-multi-user-progressive-rollout.md)   | Multi-user gradual sin activar Clerk al primer día           | Accepted | 2026-05-26 |
-| [0005](./0005-llm-task-routing-per-user.md)        | `ai_task_providers (user_id, task)` para config LLM per-user | Accepted | 2026-05-27 |
-| [0006](./0006-error-boundary-granular.md)          | ErrorBoundary granular per-view en ViewRouter                | Accepted | 2026-05-27 |
-| [0007](./0007-lazy-loading-per-view.md)            | Lazy loading per-view en ViewRouter                          | Accepted | 2026-05-27 |
-| [0008](./0008-webgl-threshold-sigma.md)            | SVG vs sigma.js con `WEBGL_THRESHOLD = 1000`                 | Accepted | 2026-05-27 |
-| [0009](./0009-extraction-log-single-audit.md)      | `extraction_log` como single audit log para LLM calls        | Accepted | 2026-05-27 |
-| [0010](./0010-rls-privacy-boundary.md)             | RLS como segunda barrera de privacidad, no cero-conocimiento | Accepted | 2026-06-01 |
-| [0011](./0011-legacy-identity-cutover.md)          | `legacy-single-user` como compatibilidad, no default DB      | Accepted | 2026-06-21 |
-| [0012](./0012-legacy-data-reassignment-dry-run.md) | Dry-run read-only antes de reasignar datos legacy            | Accepted | 2026-06-21 |
+| #                                                       | Título                                                       | Status   | Date       |
+| ------------------------------------------------------- | ------------------------------------------------------------ | -------- | ---------- |
+| [0001](./0001-neon-http-vs-pool.md)                     | Neon HTTP serverless en lugar de connection pool             | Accepted | 2026-05-15 |
+| [0002](./0002-zod-runtime-validation.md)                | Zod en bodies de POST/PUT como defense-in-depth              | Accepted | 2026-05-17 |
+| [0003](./0003-soft-delete-everywhere.md)                | Soft delete consistente en todas las tablas de dominio       | Accepted | 2026-05-15 |
+| [0004](./0004-multi-user-progressive-rollout.md)        | Multi-user gradual sin activar Clerk al primer día           | Accepted | 2026-05-26 |
+| [0005](./0005-llm-task-routing-per-user.md)             | `ai_task_providers (user_id, task)` para config LLM per-user | Accepted | 2026-05-27 |
+| [0006](./0006-error-boundary-granular.md)               | ErrorBoundary granular per-view en ViewRouter                | Accepted | 2026-05-27 |
+| [0007](./0007-lazy-loading-per-view.md)                 | Lazy loading per-view en ViewRouter                          | Accepted | 2026-05-27 |
+| [0008](./0008-webgl-threshold-sigma.md)                 | SVG vs sigma.js con `WEBGL_THRESHOLD = 1000`                 | Accepted | 2026-05-27 |
+| [0009](./0009-extraction-log-single-audit.md)           | `extraction_log` como single audit log para LLM calls        | Accepted | 2026-05-27 |
+| [0010](./0010-rls-privacy-boundary.md)                  | RLS como segunda barrera de privacidad, no cero-conocimiento | Accepted | 2026-06-01 |
+| [0011](./0011-legacy-identity-cutover.md)               | `legacy-single-user` como compatibilidad, no default DB      | Accepted | 2026-06-21 |
+| [0012](./0012-legacy-data-reassignment-dry-run.md)      | Dry-run read-only antes de reasignar datos legacy            | Accepted | 2026-06-21 |
+| [0013](./0013-storage-provider-migration-sequencing.md) | Adapter y manifest antes de migrar provider de storage       | Accepted | 2026-06-21 |
 
 ## Cómo agregar uno
 

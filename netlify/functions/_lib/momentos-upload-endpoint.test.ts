@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { expectCanonicalError, mockContext } from './test-utils'
+import {
+  expectCanonicalError,
+  mockContext,
+  mockSqlResponses,
+  mockSqlState,
+  setupMockSql,
+} from './test-utils'
 
 const blobMocks = vi.hoisted(() => ({
   set: vi.fn(async () => {}),
@@ -8,6 +14,7 @@ const blobMocks = vi.hoisted(() => ({
 vi.mock('@netlify/blobs', () => ({
   getStore: vi.fn(() => ({ set: blobMocks.set })),
 }))
+vi.mock('./db.js', () => setupMockSql())
 
 import photoUploadHandler from '../momentos-upload'
 import audioUploadHandler from '../momentos-audio-upload'
@@ -21,6 +28,7 @@ function formWithFile(file: File) {
 describe('momentos upload endpoints', () => {
   beforeEach(() => {
     blobMocks.set.mockClear()
+    mockSqlResponses.reset()
   })
 
   it('rechazan métodos no POST y requests que no sean multipart', async () => {
@@ -113,9 +121,16 @@ describe('momentos upload endpoints', () => {
       code: 'PAYLOAD_TOO_LARGE',
     })
     expect(blobMocks.set).not.toHaveBeenCalled()
+    expect(
+      mockSqlState.calls.some((call) =>
+        /INSERT INTO storage_assets/i.test(call.template),
+      ),
+    ).toBe(false)
   })
 
   it('sube fotos namespaced por usuario con metadata de mime y tamaño', async () => {
+    mockSqlResponses.push([], [{ id: 'asset-photo' }])
+
     const res = await photoUploadHandler(
       new Request('http://localhost/api/momentos-upload', {
         method: 'POST',
@@ -133,9 +148,25 @@ describe('momentos upload endpoints', () => {
     expect(blobMocks.set).toHaveBeenCalledWith(body.storageKey, expect.any(ArrayBuffer), {
       metadata: { mime: 'image/png', size: '3' },
     })
+    const manifestInsert = mockSqlState.calls.find((call) =>
+      /INSERT INTO storage_assets/i.test(call.template),
+    )
+    expect(manifestInsert?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'momentos-media',
+        'momentos-upload',
+        body.storageKey,
+        'netlify-blobs',
+        'image/png',
+        3,
+      ]),
+    )
   })
 
   it('sube audios namespaced por usuario con extensión derivada del MIME', async () => {
+    mockSqlResponses.push([], [{ id: 'asset-audio' }])
+
     const res = await audioUploadHandler(
       new Request('http://localhost/api/momentos-audio-upload', {
         method: 'POST',
@@ -153,5 +184,19 @@ describe('momentos upload endpoints', () => {
     expect(blobMocks.set).toHaveBeenCalledWith(body.storageKey, expect.any(ArrayBuffer), {
       metadata: { mime: 'audio/webm', size: '4' },
     })
+    const manifestInsert = mockSqlState.calls.find((call) =>
+      /INSERT INTO storage_assets/i.test(call.template),
+    )
+    expect(manifestInsert?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'momentos-media',
+        'momentos-audio-upload',
+        body.storageKey,
+        'netlify-blobs',
+        'audio/webm',
+        4,
+      ]),
+    )
   })
 })

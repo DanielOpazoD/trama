@@ -13,6 +13,7 @@ export const REQUIRED_OPERATIONAL_EVENTS = [
   'owner.mismatch',
   'smoke.failed',
   'smoke.passed',
+  'storage.manifest.failed',
 ]
 
 const REQUIRED_DOC_SNIPPETS = [
@@ -28,6 +29,7 @@ const REQUIRED_DOC_SNIPPETS = [
       'path sin querystring',
       'smoke.passed',
       'smoke.failed',
+      'storage.manifest.failed',
       'npm run smoke:production-report',
     ],
   },
@@ -118,6 +120,10 @@ const REQUIRED_EVENT_SOURCE_SNIPPETS = [
   {
     file: 'netlify/functions/recortes-image.mts',
     snippets: ['blob.access.denied', "operation: 'recorte.blob.read'"],
+  },
+  {
+    file: 'netlify/functions/_lib/storage-assets.ts',
+    snippets: ['storage.manifest.failed', 'storageKeyForLog'],
   },
 ]
 

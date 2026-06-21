@@ -1,8 +1,11 @@
 import type { Config } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { getSql } from './_lib/db.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
 
 /**
  * POST /api/momentos/upload
@@ -46,7 +49,8 @@ export default withObservability('momentos-upload', async (req: Request, _ctx, {
   // se active, los blobs de cada usuario quedan automáticamente
   // separados sin migración. Sin esto, conocer una storageKey daría
   // acceso a la foto sin importar quién la subió.
-  const { id: userId } = await getAuthedUser(req)
+  const authedUser = await getAuthedUser(req)
+  const userId = authedUser.id
 
   // Esperamos multipart/form-data con field "file".
   const contentType = req.headers.get('content-type') ?? ''
@@ -91,10 +95,23 @@ export default withObservability('momentos-upload', async (req: Request, _ctx, {
   const key = `${userId}/${randomKey()}.${ext}`
 
   // Netlify Blobs: store "momentos-media". Creado on-demand.
-  const store = getStore('momentos-media')
   const buf = await file.arrayBuffer()
-  await store.set(key, buf, {
-    metadata: { mime: file.type, size: String(buf.byteLength) },
+  const sql = getSql()
+  await ensureUserRow(sql, authedUser)
+  await createNetlifyBlobStorageAdapter('momentos-media').put(key, buf, {
+    mime: file.type,
+    size: String(buf.byteLength),
+  })
+  await recordStorageAsset(sql, {
+    userId,
+    domain: 'momentos-media',
+    ownerType: 'momentos-upload',
+    ownerId: key,
+    provider: 'netlify-blobs',
+    storageKey: key,
+    mimeType: file.type,
+    byteSize: buf.byteLength,
+    checksum: checksumSha256(buf),
   })
 
   return Response.json({

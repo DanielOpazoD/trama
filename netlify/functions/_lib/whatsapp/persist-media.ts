@@ -1,5 +1,6 @@
-import { getStore } from '@netlify/blobs'
 import { sqlTyped, type SqlClient } from '../db.js'
+import { createNetlifyBlobStorageAdapter } from '../storage-adapter.js'
+import { checksumSha256, recordStorageAsset } from '../storage-assets.js'
 import { WHATSAPP_ORIGIN, type CaptureResult } from './persist.js'
 import { audioExtFromMime } from './media.js'
 
@@ -179,8 +180,10 @@ export async function persistVoiceNoteAttachment(
   const ext = audioExtFromMime(mime)
   const fileName = `nota-de-voz.${ext}`
   const storageKey = `${userId}/${randomHex()}.${ext}`
-  await getStore('notas-attachments').set(storageKey, audio, {
-    metadata: { mime, size: String(audio.byteLength), name: fileName },
+  await createNetlifyBlobStorageAdapter('notas-attachments').put(storageKey, audio, {
+    mime,
+    size: String(audio.byteLength),
+    name: fileName,
   })
   await sqlTyped(sql`
     INSERT INTO notas_attachments (
@@ -190,4 +193,15 @@ export async function persistVoiceNoteAttachment(
       'note', ${noteId}, ${fileName}, ${mime}, ${audio.byteLength}, ${storageKey}, ${userId}
     )
   `)
+  await recordStorageAsset(sql, {
+    userId,
+    domain: 'notas-attachments',
+    ownerType: 'note',
+    ownerId: noteId,
+    provider: 'netlify-blobs',
+    storageKey,
+    mimeType: mime,
+    byteSize: audio.byteLength,
+    checksum: checksumSha256(audio),
+  })
 }

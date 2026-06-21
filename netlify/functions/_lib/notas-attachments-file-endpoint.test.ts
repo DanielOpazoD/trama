@@ -46,7 +46,11 @@ describe('notas-attachments-file endpoint', () => {
     vi.unstubAllGlobals()
   })
 
-  it('niega un key de otro usuario con 404 y SIN tocar la DB ni el blob', async () => {
+  it('niega un key de otro usuario con 404 y SIN tocar la DB ni el blob aunque exista', async () => {
+    getWithMetadata.mockResolvedValueOnce({
+      data: new Uint8Array([9, 9, 9]).buffer,
+      metadata: { mime: 'image/jpeg' },
+    })
     // storageKey = 'otro-user/foto.jpg', pero el autenticado es legacy-single-user.
     const res = await handler(
       new Request('http://localhost/api/notas-attachments-file/otro-user/foto.jpg'),

@@ -3,7 +3,10 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { extensionPreflight, withExtensionCors } from './_lib/extension-cors.js'
+import { getSql } from './_lib/db.js'
 import { RECORTE_MEDIA_MIMES, storeRecorteMedia } from './_lib/recortes-media.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
+import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
 
 /**
  * POST /api/recortes-image-upload
@@ -37,7 +40,8 @@ export default withObservability(
 
     // Namespace por usuario: conocer la imageKey no basta para leer el blob;
     // el endpoint de servido re-deriva el userId del prefijo del path.
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
 
     const contentType = req.headers.get('content-type') ?? ''
     if (!contentType.includes('multipart/form-data')) {
@@ -72,7 +76,20 @@ export default withObservability(
     // Mismo store + esquema de key que la caché de miniaturas (storeRecorteImage):
     // un solo camino de escritura de blobs de recorte, sin copias que deriven.
     const buf = await file.arrayBuffer()
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
     const key = await storeRecorteMedia(userId, buf, file.type)
+    await recordStorageAsset(sql, {
+      userId,
+      domain: 'recortes-media',
+      ownerType: 'recorte-upload',
+      ownerId: key,
+      provider: 'netlify-blobs',
+      storageKey: key,
+      mimeType: file.type,
+      byteSize: buf.byteLength,
+      checksum: checksumSha256(buf),
+    })
 
     return cors(
       Response.json({

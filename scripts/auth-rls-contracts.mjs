@@ -253,6 +253,15 @@ export const PRIVATE_TABLE_CONTRACTS = [
     reason: 'OAuth refresh tokens must be isolated to their account owner.',
   },
   {
+    table: 'storage_assets',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership: 'owner scoped blob manifest across storage providers and domains',
+    reason:
+      'Blob metadata connects private binary objects to owners before any storage provider migration.',
+  },
+  {
     table: 'tasks',
     lifecycle: 'soft-delete',
     userId: 'required',

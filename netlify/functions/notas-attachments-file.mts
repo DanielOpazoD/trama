@@ -1,11 +1,11 @@
 import type { Config, Context } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { logOperationalEvent } from './_lib/operational-events.js'
 import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
 
 const STORE = 'notas-attachments'
 
@@ -61,9 +61,10 @@ export default withObservability(
       return ApiErrors.notFound(requestId, 'No encontrado')
     }
 
-    const blob = await getStore(STORE).getWithMetadata(storageKey, {
-      type: 'arrayBuffer',
-    })
+    const blob = await createNetlifyBlobStorageAdapter(STORE).getWithMetadata<ArrayBuffer>(
+      storageKey,
+      'arrayBuffer',
+    )
     if (!blob) return ApiErrors.notFound(requestId, 'No encontrado')
 
     const ref = refs[0]!

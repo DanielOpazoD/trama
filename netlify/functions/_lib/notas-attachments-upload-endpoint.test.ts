@@ -81,6 +81,7 @@ describe('notas attachments upload endpoint', () => {
         updated_at: '2026-06-01T00:00:00.000Z',
       },
     ])
+    mockSqlResponses.push([{ id: 'asset-attachment' }])
 
     const form = new FormData()
     form.set('ownerType', 'prompt')
@@ -121,6 +122,20 @@ describe('notas attachments upload endpoint', () => {
     expect(insert?.values).toContain('brief.md')
     expect(insert?.values).toContain('text/markdown')
     expect(insert?.values).toContain(27)
+    const manifestInsert = mockSqlState.calls.find((call) =>
+      /INSERT INTO storage_assets/i.test(call.template),
+    )
+    expect(manifestInsert?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'notas-attachments',
+        'prompt',
+        'p1',
+        'netlify-blobs',
+        'text/markdown',
+        27,
+      ]),
+    )
   })
 
   it('rechaza anexos marcados como cifrados porque el vault aplica solo a Claves', async () => {

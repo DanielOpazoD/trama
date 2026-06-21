@@ -1,4 +1,4 @@
-import { getStore } from '@netlify/blobs'
+import { createNetlifyBlobStorageAdapter } from './storage-adapter.js'
 
 /**
  * Helpers compartidos del store de blobs `recortes-media`.
@@ -52,9 +52,9 @@ export async function storeRecorteMedia(
 ): Promise<string> {
   const ext = RECORTE_MEDIA_MIMES[mime] ?? 'bin'
   const key = `${userId}/${randomBlobName()}.${ext}`
-  const store = getStore(RECORTES_MEDIA_STORE)
-  await store.set(key, bytes, {
-    metadata: { mime, size: String(bytes.byteLength) },
+  await createNetlifyBlobStorageAdapter(RECORTES_MEDIA_STORE).put(key, bytes, {
+    mime,
+    size: String(bytes.byteLength),
   })
   return key
 }

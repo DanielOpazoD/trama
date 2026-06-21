@@ -27,6 +27,8 @@ const SENSITIVE_CONTENT_KEY_RE =
   /^(body|rawBody|requestBody|responseBody|prompt|input|inputText|content|text)$/i
 const SENSITIVE_PII_KEY_RE =
   /(^|[-_])(?:e[-_]?mail|email|phone|phoneNumber|telefono|teléfono)([-_]|$)|(?:email|phone|telefono|teléfono)$/i
+const SENSITIVE_STORAGE_KEY_RE =
+  /(^|[-_])(?:storage[-_]?key|blob[-_]?key|image[-_]?key|audio[-_]?key|file[-_]?key)([-_]|$)|(?:storageKey|storage_key|blobKey|blob_key|imageKey|image_key|audioKey|audio_key|fileKey|file_key)$/i
 
 const SECRET_PATTERNS: Array<[RegExp, string]> = [
   [/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]'],
@@ -52,7 +54,8 @@ function shouldRedactKey(key: string): boolean {
   return (
     SENSITIVE_KEY_RE.test(key) ||
     SENSITIVE_CONTENT_KEY_RE.test(key) ||
-    SENSITIVE_PII_KEY_RE.test(key)
+    SENSITIVE_PII_KEY_RE.test(key) ||
+    SENSITIVE_STORAGE_KEY_RE.test(key)
   )
 }
 

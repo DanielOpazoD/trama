@@ -172,6 +172,14 @@ const SCRIPT_ENTRIES = [
       'Inventaria filas y blobs legacy para planificar reasignacion futura sin escribir datos.',
   },
   {
+    file: 'scripts/storage-assets-report.mjs',
+    domain: 'database',
+    kind: 'report',
+    critical: false,
+    packageScripts: ['storage-assets:report'],
+    summary: 'Reporta cobertura read-only del manifest storage_assets por dominio.',
+  },
+  {
     file: 'scripts/check-migration-duplicates.mjs',
     domain: 'database',
     kind: 'check',
@@ -388,6 +396,14 @@ const SCRIPT_ENTRIES = [
     summary: 'Smoke productivo A/B con tokens manuales o entorno resuelto.',
   },
   {
+    file: 'scripts/storage-boundaries.mjs',
+    domain: 'database',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:storage-boundaries'],
+    summary: 'Impide imports directos de Netlify Blobs fuera del adapter central.',
+  },
+  {
     file: 'scripts/structure-ratchets.mjs',
     domain: 'ci',
     kind: 'support',
@@ -526,6 +542,13 @@ export const QUALITY_GATES = [
     phase: 'operations',
     required: true,
     summary: 'Observabilidad operacional multiusuario.',
+  },
+  {
+    command: 'npm run check:storage-boundaries',
+    job: 'lint',
+    phase: 'database',
+    required: true,
+    summary: 'Frontera de storage por adapter y manifest.',
   },
   {
     command: 'npm run check:hard-delete-allowlist',

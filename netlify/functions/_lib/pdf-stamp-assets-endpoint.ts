@@ -4,6 +4,11 @@ import { ApiErrors } from './api-error.js'
 import { getAuthedUser } from './auth.js'
 import { getSql, sqlTyped } from './db.js'
 import { withObservability } from './handler-wrap.js'
+import {
+  checksumSha256,
+  recordStorageAsset,
+  softDeleteStorageAsset,
+} from './storage-assets.js'
 import { ensureUserRow } from './user-provisioning.js'
 import { parseJsonBody } from './zod-body.js'
 
@@ -65,6 +70,10 @@ function validateImageDataUrl(
   return null
 }
 
+function stampStorageKey(userId: string, id: string): string {
+  return `pdf_stamp_assets/${userId}/${id}`
+}
+
 export default withObservability(
   'pdf-stamp-assets',
   async (req: Request, context: Context, { requestId }) => {
@@ -118,6 +127,21 @@ export default withObservability(
         RETURNING id, user_id, kind, name, src, mime_type, width, height,
                   byte_size, created_at, updated_at, last_used_at
       `)
+      await recordStorageAsset(
+        sql,
+        {
+          userId,
+          domain: 'pdf-stamp-assets',
+          ownerType: 'pdf-stamp-asset',
+          ownerId: body.id,
+          provider: 'postgres-data-url',
+          storageKey: stampStorageKey(userId, body.id),
+          mimeType: body.mimeType,
+          byteSize: size,
+          checksum: checksumSha256(body.src),
+        },
+        { requestId, operation: 'pdf-stamp-assets.create' },
+      )
       return Response.json(rows[0], { status: 201 })
     }
 
@@ -161,6 +185,12 @@ export default withObservability(
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Firma o timbre no encontrado')
       }
+      await softDeleteStorageAsset(sql, {
+        userId,
+        domain: 'pdf-stamp-assets',
+        provider: 'postgres-data-url',
+        storageKey: stampStorageKey(userId, id),
+      })
       return Response.json({ ok: true })
     }
 

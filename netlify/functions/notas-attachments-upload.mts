@@ -1,10 +1,11 @@
 import type { Config } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
 import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
 import {
   parseFormFields,
@@ -119,9 +120,11 @@ export default withObservability(
 
     const storageKey = `${userId}/${randomKey()}${extensionFor(file.name)}`
     const buf = await file.arrayBuffer()
-    const store = getStore(STORE)
-    await store.set(storageKey, buf, {
-      metadata: { mime: file.type, size: String(buf.byteLength), name: displayName },
+    const storage = createNetlifyBlobStorageAdapter(STORE)
+    await storage.put(storageKey, buf, {
+      mime: file.type,
+      size: String(buf.byteLength),
+      name: displayName,
     })
 
     const rows = await sqlTyped<AttachmentRow>(sql`
@@ -134,6 +137,17 @@ export default withObservability(
       )
       RETURNING id, owner_type, owner_id, file_name, mime_type, byte_size, storage_key, created_at, updated_at
     `)
+    await recordStorageAsset(sql, {
+      userId,
+      domain: 'notas-attachments',
+      ownerType,
+      ownerId,
+      provider: 'netlify-blobs',
+      storageKey,
+      mimeType: displayMime,
+      byteSize: displaySize,
+      checksum: checksumSha256(buf),
+    })
 
     return Response.json(rows[0], { status: 201 })
   },

@@ -1,8 +1,11 @@
 import type { Config } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { getSql } from './_lib/db.js'
+import { ensureUserRow } from './_lib/user-provisioning.js'
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
 
 /**
  * POST /api/momentos-audio-upload
@@ -53,7 +56,8 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    const { id: userId } = await getAuthedUser(req)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
 
     const contentType = req.headers.get('content-type') ?? ''
     if (!contentType.includes('multipart/form-data')) {
@@ -88,10 +92,23 @@ export default withObservability(
     // store que las fotos; momentos-file.mts re-deriva el userId al servir.
     const key = `${userId}/${randomKey()}.${ext}`
 
-    const store = getStore('momentos-media')
     const buf = await file.arrayBuffer()
-    await store.set(key, buf, {
-      metadata: { mime: file.type, size: String(buf.byteLength) },
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
+    await createNetlifyBlobStorageAdapter('momentos-media').put(key, buf, {
+      mime: file.type,
+      size: String(buf.byteLength),
+    })
+    await recordStorageAsset(sql, {
+      userId,
+      domain: 'momentos-media',
+      ownerType: 'momentos-audio-upload',
+      ownerId: key,
+      provider: 'netlify-blobs',
+      storageKey: key,
+      mimeType: file.type,
+      byteSize: buf.byteLength,
+      checksum: checksumSha256(buf),
     })
 
     return Response.json({
