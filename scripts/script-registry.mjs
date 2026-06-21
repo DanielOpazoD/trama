@@ -163,6 +163,15 @@ const SCRIPT_ENTRIES = [
       'Genera artifact Markdown con tablas, defaults removidos y checks legacy identity.',
   },
   {
+    file: 'scripts/legacy-data-reassignment-dry-run.mjs',
+    domain: 'multiuser',
+    kind: 'report',
+    critical: false,
+    packageScripts: ['legacy-data-reassignment:dry-run'],
+    summary:
+      'Inventaria filas y blobs legacy para planificar reasignacion futura sin escribir datos.',
+  },
+  {
     file: 'scripts/check-migration-duplicates.mjs',
     domain: 'database',
     kind: 'check',

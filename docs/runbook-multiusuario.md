@@ -63,6 +63,58 @@ defaults removidos y estado de checks. CI lo sube como artifact
 `migrations`, después de aplicar todas las migraciones, y confirma que la DB
 migrada quedó sin defaults legacy efectivos.
 
+## Dry-run de reasignación de datos legacy
+
+Antes de mover cualquier dato histórico desde `legacy-single-user` al `sub` real
+de Clerk del dueño, generar un inventario read-only:
+
+```bash
+LEGACY_REASSIGNMENT_TARGET_USER_ID=user_... \
+npm run legacy-data-reassignment:dry-run -- --markdown
+```
+
+Salida alternativa para adjuntar como artifact o comentario de PR:
+
+```bash
+LEGACY_REASSIGNMENT_TARGET_USER_ID=user_... \
+npm run legacy-data-reassignment:dry-run -- --json
+```
+
+Qué cubre:
+
+| Superficie | Contrato                                                                             | Riesgo que reduce                                                        |
+| ---------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| DB privada | Cuenta filas `user_id = 'legacy-single-user'` por tabla de `PRIVATE_TABLE_CONTRACTS` | Evita migrar a ciegas o descubrir tablas tarde.                          |
+| Blobs      | Lista keys sin prefijo en `momentos-media`, `recortes-media`, `notas-attachments`    | Evita romper descargas por mover solo DB o solo storage.                 |
+| Reporte    | Marca automigrable, requiere revisión y riesgo de rollback                           | Obliga a revisar tokens, attachments, sharing y media antes de escribir. |
+
+Reglas:
+
+- Este comando es read-only. Si un cambio futuro agrega `UPDATE`, `DELETE`,
+  copy de blobs o rewrite de `storage_key`, ya no pertenece a este PR.
+- Las tablas owner-scoped simples pueden quedar como candidatas a migración
+  automática futura, pero el target owner debe estar aprobado explícitamente.
+- `api_tokens`, attachments, Momentos, Recortes, sharing y cualquier blob legacy
+  sin prefijo requieren revisión manual antes de ejecución.
+- Los ejemplos de blob keys deben permanecer sanitizados en reportes públicos.
+
+Smokes mínimos antes de un PR de ejecución real:
+
+```bash
+npm run check:legacy-identity-contracts
+npm run check:user-id-writes
+npm run check:legacy-identity-schema
+E2E_BASE_URL=https://<sitio>.netlify.app \
+E2E_USER_A_TOKEN=... \
+E2E_USER_B_TOKEN=... \
+npm run cutover:smoke
+```
+
+Rollback conceptual para una ejecución futura: guardar conteos antes/después,
+ejecutar por lotes pequeños, mantener mapping de `old_user_id -> new_user_id`,
+copiar blobs antes de reescribir referencias y no borrar keys legacy hasta que
+descarga, búsqueda, feed y Momentos pasen smoke con el owner real.
+
 Smoke opcional contra deploy preview:
 
 ```bash
