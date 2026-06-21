@@ -47,6 +47,12 @@ jobs:
       - name: Operational scripts registry check
         run: npm run check:script-registry
 
+      - name: Dead-code inventory check
+        run: npm run check:knip
+
+      - name: Architecture boundaries check
+        run: npm run check:architecture
+
       # Guard de cutover multiusuario: producción nunca puede deployar sin Clerk
       # completo ni con ALLOW_LEGACY_FALLBACK=true. Netlify lo corre en build;
       # PR también debe bloquearlo antes de llegar a deploy.
