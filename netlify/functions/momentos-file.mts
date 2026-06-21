@@ -4,6 +4,10 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { getSql } from './_lib/db.js'
+import {
+  resolveStorageKeyOwner,
+  storageKeyBelongsToUser,
+} from './_lib/legacy-identity.js'
 import { runWithSystemRls } from './_lib/user-rls.js'
 
 /**
@@ -27,8 +31,6 @@ import { runWithSystemRls } from './_lib/user-rls.js'
  * hash, estos bytes son contenido privado de un usuario. No deben quedar en
  * caches compartidas ni sobrevivir como respuestas publicas de CDN.
  */
-const LEGACY_USER_ID = 'legacy-single-user'
-
 type MediaReferenceRow = {
   referenced: boolean
 }
@@ -54,7 +56,8 @@ async function isMediaReferencedByReadableMomento(
   storageKey: string,
 ): Promise<boolean> {
   const sql = getSql()
-  const rows = await runWithSystemRls(() => sql`
+  const rows = (await runWithSystemRls(
+    () => sql`
     SELECT EXISTS (
       SELECT 1
       FROM momentos m
@@ -90,19 +93,21 @@ async function isMediaReferencedByReadableMomento(
           )
       )
     ) AS referenced
-  `) as MediaReferenceRow[]
+  `,
+  )) as MediaReferenceRow[]
   return rows[0]?.referenced === true
 }
 
 async function canReadStorageKey(userId: string, key: string): Promise<boolean> {
-  const slashIdx = key.indexOf('/')
-  if (slashIdx > 0) {
-    const keyUserId = key.slice(0, slashIdx)
-    if (keyUserId === userId) return true
+  const keyOwner = resolveStorageKeyOwner(key)
+  if (keyOwner.format === 'scoped') {
+    if (storageKeyBelongsToUser(key, userId)) return true
     return isMediaReferencedByReadableMomento(userId, key)
   }
 
-  if (userId === LEGACY_USER_ID) return true
+  if (storageKeyBelongsToUser(key, userId, { allowLegacyUnscopedForLegacyUser: true })) {
+    return true
+  }
   return isMediaReferencedByReadableMomento(userId, key)
 }
 

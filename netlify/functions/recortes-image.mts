@@ -3,6 +3,7 @@ import { getStore } from '@netlify/blobs'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
+import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
 import { logOperationalEvent } from './_lib/operational-events.js'
 
 /**
@@ -52,8 +53,7 @@ export default withObservability(
 
     // El primer segmento del path debe ser el userId. Sin "/" o con prefijo
     // ajeno → 404 (no filtramos existencia: misma respuesta que key inexistente).
-    const slashIdx = key.indexOf('/')
-    if (slashIdx <= 0 || key.slice(0, slashIdx) !== userId) {
+    if (!storageKeyBelongsToUser(key, userId)) {
       logOperationalEvent({
         event: 'blob.access.denied',
         severity: 'warn',

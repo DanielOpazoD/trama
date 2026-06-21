@@ -14,6 +14,7 @@ import { createClerkClient, verifyToken } from '@clerk/backend'
 import { setCurrentRlsUser } from './user-rls'
 import { isPersonalToken, resolvePersonalToken } from './personal-tokens'
 import { logOperationalEvent } from './operational-events'
+import { LEGACY_USER_ID, resolveLegacyOwnerAlias } from './legacy-identity'
 
 /** Lee una env var de forma segura tanto en Netlify runtime como en tests. */
 function readEnv(key: string): string | undefined {
@@ -159,7 +160,7 @@ export async function getAuthedUser(
 
   // Sin Clerk: la app funciona como single-user. No hace falta opt-in.
   if (!clerkConfigured) {
-    const user = { id: 'legacy-single-user' }
+    const user = { id: LEGACY_USER_ID }
     setCurrentRlsUser(user.id)
     logAuthOperationalEvent(
       'auth.fallback',
@@ -186,10 +187,14 @@ export async function getAuthedUser(
       // arrancan con su propio espacio. Se quita en la migración multi-user
       // definitiva, sobre las llaves de producción finales.
       const ownerSub = readEnv('LEGACY_OWNER_CLERK_ID')
-      if (ownerSub && payload.sub === ownerSub) {
+      const ownerAlias = resolveLegacyOwnerAlias({
+        clerkUserId: payload.sub,
+        legacyOwnerClerkId: ownerSub,
+      })
+      if (ownerAlias) {
         const email =
           emailFromJwtPayload(payload) ?? (await fetchEmailFromClerk(payload.sub))
-        const user = { id: 'legacy-single-user', email }
+        const user = { id: ownerAlias.userId, email }
         // El email entra al contexto RLS: las policies de invitaciones por
         // correo (momento_space_*) lo comparan vía app.current_user_email.
         setCurrentRlsUser(user.id, user.email)
@@ -198,7 +203,7 @@ export async function getAuthedUser(
           'warn',
           user.id,
           authOperationalContext,
-          'legacy_owner_mapped',
+          ownerAlias.reason,
         )
         return user
       }
@@ -216,7 +221,7 @@ export async function getAuthedUser(
   // Clerk configurado pero sin token válido. ALLOW_LEGACY_FALLBACK permite
   // un cutover gradual durante el período de migración.
   if (readEnv('ALLOW_LEGACY_FALLBACK') === 'true') {
-    const user = { id: 'legacy-single-user' }
+    const user = { id: LEGACY_USER_ID }
     setCurrentRlsUser(user.id)
     logAuthOperationalEvent(
       'auth.fallback',
