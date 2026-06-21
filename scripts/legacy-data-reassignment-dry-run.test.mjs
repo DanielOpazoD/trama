@@ -1,15 +1,24 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import {
   LEGACY_BLOB_STORES,
   LEGACY_REASSIGNMENT_MODE,
   classifyBlobKey,
+  collectDatabaseInventoryFromClient,
   evaluateTableInventoryRows,
+  formatDryRunJson,
   formatDryRunMarkdown,
+  listPaginatedBlobs,
+  parseArgs,
   quoteIdentifier,
   sanitizeBlobKey,
   summarizeBlobInventory,
   summarizeDryRun,
   tableReviewPolicy,
+  writeDryRunArtifacts,
 } from './legacy-data-reassignment-dry-run.mjs'
 import { LEGACY_USER_ID } from './legacy-identity-contracts.mjs'
 
@@ -224,5 +233,149 @@ describe('legacy data reassignment dry-run', () => {
       autoMigrable: false,
       requiresReview: true,
     })
+  })
+
+  it('acumula warnings cuando una tabla falla sin abortar el inventario SQL', async () => {
+    const fakeClient = {
+      async query(sql, params) {
+        const [tableName] = params
+        if (tableName === 'recortes') {
+          const err = new Error('relation does not exist')
+          err.code = '42P01'
+          throw err
+        }
+        return { rows: [{ table_name: tableName, legacy_rows: 3 }] }
+      },
+    }
+
+    const inventory = await collectDatabaseInventoryFromClient(fakeClient, [
+      { table: 'notes', lifecycle: 'soft-delete', reason: 'private notes' },
+      { table: 'recortes', lifecycle: 'soft-delete', reason: 'private clips' },
+    ])
+
+    expect(inventory.totalLegacyRows).toBe(3)
+    expect(inventory.tables).toContainEqual(
+      expect.objectContaining({ table: 'notes', legacyRows: 3 }),
+    )
+    expect(inventory.tables).toContainEqual(
+      expect.objectContaining({ table: 'recortes', legacyRows: 0 }),
+    )
+    expect(inventory.warnings).toEqual([
+      expect.stringContaining('recortes: no se pudo leer inventario legacy (42P01'),
+    ])
+  })
+
+  it('lista blobs paginados hasta agotar cursor', async () => {
+    const calls = []
+    const fakeStore = {
+      async list(options) {
+        calls.push(options ?? null)
+        if (!options?.cursor) {
+          return { blobs: [{ key: 'legacy-a.png' }], cursor: 'page-2' }
+        }
+        return { blobs: [{ key: 'user_123/scoped.png' }] }
+      },
+    }
+
+    const blobs = await listPaginatedBlobs(fakeStore)
+
+    expect(calls).toEqual([null, { cursor: 'page-2' }])
+    expect(blobs).toEqual([{ key: 'legacy-a.png' }, { key: 'user_123/scoped.png' }])
+  })
+
+  it('mantiene decisiones de migracion iguales aunque se declare target owner', () => {
+    const database = evaluateTableInventoryRows(
+      [{ table_name: 'notas_attachments', legacy_rows: 2 }],
+      [
+        {
+          table: 'notas_attachments',
+          lifecycle: 'soft-delete',
+          reason: 'attachment metadata',
+        },
+      ],
+    )
+    const blobs = {
+      storesChecked: 1,
+      totalKeys: 1,
+      totalLegacyUnscopedKeys: 1,
+      stores: [
+        summarizeBlobInventory({
+          storeName: 'notas-attachments',
+          blobs: [{ key: 'legacy-photo.png' }],
+        }),
+      ],
+      warnings: [],
+    }
+
+    const withoutTarget = summarizeDryRun({ database, blobs, targetUserId: null })
+    const withTarget = summarizeDryRun({ database, blobs, targetUserId: 'user_real' })
+
+    expect(withTarget.summary.targetUserId).toBe('user_real')
+    expect(withTarget.summary.manualReviewItems).toBe(
+      withoutTarget.summary.manualReviewItems,
+    )
+    expect(withTarget.database.tables).toEqual(withoutTarget.database.tables)
+    expect(withTarget.blobs.stores).toEqual(withoutTarget.blobs.stores)
+  })
+
+  it('escribe artifacts Markdown y JSON cuando se entrega outDir', async () => {
+    const outDir = await mkdtemp(join(tmpdir(), 'legacy-reassignment-'))
+    try {
+      const database = evaluateTableInventoryRows(
+        [{ table_name: 'notes', legacy_rows: 1 }],
+        [{ table: 'notes', lifecycle: 'soft-delete', reason: 'private notes' }],
+      )
+      const blobs = {
+        storesChecked: 0,
+        totalKeys: 0,
+        totalLegacyUnscopedKeys: 0,
+        stores: [],
+        warnings: [],
+      }
+      const report = summarizeDryRun({
+        database,
+        blobs,
+        generatedAt: '2026-06-21T00:00:00.000Z',
+      })
+
+      const files = await writeDryRunArtifacts(report, outDir)
+
+      expect(files).toEqual({
+        json: join(outDir, 'legacy-data-reassignment-report.json'),
+        markdown: join(outDir, 'legacy-data-reassignment-report.md'),
+      })
+      await expect(readFile(files.markdown, 'utf8')).resolves.toContain(
+        '# Legacy Data Reassignment Dry Run',
+      )
+      await expect(readFile(files.json, 'utf8')).resolves.toBe(formatDryRunJson(report))
+    } finally {
+      await rm(outDir, { recursive: true, force: true })
+    }
+  })
+
+  it('parsea out-dir sin activar escrituras sobre datos', () => {
+    expect(parseArgs(['--json', '--out-dir=/tmp/legacy-report'])).toMatchObject({
+      json: true,
+      markdown: false,
+      outDir: '/tmp/legacy-report',
+      includeDb: true,
+      includeBlobs: true,
+    })
+  })
+
+  it('mantiene el script sin caminos de escritura de datos o blobs', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'scripts/legacy-data-reassignment-dry-run.mjs'),
+      'utf8',
+    )
+    const forbiddenDataWrites = [
+      /\bstore\.(set|delete|upload|copy)\s*\(/,
+      /\bclient\.query\(\s*`[^`]*\b(UPDATE|DELETE|INSERT|ALTER|DROP)\b/i,
+      /\bgetStore\([^)]*\)\.(set|delete|upload|copy)\s*\(/,
+    ]
+
+    for (const forbidden of forbiddenDataWrites) {
+      expect(source).not.toMatch(forbidden)
+    }
   })
 })

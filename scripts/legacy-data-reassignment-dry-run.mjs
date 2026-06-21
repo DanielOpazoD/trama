@@ -11,6 +11,8 @@
 
 import { getStore } from '@netlify/blobs'
 import pg from 'pg'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { PRIVATE_TABLE_CONTRACTS } from './auth-rls-contracts.mjs'
 import { LEGACY_USER_ID } from './legacy-identity-contracts.mjs'
@@ -150,30 +152,37 @@ export async function collectDatabaseInventory({
 } = {}) {
   const client = new pg.Client({ connectionString: dbUrl })
   await client.connect()
+  try {
+    return await collectDatabaseInventoryFromClient(client, tableContracts)
+  } finally {
+    await client.end()
+  }
+}
+
+export async function collectDatabaseInventoryFromClient(
+  client,
+  tableContracts = PRIVATE_TABLE_CONTRACTS,
+) {
   const rows = []
   const warnings = []
 
-  try {
-    for (const contract of tableContracts) {
-      const tableName = contract.table
-      try {
-        const { rows: resultRows } = await client.query(
-          `SELECT $1::text AS table_name, COUNT(*)::int AS legacy_rows
-           FROM ${quoteIdentifier(tableName)}
-           WHERE user_id = $2`,
-          [tableName, LEGACY_USER_ID],
-        )
-        rows.push(resultRows[0])
-      } catch (err) {
-        warnings.push(
-          `${tableName}: no se pudo leer inventario legacy (${err?.code ?? 'sin_codigo'}: ${
-            err?.message ?? 'sin detalle'
-          })`,
-        )
-      }
+  for (const contract of tableContracts) {
+    const tableName = contract.table
+    try {
+      const { rows: resultRows } = await client.query(
+        `SELECT $1::text AS table_name, COUNT(*)::int AS legacy_rows
+         FROM ${quoteIdentifier(tableName)}
+         WHERE user_id = $2`,
+        [tableName, LEGACY_USER_ID],
+      )
+      rows.push(resultRows[0])
+    } catch (err) {
+      warnings.push(
+        `${tableName}: no se pudo leer inventario legacy (${err?.code ?? 'sin_codigo'}: ${
+          err?.message ?? 'sin detalle'
+        })`,
+      )
     }
-  } finally {
-    await client.end()
   }
 
   const inventory = evaluateTableInventoryRows(rows, tableContracts)
@@ -229,8 +238,7 @@ export function summarizeBlobInventory({
   }
 }
 
-async function listAllStoreBlobs(storeName) {
-  const store = getStore(storeName)
+export async function listPaginatedBlobs(store) {
   const blobs = []
   let cursor
 
@@ -241,6 +249,10 @@ async function listAllStoreBlobs(storeName) {
   } while (cursor)
 
   return blobs
+}
+
+async function listAllStoreBlobs(storeName) {
+  return listPaginatedBlobs(getStore(storeName))
 }
 
 export async function collectBlobInventory({
@@ -400,7 +412,22 @@ export function formatDryRunMarkdown(report) {
   return `${lines.join('\n')}\n`
 }
 
-function parseArgs(argv) {
+export function formatDryRunJson(report) {
+  return `${JSON.stringify(report, null, 2)}\n`
+}
+
+export async function writeDryRunArtifacts(report, outDir) {
+  await mkdir(outDir, { recursive: true })
+  const files = {
+    json: join(outDir, 'legacy-data-reassignment-report.json'),
+    markdown: join(outDir, 'legacy-data-reassignment-report.md'),
+  }
+  await writeFile(files.json, formatDryRunJson(report), 'utf8')
+  await writeFile(files.markdown, formatDryRunMarkdown(report), 'utf8')
+  return files
+}
+
+export function parseArgs(argv) {
   const options = {
     json: false,
     markdown: false,
@@ -408,6 +435,7 @@ function parseArgs(argv) {
     includeBlobs: true,
     sampleLimit: DEFAULT_SAMPLE_LIMIT,
     targetUserId: process.env.LEGACY_REASSIGNMENT_TARGET_USER_ID ?? null,
+    outDir: null,
   }
 
   for (const arg of argv) {
@@ -419,6 +447,8 @@ function parseArgs(argv) {
       options.sampleLimit = Math.max(0, numberFromUnknown(arg.split('=')[1]))
     } else if (arg.startsWith('--target-user-id=')) {
       options.targetUserId = arg.slice('--target-user-id='.length) || null
+    } else if (arg.startsWith('--out-dir=')) {
+      options.outDir = arg.slice('--out-dir='.length) || null
     } else {
       throw new Error(`Argumento no reconocido: ${arg}`)
     }
@@ -444,7 +474,12 @@ async function main() {
       }
   const report = summarizeDryRun({ database, blobs, targetUserId: options.targetUserId })
 
-  if (options.json) console.log(JSON.stringify(report, null, 2))
+  if (options.outDir) {
+    const files = await writeDryRunArtifacts(report, options.outDir)
+    console.error(`Artifacts dry-run escritos en ${files.markdown} y ${files.json}`)
+  }
+
+  if (options.json) process.stdout.write(formatDryRunJson(report))
   if (options.markdown) console.log(formatDryRunMarkdown(report))
 }
 

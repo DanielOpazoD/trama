@@ -80,6 +80,13 @@ LEGACY_REASSIGNMENT_TARGET_USER_ID=user_... \
 npm run legacy-data-reassignment:dry-run -- --json
 ```
 
+Para guardar ambos formatos como artifact local:
+
+```bash
+LEGACY_REASSIGNMENT_TARGET_USER_ID=user_... \
+npm run legacy-data-reassignment:dry-run -- --out-dir=artifacts/legacy-dry-run
+```
+
 Qué cubre:
 
 | Superficie | Contrato                                                                             | Riesgo que reduce                                                        |

@@ -39,6 +39,7 @@ npm run legacy-data-reassignment:dry-run -- --target-user-id=user_...
 npm run legacy-data-reassignment:dry-run -- --no-db
 npm run legacy-data-reassignment:dry-run -- --no-blobs
 npm run legacy-data-reassignment:dry-run -- --sample-limit=3
+npm run legacy-data-reassignment:dry-run -- --out-dir=artifacts/legacy-dry-run
 ```
 
 Variables relevantes:
@@ -140,6 +141,8 @@ Antes de aprobar este PR, revisar:
   sharing, attachments o media.
 - Los ejemplos de blob keys se sanitizan antes de aparecer en Markdown/JSON.
 - El target owner aparece solo como dato de contexto; no se usa para escribir.
+- `--out-dir` solo escribe artifacts locales Markdown/JSON; no escribe datos
+  productivos.
 - El runbook explica que el PR futuro de ejecucion debe tener smokes A/B,
   conteos antes/despues y rollback propio.
 
