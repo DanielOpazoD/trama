@@ -5,6 +5,7 @@ import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { logOperationalEvent } from './_lib/operational-events.js'
+import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
 
 const STORE = 'notas-attachments'
 
@@ -24,7 +25,7 @@ export default withObservability(
     if (!rawKey) return ApiErrors.validation(requestId, 'key requerida')
     const storageKey = decodeURIComponent(rawKey)
     const { id: userId } = await getAuthedUser(req)
-    if (!storageKey.startsWith(`${userId}/`)) {
+    if (!storageKeyBelongsToUser(storageKey, userId)) {
       logOperationalEvent({
         event: 'blob.access.denied',
         severity: 'warn',

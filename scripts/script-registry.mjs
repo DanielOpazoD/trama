@@ -136,6 +136,33 @@ const SCRIPT_ENTRIES = [
     summary: 'Evita deploy productivo con fallback legacy o Clerk incompleto.',
   },
   {
+    file: 'scripts/check-legacy-identity-schema.mjs',
+    domain: 'database',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:legacy-identity-schema'],
+    summary:
+      'Consulta Postgres real para confirmar que user_id no conserva DEFAULT legacy.',
+  },
+  {
+    file: 'scripts/legacy-identity-contracts.mjs',
+    domain: 'auth',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:legacy-identity-contracts'],
+    summary:
+      'Verifica que legacy-single-user sea compatibilidad historica y no DEFAULT operativo.',
+  },
+  {
+    file: 'scripts/legacy-identity-report.mjs',
+    domain: 'auth',
+    kind: 'report',
+    critical: false,
+    packageScripts: ['legacy-identity:report'],
+    summary:
+      'Genera artifact Markdown con tablas, defaults removidos y checks legacy identity.',
+  },
+  {
     file: 'scripts/check-migration-duplicates.mjs',
     domain: 'database',
     kind: 'check',
@@ -272,6 +299,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Corre smoke focalizado de aislamiento A/B contra un deploy.',
   },
   {
+    file: 'scripts/run-legacy-identity-smoke.mjs',
+    domain: 'multiuser',
+    kind: 'smoke',
+    critical: false,
+    packageScripts: ['cutover:smoke:legacy-identity'],
+    summary:
+      'Smoke opcional para deploy preview: A crea, B no lee y owner legacy puede leer.',
+  },
+  {
     file: 'scripts/run-cutover-smoke.mjs',
     domain: 'multiuser',
     kind: 'smoke',
@@ -308,6 +344,15 @@ const SCRIPT_ENTRIES = [
     critical: true,
     packageScripts: ['check:runtime-api-routes'],
     summary: 'Verifica que wrappers Netlify exporten config.path runtime.',
+  },
+  {
+    file: 'scripts/user-id-write-contracts.mjs',
+    domain: 'auth',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:user-id-writes'],
+    summary:
+      'Impide que INSERTs productivos a tablas privadas dependan de DEFAULT user_id.',
   },
   {
     file: 'scripts/search-scale-benchmark.mjs',
@@ -397,6 +442,13 @@ export const QUALITY_GATES = [
     summary: 'Regresión SQL de CTEs atómicos sobre DB throwaway.',
   },
   {
+    command: 'npm run check:legacy-identity-schema',
+    job: 'migrations',
+    phase: 'database',
+    required: true,
+    summary: 'DB migrada no conserva defaults legacy de user_id.',
+  },
+  {
     command: 'npm run check:script-registry',
     job: 'lint',
     phase: 'operations',
@@ -416,6 +468,27 @@ export const QUALITY_GATES = [
     phase: 'auth',
     required: true,
     summary: 'Contratos RLS y multiusuario.',
+  },
+  {
+    command: 'npm run check:legacy-identity-contracts',
+    job: 'lint',
+    phase: 'auth',
+    required: true,
+    summary: 'legacy-single-user no puede seguir como DEFAULT operativo.',
+  },
+  {
+    command: 'npm run check:user-id-writes',
+    job: 'lint',
+    phase: 'auth',
+    required: true,
+    summary: 'INSERTs privados escriben user_id explícito.',
+  },
+  {
+    command: 'npm run legacy-identity:report',
+    job: 'lint',
+    phase: 'auth',
+    required: false,
+    summary: 'Artifact Markdown con evidencia de identidad legacy.',
   },
   {
     command: 'npm run check:runtime-api-routes',

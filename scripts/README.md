@@ -14,33 +14,33 @@ agregalo a `QUALITY_GATES`.
 
 ## Rutas de uso
 
-| Momento                 | Comandos habituales                                                                                                          | Notas                                                           |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Antes de commit         | `npm run format:check`, test focalizado, `npm run check:script-registry`                                                     | Feedback rapido antes de push.                                  |
-| Antes de abrir PR       | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`                                                             | Base amplia si el cambio toca varias superficies.               |
-| Cambios API/backend     | `check:api-request-contracts`, `check:runtime-api-routes`, `check:backend-domain-services`, `check:client-api-contracts`     | Mantiene parsers, wrappers Netlify y servicios testeables.      |
-| Cambios auth/multiuser  | `check:legacy-fallback`, `check:auth-rls-contracts`, `check:operational-observability`                                       | Complementar con smoke si toca aislamiento real.                |
-| Cambios DB/migraciones  | `check:migration-duplicates`, `check:hard-delete-allowlist`, `scripts/apply-migrations.sh`, `check:cte-regression`           | No editar migraciones aplicadas.                                |
-| Cambios PDF/bundle      | `npm run build`, `bundle:check`, `check:pdf-runtime-boundaries`, `check:pdf-lazy-entrypoints`, `e2e:pdf-visual`              | `check:pdf-lazy-entrypoints` requiere `dist/`.                  |
-| Cutover o preview real  | `cutover:preflight`, `cutover:smoke`, `cutover:smoke:isolation`, `e2e:multiuser`                                             | Requiere deploy URL y tokens/Clerk segun runner.                |
-| Produccion multiusuario | `smoke:production-report`, `smoke:multiuser:prod`, `cleanup:runtime-fixtures`                                                | Usar solo con tokens frescos y dejar evidencia en PR/incidente. |
-| Debug local             | `bundle:report`, `client-api-contracts:inventory`, `bench:search-scale:portable`, `pr-stack:check`, `generate-pwa-icons.mjs` | Herramientas de diagnostico; no todas bloquean merge.           |
+| Momento                 | Comandos habituales                                                                                                                                | Notas                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Antes de commit         | `npm run format:check`, test focalizado, `npm run check:script-registry`                                                                           | Feedback rapido antes de push.                                  |
+| Antes de abrir PR       | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`                                                                                   | Base amplia si el cambio toca varias superficies.               |
+| Cambios API/backend     | `check:api-request-contracts`, `check:runtime-api-routes`, `check:backend-domain-services`, `check:client-api-contracts`                           | Mantiene parsers, wrappers Netlify y servicios testeables.      |
+| Cambios auth/multiuser  | `check:legacy-fallback`, `check:auth-rls-contracts`, `check:legacy-identity-contracts`, `check:user-id-writes`, `check:operational-observability`  | Complementar con smoke si toca aislamiento real.                |
+| Cambios DB/migraciones  | `check:migration-duplicates`, `check:hard-delete-allowlist`, `check:legacy-identity-schema`, `scripts/apply-migrations.sh`, `check:cte-regression` | No editar migraciones aplicadas.                                |
+| Cambios PDF/bundle      | `npm run build`, `bundle:check`, `check:pdf-runtime-boundaries`, `check:pdf-lazy-entrypoints`, `e2e:pdf-visual`                                    | `check:pdf-lazy-entrypoints` requiere `dist/`.                  |
+| Cutover o preview real  | `cutover:preflight`, `cutover:smoke`, `cutover:smoke:isolation`, `e2e:multiuser`                                                                   | Requiere deploy URL y tokens/Clerk segun runner.                |
+| Produccion multiusuario | `smoke:production-report`, `smoke:multiuser:prod`, `cleanup:runtime-fixtures`                                                                      | Usar solo con tokens frescos y dejar evidencia en PR/incidente. |
+| Debug local             | `bundle:report`, `client-api-contracts:inventory`, `bench:search-scale:portable`, `pr-stack:check`, `generate-pwa-icons.mjs`                       | Herramientas de diagnostico; no todas bloquean merge.           |
 
 ## Dominios
 
-| Dominio     | Protege                                                                    | Scripts principales                                                              |
-| ----------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `api`       | Fronteras cliente/servidor, request parsing y rutas runtime.               | `api-request-contracts`, `runtime-api-routes`, `client-api-contracts`.           |
-| `auth`      | Estado Clerk/fallback, RLS y contratos de privacidad.                      | `check-legacy-fallback-prod`, `auth-rls-contracts`.                              |
-| `backend`   | Handlers Netlify y servicios de dominio testeables.                        | `backend-domain-services`.                                                       |
-| `bundle`    | Budgets gzip, chunks manuales y payload lazy.                              | `check-bundle-size`, `bundle-budget`, `vite-manual-chunks`.                      |
-| `database`  | Migraciones, soft-delete, CTEs atomicos e integraciones con Postgres real. | `apply-migrations`, `check-migration-duplicates`, `check-hard-delete-allowlist`. |
-| `docs`      | Runbooks y convenciones que no deben quedar stale.                         | `check-docs-drift`.                                                              |
-| `frontend`  | Fronteras UI y ownership entre superficies.                                | `check-frontend-boundaries`.                                                     |
-| `multiuser` | Cutover, smokes productivos, reportes y observabilidad de aislamiento.     | `cutover-*`, `smoke-isolation`, `multiuser-production-report`.                   |
-| `pdf`       | Runtime PDF, payload lazy, snapshots de bundle y smoke visual dedicado.    | `pdf-runtime-boundaries`, `pdf-lazy-entrypoints`, `pdf-bundle-families`.         |
-| `test`      | Runners y normalizacion de argumentos de Vitest.                           | `run-vitest`, `vitest-runner-args`.                                              |
-| `whatsapp`  | Schema y persistencia del puente WhatsApp.                                 | `check-whatsapp-schema`, `gen-whatsapp-cheatsheet`.                              |
+| Dominio     | Protege                                                                    | Scripts principales                                                                                                                   |
+| ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `api`       | Fronteras cliente/servidor, request parsing y rutas runtime.               | `api-request-contracts`, `runtime-api-routes`, `client-api-contracts`.                                                                |
+| `auth`      | Estado Clerk/fallback, RLS y contratos de privacidad.                      | `check-legacy-fallback-prod`, `auth-rls-contracts`, `legacy-identity-contracts`, `legacy-identity-report`, `user-id-write-contracts`. |
+| `backend`   | Handlers Netlify y servicios de dominio testeables.                        | `backend-domain-services`.                                                                                                            |
+| `bundle`    | Budgets gzip, chunks manuales y payload lazy.                              | `check-bundle-size`, `bundle-budget`, `vite-manual-chunks`.                                                                           |
+| `database`  | Migraciones, soft-delete, CTEs atomicos e integraciones con Postgres real. | `apply-migrations`, `check-migration-duplicates`, `check-hard-delete-allowlist`, `check-legacy-identity-schema`.                      |
+| `docs`      | Runbooks y convenciones que no deben quedar stale.                         | `check-docs-drift`.                                                                                                                   |
+| `frontend`  | Fronteras UI y ownership entre superficies.                                | `check-frontend-boundaries`.                                                                                                          |
+| `multiuser` | Cutover, smokes productivos, reportes y observabilidad de aislamiento.     | `cutover-*`, `run-legacy-identity-smoke`, `smoke-isolation`, `multiuser-production-report`.                                           |
+| `pdf`       | Runtime PDF, payload lazy, snapshots de bundle y smoke visual dedicado.    | `pdf-runtime-boundaries`, `pdf-lazy-entrypoints`, `pdf-bundle-families`.                                                              |
+| `test`      | Runners y normalizacion de argumentos de Vitest.                           | `run-vitest`, `vitest-runner-args`.                                                                                                   |
+| `whatsapp`  | Schema y persistencia del puente WhatsApp.                                 | `check-whatsapp-schema`, `gen-whatsapp-cheatsheet`.                                                                                   |
 
 ## Reglas para scripts nuevos
 

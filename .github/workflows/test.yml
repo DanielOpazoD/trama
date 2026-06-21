@@ -59,6 +59,27 @@ jobs:
       - name: Auth/RLS contracts inventory
         run: npm run check:auth-rls-contracts
 
+      # El tenant legacy queda solo como compatibilidad historica: ninguna tabla
+      # privada debe conservar user_id DEFAULT 'legacy-single-user'. Si un INSERT
+      # nuevo olvida user_id, debe fallar fuerte en la DB.
+      - name: Legacy identity cutover contracts
+        run: npm run check:legacy-identity-contracts
+
+      # Ningún INSERT productivo a tablas privadas puede depender del default
+      # legacy: user_id debe estar presente en la lista de columnas.
+      - name: User id write contracts
+        run: npm run check:user-id-writes
+
+      - name: Legacy identity report
+        run: npm run legacy-identity:report > legacy-identity-report.md
+
+      - name: Upload legacy identity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-identity-report
+          path: legacy-identity-report.md
+          retention-days: 14
+
       # Contrato runtime de rutas: los wrappers pueden delegar handler a _lib,
       # pero config.path vive en netlify/functions/*.mts para que Netlify monte
       # /api/* de forma verificable antes de deployar.
@@ -268,6 +289,14 @@ jobs:
         env:
           DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
         run: npm run check:pdf-stamp-assets-schema
+
+      # Legacy identity cutover: contra la DB recien migrada, verifica que
+      # user_id ya no tenga DEFAULT 'legacy-single-user' en tablas privadas
+      # historicas. Un INSERT sin user_id debe fallar, no caer al tenant legacy.
+      - name: Legacy identity schema contract
+        env:
+          DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run check:legacy-identity-schema
 
       # Integración de comportamiento: corre el código REAL de persistencia
       # (persistCapture/persist-media) contra la DB migrada, validando RLS entre

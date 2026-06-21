@@ -236,7 +236,9 @@ UPDATE entities SET user_id = '<sub-de-daniel>' WHERE user_id = 'legacy-single-u
 -- Quitar el usuario legacy
 DELETE FROM users WHERE id = 'legacy-single-user';
 
--- Quitar los DEFAULT de las columnas user_id (ya no hace falta)
+-- Quitar los DEFAULT de las columnas user_id.
+-- Desde 20260621010000_legacy_user_id_drop_defaults esto ya está aplicado
+-- para las tablas privadas históricas: un INSERT sin user_id debe fallar.
 ALTER TABLE entities ALTER COLUMN user_id DROP DEFAULT;
 -- (etc)
 ```

@@ -172,6 +172,11 @@ describe('recortes endpoint', () => {
     )
     expect(res.status).toBe(201)
     expect((await res.json()).source_title).toBe('El taller')
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO recortes/i.test(c.template),
+    )
+    expect(insert?.template).toMatch(/user_id/i)
+    expect(insert?.values).toContain('legacy-single-user')
   })
 
   it('POST persiste captureMode e imageKey en el INSERT (Bloque B+)', async () => {
