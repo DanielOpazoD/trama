@@ -1,16 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithProviders } from '../test-utils'
 import { WorldSwitcher } from './WorldSwitcher'
-
-const notasWorldModule = vi.hoisted(() => ({
-  loaded: vi.fn(),
-}))
-
-vi.mock('./notas/NotasWorld', () => {
-  notasWorldModule.loaded()
-  return { NotasWorld: () => null }
-})
 
 describe('<WorldSwitcher />', () => {
   it('usa el isotipo nuevo como marca del header', () => {
@@ -41,13 +32,21 @@ describe('<WorldSwitcher />', () => {
     expect(onChange).toHaveBeenCalledWith('notas')
   })
 
-  it('precarga Notas por intención antes del click', async () => {
-    renderWithProviders(<WorldSwitcher world="trama" onChangeWorld={() => {}} />)
+  it('delega la precarga de mundos como intención del shell', () => {
+    const onWorldIntent = vi.fn()
+    renderWithProviders(
+      <WorldSwitcher
+        world="trama"
+        onChangeWorld={() => {}}
+        onWorldIntent={onWorldIntent}
+      />,
+    )
 
-    expect(notasWorldModule.loaded).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: /Mundo actual/ }))
     fireEvent.mouseEnter(screen.getByRole('menuitemradio', { name: /Notas/ }))
+    fireEvent.focus(screen.getByRole('menuitemradio', { name: /Notas/ }))
 
-    await waitFor(() => expect(notasWorldModule.loaded).toHaveBeenCalled())
+    expect(onWorldIntent).toHaveBeenCalledWith('notas')
+    expect(onWorldIntent).toHaveBeenCalledTimes(2)
   })
 })

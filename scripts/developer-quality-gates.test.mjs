@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 
 import { QUALITY_GATES } from './script-registry.mjs'
+import { QUALITY_GATE_BASELINE } from './quality-gates-baseline.mjs'
 
 const require = createRequire(import.meta.url)
 const ROOT = join(import.meta.dirname, '..')
@@ -19,8 +20,12 @@ describe('developer quality gates', () => {
     const gateCommands = new Set(QUALITY_GATES.map((gate) => gate.command))
 
     expect(packageJson.scripts['check:knip']).toContain('knip')
+    expect(packageJson.scripts['check:dead-code']).toBe(packageJson.scripts['check:knip'])
     expect(packageJson.scripts['check:architecture']).toBe(
       'node scripts/check-architecture-boundaries.mjs',
+    )
+    expect(packageJson.scripts['check:dependency-cruiser']).toBe(
+      packageJson.scripts['check:architecture'],
     )
     expect(readRepoFile('scripts/check-architecture-boundaries.mjs')).toContain(
       'depcruise',
@@ -40,7 +45,9 @@ describe('developer quality gates', () => {
     expect(docs).toContain('falso positivo')
     expect(docs).toContain('excepcion')
     expect(scriptsReadme).toContain('check:knip')
+    expect(scriptsReadme).toContain('check:dead-code')
     expect(scriptsReadme).toContain('check:architecture')
+    expect(scriptsReadme).toContain('check:dependency-cruiser')
   })
 
   test('keeps dependency-cruiser rules focused on agreed architecture boundaries', () => {
@@ -79,6 +86,77 @@ describe('developer quality gates', () => {
         'playwright-report/**',
         'test-results/**',
       ]),
+    )
+  })
+
+  test('keeps the Knip baseline intentionally small', () => {
+    const config = JSON.parse(readRepoFile('knip.json'))
+    const ignoredIssueFiles = Object.keys(config.ignoreIssues ?? {})
+    const ignoredIssueKinds = Object.values(config.ignoreIssues ?? {}).reduce(
+      (total, issues) => total + issues.length,
+      0,
+    )
+
+    expect(ignoredIssueFiles.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreIssueFiles,
+    )
+    expect(ignoredIssueKinds).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreIssueKinds,
+    )
+    expect(config.ignoreFiles.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreFiles,
+    )
+    expect(config.ignoreDependencies.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreDependencies,
+    )
+    expect(config.ignoreBinaries.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreBinaries,
+    )
+  })
+
+  test('exposes a quality gates evidence report', () => {
+    const packageJson = JSON.parse(readRepoFile('package.json'))
+    const docs = readRepoFile('docs/conventions/developer-quality-gates.md')
+    const scriptsReadme = readRepoFile('scripts/README.md')
+    const registryEntry = QUALITY_GATES.find(
+      (gate) => gate.command === 'npm run report:quality-gates',
+    )
+
+    expect(packageJson.scripts['report:quality-gates']).toBe(
+      'node scripts/report-quality-gates.mjs',
+    )
+    expect(readRepoFile('scripts/report-quality-gates.mjs')).toContain(
+      'QUALITY_GATE_BASELINE',
+    )
+    expect(registryEntry).toMatchObject({ phase: 'operations', required: false })
+    expect(docs).toContain('npm run report:quality-gates')
+    expect(scriptsReadme).toContain('report:quality-gates')
+  })
+
+  test('does not keep resolved Sidebar cycles in the dependency-cruiser baseline', () => {
+    const baseline = JSON.parse(readRepoFile('.dependency-cruiser-known-violations.json'))
+    const cycleKeys = baseline.knownViolations.map(
+      (violation) => `${violation.from} -> ${violation.to}`,
+    )
+
+    expect(cycleKeys).not.toContain(
+      'src/components/Sidebar.tsx -> src/components/sidebar/NavButton.tsx',
+    )
+    expect(cycleKeys).not.toContain('src/components/Sidebar.tsx -> src/lib/navigation.ts')
+    expect(cycleKeys).not.toContain(
+      'src/components/Sidebar.tsx -> src/lib/sectionAccent.ts',
+    )
+    expect(cycleKeys).not.toContain(
+      'src/components/TopBar.tsx -> src/components/WorldSwitcher.tsx',
+    )
+  })
+
+  test('keeps the dependency-cruiser cycle baseline empty', () => {
+    const baseline = JSON.parse(readRepoFile('.dependency-cruiser-known-violations.json'))
+
+    expect(baseline.knownViolations).toEqual([])
+    expect(baseline.knownViolations).toHaveLength(
+      QUALITY_GATE_BASELINE.dependencyCruiser.knownViolations,
     )
   })
 })

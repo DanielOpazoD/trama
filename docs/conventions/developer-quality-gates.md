@@ -2,8 +2,10 @@
 
 Este contrato agrega dos herramientas de mantenimiento con alcance acotado:
 
-- `npm run check:knip`: inventario de archivos, exports, scripts y dependencias que parecen no usados.
-- `npm run check:architecture`: grafo de imports con dependency-cruiser para fronteras de arquitectura.
+- `npm run check:knip` o `npm run check:dead-code`: inventario de archivos, exports, scripts y dependencias que parecen no usados.
+- `npm run check:architecture` o `npm run check:dependency-cruiser`: grafo de imports con dependency-cruiser para fronteras de arquitectura.
+- `npm run report:quality-gates`: resumen auditable del baseline actual de Knip,
+  dependency-cruiser y comandos disponibles.
 
 El objetivo no es borrar codigo automaticamente. El objetivo es que la deuda nueva
 sea visible y que las excepciones vivan documentadas cerca del check.
@@ -14,6 +16,8 @@ Corre:
 
 ```bash
 npm run check:knip
+# alias compatible:
+npm run check:dead-code
 ```
 
 Knip parte desde entrypoints reales de Trama: Vite, tests, Playwright, Netlify
@@ -30,7 +34,7 @@ Functions, scripts operacionales y extension. Si reporta un falso positivo:
 No uses `knip --fix` en este repo salvo para cambios revisados manualmente. No
 uses `--allow-remove-files` en un PR de calidad gates.
 
-### Baseline inicial
+### Baseline
 
 `knip.json` contiene excepciones exactas para deuda historica detectada al
 activar el gate: archivos sin uso confirmado, exports/tipos publicos que hoy no
@@ -38,6 +42,18 @@ tienen consumidor visible, binarios externos (`psql`) y dependencias usadas por
 scripts operacionales (`pg`, `playwright`). Esas excepciones no significan que
 la deuda este resuelta; significan que el check bloquea deuda nueva sin mezclar
 este PR con una poda funcional.
+
+El baseline actual queda ratcheado en `scripts/developer-quality-gates.test.mjs`:
+como maximo 62 archivos con `ignoreIssues`, 70 tipos de issue ignorados, 5
+`ignoreFiles`, 3 `ignoreDependencies` y 2 `ignoreBinaries`. Si una excepcion
+nueva es inevitable, el mismo commit debe explicar por que no hay entrypoint real
+mejor y actualizar el ratchet deliberadamente.
+
+Para revisar el estado sin leer `knip.json` a mano, corre:
+
+```bash
+npm run report:quality-gates
+```
 
 Cuando limpies una entrada, elimina tambien su excepcion de `knip.json` en el
 mismo commit.
@@ -48,6 +64,8 @@ Corre:
 
 ```bash
 npm run check:architecture
+# alias compatible:
+npm run check:dependency-cruiser
 ```
 
 Reglas activas:
@@ -67,9 +85,12 @@ Si una excepcion es legitima, agregala en `.dependency-cruiser.cjs` con
 conviene crear un check especifico como los contratos existentes de PDF o
 storage.
 
-Los ciclos historicos viven en `.dependency-cruiser-known-violations.json`.
-`check:architecture` falla si aparece una violacion nueva o si el baseline queda
-obsoleto, de modo que limpiar deuda reduce la lista en vez de esconderla.
+El baseline de ciclos debe tender a cero. Hoy
+`.dependency-cruiser-known-violations.json` esta vacio: `check:architecture`
+falla si aparece una violacion nueva o si alguien intenta mantener una entrada
+obsoleta. Si en el futuro aparece una excepcion temporal, debe incluir una razon
+especifica, un owner implicito por modulo y un plan de retiro; no uses el
+baseline como estacionamiento permanente de ciclos.
 
 ## Integracion
 

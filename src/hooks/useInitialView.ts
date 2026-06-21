@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { startViewTransition } from '../lib/viewTransition'
-import type { ViewMode } from '../components/Sidebar'
+import type { ViewMode } from '../types/view'
 
 /**
  * τ-mobile-bridge: lee `?view=` al primer render para honrar deep-links

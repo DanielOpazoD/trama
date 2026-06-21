@@ -1,4 +1,4 @@
-import type { ViewMode } from '../components/Sidebar'
+import type { ViewMode } from '../types/view'
 
 /**
  * λ4: cada vista del shell tiene una firma cromática propia que se

@@ -20,6 +20,7 @@ export function ShellTopChrome({
   entitiesTab,
   actions,
   onChangeWorld,
+  onWorldIntent,
   onChangeView,
   onOpenSortes,
   onClearSelectedEntity,
@@ -34,6 +35,7 @@ export function ShellTopChrome({
   entitiesTab: EntityTab
   actions: ReactNode
   onChangeWorld: (world: World) => void
+  onWorldIntent?: (world: World) => void
   onChangeView: (view: ViewMode) => void
   onOpenSortes: () => void
   onClearSelectedEntity: () => void
@@ -48,6 +50,7 @@ export function ShellTopChrome({
             view={view}
             world={world}
             onChangeWorld={onChangeWorld}
+            onWorldIntent={onWorldIntent}
             onSortes={onOpenSortes}
             actions={actions}
             breadcrumb={

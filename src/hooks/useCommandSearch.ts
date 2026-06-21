@@ -11,7 +11,7 @@ import { useSectionPin } from './useSectionPin'
 import { useSectionAlias } from './useSectionAlias'
 import { useModuleVisibility } from './useModuleVisibility'
 import { isPinEnabled } from '../components/AppPinGate'
-import { SECTIONS } from '../components/notas/NotasWorldChrome'
+import { SECTIONS } from '../components/notas/notasSections'
 import { MODULE_ALIASES } from '../components/notas/moduleAliases'
 import { NAV_GROUPS } from '../lib/navigation'
 

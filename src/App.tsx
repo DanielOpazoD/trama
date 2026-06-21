@@ -40,9 +40,9 @@ import { buildShellVisibility, type EntityTab } from './components/appShell/appS
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
-const NotasWorld = lazy(() =>
-  import('./components/notas/NotasWorld').then((m) => ({ default: m.NotasWorld })),
-)
+const loadNotasWorld = () =>
+  import('./components/notas/NotasWorld').then((m) => ({ default: m.NotasWorld }))
+const NotasWorld = lazy(loadNotasWorld)
 import { type NotasSection } from './types/notas'
 import {
   readNotasSectionDeepLinkFromSearch,
@@ -52,6 +52,10 @@ import {
 import type { CommandAction } from './components/CommandPalette'
 
 import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
+
+function preloadWorldBundle(world: World): void {
+  if (world === 'notas') void loadNotasWorld()
+}
 
 // GlobalProgressBar removido por feedback del usuario — la barra fina
 // que latía con cada query se percibía como molesta. Si en el futuro
@@ -100,6 +104,9 @@ function Shell({
   // render (deep-links externos como el QR de Momentos) y envuelve el
   // setter con la View Transitions API. Ver el hook para detalles.
   const [view, setView] = useInitialView()
+  const handleWorldIntent = useCallback((targetWorld: World) => {
+    preloadWorldBundle(targetWorld)
+  }, [])
   // En mobile arrancamos con el sidebar colapsado; el usuario lo expande
   // con el ícono del menú.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -278,6 +285,7 @@ function Shell({
             }}
             world={world}
             onChangeWorld={onChangeWorld}
+            onWorldIntent={handleWorldIntent}
             collapsed={sidebarCollapsed}
             onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
             offline={offline}
@@ -304,6 +312,7 @@ function Shell({
             />
           }
           onChangeWorld={onChangeWorld}
+          onWorldIntent={handleWorldIntent}
           onChangeView={(v) => {
             setView(v)
             if (v !== 'grafo') setSelectedEntityId(null)

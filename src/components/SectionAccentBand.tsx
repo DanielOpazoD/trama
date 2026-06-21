@@ -1,4 +1,4 @@
-import type { ViewMode } from './Sidebar'
+import type { ViewMode } from '../types/view'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
 
 /**

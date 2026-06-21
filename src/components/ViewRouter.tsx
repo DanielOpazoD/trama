@@ -3,7 +3,7 @@ import { Spinner } from './Spinner'
 import { ErrorBoundary, type ErrorFallbackProps } from './ErrorBoundary'
 import { TramaMark } from './Icons'
 import { SectionPinGate } from './SectionPinGate'
-import type { ViewMode } from './Sidebar'
+import type { ViewMode } from '../types/view'
 import type { ExtractionProposal } from '../types'
 
 /**

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import type { ViewMode } from './Sidebar'
+import type { ViewMode } from '../types/view'
 import {
   useCommandSearch,
   type CommandAction,

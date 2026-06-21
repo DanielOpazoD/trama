@@ -46,6 +46,7 @@ export function Sidebar({
   onChangeView,
   world,
   onChangeWorld,
+  onWorldIntent,
   collapsed,
   onToggleCollapsed,
   offline,
@@ -57,6 +58,7 @@ export function Sidebar({
   /** Mundo activo + conmutador — el logo del header abre el menú de mundos. */
   world: World
   onChangeWorld: (w: World) => void
+  onWorldIntent?: (w: World) => void
   collapsed: boolean
   onToggleCollapsed: () => void
   offline: boolean
@@ -148,7 +150,12 @@ export function Sidebar({
     return (
       <aside className="surface-sidebar w-14 shrink-0 border-r border-ink-100 flex flex-col items-center py-4 gap-1">
         <div className="mb-2">
-          <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
+          <WorldSwitcher
+            world={world}
+            onChangeWorld={onChangeWorld}
+            onWorldIntent={onWorldIntent}
+            collapsed
+          />
         </div>
 
         <button
@@ -260,7 +267,11 @@ export function Sidebar({
         <header className="px-3 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {/* τ-worlds: el logo es el conmutador de mundos (abre el menú). */}
-            <WorldSwitcher world={world} onChangeWorld={onChangeWorld} />
+            <WorldSwitcher
+              world={world}
+              onChangeWorld={onChangeWorld}
+              onWorldIntent={onWorldIntent}
+            />
             {offline && (
               <span
                 title="Sin conexión al backend"
