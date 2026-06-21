@@ -76,6 +76,11 @@ texto. Hoy: **imágenes**.
   caption completo para no confundir un pie descriptivo que solo mencione la
   palabra, p. ej. «momentos felices del viaje» → sigue siendo Recorte). El
   prefijo explícito (`recorte:`/`cita:`/…) siempre gana primero.
+- Con `Fecha:` en el caption de una foto a Momentos se usa esa fecha como
+  `captured_at` del Momento, por encima del EXIF. Se aceptan formatos como
+  `Fecha: 4-07-2026`, `Fecha: 2026-07-04`, `Fecha: 4 julio 2021` y
+  `Fecha: 4 de julio de 2021`. Si WhatsApp elimina metadata EXIF del iPhone,
+  este comando es el camino explícito y reproducible.
 - Con caption `cita:` → **visión/OCR**: el LLM extrae cita + autor de la foto
   (página de libro, pantalla) y se guarda una **Cita**.
 - Con caption `nota:` / `texto:` / `ocr:` → **visión/OCR**: transcribe el texto
@@ -96,7 +101,7 @@ texto. Hoy: **imágenes**.
 envío de varias fotos en **mensajes separados** (un webhook por foto, y solo el
 primero con caption). Para que todas compartan destino, las fotos de media cruda
 (route momento/recorte) que llegan del mismo número dentro de una **ventana corta**
-(`ALBUM_APPEND_WINDOW_SECONDS`, 60 s) se **anexan a la captura reciente** en vez de
+(`ALBUM_APPEND_WINDOW_SECONDS`, 20 s) se **anexan a la captura reciente** en vez de
 crear otra (anexado reactivo, `_lib/whatsapp/album.ts`):
 
 - Foto sin caption tras un recorte reciente → se suma al **recorte-evento**
@@ -108,6 +113,10 @@ crear otra (anexado reactivo, `_lib/whatsapp/album.ts`):
   continúan álbum (son intención por foto). La confirmación de un anexado es
   suave («📸 +1 foto · tu momento ahora tiene 3»), y `recordLastCapture` extiende
   la ventana para la próxima foto del mismo álbum.
+- Para evitar uniones accidentales, un caption con `Fecha:` crea una captura
+  nueva salvo que el usuario fuerce lo contrario. También se puede escribir
+  `nuevo`, `no juntar`, `separado` u `otra escena` para crear una captura nueva,
+  o `juntar`, `agregar al anterior`/`sumar al anterior` para anexar explícitamente.
 
 **Pedir descripción (estado conversacional).** Cuando una foto queda SIN pie
 (recorte/momento), el bot ofrece agregar una descripción («✍️ Responde con una

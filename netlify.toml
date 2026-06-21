@@ -25,15 +25,16 @@
 # CSP: empezamos restrictivo y abrimos solo lo necesario. Por directiva:
 #   - script-src: 'self' + Clerk FAPI (clerk.tramahub.app para LIVE,
 #     *.clerk.accounts.dev para development) + challenges.cloudflare.com
-#     (Turnstile/anti-bot de Clerk en sign-in/up). Dejamos ambos hosts
-#     activos para que dev y prod funcionen sin tocar CSP en cada switch.
+#     (Turnstile/anti-bot de Clerk en sign-in/up) + static.cloudflareinsights.com
+#     (beacon RUM inyectado por Cloudflare/Netlify). Dejamos estos hosts activos
+#     para que dev y prod funcionen sin tocar CSP en cada switch.
 #   - style-src: 'self' 'unsafe-inline' (Tailwind/Clerk inyectan inline) +
-#     fonts.googleapis.com (las 3 familias se importan vía @import en index.css).
+#     fonts.googleapis.com (las 3 familias se linkean desde index.html).
 #   - font-src: 'self' data: + fonts.gstatic.com (binarios de Google Fonts).
 #   - img-src: 'self' data: blob: + covers de Spotify (i/mosaic.scdn.co) +
 #     img.clerk.com (avatares del UserButton).
 #   - connect-src: /api propio + Spotify + Clerk (*.clerk.com,
-#     *.clerk.accounts.dev) + clerk-telemetry.com.
+#     *.clerk.accounts.dev) + clerk-telemetry.com + cloudflareinsights.com.
 #   - worker-src: 'self' blob: — Clerk usa web workers.
 #   - media-src: 'self' blob: — notas de voz de momentos. AudioNote fetchea
 #     /api/momentos-file/:key con auth de Clerk y arma un blob: URL para
@@ -47,7 +48,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://clerk.tramahub.app https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://i.scdn.co https://mosaic.scdn.co https://img.clerk.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://clerk.tramahub.app https://*.clerk.com https://*.clerk.accounts.dev https://clerk.com https://clerk-telemetry.com; worker-src 'self' blob:; media-src 'self' blob:; frame-src 'self' blob: https://clerk.tramahub.app https://challenges.cloudflare.com https://*.clerk.accounts.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://clerk.tramahub.app https://*.clerk.accounts.dev https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://i.scdn.co https://mosaic.scdn.co https://img.clerk.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.spotify.com https://accounts.spotify.com https://clerk.tramahub.app https://*.clerk.com https://*.clerk.accounts.dev https://clerk.com https://clerk-telemetry.com https://cloudflareinsights.com; worker-src 'self' blob:; media-src 'self' blob:; frame-src 'self' blob: https://clerk.tramahub.app https://challenges.cloudflare.com https://*.clerk.accounts.dev; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"

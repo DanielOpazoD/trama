@@ -79,6 +79,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Falla si chunks gzip o familias agregadas exceden budgets explícitos.',
   },
   {
+    file: 'scripts/lighthouse-report-summary.mjs',
+    domain: 'frontend',
+    kind: 'report',
+    critical: false,
+    packageScripts: ['lighthouse:summary'],
+    summary:
+      'Resume JSON de Lighthouse en métricas accionables para previews y producción.',
+  },
+  {
     file: 'scripts/check-architecture-boundaries.mjs',
     domain: 'ci',
     kind: 'check',

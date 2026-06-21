@@ -43,6 +43,7 @@ import {
   audioExtFromMime,
   MEDIA_TOO_LARGE,
 } from './media.js'
+import { parseWhatsAppMediaDirectives } from './media-directives.js'
 import { buildPhotoPrompt, validatePhotoExtraction } from './vision.js'
 import type { PhotoMode } from './vision.js'
 import { transcriptionToIntent } from './transcribe.js'
@@ -586,7 +587,8 @@ async function handleInboundMedia(
 }> {
   const accountSid = readWebhookEnv('TWILIO_ACCOUNT_SID')
   const authToken = readWebhookEnv('TWILIO_AUTH_TOKEN')
-  const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
+  const mediaDirectives = parseWhatsAppMediaDirectives(params.Body ?? params.body ?? '')
+  const { route, caption } = mediaRoute(mediaDirectives.body)
   let saved = 0
   let lastId: string | null = null
   let lastKind = ''
@@ -752,7 +754,8 @@ async function handleInboundMedia(
 
       if (route === 'momento') {
         // No persistimos aún: juntamos las keys y creamos un solo episodio.
-        const capturedAt = extractPhotoCapturedAt(buffer)
+        const capturedAt =
+          mediaDirectives.explicitCapturedAt ?? extractPhotoCapturedAt(buffer)
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         momentoKeys.push(key)
         momentoCapturedAts.push(capturedAt)
@@ -777,7 +780,10 @@ async function handleInboundMedia(
   let appendedTotal: number | null = null
   const newImageCount = momentoKeys.length + recorteKeys.length
   const isRawMediaRoute = route === 'momento' || route === 'recorte'
-  if (newImageCount > 0 && isRawMediaRoute) {
+  const canAppendToRecent =
+    mediaDirectives.grouping === 'append' ||
+    (mediaDirectives.grouping !== 'new' && mediaDirectives.explicitCapturedAt === null)
+  if (newImageCount > 0 && isRawMediaRoute && canAppendToRecent) {
     const recent = await readRecentMediaCapture(sql, userId, phone)
     if (recent) {
       try {
@@ -937,6 +943,7 @@ async function handleInboundMedia(
           ? `📸 +1 foto · ${noun} ahora tiene ${appendedTotal}.`
           : `📸 +${newImageCount} fotos · ${noun} ahora tiene ${appendedTotal}.`,
       )
+      lines.push('Para separarla la próxima vez, escribe “nuevo” o “no juntar”.')
     } else {
       // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
       // recorte — no N elementos sueltos.
@@ -953,6 +960,9 @@ async function handleInboundMedia(
               ? `✅ ${saved} imágenes guardadas como un evento en Recortes.`
               : `✅ ${saved} elementos guardados.`,
       )
+    }
+    if (mediaDirectives.dateLabel && lastKind === 'momento') {
+      lines.push(`📅 Fecha aplicada: ${mediaDirectives.dateLabel}.`)
     }
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto; guardé la imagen igual.)')

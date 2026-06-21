@@ -89,10 +89,7 @@ describe('AuthGate', () => {
     )
     const brandMark = screen.getByTestId('login-brand-mark').querySelector('img')
     expect(brandMark).toHaveAttribute('src', '/favicon-48.png')
-    expect(brandMark).toHaveAttribute(
-      'srcSet',
-      '/favicon-48.png 48w, /icon-192.png 192w, /trama-icon.png 1024w',
-    )
+    expect(brandMark).toHaveAttribute('srcSet', '/favicon-48.png 48w, /icon-192.png 192w')
     expect(screen.getByTestId('login-brand-wordmark')).toHaveAccessibleName('TRAMA')
     expect(screen.getByTestId('login-brand-wordmark')).toHaveClass('trama-login-wordmark')
     expect(screen.getByRole('img', { name: 'Mascota de Trama' })).toBeInTheDocument()

@@ -16,7 +16,7 @@ import { copyRecorteImageToStore, removeBlob } from '../recorte-to-momento.js'
 /** Ventana para considerar una foto como continuación del mismo álbum. Las
  *  partes de un álbum partido llegan en segundos; la mantenemos corta para no
  *  fusionar envíos intencionalmente separados. */
-export const ALBUM_APPEND_WINDOW_SECONDS = 60
+export const ALBUM_APPEND_WINDOW_SECONDS = 20
 
 export type RecentMediaCapture = { kind: 'momento' | 'recorte'; id: string }
 

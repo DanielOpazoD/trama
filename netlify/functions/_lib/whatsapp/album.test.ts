@@ -5,6 +5,7 @@ vi.mock('../db.js', () => setupMockSql())
 
 import { getSql } from '../db.js'
 import {
+  ALBUM_APPEND_WINDOW_SECONDS,
   readRecentMediaCapture,
   appendImagesToMomento,
   appendImagesToRecorteEvent,
@@ -14,6 +15,10 @@ import {
 beforeEach(() => mockSqlResponses.reset())
 
 describe('readRecentMediaCapture', () => {
+  it('mantiene una ventana corta para no unir capturas sucesivas por accidente', () => {
+    expect(ALBUM_APPEND_WINDOW_SECONDS).toBeLessThanOrEqual(20)
+  })
+
   it('devuelve la captura reciente de media cuando hay y está en ventana', async () => {
     mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }])
     expect(await readRecentMediaCapture(getSql(), 'u1', '+569')).toEqual({

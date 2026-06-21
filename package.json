@@ -45,6 +45,7 @@
     "bench:search-scale:portable": "SEARCH_BENCHMARK_SCHEMA=portable node scripts/search-scale-benchmark.mjs",
     "bundle:check": "node scripts/check-bundle-size.mjs",
     "bundle:report": "node scripts/check-bundle-size.mjs --report",
+    "lighthouse:summary": "node scripts/lighthouse-report-summary.mjs",
     "preview": "node_modules/.bin/vite preview",
     "test": "node scripts/run-vitest.mjs run",
     "test:watch": "node scripts/run-vitest.mjs",

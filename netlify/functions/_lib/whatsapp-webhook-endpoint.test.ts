@@ -872,6 +872,65 @@ describe('whatsapp-webhook', () => {
     expect(insert?.values).toContain('2026-06-19T23:10:00.000')
   })
 
+  it('caption con Fecha explícita usa esa fecha y no anexa a una captura reciente', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMmomentoFecha',
+      From: 'whatsapp:+56912345678',
+      Body: 'A momentos. Fecha: 4-07-2026',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/fecha',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMmomentoFecha' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ id: 'mfecha' }]) // persistImageMomentoEpisode INSERT
+    mockSqlResponses.push([]) // recordLastCapture
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Guardado en Momentos')
+    expect(xml).toContain('Fecha aplicada: 4 jul 2026')
+
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    expect(insert?.values).toContain('2026-07-04T12:00:00.000')
+    expect(
+      mockSqlResponses.calls.some((c) => /last_capture_at > NOW\(\)/i.test(c.template)),
+    ).toBe(false)
+    expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
+      false,
+    )
+  })
+
   it('dos fotos con caption natural "a momentos" → también un episodio foto', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
@@ -1147,6 +1206,7 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('+1 foto')
     expect(xml).toContain('evento en Recortes')
     expect(xml).toContain('ahora tiene 2')
+    expect(xml).toContain('Para separarla la próxima vez')
     // Anexó a recorte_images; NO creó un recorte nuevo.
     expect(
       mockSqlResponses.calls.some((c) => /INSERT INTO recorte_images/i.test(c.template)),
