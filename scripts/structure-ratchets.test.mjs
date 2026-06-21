@@ -91,7 +91,7 @@ describe('structure ratchets', () => {
     for (const { wrapper } of API_BOUNDARY_ENDPOINTS) {
       expect(maxFor(wrapper)).toBeLessThanOrEqual(90)
     }
-    expect(maxFor('netlify/functions/_lib/recortes-endpoint.ts')).toBeLessThanOrEqual(645)
+    expect(maxFor('netlify/functions/_lib/recortes-endpoint.ts')).toBeLessThanOrEqual(540)
     expect(maxFor('netlify/functions/_lib/momentos-endpoint.ts')).toBeLessThanOrEqual(520)
     expect(maxFor('netlify/functions/_lib/entities-endpoint.ts')).toBeLessThanOrEqual(480)
     expect(maxFor('netlify/functions/_lib/search-endpoint.ts')).toBeLessThanOrEqual(335)

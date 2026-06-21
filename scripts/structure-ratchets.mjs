@@ -147,7 +147,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 645,
+    maxLines: 540,
     files: ['netlify/functions/_lib/recortes-endpoint.ts'],
   },
   {
