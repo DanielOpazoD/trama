@@ -1,5 +1,4 @@
-/** Pestañas de la Biblioteca — filtran por familia de archivo. */
-export type BibliotecaTab = 'todo' | 'imagenes' | 'archivos'
+import type { BibliotecaTab } from '../../types/biblioteca'
 
 const TABS: ReadonlyArray<{ value: BibliotecaTab; label: string }> = [
   { value: 'todo', label: 'Todo' },

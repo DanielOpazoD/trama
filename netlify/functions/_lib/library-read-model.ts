@@ -258,8 +258,11 @@ export function sortAndPaginate(
  * '' = "sin filtro" sin ramificar el SQL). Cada rama filtra su propio
  * `deleted_at IS NULL` y `user_id = ${userId}`.
  *
- * El orden y la paginación se hacen en TS (`sortAndPaginate`) sobre estas filas;
- * acá solo ponemos un ORDER BY estable + LIMIT de seguridad.
+ * El orden y la paginación se hacen en TS (`sortAndPaginate`) sobre el set
+ * filtrado COMPLETO; acá solo ponemos un ORDER BY estable como base. No hay
+ * LIMIT en SQL a propósito: ordenar por nombre/tamaño y paginar correctamente
+ * exige el set completo (un tope truncaría páginas y falsearía el orden). A
+ * escala personal es barato; el keyset en SQL es la optimización v2.
  *
  * Nota de simplificación (PR1): `momento-foto` lista UN item por momento (la
  * portada = primera storageKey encontrada en el payload). El desanidado completo
@@ -488,6 +491,5 @@ export async function fetchLibraryRows(
       AND (${fuente} = '' OR source = ${fuente})
       AND (${q} = '' OR title ILIKE '%' || ${q} || '%')
     ORDER BY updated_at DESC
-    LIMIT 5000
   `)
 }

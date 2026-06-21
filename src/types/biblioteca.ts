@@ -61,11 +61,11 @@ export type LibraryItem = {
 }
 
 /**
- * Pestañas de la vista (filtra por familia de archivo). No se re-exporta como
- * tipo público todavía (la UI llega en PR2+); vive acá como parte del contrato
- * de `BibliotecaListParams`.
+ * Pestañas de la vista (filtra por familia de archivo). Fuente única del tipo:
+ * lo consumen `BibliotecaListParams` (contrato de la API) y la UI
+ * (`BibliotecaTabs`, `BibliotecaView`), evitando declaraciones duplicadas.
  */
-type BibliotecaTab = 'todo' | 'imagenes' | 'archivos'
+export type BibliotecaTab = 'todo' | 'imagenes' | 'archivos'
 
 /** Orden disponible (Modificado / Nombre / Tamaño, asc/desc). */
 type BibliotecaOrden =

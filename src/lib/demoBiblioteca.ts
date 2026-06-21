@@ -281,8 +281,12 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
   const tab = params.get('tab') ?? 'todo'
   const q = foldTitle((params.get('q') ?? '').trim())
   const orden = params.get('orden') ?? 'modificado-desc'
-  const limit =
-    Number.parseInt(params.get('limit') ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT
+  // Clamp a 1..100 como el contrato del backend: un limit negativo o enorme
+  // rompería el slicing y podría generar un nextCursor negativo.
+  const parsedLimit = Number.parseInt(params.get('limit') ?? '', 10)
+  const limit = Number.isFinite(parsedLimit)
+    ? Math.min(100, Math.max(1, parsedLimit))
+    : DEFAULT_LIMIT
   const cursorRaw = Number.parseInt(params.get('cursor') ?? '0', 10)
   const offset = Number.isFinite(cursorRaw) && cursorRaw > 0 ? cursorRaw : 0
 

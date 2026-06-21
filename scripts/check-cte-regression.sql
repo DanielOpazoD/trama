@@ -667,8 +667,7 @@ WHERE ((false::boolean AND lib_deleted_at IS NOT NULL) OR (NOT false::boolean AN
   AND ('' = '' OR file_type = '')
   AND ('' = '' OR source = '')
   AND ('' = '' OR title ILIKE '%' || '' || '%')
-ORDER BY updated_at DESC
-LIMIT 5000;
+ORDER BY updated_at DESC;
 
 DO $$
 BEGIN

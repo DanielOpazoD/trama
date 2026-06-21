@@ -26,7 +26,13 @@ export function FileTypeIcon({
   mimeType?: string | null
   size?: number
 }) {
-  const isJson = mimeType === 'application/json' || mimeType === 'text/json'
+  // Normaliza el mime (sin parámetros tipo `; charset=utf-8`) y reconoce
+  // variantes `+json` (p. ej. application/ld+json), no solo el exacto.
+  const baseMime = mimeType?.toLowerCase().split(';', 1)[0]?.trim()
+  const isJson =
+    baseMime === 'application/json' ||
+    baseMime === 'text/json' ||
+    baseMime?.endsWith('+json') === true
 
   if (fileType === 'pdf') {
     return <FilePdfIcon size={size} className="text-[color:var(--type-idea)] shrink-0" />
