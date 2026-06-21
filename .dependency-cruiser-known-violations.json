@@ -1,34 +1,3 @@
 {
-  "knownViolations": [
-    {
-      "rule": "no-circular",
-      "from": "netlify/functions/_lib/db.ts",
-      "to": "netlify/functions/_lib/user-rls.ts",
-      "reason": "Historical backend auth/DB cycle; tracked for a focused cleanup PR."
-    },
-    {
-      "rule": "no-circular",
-      "from": "src/components/notas/NotasWorld.tsx",
-      "to": "src/components/notas/NotasWorldChrome.tsx",
-      "reason": "Historical Notas shell cycle; this PR blocks new cycles before refactoring it."
-    },
-    {
-      "rule": "no-circular",
-      "from": "src/components/notas/NotasWorld.tsx",
-      "to": "src/components/Settings.tsx",
-      "reason": "Historical Settings/Notas shell cycle; tracked as structural debt."
-    },
-    {
-      "rule": "no-circular",
-      "from": "src/components/notas/NotasWorldChrome.tsx",
-      "to": "src/components/WorldSwitcher.tsx",
-      "reason": "Historical world-switcher cycle; tracked as structural debt."
-    },
-    {
-      "rule": "no-circular",
-      "from": "src/components/WorldSwitcher.tsx",
-      "to": "src/components/notas/NotasWorld.tsx",
-      "reason": "Historical world switcher lazy import cycle; tracked as structural debt."
-    }
-  ]
+  "knownViolations": []
 }

@@ -71,9 +71,12 @@ Si una excepcion es legitima, agregala en `.dependency-cruiser.cjs` con
 conviene crear un check especifico como los contratos existentes de PDF o
 storage.
 
-Los ciclos historicos viven en `.dependency-cruiser-known-violations.json`.
-`check:architecture` falla si aparece una violacion nueva o si el baseline queda
-obsoleto, de modo que limpiar deuda reduce la lista en vez de esconderla.
+El baseline de ciclos debe tender a cero. Hoy
+`.dependency-cruiser-known-violations.json` esta vacio: `check:architecture`
+falla si aparece una violacion nueva o si alguien intenta mantener una entrada
+obsoleta. Si en el futuro aparece una excepcion temporal, debe incluir una razon
+especifica, un owner implicito por modulo y un plan de retiro; no uses el
+baseline como estacionamiento permanente de ciclos.
 
 ## Integracion
 

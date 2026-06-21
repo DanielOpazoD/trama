@@ -105,4 +105,10 @@ describe('developer quality gates', () => {
       'src/components/TopBar.tsx -> src/components/WorldSwitcher.tsx',
     )
   })
+
+  test('keeps the dependency-cruiser cycle baseline empty', () => {
+    const baseline = JSON.parse(readRepoFile('.dependency-cruiser-known-violations.json'))
+
+    expect(baseline.knownViolations).toEqual([])
+  })
 })

@@ -46,6 +46,7 @@ export function TopBar({
   titleOverride,
   world,
   onChangeWorld,
+  onWorldIntent,
 }: {
   view: ViewMode
   actions?: React.ReactNode
@@ -53,6 +54,7 @@ export function TopBar({
       WorldSwitcher vive en el Sidebar); permite cambiar de mundo sin sidebar. */
   world?: World
   onChangeWorld?: (w: World) => void
+  onWorldIntent?: (w: World) => void
   /** Abre el Atril (la cita del día + hojear el archivo). El nombre del
       handler conserva el de Sortes, su antecesor. Si se omite, el botón
       no se muestra. */
@@ -83,7 +85,12 @@ export function TopBar({
       <div className="min-w-0 flex items-center gap-3">
         {world && onChangeWorld && (
           <span className="md:hidden shrink-0">
-            <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
+            <WorldSwitcher
+              world={world}
+              onChangeWorld={onChangeWorld}
+              onWorldIntent={onWorldIntent}
+              collapsed
+            />
           </span>
         )}
         <div className="min-w-0 flex items-baseline gap-4">

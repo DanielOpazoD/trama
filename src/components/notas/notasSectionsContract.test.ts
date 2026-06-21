@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SECTIONS } from './NotasWorldChrome'
+import { SECTIONS } from './notasSections'
 import { NOTAS_SECTIONS } from '../../types/notas'
 
 describe('Notas sections contract', () => {

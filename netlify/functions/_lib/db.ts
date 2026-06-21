@@ -1,11 +1,7 @@
-import {
-  getDatabase,
-  MissingDatabaseConnectionError,
-  type ServerlessDatabaseConnection,
-} from '@netlify/database'
+import { getDatabase, MissingDatabaseConnectionError } from '@netlify/database'
 import { scopeSqlToRlsContext } from './user-rls'
-
-export type SqlClient = ServerlessDatabaseConnection['httpClient']
+export type { SqlClient } from './sql-client'
+import type { SqlClient } from './sql-client'
 
 /**
  * Returns the Neon HTTP client (`sql\`SELECT ...\`` tagged template) that the
@@ -23,7 +19,7 @@ export function getSql(): SqlClient {
       `Expected serverless DB driver but got '${conn.driver}'. Functions only run on Neon HTTP.`,
     )
   }
-  return scopeSqlToRlsContext(conn.httpClient)
+  return scopeSqlToRlsContext(conn.httpClient as unknown as SqlClient)
 }
 
 export function isMissingDatabaseConnectionError(err: unknown): boolean {

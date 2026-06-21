@@ -49,17 +49,15 @@ const WORLDS: WorldDef[] = [
 const MENU_WIDTH = 240 // px — coincide con w-60; usado para clampear al viewport
 const VIEWPORT_MARGIN = 12 // px de aire contra los bordes
 
-export function preloadWorld(world: World): void {
-  if (world === 'notas') void import('./notas/NotasWorld')
-}
-
 export function WorldSwitcher({
   world,
   onChangeWorld,
+  onWorldIntent,
   collapsed = false,
 }: {
   world: World
   onChangeWorld: (w: World) => void
+  onWorldIntent?: (w: World) => void
   collapsed?: boolean
 }) {
   const popover = useAnchoredPopover({
@@ -124,8 +122,8 @@ export function WorldSwitcher({
                   type="button"
                   role="menuitemradio"
                   aria-checked={active}
-                  onFocus={() => preloadWorld(w.id)}
-                  onMouseEnter={() => preloadWorld(w.id)}
+                  onFocus={() => onWorldIntent?.(w.id)}
+                  onMouseEnter={() => onWorldIntent?.(w.id)}
                   onClick={() => {
                     onChangeWorld(w.id)
                     popover.close()

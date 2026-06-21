@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PanelHeader } from './_shared'
-import { SECTIONS } from '../notas/NotasWorldChrome'
+import { SECTIONS } from '../notas/notasSections'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useSectionVisibility } from '../../hooks/useSectionVisibility'
 import { useSectionPin } from '../../hooks/useSectionPin'
