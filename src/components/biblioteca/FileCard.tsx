@@ -1,6 +1,7 @@
 import type { LibraryItem } from '../../types/biblioteca'
 import { formatCardMeta } from './helpers'
 import { Thumbnail } from './Thumbnail'
+import { BibliotecaItemActions } from './BibliotecaItemActions'
 
 /**
  * Card de un archivo en la vista cuadrícula. Composición editorial sobre papel
@@ -9,23 +10,37 @@ import { Thumbnail } from './Thumbnail'
  *   - Nombre arriba a la izquierda, 2 líneas máximo con elipsis.
  *   - Zona de media: miniatura grande (imágenes) o glifo de tipo centrado.
  *   - Metadata abajo a la izquierda ("PDF · 164 KB").
- *   - Círculo de selección arriba a la derecha — VISUAL por ahora (aparece al
- *     hover); la selección real (lote, acciones) llega en PR4.
+ *   - Acciones (PR4): tira vertical de íconos en el borde derecho, revelada al
+ *     hover/focus de la card (renombrar / descargar / eliminar; o Restaurar en
+ *     la papelera). Mantenida alcanzable por teclado vía `focus-within`.
  *
- * Sin botones de acción (renombrar / descargar / borrar son PR4). Presentacional.
+ * Presentacional salvo las acciones (que llevan sus propios hooks).
  */
-export function FileCard({ item }: { item: LibraryItem }) {
+export function FileCard({
+  item,
+  trash = false,
+  onRename,
+}: {
+  item: LibraryItem
+  trash?: boolean
+  onRename: (item: LibraryItem) => void
+}) {
   return (
     <div className="card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full">
-      {/* Círculo de selección (solo visual; aparece al hover de la card). */}
-      <span
-        aria-hidden
-        className="absolute top-2.5 right-2.5 size-5 rounded-full border border-ink-200 bg-paper-50/80 opacity-0 transition-opacity group-hover:opacity-100"
-      />
+      {/* Acciones — tira vertical en el borde derecho. En táctil siempre
+          visible; con puntero aparece al hover/focus de la card. */}
+      <div className="absolute top-2.5 right-2 z-10 rounded-lg bg-paper-50/85 backdrop-blur-sm opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 motion-reduce:transition-none">
+        <BibliotecaItemActions
+          item={item}
+          trash={trash}
+          orientation="vertical"
+          onRename={onRename}
+        />
+      </div>
 
-      {/* Nombre — 2 líneas con elipsis. `pr-6` deja aire para el círculo. */}
+      {/* Nombre — 2 líneas con elipsis. `pr-8` deja aire para las acciones. */}
       <h3
-        className="text-sm font-medium text-ink-700 leading-snug line-clamp-2 pr-6"
+        className="text-sm font-medium text-ink-700 leading-snug line-clamp-2 pr-8"
         title={item.title}
       >
         {item.title}

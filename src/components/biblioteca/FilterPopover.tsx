@@ -7,6 +7,7 @@ import {
   FilterIcon,
   ScissorsIcon,
   SparkleIcon,
+  TrashIcon,
   UploadIcon,
 } from '../Icons'
 import type { LibraryFileType, LibrarySource } from '../../types/biblioteca'
@@ -25,8 +26,12 @@ import { FileTypeIcon } from './FileTypeIcon'
  *     audio / video / other)
  *
  * Presentacional: recibe los valores actuales y emite `onChangeTipo` /
- * `onChangeFuente`; el estado (y su espejo en la URL) vive en el orquestador.
- * "Eliminados recientemente" NO va acá: llega con la papelera en PR4.
+ * `onChangeFuente` / `onToggleEliminados`; el estado (y su espejo en la URL)
+ * vive en el orquestador.
+ *
+ * Al final, tras un separador, "Eliminados recientemente" (PR4): alterna la
+ * vista papelera (`incluyeEliminados`). Cuando está activa, el badge del botón
+ * lo cuenta también para que se note que hay un filtro especial puesto.
  */
 
 const FUENTE_OPTIONS: ReadonlyArray<{
@@ -95,16 +100,20 @@ function SectionLabel({ children }: { children: ReactNode }) {
 export function FilterPopover({
   tipo,
   fuente,
+  incluyeEliminados,
   onChangeTipo,
   onChangeFuente,
+  onToggleEliminados,
 }: {
   tipo: LibraryFileType | ''
   fuente: LibrarySource | ''
+  incluyeEliminados: boolean
   onChangeTipo: (next: LibraryFileType | '') => void
   onChangeFuente: (next: LibrarySource | '') => void
+  onToggleEliminados: (next: boolean) => void
 }) {
   const popover = useAnchoredPopover()
-  const activeCount = (tipo ? 1 : 0) + (fuente ? 1 : 0)
+  const activeCount = (tipo ? 1 : 0) + (fuente ? 1 : 0) + (incluyeEliminados ? 1 : 0)
 
   return (
     <>
@@ -173,6 +182,16 @@ export function FilterPopover({
                 onClick={() => onChangeTipo(tipo === opt.value ? '' : opt.value)}
               />
             ))}
+
+            <div className="my-1 border-t border-ink-100/70" />
+
+            {/* Papelera (PR4): vista de items ocultos a nivel Biblioteca. */}
+            <OptionRow
+              label="Eliminados recientemente"
+              icon={<TrashIcon size={14} />}
+              selected={incluyeEliminados}
+              onClick={() => onToggleEliminados(!incluyeEliminados)}
+            />
           </div>,
           document.body,
         )}

@@ -7,12 +7,18 @@ import { Tooltip } from './Tooltip'
 import { ChevronDownIcon, PlusIcon, SearchIcon } from './Icons'
 import { BibliotecaTabs } from './biblioteca/BibliotecaTabs'
 import { BibliotecaToolbar } from './biblioteca/BibliotecaToolbar'
-import type { BibliotecaTab, LibraryFileType, LibrarySource } from '../types/biblioteca'
+import type {
+  BibliotecaTab,
+  LibraryFileType,
+  LibraryItem,
+  LibrarySource,
+} from '../types/biblioteca'
 import { BibliotecaListView } from './biblioteca/BibliotecaListView'
 import { BibliotecaListSkeleton } from './biblioteca/BibliotecaListSkeleton'
 import { BibliotecaGridView } from './biblioteca/BibliotecaGridView'
 import { BibliotecaGridSkeleton } from './biblioteca/BibliotecaGridSkeleton'
 import { BibliotecaEmptyState } from './biblioteca/BibliotecaEmptyState'
+import { RenameModal } from './biblioteca/RenameModal'
 import {
   DEFAULT_ORDEN,
   DEFAULT_VISTA,
@@ -94,13 +100,18 @@ export function BibliotecaView() {
   const [tipoParam, setTipoParam] = useSearchParamState('tipo')
   const [fuenteParam, setFuenteParam] = useSearchParamState('fuente')
   const [vistaParam, setVistaParam] = useSearchParamState('vista')
+  const [eliminadosParam, setEliminadosParam] = useSearchParamState('eliminados')
 
   const tab = coerceTab(tabParam)
   const orden = coerceOrden(ordenParam)
   const tipo = coerceTipo(tipoParam)
   const fuente = coerceFuente(fuenteParam)
   const vista = coerceVista(vistaParam)
+  const incluyeEliminados = eliminadosParam === '1'
   const q = qParam ?? ''
+
+  // Item en edición de nombre (un único modal sirve a lista y cuadrícula).
+  const [renamingItem, setRenamingItem] = useState<LibraryItem | null>(null)
 
   // Búsqueda con debounce: el input es estado local inmediato; el query param
   // (y por ende la query) se actualiza 250 ms después de dejar de teclear.
@@ -134,6 +145,7 @@ export function BibliotecaView() {
     orden,
     tipo: tipo || undefined,
     fuente: fuente || undefined,
+    incluyeEliminados,
   })
   const items = useMemo(() => flattenBibliotecaItems(query.data), [query.data])
 
@@ -150,6 +162,11 @@ export function BibliotecaView() {
   function handleVista(next: typeof vista) {
     // El default (lista) no necesita ensuciar la URL.
     setVistaParam(next === DEFAULT_VISTA ? null : next)
+  }
+
+  function handleToggleEliminados(next: boolean) {
+    // `?eliminados=1` solo cuando está activa; apagada limpia el param.
+    setEliminadosParam(next ? '1' : null)
   }
 
   return (
@@ -203,8 +220,10 @@ export function BibliotecaView() {
           onChangeVista={handleVista}
           tipo={tipo}
           fuente={fuente}
+          incluyeEliminados={incluyeEliminados}
           onChangeTipo={(next) => setTipoParam(next || null)}
           onChangeFuente={(next) => setFuenteParam(next || null)}
+          onToggleEliminados={handleToggleEliminados}
         />
       </div>
 
@@ -221,13 +240,23 @@ export function BibliotecaView() {
           retrying={query.isFetching}
         />
       ) : items.length === 0 ? (
-        <BibliotecaEmptyState />
+        <BibliotecaEmptyState trash={incluyeEliminados} />
       ) : (
         <>
           {vista === 'cuadricula' ? (
-            <BibliotecaGridView items={items} />
+            <BibliotecaGridView
+              items={items}
+              trash={incluyeEliminados}
+              onRename={setRenamingItem}
+            />
           ) : (
-            <BibliotecaListView items={items} orden={orden} onSort={handleSort} />
+            <BibliotecaListView
+              items={items}
+              orden={orden}
+              onSort={handleSort}
+              trash={incluyeEliminados}
+              onRename={setRenamingItem}
+            />
           )}
           {query.hasNextPage && (
             <div className="flex justify-center pt-6">
@@ -242,6 +271,10 @@ export function BibliotecaView() {
             </div>
           )}
         </>
+      )}
+
+      {renamingItem && (
+        <RenameModal item={renamingItem} open onClose={() => setRenamingItem(null)} />
       )}
     </>
   )

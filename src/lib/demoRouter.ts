@@ -1,6 +1,6 @@
 import type { Row, Store } from './demoTypes'
 import { saveDemoStore as save } from './demoStore'
-import { routeDemoBiblioteca } from './demoBiblioteca'
+import { routeDemoBiblioteca, routeDemoBibliotecaMutation } from './demoBiblioteca'
 import { extractPromptVariables, parseTags, weekStartAgo } from './demoUtils'
 
 function uid(): string {
@@ -55,6 +55,16 @@ export function routeDemoRequest(
   const resource = seg[0] ?? ''
   const id = seg[1]
   const action = seg[2]
+
+  // Biblioteca — acciones por item (PR4): PATCH /api/biblioteca-item/:kind/:id.
+  // `:kind` y `:id` llegan codificados en la URL; los decodificamos.
+  if (resource === 'biblioteca-item' && method === 'PATCH' && id && action) {
+    return routeDemoBibliotecaMutation(
+      decodeURIComponent(id),
+      decodeURIComponent(action),
+      body,
+    )
+  }
 
   if (resource === 'notas-attachments-upload' && method === 'POST') {
     const ownerType = body.ownerType as string

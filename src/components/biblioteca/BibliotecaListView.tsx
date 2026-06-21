@@ -1,6 +1,7 @@
 import { ChevronDownIcon } from '../Icons'
 import type { LibraryItem } from '../../types/biblioteca'
 import { Thumbnail } from './Thumbnail'
+import { BibliotecaItemActions } from './BibliotecaItemActions'
 import {
   formatByteSize,
   formatShortDate,
@@ -42,10 +43,15 @@ export function BibliotecaListView({
   items,
   orden,
   onSort,
+  trash = false,
+  onRename,
 }: {
   items: LibraryItem[]
   orden: BibliotecaOrden
   onSort: (column: SortColumn) => void
+  /** Vista papelera: las acciones de fila se reducen a Restaurar. */
+  trash?: boolean
+  onRename: (item: LibraryItem) => void
 }) {
   const { column: activeColumn, direction } = parseOrden(orden)
 
@@ -102,7 +108,7 @@ export function BibliotecaListView({
         <div
           key={item.id}
           role="row"
-          className="flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 hover:bg-ink-50/60 transition-colors"
+          className="group flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 hover:bg-ink-50/60 transition-colors"
         >
           <div role="cell" className="flex items-center gap-3 flex-1 min-w-0">
             {/* Miniatura real para imágenes con URL de servir; para el resto
@@ -121,6 +127,14 @@ export function BibliotecaListView({
             className="w-20 text-right text-caption text-ink-400 tabular-nums shrink-0 hidden sm:block"
           >
             {formatByteSize(item.byteSize)}
+          </div>
+          {/* Acciones — quietas. En táctil (sin hover) siempre visibles; con
+              puntero aparecen al hover/focus de la fila. */}
+          <div
+            role="cell"
+            className="shrink-0 opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 motion-reduce:transition-none"
+          >
+            <BibliotecaItemActions item={item} trash={trash} onRename={onRename} />
           </div>
         </div>
       ))}
