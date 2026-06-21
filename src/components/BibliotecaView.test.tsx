@@ -182,4 +182,72 @@ describe('<BibliotecaView />', () => {
     await screen.findByText('Contrato.pdf')
     expect(screen.getByRole('button', { name: /Cargar más/i })).toBeInTheDocument()
   })
+
+  it('muestra la barra de controles: filtros + conmutador de vista', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf' })])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+    expect(screen.getByRole('button', { name: 'Filtros' })).toBeInTheDocument()
+    // Lista activa por defecto; cuadrícula disponible.
+    expect(
+      screen.getByRole('button', { name: 'Lista', pressed: true }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Cuadrícula', pressed: false }),
+    ).toBeInTheDocument()
+  })
+
+  it('cambiar a cuadrícula setea ?vista= y conmuta la vista renderizada', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf' })])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+    // Lista: hay encabezado ordenable (role table). Cuadrícula: role list.
+    expect(screen.getByRole('table', { name: 'Archivos' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cuadrícula' }))
+
+    await waitFor(() => {
+      expect(window.location.search).toContain('vista=cuadricula')
+    })
+    // La vista cambió a la cuadrícula (role list), ya no la tabla.
+    expect(screen.getByRole('list', { name: 'Archivos' })).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: 'Archivos' })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Cuadrícula', pressed: true }),
+    ).toBeInTheDocument()
+  })
+
+  it('seleccionar un Tipo en el popover setea ?tipo= y refetchea', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf' })])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+    fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'PDF' }))
+
+    await waitFor(() => {
+      expect(window.location.search).toContain('tipo=pdf')
+    })
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('tipo=pdf'))).toBe(true)
+    })
+  })
+
+  it('seleccionar una Fuente en el popover setea ?fuente= y refetchea', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf' })])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+    fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Subidos' }))
+
+    await waitFor(() => {
+      expect(window.location.search).toContain('fuente=subido')
+    })
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('fuente=subido'))).toBe(true)
+    })
+  })
 })

@@ -3,7 +3,7 @@
  * Sin React, fáciles de testear en aislamiento.
  */
 
-import type { BibliotecaListParams } from '../../types/biblioteca'
+import type { BibliotecaListParams, LibraryFileType } from '../../types/biblioteca'
 
 /** El valor de `orden` que viaja a la URL y al backend. */
 export type BibliotecaOrden = NonNullable<BibliotecaListParams['orden']>
@@ -16,6 +16,17 @@ export type SortDirection = 'asc' | 'desc'
 
 /** Orden por defecto de la vista (lo más reciente arriba). */
 export const DEFAULT_ORDEN: BibliotecaOrden = 'modificado-desc'
+
+/** Modo de presentación de la lista de archivos. */
+export type BibliotecaVista = 'lista' | 'cuadricula'
+
+/** Vista por defecto (la lista, el hilo unificado). */
+export const DEFAULT_VISTA: BibliotecaVista = 'lista'
+
+/** Normaliza el query param `vista` a un valor válido (default `lista`). */
+export function coerceVista(raw: string | null): BibliotecaVista {
+  return raw === 'cuadricula' ? 'cuadricula' : DEFAULT_VISTA
+}
 
 /** Descompone un `orden` en columna + dirección. */
 export function parseOrden(orden: BibliotecaOrden): {
@@ -57,6 +68,32 @@ export function formatByteSize(bytes: number | null): string {
   if (kb < 1024) return `${Math.round(kb)} KB`
   const mb = kb / 1024
   return `${mb.toFixed(1)} MB`
+}
+
+/** Etiqueta legible de la familia de archivo, para la metadata de las cards. */
+const FILE_TYPE_LABELS: Record<LibraryFileType, string> = {
+  image: 'Imagen',
+  document: 'Documento',
+  spreadsheet: 'Hoja de cálculo',
+  presentation: 'Presentación',
+  pdf: 'PDF',
+  audio: 'Audio',
+  video: 'Video',
+  other: 'Archivo',
+}
+
+export function fileTypeLabel(fileType: LibraryFileType): string {
+  return FILE_TYPE_LABELS[fileType] ?? FILE_TYPE_LABELS.other
+}
+
+/**
+ * Metadata de pie de card: etiqueta de tipo + tamaño separados por un punto
+ * medio ("PDF · 164 KB"). Si no hay tamaño, solo la etiqueta (no "PDF · —").
+ */
+export function formatCardMeta(fileType: LibraryFileType, bytes: number | null): string {
+  const label = fileTypeLabel(fileType)
+  if (bytes === null || bytes === undefined) return label
+  return `${label} · ${formatByteSize(bytes)}`
 }
 
 /**

@@ -14,24 +14,29 @@ import { queryKeys } from './queryClient'
  * una queryKey que incluye los filtros (tab/q/orden) para que cada
  * combinación tenga su propia cache + paginación.
  *
- * En PR2 los únicos filtros que viajan a la URL/servidor son `tab`, `q` y
- * `orden`; `tipo`/`fuente` (popover) llegan en PR3.
+ * Los filtros que viajan a la URL/servidor son `tab`, `q`, `orden` y —desde
+ * PR3, vía el popover— `tipo` (familia de archivo) y `fuente` (procedencia).
  */
 const BIBLIOTECA_INFINITE = queryKeys.bibliotecaInfinite
 
-/** Filtros que controla la vista en PR2. */
-export type BibliotecaListInput = Pick<BibliotecaListParams, 'tab' | 'q' | 'orden'>
+/** Filtros que controla la vista (pestaña, búsqueda, orden y popover). */
+export type BibliotecaListInput = Pick<
+  BibliotecaListParams,
+  'tab' | 'q' | 'orden' | 'tipo' | 'fuente'
+>
 
 export function useBibliotecaList(input: BibliotecaListInput) {
-  const { tab, q, orden } = input
+  const { tab, q, orden, tipo, fuente } = input
   return useInfiniteQuery<BibliotecaListResult>({
     // El prefijo `biblioteca` invalida todas las variantes de filtro; los
-    // segmentos siguientes separan cada combinación tab/q/orden en su cache.
+    // segmentos siguientes separan cada combinación de filtros en su cache.
     queryKey: [
       ...BIBLIOTECA_INFINITE,
       tab ?? 'todo',
       q ?? '',
       orden ?? 'modificado-desc',
+      tipo ?? '',
+      fuente ?? '',
     ],
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
@@ -39,6 +44,8 @@ export function useBibliotecaList(input: BibliotecaListInput) {
         tab,
         q,
         orden,
+        tipo,
+        fuente,
         cursor: pageParam as string | undefined,
       }),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,

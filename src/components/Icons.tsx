@@ -828,6 +828,17 @@ export const SortIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Filtros — sliders horizontales (tres controles con su perilla). Glifo del
+    botón "Filtros" del popover de la Biblioteca. House weight 1.6. */
+export const FilterIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M4 7h10M18 7h2M4 12h2M10 12h10M4 17h8M16 17h4" />
+    <circle cx="16" cy="7" r="2" />
+    <circle cx="8" cy="12" r="2" />
+    <circle cx="14" cy="17" r="2" />
+  </svg>
+)
+
 /** Archivo adjunto genérico. */
 export const FileIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

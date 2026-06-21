@@ -55,14 +55,20 @@ function silentWav(durationSeconds = 1): Uint8Array {
 
 export function demoMediaResponse(url: string): Response | null {
   const path = url.split('?')[0] ?? url
-  if (path === '/api/momentos-file/demo/cuaderno.svg') {
-    return new Response(DEMO_PHOTO_SVG, {
+  // Fotos de Momentos en modo prueba: como los recortes/anexos, cualquier key
+  // sirve un placeholder para que las miniaturas y el visor se vean (en vez de
+  // quedar rotos). Si la key parece audio (nota de voz), un WAV silencioso; si
+  // termina en `-N.svg`, variamos la paleta para que las fotos de un mismo
+  // evento no se vean idénticas.
+  if (path.startsWith('/api/momentos-file/')) {
+    if (/\.(wav|ogg|oga|mp3|m4a|aac|webm|flac)$/i.test(path)) {
+      return new Response(silentWav().buffer as ArrayBuffer, {
+        headers: { 'Content-Type': 'audio/wav' },
+      })
+    }
+    const variant = Number(/-(\d)\.svg$/.exec(path)?.[1] ?? 1) - 1
+    return new Response(demoPhotoSvg(Math.max(0, variant)), {
       headers: { 'Content-Type': 'image/svg+xml' },
-    })
-  }
-  if (path === '/api/momentos-file/demo/nota-voz.wav') {
-    return new Response(silentWav().buffer as ArrayBuffer, {
-      headers: { 'Content-Type': 'audio/wav' },
     })
   }
   // Anexos de Notas/Tareas en modo prueba: cualquier key sirve un placeholder.

@@ -6,26 +6,33 @@ import { ErrorState } from './ErrorState'
 import { Tooltip } from './Tooltip'
 import { ChevronDownIcon, PlusIcon, SearchIcon } from './Icons'
 import { BibliotecaTabs } from './biblioteca/BibliotecaTabs'
-import type { BibliotecaTab } from '../types/biblioteca'
+import { BibliotecaToolbar } from './biblioteca/BibliotecaToolbar'
+import type { BibliotecaTab, LibraryFileType, LibrarySource } from '../types/biblioteca'
 import { BibliotecaListView } from './biblioteca/BibliotecaListView'
 import { BibliotecaListSkeleton } from './biblioteca/BibliotecaListSkeleton'
+import { BibliotecaGridView } from './biblioteca/BibliotecaGridView'
+import { BibliotecaGridSkeleton } from './biblioteca/BibliotecaGridSkeleton'
 import { BibliotecaEmptyState } from './biblioteca/BibliotecaEmptyState'
 import {
   DEFAULT_ORDEN,
+  DEFAULT_VISTA,
+  coerceVista,
   toggleOrden,
   type BibliotecaOrden,
   type SortColumn,
 } from './biblioteca/helpers'
 
 /**
- * Vista Biblioteca — orquestador (PR2: cascarón + lista).
+ * Vista Biblioteca — orquestador.
  *
- * Posee el estado de filtros (pestaña, búsqueda, orden), cada uno espejado en
- * la URL vía `useSearchParamState` para que la vista sea enlazable. La búsqueda
- * tiene un debounce de 250 ms antes de tocar el query param / disparar la query.
+ * Posee el estado de filtros (pestaña, búsqueda, orden, tipo, fuente) y el modo
+ * de vista (lista / cuadrícula), cada uno espejado en la URL vía
+ * `useSearchParamState` para que la vista sea enlazable. La búsqueda tiene un
+ * debounce de 250 ms antes de tocar el query param / disparar la query.
  * Renderiza el header editorial (con buscador compacto + "Nuevo" deshabilitado),
- * las pestañas, la lista ordenable y los estados de carga / error / vacío, más
- * el botón "Cargar más" (paginación por cursor).
+ * la fila de pestañas + barra de controles (filtros + conmutador de vista), la
+ * lista ordenable o la cuadrícula de cards, y los estados de carga / error /
+ * vacío, más el botón "Cargar más" (paginación por cursor).
  *
  * Children presentacionales: el estado vive acá; ellos solo pintan.
  */
@@ -38,6 +45,22 @@ const VALID_ORDEN: ReadonlyArray<BibliotecaOrden> = [
   'nombre-desc',
   'tamano-desc',
   'tamano-asc',
+]
+const VALID_TIPOS: ReadonlyArray<LibraryFileType> = [
+  'image',
+  'document',
+  'spreadsheet',
+  'presentation',
+  'pdf',
+  'audio',
+  'video',
+  'other',
+]
+const VALID_FUENTES: ReadonlyArray<LibrarySource> = [
+  'subido',
+  'generado',
+  'capturado',
+  'whatsapp',
 ]
 
 function coerceTab(raw: string | null): BibliotecaTab {
@@ -52,13 +75,31 @@ function coerceOrden(raw: string | null): BibliotecaOrden {
     : DEFAULT_ORDEN
 }
 
+function coerceTipo(raw: string | null): LibraryFileType | '' {
+  return raw && (VALID_TIPOS as readonly string[]).includes(raw)
+    ? (raw as LibraryFileType)
+    : ''
+}
+
+function coerceFuente(raw: string | null): LibrarySource | '' {
+  return raw && (VALID_FUENTES as readonly string[]).includes(raw)
+    ? (raw as LibrarySource)
+    : ''
+}
+
 export function BibliotecaView() {
   const [tabParam, setTabParam] = useSearchParamState('tab')
   const [qParam, setQParam] = useSearchParamState('q')
   const [ordenParam, setOrdenParam] = useSearchParamState('orden')
+  const [tipoParam, setTipoParam] = useSearchParamState('tipo')
+  const [fuenteParam, setFuenteParam] = useSearchParamState('fuente')
+  const [vistaParam, setVistaParam] = useSearchParamState('vista')
 
   const tab = coerceTab(tabParam)
   const orden = coerceOrden(ordenParam)
+  const tipo = coerceTipo(tipoParam)
+  const fuente = coerceFuente(fuenteParam)
+  const vista = coerceVista(vistaParam)
   const q = qParam ?? ''
 
   // Búsqueda con debounce: el input es estado local inmediato; el query param
@@ -87,7 +128,13 @@ export function BibliotecaView() {
     [],
   )
 
-  const query = useBibliotecaList({ tab, q: q || undefined, orden })
+  const query = useBibliotecaList({
+    tab,
+    q: q || undefined,
+    orden,
+    tipo: tipo || undefined,
+    fuente: fuente || undefined,
+  })
   const items = useMemo(() => flattenBibliotecaItems(query.data), [query.data])
 
   function handleSort(column: SortColumn) {
@@ -98,6 +145,11 @@ export function BibliotecaView() {
 
   function handleTab(next: BibliotecaTab) {
     setTabParam(next === 'todo' ? null : next)
+  }
+
+  function handleVista(next: typeof vista) {
+    // El default (lista) no necesita ensuciar la URL.
+    setVistaParam(next === DEFAULT_VISTA ? null : next)
   }
 
   return (
@@ -144,12 +196,24 @@ export function BibliotecaView() {
         }
       />
 
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <BibliotecaTabs value={tab} onChange={handleTab} />
+        <BibliotecaToolbar
+          vista={vista}
+          onChangeVista={handleVista}
+          tipo={tipo}
+          fuente={fuente}
+          onChangeTipo={(next) => setTipoParam(next || null)}
+          onChangeFuente={(next) => setFuenteParam(next || null)}
+        />
       </div>
 
       {query.isLoading ? (
-        <BibliotecaListSkeleton />
+        vista === 'cuadricula' ? (
+          <BibliotecaGridSkeleton />
+        ) : (
+          <BibliotecaListSkeleton />
+        )
       ) : query.isError && items.length === 0 ? (
         <ErrorState
           title="No se pudieron cargar los archivos"
@@ -160,7 +224,11 @@ export function BibliotecaView() {
         <BibliotecaEmptyState />
       ) : (
         <>
-          <BibliotecaListView items={items} orden={orden} onSort={handleSort} />
+          {vista === 'cuadricula' ? (
+            <BibliotecaGridView items={items} />
+          ) : (
+            <BibliotecaListView items={items} orden={orden} onSort={handleSort} />
+          )}
           {query.hasNextPage && (
             <div className="flex justify-center pt-6">
               <button
