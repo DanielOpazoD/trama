@@ -79,6 +79,14 @@ const SCRIPT_ENTRIES = [
     summary: 'Falla si chunks gzip o familias agregadas exceden budgets explícitos.',
   },
   {
+    file: 'scripts/check-architecture-boundaries.mjs',
+    domain: 'ci',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:architecture'],
+    summary: 'Ejecuta dependency-cruiser y bloquea violaciones nuevas del baseline.',
+  },
+  {
     file: 'scripts/check-cte-regression.sh',
     domain: 'database',
     kind: 'check',
@@ -479,6 +487,20 @@ export const QUALITY_GATES = [
     phase: 'operations',
     required: true,
     summary: 'Registry y quality gates de scripts operacionales.',
+  },
+  {
+    command: 'npm run check:knip',
+    job: 'lint',
+    phase: 'static',
+    required: true,
+    summary: 'Inventario Knip de archivos, exports, scripts y dependencias muertas.',
+  },
+  {
+    command: 'npm run check:architecture',
+    job: 'lint',
+    phase: 'architecture',
+    required: true,
+    summary: 'Dependency-cruiser valida fronteras cliente/backend/PDF y ciclos.',
   },
   {
     command: 'npm run check:legacy-fallback',
