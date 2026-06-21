@@ -1,5 +1,4 @@
 import type { Config } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
@@ -9,6 +8,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { OrphanedBlobRescueBody } from './_lib/momento-extra-schemas.js'
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
 
 /**
  * DD1: recuperación de blobs huérfanos.
@@ -86,7 +86,7 @@ export default withObservability('momentos-orphaned-blobs', async (req: Request,
   const sql = getSql()
   const authedUser = await getAuthedUser(req)
   const userId = authedUser.id
-  const store = getStore('momentos-media')
+  const store = createNetlifyBlobStorageAdapter('momentos-media')
 
   // GET: listar las keys huérfanas + algún metadata útil (mime) para que
   // el cliente pueda renderizar thumbs apuntando al endpoint /file/:key.

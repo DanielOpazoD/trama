@@ -34,6 +34,7 @@ describe('pdf-studio saved PDFs endpoint', () => {
           updated_at: '2026-06-11T00:00:00.000Z',
         },
       ],
+      [{ id: 'asset-pdf' }],
     )
 
     const res = await handler(
@@ -115,10 +116,28 @@ describe('pdf-studio saved PDFs endpoint', () => {
         3,
       ]),
     )
+    const manifestInsert = mockSqlState.calls.find((call) =>
+      /INSERT INTO storage_assets/i.test(call.template),
+    )
+    expect(manifestInsert?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'pdf-studio-saved-pdfs',
+        'pdf-studio-saved-doc',
+        'local-1',
+        'netlify-blobs',
+        'application/pdf',
+        3,
+      ]),
+    )
   })
 
   it('borra con soft delete scoping por usuario', async () => {
-    mockSqlResponses.push([], [{ id: 'remote-1' }])
+    mockSqlResponses.push(
+      [],
+      [{ id: 'remote-1', storage_key: 'legacy-single-user/abc.pdf' }],
+      [{ id: 'asset-pdf' }],
+    )
 
     const res = await handler(
       new Request('http://localhost/api/pdf-studio-saved-pdfs/remote-1', {
@@ -136,6 +155,19 @@ describe('pdf-studio saved PDFs endpoint', () => {
     expect(update?.template).toMatch(/deleted_at IS NULL/i)
     expect(update?.values).toEqual(
       expect.arrayContaining(['remote-1', 'legacy-single-user']),
+    )
+    const manifestUpdate = mockSqlState.calls.find((call) =>
+      /UPDATE storage_assets/i.test(call.template),
+    )
+    expect(manifestUpdate?.template).toMatch(/user_id =/i)
+    expect(manifestUpdate?.template).toMatch(/deleted_at IS NULL/i)
+    expect(manifestUpdate?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'pdf-studio-saved-pdfs',
+        'netlify-blobs',
+        'legacy-single-user/abc.pdf',
+      ]),
     )
   })
 })

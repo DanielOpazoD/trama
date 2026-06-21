@@ -7,6 +7,7 @@ import { attachmentOwnerExists } from './_lib/notas-attachment-owners.js'
 import { parseSearchParams, QueryParam } from './_lib/request-contracts.js'
 import { z } from 'zod'
 import { logOperationalEvent } from './_lib/operational-events.js'
+import { softDeleteStorageAsset } from './_lib/storage-assets.js'
 
 type AttachmentRow = {
   id: string
@@ -67,10 +68,10 @@ export default withObservability(
     }
 
     if (req.method === 'DELETE' && id) {
-      const rows = await sqlTyped<{ id: string }>(sql`
+      const rows = await sqlTyped<{ id: string; storage_key: string }>(sql`
         UPDATE notas_attachments SET deleted_at = NOW(), updated_at = NOW()
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING id
+        RETURNING id, storage_key
       `)
       if (rows.length === 0) {
         logOperationalEvent({
@@ -97,6 +98,12 @@ export default withObservability(
         })
         return ApiErrors.notFound(requestId, 'Anexo no encontrado')
       }
+      await softDeleteStorageAsset(sql, {
+        userId,
+        domain: 'notas-attachments',
+        provider: 'netlify-blobs',
+        storageKey: rows[0]!.storage_key,
+      })
       return Response.json({ ok: true })
     }
 

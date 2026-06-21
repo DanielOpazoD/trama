@@ -1,10 +1,11 @@
 import type { Config, Context } from '@netlify/functions'
-import { getStore } from '@netlify/blobs'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { checksumSha256, recordStorageAsset, softDeleteStorageAsset } from './_lib/storage-assets.js'
 
 const STORE = 'pdf-studio-saved-pdfs'
 const MAX_BYTES = 50 * 1024 * 1024
@@ -96,8 +97,10 @@ async function handlePost(req: Request, requestId: string) {
 
   const buf = await file.arrayBuffer()
   const storageKey = `${userId}/${randomKey()}.pdf`
-  await getStore(STORE).set(storageKey, buf, {
-    metadata: { mime: 'application/pdf', size: String(buf.byteLength), name },
+  await createNetlifyBlobStorageAdapter(STORE).put(storageKey, buf, {
+    mime: 'application/pdf',
+    size: String(buf.byteLength),
+    name,
   })
 
   const rows = await sqlTyped<SavedPdfRow>(sql`
@@ -118,6 +121,17 @@ async function handlePost(req: Request, requestId: string) {
       updated_at = NOW()
     RETURNING id, saved_doc_id, name, kind, mime_type, byte_size, storage_key, created_at, updated_at
   `)
+  await recordStorageAsset(sql, {
+    userId,
+    domain: 'pdf-studio-saved-pdfs',
+    ownerType: 'pdf-studio-saved-doc',
+    ownerId: savedDocId,
+    provider: 'netlify-blobs',
+    storageKey,
+    mimeType: 'application/pdf',
+    byteSize: buf.byteLength,
+    checksum: checksumSha256(buf),
+  })
 
   return Response.json(toClient(rows[0]!), { status: 201 })
 }
@@ -128,15 +142,21 @@ async function handleDelete(req: Request, context: Context, requestId: string) {
   const authedUser = await getAuthedUser(req)
   const sql = getSql()
   await ensureUserRow(sql, authedUser)
-  const rows = await sqlTyped<{ id: string }>(sql`
+  const rows = await sqlTyped<{ id: string; storage_key: string }>(sql`
     UPDATE pdf_studio_saved_pdfs
     SET deleted_at = NOW(), updated_at = NOW()
     WHERE id = ${id}
       AND user_id = ${authedUser.id}
       AND deleted_at IS NULL
-    RETURNING id
+    RETURNING id, storage_key
   `)
   if (!rows[0]) return ApiErrors.notFound(requestId, 'No encontrado')
+  await softDeleteStorageAsset(sql, {
+    userId: authedUser.id,
+    domain: 'pdf-studio-saved-pdfs',
+    provider: 'netlify-blobs',
+    storageKey: rows[0].storage_key,
+  })
   return new Response(null, { status: 204 })
 }
 

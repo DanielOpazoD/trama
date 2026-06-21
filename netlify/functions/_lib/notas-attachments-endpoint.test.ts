@@ -135,7 +135,8 @@ describe('notas attachments endpoint', () => {
   })
 
   it('DELETE devuelve ok cuando soft-borra un anexo del usuario', async () => {
-    mockSqlResponses.push([{ id: 'a1' }])
+    mockSqlResponses.push([{ id: 'a1', storage_key: 'legacy-single-user/brief.md' }])
+    mockSqlResponses.push([{ id: 'asset-attachment' }])
 
     const res = await handler(
       buildApiRequest('/api/notas-attachments/a1', { method: 'DELETE' }),
@@ -144,6 +145,19 @@ describe('notas attachments endpoint', () => {
 
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ ok: true })
-    expect(mockSqlState.calls[0]?.template).toMatch(/RETURNING id/i)
+    expect(mockSqlState.calls[0]?.template).toMatch(/RETURNING id, storage_key/i)
+    const manifestUpdate = mockSqlState.calls.find((call) =>
+      /UPDATE storage_assets/i.test(call.template),
+    )
+    expect(manifestUpdate?.template).toMatch(/user_id =/i)
+    expect(manifestUpdate?.template).toMatch(/deleted_at IS NULL/i)
+    expect(manifestUpdate?.values).toEqual(
+      expect.arrayContaining([
+        'legacy-single-user',
+        'notas-attachments',
+        'netlify-blobs',
+        'legacy-single-user/brief.md',
+      ]),
+    )
   })
 })

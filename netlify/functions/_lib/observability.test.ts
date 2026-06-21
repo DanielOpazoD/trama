@@ -120,6 +120,28 @@ describe('observability', () => {
       expect(redacted.message).toContain('[redacted-email]')
       expect(redacted.message).toContain('[redacted-phone]')
     })
+
+    it('redacta storage keys por nombre de campo para evitar filtrar blobs privados', () => {
+      const redacted = redactLogValue({
+        event: 'storage',
+        storageKey: 'legacy-single-user/private.pdf',
+        image_key: 'user_a/photo.webp',
+        context: {
+          blobKey: 'user_b/audio.webm',
+          safeKeyHash:
+            'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        },
+      }) as {
+        storageKey: string
+        image_key: string
+        context: { blobKey: string; safeKeyHash: string }
+      }
+
+      expect(redacted.storageKey).toBe('[redacted]')
+      expect(redacted.image_key).toBe('[redacted]')
+      expect(redacted.context.blobKey).toBe('[redacted]')
+      expect(redacted.context.safeKeyHash).toMatch(/^sha256:/)
+    })
   })
 
   describe('persistError', () => {

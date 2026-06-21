@@ -35,15 +35,23 @@ export default withObservability('my-endpoint', async (req, _ctx, { requestId })
 Trama agregó Netlify Blobs en ξ3 como capa de blob storage para fotos. Antes de ξ todo vivía en Neon Postgres (texto). El stack ahora es **dos persistencias**: Postgres para datos estructurados + Blobs para binarios.
 
 ```ts
-import { getStore } from '@netlify/blobs'
-const store = getStore('momentos-media') // store name = namespace
-await store.set(key, arrayBuffer, { metadata: { mime: '...' } })
-const blob = await store.getWithMetadata(key, { type: 'arrayBuffer' })
+import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+
+const storage = createNetlifyBlobStorageAdapter('momentos-media')
+await storage.put(key, arrayBuffer, { mime: '...', size: String(byteSize) })
+const blob = await storage.getWithMetadata<ArrayBuffer>(key, 'arrayBuffer')
 ```
 
 **Convenciones:**
 
-- Una store por dominio (`momentos-media` hoy; si surge otro caso, store nueva).
+- Una store por dominio (`momentos-media`, `recortes-media`,
+  `notas-attachments`, `pdf-studio-saved-pdfs`).
+- El acceso productivo a blobs pasa por
+  `netlify/functions/_lib/storage-adapter.ts`; no importes `@netlify/blobs`
+  directo fuera de ese adapter.
+- Cada blob nuevo debe quedar registrado en `storage_assets` con
+  `recordStorageAsset(...)`, `user_id`, dominio, owner lógico, MIME, tamaño y
+  checksum. Ver [storage-boundaries.md](storage-boundaries.md).
 - Keys nuevas son `${userId}/${hash}.${ext}`. Las legacy sin slash pertenecen
   al usuario `legacy-single-user`. Las keys son inmutables; la respuesta del
   endpoint usa cache privado/no-store porque el contenido es privado.
