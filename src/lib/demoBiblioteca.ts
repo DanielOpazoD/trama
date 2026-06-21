@@ -86,7 +86,9 @@ const SEED: LibraryItemRow[] = [
     source: 'capturado',
     mime_type: 'image/png',
     byte_size: null,
-    storage_key: 'legacy-single-user/demo-img-1',
+    // PR3: key con extensión `.svg` para que demoMedia sirva un placeholder y
+    // la miniatura se vea en modo prueba (el sufijo `-N` varía la paleta).
+    storage_key: 'demo/foto-1.svg',
     storage_domain: 'recortes-media',
     tags: ['poesía'],
     pinned: false,
@@ -102,7 +104,7 @@ const SEED: LibraryItemRow[] = [
     source: 'whatsapp',
     mime_type: 'image/jpeg',
     byte_size: 3_882_106,
-    storage_key: 'legacy-single-user/demo-img-2',
+    storage_key: 'demo/foto-2.svg',
     storage_domain: 'momentos-media',
     tags: [],
     pinned: false,
@@ -118,7 +120,7 @@ const SEED: LibraryItemRow[] = [
     source: 'capturado',
     mime_type: 'image/heic',
     byte_size: null,
-    storage_key: 'legacy-single-user/demo-img-3',
+    storage_key: 'demo/foto-3.svg',
     storage_domain: 'momentos-media',
     tags: [],
     pinned: false,
@@ -215,7 +217,7 @@ const SEED: LibraryItemRow[] = [
     source: 'whatsapp',
     mime_type: 'image/webp',
     byte_size: 489_233,
-    storage_key: 'legacy-single-user/demo-img-4',
+    storage_key: 'demo/foto-1.svg',
     storage_domain: 'recortes-media',
     tags: ['referencia'],
     pinned: false,
@@ -281,6 +283,10 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
   const tab = params.get('tab') ?? 'todo'
   const q = foldTitle((params.get('q') ?? '').trim())
   const orden = params.get('orden') ?? 'modificado-desc'
+  // Popover (PR3): filtros por familia de archivo y por fuente. '' = sin filtro,
+  // igual que el backend (`file_type = tipo` / `source = fuente`).
+  const tipo = params.get('tipo') ?? ''
+  const fuente = params.get('fuente') ?? ''
   // Clamp a 1..100 como el contrato del backend: un limit negativo o enorme
   // rompería el slicing y podría generar un nextCursor negativo.
   const parsedLimit = Number.parseInt(params.get('limit') ?? '', 10)
@@ -299,6 +305,10 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
 
   // Búsqueda por título (substring, sin distinguir mayúsculas/acentos).
   if (q) rows = rows.filter((row) => foldTitle(row.title).includes(q))
+
+  // Filtros del popover (espejo del WHERE del read-model).
+  if (tipo) rows = rows.filter((row) => row.file_type === tipo)
+  if (fuente) rows = rows.filter((row) => row.source === fuente)
 
   // Orden + desempate estable por item_id (igual que el backend).
   const sorted = [...rows].sort((a, b) => {

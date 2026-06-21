@@ -1,5 +1,4 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
-import { BibliotecaView } from '../BibliotecaView'
 import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
@@ -31,9 +30,15 @@ const PdfStudioView = lazy(loadPdfStudioView)
 const NotasFeedView = lazy(() =>
   import('./NotasFeedView').then((m) => ({ default: m.NotasFeedView })),
 )
+// Lazy: la Biblioteca (vista + ~14 componentes + miniaturas autenticadas) solo
+// se baja al entrar a la sección, no en el shell del mundo Notas.
+const BibliotecaView = lazy(() =>
+  import('../BibliotecaView').then((m) => ({ default: m.BibliotecaView })),
+)
 
 function preloadNotasSection(section: NotasSection): void {
   if (section === 'notas') void import('./NotasFeedView')
+  if (section === 'biblioteca') void import('../BibliotecaView')
   if (section === 'pdf' || section === 'planillas') preloadPdfStudioView()
 }
 
@@ -209,7 +214,17 @@ export function NotasWorld({
                     {section === 'tareas' && <TareasView />}
                     {section === 'prompts' && <PromptsView />}
                     {section === 'claves' && <ClavesView />}
-                    {section === 'biblioteca' && <BibliotecaView />}
+                    {section === 'biblioteca' && (
+                      <Suspense
+                        fallback={
+                          <div className="py-10 flex justify-center">
+                            <LoadingHint text="cargando Biblioteca" size="sm" />
+                          </div>
+                        }
+                      >
+                        <BibliotecaView />
+                      </Suspense>
+                    )}
                   </div>
                 </div>
               </>

@@ -69,6 +69,40 @@ function buildQuery(params: BibliotecaListParams): string {
   return search.toString()
 }
 
+/**
+ * Endpoint de servir-blob por dominio de storage. Los tres comparten la forma
+ * `/api/<x>/:key` (autorizan internamente y devuelven el blob). Los dominios de
+ * PDF (`pdf-studio-saved-pdfs`, `pdf-stamp-assets`) no tienen miniatura todavía
+ * → `null` (la card cae al ícono de tipo). En modo prueba `demoMedia` sirve un
+ * placeholder para cualquier key de estos tres endpoints.
+ */
+const SERVE_ENDPOINT: Partial<Record<LibraryStorageDomain, string>> = {
+  'notas-attachments': '/api/notas-attachments-file',
+  'momentos-media': '/api/momentos-file',
+  'recortes-media': '/api/recortes-image',
+}
+
+/**
+ * Codifica una `storageKey` para usarla en la URL. Las keys suelen tener forma
+ * `userId/hash.ext`: codificamos cada segmento por separado para preservar las
+ * barras (un `encodeURIComponent` de la key entera las escaparía a `%2F`).
+ */
+function encodeStorageKey(key: string): string {
+  return key.split('/').map(encodeURIComponent).join('/')
+}
+
+/**
+ * URL para servir el blob de un item (miniatura o vista). `null` cuando no hay
+ * forma de servirlo: sin `storageKey`, o dominio sin endpoint de miniatura
+ * (los PDFs por ahora). El consumidor decide el fallback (ícono de tipo).
+ */
+export function libraryItemServeUrl(item: LibraryItem): string | null {
+  if (!item.storageKey) return null
+  const endpoint = SERVE_ENDPOINT[item.storageDomain]
+  if (!endpoint) return null
+  return `${endpoint}/${encodeStorageKey(item.storageKey)}`
+}
+
 export const bibliotecaApi = {
   async list(params: BibliotecaListParams = {}): Promise<BibliotecaListResult> {
     const query = buildQuery(params)

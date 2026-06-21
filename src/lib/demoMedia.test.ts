@@ -31,4 +31,12 @@ describe('demoMediaResponse', () => {
 
     expect(image?.headers.get('Content-Type')).toBe('image/svg+xml')
   })
+
+  it('sirve placeholder SVG para cualquier foto de Momentos en modo prueba', async () => {
+    // PR3: las miniaturas de la Biblioteca usan keys arbitrarias de momentos-media;
+    // cualquier key (no solo cuaderno.svg) debe servir un placeholder.
+    const image = demoMediaResponse('/api/momentos-file/demo/foto-2.svg')
+
+    expect(image?.headers.get('Content-Type')).toBe('image/svg+xml')
+  })
 })
