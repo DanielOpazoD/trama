@@ -10,6 +10,26 @@ export type RecorteSuggestion = {
   [key: string]: unknown
 }
 
+export type RecorteRow = {
+  id: string
+  text: string
+  source_url: string | null
+  source_title: string | null
+  source_author: string | null
+  note: string | null
+  image_url: string | null
+  image_key: string | null
+  capture_mode: 'citation' | 'article' | 'html' | 'region' | 'image' | null
+  status: 'pending' | 'promoted' | 'archived'
+  promoted_target: 'quote' | 'entity' | 'momento' | null
+  promoted_id: string | null
+  source?: string | null
+  captured_at: string | null
+  created_at: string
+  updated_at: string
+  images?: Array<{ storage_key: string }> | null
+}
+
 function nullishToNull<T>(value: T | null | undefined): T | null {
   return value ?? null
 }

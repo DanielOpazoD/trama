@@ -13,9 +13,6 @@ import {
 } from './recorte-schemas.js'
 import { RestoreBody } from './restore-schema.js'
 import { extensionPreflight, withExtensionCors } from './extension-cors.js'
-import { askLLMForJson } from './llm.js'
-import { aiOffResponse, resolveAIInvocation } from './ai-mode.js'
-import { checkMonthlyBudget } from './cost-cap.js'
 import { momentoEmbedText, validatePayloadForKind } from './momento-embed.js'
 import { copyRecorteImageToMomentos, removeBlob } from './recorte-to-momento.js'
 import { normalizeOrigin } from './origin.js'
@@ -25,19 +22,17 @@ import {
   quoteEmbeddingText,
   toPgVector,
 } from './embeddings.js'
-import {
-  buildRecorteSuggestPrompt,
-  sanitizeSuggestion,
-  type EntityLite,
-} from './recorte-suggest-prompt.js'
 import { z } from 'zod'
 import { logOperationalEvent } from './operational-events.js'
+import { recorteImageSourceKeys, type RecorteRow } from './recortes-service.js'
 import {
-  buildRecorteCreateDraft,
-  buildRecortePatchDraft,
-  buildRecorteSuggestionResponse,
-  recorteImageSourceKeys,
-} from './recortes-service.js'
+  createRecorte,
+  deleteRecorte,
+  listRecortes,
+  patchRecorte,
+  restoreRecorte,
+} from './recortes-crud.js'
+import { suggestRecorte } from './recortes-suggest.js'
 
 /**
  * Recortes — bandeja de entrada de capturas web (extensión de Chrome).
@@ -49,26 +44,6 @@ import {
  * CORS: este endpoint responde a orígenes chrome-extension:// (preflight
  * incluido) porque la extensión postea directo desde el browser.
  */
-type RecorteRow = {
-  id: string
-  text: string
-  source_url: string | null
-  source_title: string | null
-  source_author: string | null
-  note: string | null
-  image_url: string | null
-  image_key: string | null
-  capture_mode: 'citation' | 'article' | 'html' | 'region' | 'image' | null
-  status: 'pending' | 'promoted' | 'archived'
-  promoted_target: 'quote' | 'entity' | 'momento' | null
-  promoted_id: string | null
-  captured_at: string | null
-  created_at: string
-  updated_at: string
-  /** Imágenes del recorte-evento (multi-imagen). Solo lo trae el GET/list. */
-  images?: Array<{ storage_key: string }> | null
-}
-
 const RecortesListQuery = z.object({
   status: z.preprocess(
     (value) => (typeof value === 'string' ? value.trim() : undefined),
@@ -95,15 +70,8 @@ export default withObservability(
       const parsed = await parseJsonBody(req, RestoreBody, requestId)
       if (!parsed.ok) return parsed.response
       const { deletedAt } = parsed.data
-      const rows = await sqlTyped<{ restored: boolean }>(sql`
-        WITH restore_recorte AS (
-          UPDATE recortes SET deleted_at = NULL, updated_at = NOW()
-          WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
-          RETURNING 1
-        )
-        SELECT EXISTS (SELECT 1 FROM restore_recorte) AS restored
-      `)
-      if (!rows[0]?.restored) {
+      const restored = await restoreRecorte(sql, id, userId, deletedAt)
+      if (!restored) {
         return ApiErrors.notFound(requestId, 'Recorte no encontrado para restaurar')
       }
       return Response.json({ restored: true })
@@ -113,60 +81,7 @@ export default withObservability(
     // mira el texto + la fuente + tus entidades y propone destino, título y
     // conexiones. Reusa la infra de IA (modo/budget). Degrada a aiOff.
     if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/suggest')) {
-      const recRows = await sqlTyped<{
-        text: string
-        source_url: string | null
-        source_title: string | null
-        source_author: string | null
-      }>(sql`
-        SELECT text, source_url, source_title, source_author
-        FROM recortes
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      `)
-      const rec = recRows[0]
-      if (!rec) return ApiErrors.notFound(requestId, 'Recorte no encontrado')
-
-      const budgetExceeded = await checkMonthlyBudget(userId, requestId)
-      if (budgetExceeded) return budgetExceeded
-
-      const invocation = await resolveAIInvocation(req, 'classify', userId)
-      if (invocation.kind === 'off') return aiOffResponse(requestId)
-
-      const [typeRows, entityRows] = await Promise.all([
-        sqlTyped<{ slug: string }>(
-          sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`,
-        ),
-        sqlTyped<EntityLite>(sql`
-          SELECT id, name, type FROM entities
-          WHERE deleted_at IS NULL AND user_id = ${userId}
-          ORDER BY created_at DESC LIMIT 200
-        `),
-      ])
-      const entityTypes = typeRows.map((r) => r.slug)
-      const messages = buildRecorteSuggestPrompt(
-        rec.text,
-        {
-          title: rec.source_title,
-          url: rec.source_url,
-          author: rec.source_author,
-        },
-        entityRows,
-        entityTypes,
-      )
-      try {
-        const { content } = await askLLMForJson(messages, {
-          provider: invocation.provider,
-          model: invocation.model,
-        })
-        const suggestion = sanitizeSuggestion(
-          content,
-          new Set(entityRows.map((e) => e.id)),
-          new Set(entityTypes),
-        )
-        return Response.json(buildRecorteSuggestionResponse(suggestion, entityRows))
-      } catch {
-        return ApiErrors.internal(requestId, 'La IA no pudo sugerir ahora')
-      }
+      return suggestRecorte(req, sql, id, userId, requestId)
     }
 
     // Promoción transaccional: el servidor crea el destino y marca el recorte
@@ -535,21 +450,7 @@ export default withObservability(
       const parsedQuery = parseSearchParams(req, RecortesListQuery, requestId)
       if (!parsedQuery.ok) return parsedQuery.response
       const statusFilter = parsedQuery.data.status ?? null
-      const rows = await sqlTyped<RecorteRow>(sql`
-        SELECT id, text, source_url, source_title, source_author, note,
-          image_url, image_key, capture_mode, status, promoted_target,
-          promoted_id, source, captured_at, created_at, updated_at,
-          COALESCE((
-            SELECT jsonb_agg(jsonb_build_object('storage_key', ri.storage_key) ORDER BY ri.position)
-            FROM recorte_images ri
-            WHERE ri.recorte_id = recortes.id AND ri.user_id = ${userId}
-          ), '[]'::jsonb) AS images
-        FROM recortes
-        WHERE deleted_at IS NULL AND user_id = ${userId}
-          AND (${statusFilter}::text IS NULL OR status = ${statusFilter})
-        ORDER BY created_at DESC, id DESC
-        LIMIT 500
-      `)
+      const rows = await listRecortes(sql, userId, statusFilter)
       return cors(Response.json(rows))
     }
 
@@ -557,47 +458,15 @@ export default withObservability(
       await ensureUserRow(sql, authedUser)
       const parsed = await parseJsonBody(req, RecorteCreateBody, requestId)
       if (!parsed.ok) return cors(parsed.response)
-      const b = buildRecorteCreateDraft(parsed.data)
-      const rows = await sqlTyped<RecorteRow>(sql`
-        INSERT INTO recortes (
-          text, source_url, source_title, source_author, note, image_url,
-          image_key, capture_mode, captured_at, user_id
-        ) VALUES (
-          ${b.text}, ${b.sourceUrl}, ${b.sourceTitle},
-          ${b.sourceAuthor}, ${b.note}, ${b.imageUrl},
-          ${b.imageKey}, ${b.captureMode},
-          ${b.capturedAt}::timestamptz, ${userId}
-        )
-        RETURNING id, text, source_url, source_title, source_author, note,
-          image_url, image_key, capture_mode, status, promoted_target,
-          promoted_id, captured_at, created_at, updated_at
-      `)
-      return cors(Response.json(rows[0], { status: 201 }))
+      const row = await createRecorte(sql, userId, parsed.data)
+      return cors(Response.json(row, { status: 201 }))
     }
 
     if (req.method === 'PATCH' && id) {
       const parsed = await parseJsonBody(req, RecortePatchBody, requestId)
       if (!parsed.ok) return parsed.response
-      const b = buildRecortePatchDraft(parsed.data)
-      const rows = await sqlTyped<RecorteRow>(sql`
-        UPDATE recortes
-        SET text = COALESCE(${b.text}, text),
-            source_title = COALESCE(${b.sourceTitle}, source_title),
-            source_author = COALESCE(${b.sourceAuthor}, source_author),
-            image_url = COALESCE(${b.imageUrl}, image_url),
-            note = CASE WHEN ${b.noteProvided} THEN ${b.note} ELSE note END,
-            status = CASE
-                       WHEN ${b.status === 'archived'} THEN 'archived'
-                       WHEN ${b.status === 'pending'} THEN 'pending'
-                       ELSE status
-                     END,
-            updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING id, text, source_url, source_title, source_author, note,
-          image_url, image_key, capture_mode, status, promoted_target,
-          promoted_id, captured_at, created_at, updated_at
-      `)
-      if (rows.length === 0) {
+      const row = await patchRecorte(sql, id, userId, parsed.data)
+      if (!row) {
         logOperationalEvent({
           event: 'owner.mismatch',
           severity: 'warn',
@@ -611,16 +480,12 @@ export default withObservability(
         })
         return ApiErrors.notFound(requestId, 'Recorte no encontrado')
       }
-      return Response.json(rows[0])
+      return Response.json(row)
     }
 
     if (req.method === 'DELETE' && id) {
-      const rows = await sqlTyped<{ deleted_at: string }>(sql`
-        UPDATE recortes SET deleted_at = NOW(), updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING deleted_at
-      `)
-      if (!rows[0]?.deleted_at) {
+      const deletedAt = await deleteRecorte(sql, id, userId)
+      if (!deletedAt) {
         logOperationalEvent({
           event: 'owner.mismatch',
           severity: 'warn',
@@ -634,7 +499,7 @@ export default withObservability(
         })
         return ApiErrors.notFound(requestId, 'Recorte no encontrado')
       }
-      return Response.json({ ok: true, deletedAt: rows[0].deleted_at })
+      return Response.json({ ok: true, deletedAt })
     }
 
     return ApiErrors.methodNotAllowed(requestId)

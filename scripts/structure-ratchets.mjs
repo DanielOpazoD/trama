@@ -147,7 +147,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 645,
+    maxLines: 540,
     files: ['netlify/functions/_lib/recortes-endpoint.ts'],
   },
   {
@@ -171,9 +171,14 @@ export const STRUCTURE_RATCHETS = [
     files: ['netlify/functions/_lib/pdf-stamp-assets-endpoint.ts'],
   },
   {
-    group: 'server-large-surfaces',
-    maxLines: 1480,
+    group: 'server-api-wrappers',
+    maxLines: 90,
     files: ['netlify/functions/whatsapp-webhook.mts'],
+  },
+  {
+    group: 'server-whatsapp-boundary',
+    maxLines: 1400,
+    files: ['netlify/functions/_lib/whatsapp/webhook-endpoint.ts'],
   },
   {
     group: 'server-large-surfaces',

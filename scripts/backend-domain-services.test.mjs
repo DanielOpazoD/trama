@@ -35,7 +35,7 @@ describe('backend domain services contract', () => {
       expect.arrayContaining([
         expect.objectContaining({
           endpoint: 'netlify/functions/_lib/recortes-endpoint.ts',
-          service: 'netlify/functions/_lib/recortes-service.ts',
+          service: 'netlify/functions/_lib/recortes-crud.ts',
           ok: true,
         }),
         expect.objectContaining({
@@ -50,7 +50,7 @@ describe('backend domain services contract', () => {
         }),
         expect.objectContaining({
           endpoint: 'netlify/functions/whatsapp-webhook.mts',
-          service: 'netlify/functions/_lib/whatsapp/webhook-replies.ts',
+          service: 'netlify/functions/_lib/whatsapp/webhook-endpoint.ts',
           ok: true,
         }),
       ]),

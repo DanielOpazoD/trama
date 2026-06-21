@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildUserIdWriteContractReport,
   findUserIdWriteContractIssues,
   findUserIdWriteContractWarnings,
 } from './user-id-write-contracts.mjs'
@@ -120,6 +121,42 @@ describe('user_id write contracts', () => {
         message:
           'netlify/functions/import.mts usa INSERT INTO notes ... SELECT; verifica que user_id venga del owner autenticado.',
       },
+    ])
+  })
+
+  it('separa warnings aceptados con razón explícita de warnings pendientes', () => {
+    const report = buildUserIdWriteContractReport({
+      privateTables: ['quotes', 'notes'],
+      sources: [
+        {
+          file: 'netlify/functions/_lib/recortes-endpoint.ts',
+          source: `
+            await sql\`
+              INSERT INTO quotes (text, user_id)
+              SELECT text, \${userId} FROM current_recorte
+            \`
+          `,
+        },
+        {
+          file: 'netlify/functions/notes.mts',
+          source: `
+            await sql\`
+              INSERT INTO notes (content, user_id)
+              SELECT content, owner_id FROM imported_notes
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(report.warnings).toBe(1)
+    expect(report.acceptedWarnings).toBe(1)
+    expect(report.acceptedWarningDetails).toEqual([
+      expect.objectContaining({
+        file: 'netlify/functions/_lib/recortes-endpoint.ts',
+        table: 'quotes',
+        reason: expect.stringContaining('recorte owner'),
+      }),
     ])
   })
 })
