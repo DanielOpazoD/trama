@@ -1,4 +1,5 @@
 import {
+  BibliotecaIcon,
   ClipboardIcon,
   FilePdfIcon,
   HomeIcon,
@@ -32,6 +33,7 @@ const SECTION_META_BY_ID: Record<NotasSection, Omit<NotasSectionMeta, 'id'>> = {
   claves: { label: 'Claves', icon: KeyIcon },
   pdf: { label: 'Imprenta', icon: FilePdfIcon },
   planillas: { label: 'Planillas', icon: ClipboardIcon },
+  biblioteca: { label: 'Biblioteca', icon: BibliotecaIcon },
 }
 
 export const SECTIONS: NotasSectionMeta[] = NOTAS_SECTIONS.map((id) => ({
@@ -47,6 +49,7 @@ const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = 
   claves: { title: 'Claves', subtitle: 'bajo llave' },
   pdf: { title: 'Imprenta', subtitle: 'editar PDF' },
   planillas: { title: 'Planillas', subtitle: 'rellenar e imprimir' },
+  biblioteca: { title: 'Biblioteca', subtitle: 'tus archivos' },
 }
 
 export function NotasTopBar({ section }: { section: NotasSection }) {

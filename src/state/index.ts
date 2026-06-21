@@ -37,6 +37,11 @@ export {
   useResolveProactive,
 } from './useProactive'
 export {
+  useBibliotecaList,
+  flattenBibliotecaItems,
+  type BibliotecaListInput,
+} from './useBiblioteca'
+export {
   useInfiniteMomentosQuery,
   useAddMomento,
   useUpdateMomento,

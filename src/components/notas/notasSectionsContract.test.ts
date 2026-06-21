@@ -13,6 +13,7 @@ describe('Notas sections contract', () => {
       'claves',
       'pdf',
       'planillas',
+      'biblioteca',
     ])
   })
 })

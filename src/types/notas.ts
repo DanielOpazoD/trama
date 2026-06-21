@@ -11,6 +11,7 @@ export const NOTAS_SECTIONS = [
   'claves',
   'pdf',
   'planillas',
+  'biblioteca',
 ] as const
 
 export type NotasSection = (typeof NOTAS_SECTIONS)[number]

@@ -1,5 +1,6 @@
 import type { Row, Store } from './demoTypes'
 import { saveDemoStore as save } from './demoStore'
+import { routeDemoBiblioteca } from './demoBiblioteca'
 import { extractPromptVariables, parseTags, weekStartAgo } from './demoUtils'
 
 function uid(): string {
@@ -714,6 +715,11 @@ export function routeDemoRequest(
         nextCursor: null,
       }
     }
+    case 'biblioteca':
+      // Read-model unificado de archivos. Self-contained en demoBiblioteca.ts
+      // (no toca el store ni el `_lib` del backend). Aplica tab/q/orden +
+      // paginación por offset; devuelve filas snake_case como el endpoint.
+      return routeDemoBiblioteca(params)
     case 'cronologia':
       return { entradas: [], nextCursor: null }
     case 'atlas':
