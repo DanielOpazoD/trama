@@ -67,6 +67,49 @@ extraídos bajo `server-api-endpoints` en `scripts/structure-ratchets.mjs`.
 Si un handler supera su ratchet, extrae una responsabilidad interna o sube el
 límite con justificación explícita en el mismo PR.
 
+### Fronteras compuestas
+
+Cuando un endpoint extraído sigue creciendo, no lo vuelvas a mover entero a otro
+archivo. Divide por intención:
+
+- `*-endpoint.ts`: auth, routing HTTP, parseo de body/query y respuestas
+  canónicas.
+- `*-crud.ts`: SQL CRUD/list/restore/delete de una entidad.
+- `*-suggest.ts` o equivalente: flujos IA advisory que no mutan el recurso.
+- `*-service.ts`: builders puros, normalizadores y transforms sin `getSql()`.
+
+Ejemplo actual:
+
+- `netlify/functions/whatsapp-webhook.mts`: wrapper con `config.path`.
+- `netlify/functions/_lib/whatsapp/webhook-endpoint.ts`: handler observado.
+- `netlify/functions/_lib/whatsapp/webhook-interactive-replies.ts`: Content API
+  de Twilio y degradación a TwiML.
+- `netlify/functions/_lib/recortes-endpoint.ts`: routing + promote/unpromote.
+- `netlify/functions/_lib/recortes-crud.ts`: list/create/patch/delete/restore.
+- `netlify/functions/_lib/recortes-suggest.ts`: sugerencia IA de curaduría.
+
+## Fixtures de endpoint
+
+Los tests de endpoints deben preferir los helpers existentes antes de crear mocks
+ad hoc:
+
+- `netlify/functions/_lib/test-fixtures.ts`: `TEST_USERS`, `buildUserPair()`,
+  `buildApiRequest()`, `buildJsonApiRequest()` y builders de filas.
+- `netlify/functions/_lib/test-utils.ts`: `mockContext()`,
+  `mockSqlResponses`, `setupMockSql()` y `expectCanonicalError()`.
+
+Para flujos multiusuario, usa `buildUserPair()` o `TEST_USERS.a/b`; para requests
+JSON autenticados usa `buildJsonApiRequest()` con `user` o `token`. Así los tests
+de aislamiento no inventan headers distintos por archivo.
+
+## Writes con `INSERT ... SELECT`
+
+`npm run check:user-id-writes` debe terminar con `issues: 0` y `warnings: 0`.
+Los `INSERT ... SELECT` sobre tablas privadas solo pueden sobrevivir si están en
+`USER_ID_WRITE_WARNING_ALLOWLIST` con razón explícita. Esa allowlist no es una
+vía para ocultar deuda: cada entrada debe explicar por qué el `user_id` queda
+anclado al owner autenticado o a una fila owner-visible.
+
 ## Guardrails
 
 `netlify/functions/_lib/isolation-guardrail.test.ts` resuelve wrappers hacia su

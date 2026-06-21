@@ -113,7 +113,7 @@ function sourceForFunction(file: string): string {
   const wrapperPath = join(FUNCTIONS_DIR, file)
   const wrapperSource = readFileSync(wrapperPath, 'utf8')
   const endpointImport = wrapperSource.match(
-    /import\s+handler(?:\s*,\s*\{\s*config\s*\})?\s+from\s+['"]\.\/_lib\/([^'"]+)\.js['"]/,
+    /import\s+\w+(?:\s*,\s*\{\s*config\s*\})?\s+from\s+['"]\.\/_lib\/([^'"]+)\.js['"]/,
   )
   if (!endpointImport?.[1]) return wrapperSource
   return readFileSync(join(LIB_DIR, `${endpointImport[1]}.ts`), 'utf8')
@@ -252,7 +252,7 @@ describe('guardrail: architecture fitness suite mínima', () => {
     const offenders = files.filter((file) => {
       const src = uncommentedFunctionSource(file)
       return (
-        !/import\s+\{\s*withObservability\s*\}\s+from\s+['"]\.\/(?:_lib\/)?handler-wrap\.js['"]/i.test(
+        !/import\s+\{\s*withObservability\s*\}\s+from\s+['"](?:\.\/(?:_lib\/)?|\.\.\/)handler-wrap\.js['"]/i.test(
           src,
         ) || !/export\s+default\s+withObservability\s*\(/i.test(src)
       )
@@ -402,7 +402,7 @@ describe('guardrail: endpoints públicos declaran contexto RLS explícito', () =
 
   for (const [file, expected] of Object.entries(contextByFile)) {
     it(`${file}: usa contexto RLS compatible con su exención de auth`, () => {
-      const src = readFileSync(join(FUNCTIONS_DIR, file), 'utf8')
+      const src = sourceForFunction(file)
       expect(
         src,
         `${file} está exento de getAuthedUser(), pero con FORCE RLS debe declarar setCurrentRlsUser() o runWithSystemRls().`,
