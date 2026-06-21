@@ -6,7 +6,15 @@ import { FileCard } from './FileCard'
  * (1 columna en móvil, 2 en tablet, 3 en escritorio). Presentacional: recibe
  * los items ya cargados; cada card es independiente.
  */
-export function BibliotecaGridView({ items }: { items: LibraryItem[] }) {
+export function BibliotecaGridView({
+  items,
+  trash = false,
+  onRename,
+}: {
+  items: LibraryItem[]
+  trash?: boolean
+  onRename: (item: LibraryItem) => void
+}) {
   return (
     <div
       role="list"
@@ -15,7 +23,7 @@ export function BibliotecaGridView({ items }: { items: LibraryItem[] }) {
     >
       {items.map((item) => (
         <div role="listitem" key={item.id}>
-          <FileCard item={item} />
+          <FileCard item={item} trash={trash} onRename={onRename} />
         </div>
       ))}
     </div>

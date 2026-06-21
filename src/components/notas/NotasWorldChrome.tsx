@@ -1,4 +1,4 @@
-import { SearchIcon, SettingsIcon } from '../Icons'
+import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, SettingsIcon } from '../Icons'
 import { AIModeToggle } from '../AIModeToggle'
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
@@ -33,6 +33,8 @@ export function NotasSidebar({
   onWorldIntent,
   onOpenSearch,
   onOpenSettings,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   world: World
   section: NotasSection
@@ -45,15 +47,109 @@ export function NotasSidebar({
   onOpenSearch: () => void
   /** Abre el panel de Configuración (mismo que el mundo principal). */
   onOpenSettings: () => void
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
 }) {
+  if (collapsed) {
+    return (
+      <aside className="surface-sidebar hidden w-14 shrink-0 border-r border-ink-100 md:flex flex-col items-center">
+        <header className="px-2 py-3 space-y-2">
+          <WorldSwitcher
+            world={world}
+            onChangeWorld={onChangeWorld}
+            onWorldIntent={onWorldIntent}
+            collapsed
+          />
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label="Expandir barra de Notas"
+            title="Expandir barra de Notas"
+            className="touch-target flex size-9 items-center justify-center rounded-md border border-ink-100/70 bg-paper-50 text-ink-400 hover:border-ink-200 hover:text-ink-700 transition-colors"
+          >
+            <ChevronRightIcon size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            aria-label="Buscar en Notas"
+            title="Buscar en Notas"
+            className="touch-target flex size-9 items-center justify-center rounded-md border border-ink-100/70 bg-paper-50 text-ink-400 hover:border-ink-200 hover:text-ink-700 transition-colors"
+          >
+            <SearchIcon size={14} />
+          </button>
+        </header>
+        <nav className="flex flex-col items-center gap-1 px-2">
+          {sections.map((s) => {
+            const Icon = s.icon
+            const active = section === s.id
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onFocus={() => onSectionIntent?.(s.id)}
+                onMouseEnter={() => onSectionIntent?.(s.id)}
+                onClick={() => onChangeSection(s.id)}
+                aria-label={s.label}
+                aria-current={active ? 'page' : undefined}
+                title={s.label}
+                className={`relative flex size-9 items-center justify-center rounded-md transition-colors ${
+                  active
+                    ? 'text-ink-800 bg-ink-100/70'
+                    : 'text-ink-500 hover:text-ink-800 hover:bg-ink-100/60'
+                }`}
+              >
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-2 bottom-2 w-[2px] rounded-r"
+                    style={{ backgroundColor: ACCENT }}
+                  />
+                )}
+                <span style={active ? { color: ACCENT } : undefined}>
+                  <Icon size={15} />
+                </span>
+              </button>
+            )
+          })}
+        </nav>
+        <div className="flex-1" />
+        <div className="px-2 pb-2 pt-2 border-t border-ink-100">
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            aria-label="Configuración"
+            title="Configuración"
+            className="touch-target flex size-9 items-center justify-center rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
+          >
+            <SettingsIcon size={15} />
+          </button>
+        </div>
+      </aside>
+    )
+  }
+
   return (
     <aside className="surface-sidebar w-60 shrink-0 border-r border-ink-100 hidden md:flex flex-col">
       <header className="px-3 py-3 space-y-2">
-        <WorldSwitcher
-          world={world}
-          onChangeWorld={onChangeWorld}
-          onWorldIntent={onWorldIntent}
-        />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <WorldSwitcher
+              world={world}
+              onChangeWorld={onChangeWorld}
+              onWorldIntent={onWorldIntent}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label="Colapsar barra de Notas"
+            title="Colapsar barra de Notas"
+            className="touch-target flex size-8 shrink-0 items-center justify-center rounded-md border border-ink-100/70 bg-paper-50 text-ink-400 hover:border-ink-200 hover:text-ink-700 transition-colors"
+          >
+            <ChevronLeftIcon size={14} />
+          </button>
+        </div>
         <button
           onClick={onOpenSearch}
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-paper-50 border border-ink-100/70 text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors"

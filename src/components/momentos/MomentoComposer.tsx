@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import type { useMomentoComposer } from './useMomentoComposer'
 import { MomentoQRModal } from './MomentoQRModal'
 import { AudioPicker } from './AudioPicker'
@@ -411,6 +411,52 @@ function FotoFields({ composer }: { composer: Composer }) {
           {composer.photoUploadProgress.total}…
         </p>
       )}
+      {composer.photoCapturedAtSuggestion && (
+        <div className="rounded-lg border border-ink-100/70 bg-paper-50/55 p-2.5 space-y-2">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+                fecha detectada
+              </p>
+              <p className="text-caption text-ink-500">
+                {formatDetectedPhotoDate(composer.photoCapturedAtSuggestion)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <PhotoDateButton
+                active={composer.photoDateMode === 'photo'}
+                onClick={() => composer.setPhotoDateMode('photo')}
+              >
+                Usar fecha de la foto
+              </PhotoDateButton>
+              <PhotoDateButton
+                active={composer.photoDateMode === 'now'}
+                onClick={() => composer.setPhotoDateMode('now')}
+              >
+                Usar ahora
+              </PhotoDateButton>
+              <PhotoDateButton
+                active={composer.photoDateMode === 'custom'}
+                onClick={() => composer.setPhotoDateMode('custom')}
+              >
+                Elegir fecha personalizada
+              </PhotoDateButton>
+            </div>
+          </div>
+          {composer.photoDateMode === 'custom' && (
+            <label className="block text-caption text-ink-500">
+              Fecha personalizada
+              <input
+                type="datetime-local"
+                value={composer.customPhotoCapturedAt}
+                onChange={(e) => composer.setCustomPhotoCapturedAt(e.target.value)}
+                className="input-paper mt-1 w-full max-w-xs"
+                disabled={composer.isPending}
+              />
+            </label>
+          )}
+        </div>
+      )}
       {/* φ-photo-polish: dos inputs equivalentes en tipografía.
           Ambos text-sm sans normal, mismo padding implícito de
           input-paper. Antes el textarea usaba marginalia-script
@@ -442,6 +488,35 @@ function FotoFields({ composer }: { composer: Composer }) {
       />
     </div>
   )
+}
+
+function PhotoDateButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md px-2 py-1 text-micro uppercase tracking-eyebrow transition-colors ${
+        active
+          ? 'bg-ink-800 text-paper-50'
+          : 'border border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function formatDetectedPhotoDate(value: string): string {
+  const [date, time] = value.split('T')
+  return `${date ?? value}${time ? ` · ${time.slice(0, 5)}` : ''}`
 }
 
 /**

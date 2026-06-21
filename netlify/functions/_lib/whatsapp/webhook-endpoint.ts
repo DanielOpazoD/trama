@@ -3,6 +3,10 @@ import { getSql, sqlTyped } from '../db.js'
 import { withObservability } from '../handler-wrap.js'
 import { ApiErrors } from '../api-error.js'
 import { logEvent } from '../observability.js'
+import {
+  extractPhotoCapturedAt,
+  pickOldestCapturedAt,
+} from '../../../../src/lib/photoExif.js'
 import { setCurrentRlsUser, runWithSystemRls } from '../user-rls.js'
 import { ensureUserRow } from '../user-provisioning.js'
 import { checkMonthlyBudget } from '../cost-cap.js'
@@ -590,6 +594,7 @@ async function handleInboundMedia(
   // Fotos del route 'momento': se acumulan y se persisten como UN solo momento
   // foto (episodio) tras el loop, en vez de N momentos sueltos.
   const momentoKeys: string[] = []
+  const momentoCapturedAts: Array<string | null> = []
   // Imágenes del route 'recorte' (default): se acumulan y, si son 2+, se
   // guardan como UN recorte-evento (varias imágenes en una entrada).
   const recorteKeys: Array<{ key: string; mime: string }> = []
@@ -747,8 +752,10 @@ async function handleInboundMedia(
 
       if (route === 'momento') {
         // No persistimos aún: juntamos las keys y creamos un solo episodio.
+        const capturedAt = extractPhotoCapturedAt(buffer)
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         momentoKeys.push(key)
+        momentoCapturedAts.push(capturedAt)
       } else {
         // Tampoco persistimos aún: juntamos las imágenes y, tras el loop,
         // creamos un recorte único (1 imagen) o un recorte-evento (2+).
@@ -846,6 +853,7 @@ async function handleInboundMedia(
         saved += newImageCount
         // Anexado: vaciamos las keys para que NO se cree además una captura nueva.
         momentoKeys.length = 0
+        momentoCapturedAts.length = 0
         recorteKeys.length = 0
         logEvent({
           event: 'whatsapp_album_append',
@@ -860,7 +868,13 @@ async function handleInboundMedia(
   // Episodio foto: todas las fotos del route 'momento' en un solo momento.
   if (momentoKeys.length > 0) {
     try {
-      const r = await persistImageMomentoEpisode(sql, userId, momentoKeys, caption)
+      const r = await persistImageMomentoEpisode(
+        sql,
+        userId,
+        momentoKeys,
+        caption,
+        pickOldestCapturedAt(momentoCapturedAts),
+      )
       lastId = r.id
       lastKind = 'momento'
       saved += momentoKeys.length

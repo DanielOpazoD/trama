@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   momentoAudioUpload: vi.fn(),
   compressImage: vi.fn(),
   readImageDimensions: vi.fn(),
+  extractPhotoCapturedAtFromFile: vi.fn(),
 }))
 
 vi.mock('../../state', () => ({
@@ -33,6 +34,15 @@ vi.mock('./helpers', () => ({
   compressImage: mocks.compressImage,
   readImageDimensions: mocks.readImageDimensions,
 }))
+
+vi.mock('../../lib/photoExif', async () => {
+  const actual =
+    await vi.importActual<typeof import('../../lib/photoExif')>('../../lib/photoExif')
+  return {
+    ...actual,
+    extractPhotoCapturedAtFromFile: mocks.extractPhotoCapturedAtFromFile,
+  }
+})
 
 function imageFile(name = 'foto.png') {
   return new File(['image-bytes'], name, { type: 'image/png' })
@@ -66,6 +76,7 @@ describe('useMomentoComposer', () => {
     mocks.momentoAudioUpload.mockResolvedValue({ storageKey: 'audio-key' })
     mocks.compressImage.mockImplementation(async (file: File) => file)
     mocks.readImageDimensions.mockResolvedValue({ width: 1200, height: 800 })
+    mocks.extractPhotoCapturedAtFromFile.mockResolvedValue(null)
     vi.stubGlobal(
       'URL',
       Object.assign(URL, {
@@ -217,5 +228,54 @@ describe('useMomentoComposer', () => {
     expect(result.current.audioDraft).toBeNull()
     expect(result.current.photoUploadProgress).toBeNull()
     expect(onCreated).toHaveBeenCalledWith(created)
+  })
+
+  it('sugiere la fecha EXIF más antigua y la envía como capturedAt al guardar foto', async () => {
+    mocks.extractPhotoCapturedAtFromFile.mockImplementation(async (file: File) => {
+      if (file.name === 'a.jpg') return '2026-06-20T14:00:00.000'
+      if (file.name === 'b.jpg') return '2026-06-19T23:10:00.000'
+      return null
+    })
+    const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+    await act(async () => {
+      result.current.addPhotoFiles([
+        new File(['a'], 'a.jpg', { type: 'image/jpeg' }),
+        new File(['b'], 'b.jpg', { type: 'image/jpeg' }),
+      ])
+    })
+
+    expect(result.current.photoCapturedAtSuggestion).toBe('2026-06-19T23:10:00.000')
+    expect(result.current.photoDateMode).toBe('photo')
+
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(mocks.addMomento.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'foto',
+        capturedAt: '2026-06-19T23:10:00.000',
+      }),
+    )
+  })
+
+  it('permite descartar la fecha EXIF y mantener el comportamiento actual', async () => {
+    mocks.extractPhotoCapturedAtFromFile.mockResolvedValueOnce('2026-06-19T23:10:00.000')
+    const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+    await act(async () => {
+      result.current.addPhotoFiles([new File(['a'], 'a.jpg', { type: 'image/jpeg' })])
+    })
+    act(() => {
+      result.current.setPhotoDateMode('now')
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(mocks.addMomento.mutateAsync).toHaveBeenCalledWith(
+      expect.not.objectContaining({ capturedAt: expect.any(String) }),
+    )
   })
 })

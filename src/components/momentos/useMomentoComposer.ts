@@ -3,6 +3,7 @@ import { api } from '../../api'
 import type { Momento, MomentoKind, MomentoPayload } from '../../types'
 import { useAddMomento, useToast } from '../../state'
 import { compressImage, readImageDimensions } from './helpers'
+import { extractPhotoCapturedAtFromFile, pickOldestCapturedAt } from '../../lib/photoExif'
 
 /**
  * Custom hook que encapsula TODO el state del composer de Momentos.
@@ -47,10 +48,13 @@ export function useMomentoComposer({
   // para poder iterar y manejarlos individualmente (preview + delete
   // por imagen, mostrar contador, etc.). El submit los sube todos en
   // paralelo y arma payload.items[].
-  type PhotoDraft = { file: File; previewUrl: string }
+  type PhotoDraft = { file: File; previewUrl: string; capturedAt?: string | null }
+  type PhotoDateMode = 'photo' | 'now' | 'custom'
   const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([])
   const [photoCaption, setPhotoCaption] = useState('')
   const [photoNote, setPhotoNote] = useState('')
+  const [photoDateMode, setPhotoDateMode] = useState<PhotoDateMode>('now')
+  const [customPhotoCapturedAt, setCustomPhotoCapturedAt] = useState('')
   const [photoUploading, setPhotoUploading] = useState(false)
   // υ-multi: progreso de upload para feedback ("3 de 5 subidas…").
   const [photoUploadProgress, setPhotoUploadProgress] = useState<{
@@ -96,13 +100,22 @@ export function useMomentoComposer({
   function addPhotoFiles(files: File[]) {
     const valid = files.filter((f) => f.type.startsWith('image/'))
     if (valid.length === 0) return
-    setPhotoDrafts((prev) => [
-      ...prev,
-      ...valid.map((file) => ({
-        file,
-        previewUrl: URL.createObjectURL(file),
-      })),
-    ])
+    const drafts = valid.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      capturedAt: null,
+    }))
+    setPhotoDrafts((prev) => [...prev, ...drafts])
+    for (const draft of drafts) {
+      void extractPhotoCapturedAtFromFile(draft.file).then((capturedAt) => {
+        setPhotoDrafts((prev) =>
+          prev.map((item) =>
+            item.previewUrl === draft.previewUrl ? { ...item, capturedAt } : item,
+          ),
+        )
+        if (capturedAt) setPhotoDateMode((mode) => (mode === 'now' ? 'photo' : mode))
+      })
+    }
   }
 
   function removePhotoDraft(index: number) {
@@ -122,7 +135,16 @@ export function useMomentoComposer({
       if (!cur) return prev
       URL.revokeObjectURL(cur.previewUrl)
       const next = [...prev]
-      next[index] = { file, previewUrl: URL.createObjectURL(file) }
+      const nextDraft = { file, previewUrl: URL.createObjectURL(file), capturedAt: null }
+      next[index] = nextDraft
+      void extractPhotoCapturedAtFromFile(file).then((capturedAt) => {
+        setPhotoDrafts((items) =>
+          items.map((item) =>
+            item.previewUrl === nextDraft.previewUrl ? { ...item, capturedAt } : item,
+          ),
+        )
+        if (capturedAt) setPhotoDateMode((mode) => (mode === 'now' ? 'photo' : mode))
+      })
       return next
     })
   }
@@ -211,7 +233,22 @@ export function useMomentoComposer({
     clearAudio()
     setPhotoCaption('')
     setPhotoNote('')
+    setPhotoDateMode('now')
+    setCustomPhotoCapturedAt('')
     setPhotoUploadProgress(null)
+  }
+
+  const photoCapturedAtSuggestion = pickOldestCapturedAt(
+    photoDrafts.map((draft) => draft.capturedAt),
+  )
+
+  function selectedPhotoCapturedAt(): string | undefined {
+    if (photoDateMode === 'photo') return photoCapturedAtSuggestion ?? undefined
+    if (photoDateMode === 'custom' && customPhotoCapturedAt) {
+      const date = new Date(customPhotoCapturedAt)
+      return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+    }
+    return undefined
   }
 
   async function submit() {
@@ -323,6 +360,7 @@ export function useMomentoComposer({
         kind: 'foto',
         payload,
         note: photoNote.trim() || undefined,
+        capturedAt: selectedPhotoCapturedAt(),
       })
       resetFoto()
       onCreated?.(created)
@@ -373,6 +411,11 @@ export function useMomentoComposer({
     setPhotoCaption,
     photoNote,
     setPhotoNote,
+    photoCapturedAtSuggestion,
+    photoDateMode,
+    setPhotoDateMode,
+    customPhotoCapturedAt,
+    setCustomPhotoCapturedAt,
     photoUploading,
     photoUploadProgress,
     // Nota de voz

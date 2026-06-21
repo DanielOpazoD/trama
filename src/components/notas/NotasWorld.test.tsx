@@ -12,6 +12,19 @@ vi.mock('./pdfStudio/PdfStudioView', () => {
   return { PdfStudioView: () => <div>PDF Studio mock</div> }
 })
 
+vi.mock('./NotasFeedView', () => ({
+  NotasFeedView: () => (
+    <div role="tablist" aria-label="Feed mock">
+      <button type="button" role="tab">
+        Capturas
+      </button>
+      <button type="button" role="tab">
+        Favoritos
+      </button>
+    </div>
+  ),
+}))
+
 beforeEach(() => {
   pdfStudioModule.loaded.mockClear()
   window.localStorage.clear()
@@ -112,6 +125,22 @@ describe('<NotasWorld />', () => {
     expect(screen.queryByRole('button', { name: 'Modo cómodo' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Modo compacto' })).toBeNull()
     expect(screen.getByTestId('notas-world-content')).toHaveClass('max-w-5xl')
+  })
+
+  it('permite colapsar y volver a expandir la barra lateral de Notas', () => {
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Colapsar barra de Notas' }))
+
+    expect(
+      screen.getByRole('button', { name: 'Expandir barra de Notas' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expandir barra de Notas' }))
+
+    expect(
+      screen.getByRole('button', { name: 'Colapsar barra de Notas' }),
+    ).toBeInTheDocument()
   })
 
   it('precarga PDF Studio por intención sobre Imprenta sin montarlo al iniciar', async () => {

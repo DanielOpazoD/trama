@@ -77,6 +77,13 @@ describe('persistImageMomento', () => {
     const { sql } = fakeSql([])
     await expect(persistImageMomento(sql, 'u1', 'u1/x.jpg', '')).rejects.toThrow(/id/)
   })
+
+  it('puede usar fecha capturada por EXIF en vez de NOW()', async () => {
+    const { sql, calls } = fakeSql([{ id: 'm-exif' }])
+    await persistImageMomento(sql, 'u1', 'u1/x.jpg', '', '2026-06-19T23:10:00.000')
+
+    expect(calls[0]).toContain('2026-06-19T23:10:00.000')
+  })
 })
 
 describe('persistImageMomentoEpisode', () => {
@@ -111,6 +118,19 @@ describe('persistImageMomentoEpisode', () => {
       (v): v is string => typeof v === 'string' && v.includes('items'),
     )
     expect(JSON.parse(payload!)).toEqual({ items: [{ storageKey: 'u1/solo.jpg' }] })
+  })
+
+  it('guarda el episodio con la fecha EXIF cuando viene informada', async () => {
+    const { sql, calls } = fakeSql([{ id: 'm-exif-episode' }])
+    await persistImageMomentoEpisode(
+      sql,
+      'u1',
+      ['u1/a.jpg', 'u1/b.jpg'],
+      'viaje',
+      '2026-06-18T09:30:00.000',
+    )
+
+    expect(calls[0]).toContain('2026-06-18T09:30:00.000')
   })
 
   it('si el INSERT no devuelve id, lanza', async () => {

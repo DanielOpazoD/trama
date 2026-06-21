@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useNotesQuery, usePromptsQuery, usePendingTasks } from '../../state'
 import { ViewHeader } from '../ViewHeader'
 import { EmptyMessage } from '../EmptyMessage'
-import { KeyIcon, NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
+import { NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
 import type { NotasSection } from '../../types/notas'
 import { PRIORITY_META } from './PriorityDots'
 import { sortPending } from './weekModel'
@@ -14,9 +14,12 @@ export function NotasHomeView({
 }: {
   onNavigate: (section: NotasSection) => void
 }) {
-  const rawNotes = useNotesQuery().data
-  const rawTasks = usePendingTasks().data
-  const rawPrompts = usePromptsQuery().data
+  const notesQuery = useNotesQuery()
+  const tasksQuery = usePendingTasks()
+  const promptsQuery = usePromptsQuery()
+  const rawNotes = notesQuery.data
+  const rawTasks = tasksQuery.data
+  const rawPrompts = promptsQuery.data
   const notes = useMemo(() => rawNotes ?? [], [rawNotes])
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks])
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
@@ -44,6 +47,8 @@ export function NotasHomeView({
     () => notes.filter((note) => note.pinned).slice(0, 3),
     [notes],
   )
+  const initialLoading =
+    rawNotes === undefined || rawTasks === undefined || rawPrompts === undefined
   const hasAnything = notes.length + tasks.length + prompts.length > 0
 
   return (
@@ -87,7 +92,7 @@ export function NotasHomeView({
         </div>
       </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-5">
         <QuickAction icon={NotesIcon} label="nota" onClick={() => onNavigate('notas')} />
         <QuickAction
           icon={TasksIcon}
@@ -99,10 +104,11 @@ export function NotasHomeView({
           label="prompt"
           onClick={() => onNavigate('prompts')}
         />
-        <QuickAction icon={KeyIcon} label="clave" onClick={() => onNavigate('claves')} />
       </div>
 
-      {!hasAnything ? (
+      {initialLoading ? (
+        <NotasHomeLoading />
+      ) : !hasAnything ? (
         <EmptyMessage
           illustration="thread"
           title="Tu centro de trabajo está listo."
@@ -190,6 +196,32 @@ export function NotasHomeView({
         </div>
       )}
     </>
+  )
+}
+
+function NotasHomeLoading() {
+  return (
+    <div
+      aria-label="Cargando inicio de Notas"
+      className="grid gap-3 md:grid-cols-2"
+      aria-busy="true"
+    >
+      {['Pendientes', 'Notas vivas', 'Prompts listos', 'Claves'].map((title) => (
+        <section
+          key={title}
+          className="card-paper-soft rounded-xl border border-ink-100/70 p-4"
+        >
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <span className="section-eyebrow text-ink-300">{title}</span>
+            <span className="h-2 w-5 rounded-full bg-ink-100/80" />
+          </div>
+          <div className="space-y-2">
+            <span className="block h-3 w-11/12 rounded-full bg-ink-100/70" />
+            <span className="block h-3 w-7/12 rounded-full bg-ink-100/55" />
+          </div>
+        </section>
+      ))}
+    </div>
   )
 }
 

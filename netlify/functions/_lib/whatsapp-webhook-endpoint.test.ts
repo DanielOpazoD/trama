@@ -43,6 +43,7 @@ vi.mock('@netlify/blobs', () => ({
 
 import webhookHandler from '../whatsapp-webhook'
 import { expectedTwilioSignature } from './whatsapp/twilio-signature'
+import { extractPhotoCapturedAt } from '../../../src/lib/photoExif'
 
 /**
  * Endpoint whatsapp-webhook (entrante de Twilio). SQL mockeado. Cubre:
@@ -58,6 +59,62 @@ function twilioRequest(fields: Record<string, string>): Request {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   })
+}
+
+function writeAscii(bytes: Uint8Array, offset: number, value: string) {
+  for (let i = 0; i < value.length; i++) bytes[offset + i] = value.charCodeAt(i)
+}
+
+function jpegWithExifDate(value: string): ArrayBuffer {
+  const exifPayloadLength = 6 + 8 + 2 + 12 + 4 + 2 + 12 + 4 + 20
+  const bytes = new Uint8Array(2 + 2 + 2 + exifPayloadLength + 2)
+  const view = new DataView(bytes.buffer)
+  let p = 0
+  bytes[p++] = 0xff
+  bytes[p++] = 0xd8
+  bytes[p++] = 0xff
+  bytes[p++] = 0xe1
+  const app1Length = exifPayloadLength + 2
+  bytes[p++] = (app1Length >> 8) & 0xff
+  bytes[p++] = app1Length & 0xff
+  writeAscii(bytes, p, 'Exif\0\0')
+  p += 6
+
+  const tiff = p
+  bytes[p++] = 0x49
+  bytes[p++] = 0x49
+  bytes[p++] = 42
+  bytes[p++] = 0
+  view.setUint32(p, 8, true)
+  p += 4
+
+  view.setUint16(p, 1, true)
+  p += 2
+  view.setUint16(p, 0x8769, true)
+  p += 2
+  view.setUint16(p, 4, true)
+  p += 2
+  view.setUint32(p, 1, true)
+  p += 4
+  view.setUint32(p, 26, true)
+  p += 8
+
+  p = tiff + 26
+  view.setUint16(p, 1, true)
+  p += 2
+  view.setUint16(p, 0x9003, true)
+  p += 2
+  view.setUint16(p, 2, true)
+  p += 2
+  view.setUint32(p, 20, true)
+  p += 4
+  view.setUint32(p, 44, true)
+  p += 8
+  writeAscii(bytes, tiff + 44, `${value}\0`)
+
+  bytes[bytes.length - 2] = 0xff
+  bytes[bytes.length - 1] = 0xd9
+  return bytes.buffer
 }
 
 beforeEach(() => {
@@ -752,13 +809,19 @@ describe('whatsapp-webhook', () => {
   it('dos fotos con prefijo "momento:" → un solo Momento foto episódico (items[])', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    const mediaBodies = {
+      a: jpegWithExifDate('2026:06:20 14:00:00'),
+      b: jpegWithExifDate('2026:06:19 23:10:00'),
+    }
+    expect(extractPhotoCapturedAt(mediaBodies.b)).toBe('2026-06-19T23:10:00.000')
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        headers: { get: () => 'image/jpeg' },
-        arrayBuffer: async () => new ArrayBuffer(8),
-      }),
+      vi.fn().mockImplementation(
+        async (url: string) =>
+          new Response(url.endsWith('/b') ? mediaBodies.b : mediaBodies.a, {
+            headers: { 'content-type': 'image/jpeg' },
+          }),
+      ),
     )
     const fields = {
       MessageSid: 'SMmomento2',
@@ -806,6 +869,7 @@ describe('whatsapp-webhook', () => {
     )
     expect((payload?.match(/"storageKey"/g) ?? []).length).toBe(2)
     expect(payload).toContain('tarde en el taller')
+    expect(insert?.values).toContain('2026-06-19T23:10:00.000')
   })
 
   it('dos fotos con caption natural "a momentos" → también un episodio foto', async () => {
