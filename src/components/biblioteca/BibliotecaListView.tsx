@@ -1,6 +1,6 @@
 import { ChevronDownIcon } from '../Icons'
 import type { LibraryItem } from '../../types/biblioteca'
-import { FileTypeIcon } from './FileTypeIcon'
+import { Thumbnail } from './Thumbnail'
 import {
   formatByteSize,
   formatShortDate,
@@ -105,7 +105,9 @@ export function BibliotecaListView({
           className="flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 hover:bg-ink-50/60 transition-colors"
         >
           <div role="cell" className="flex items-center gap-3 flex-1 min-w-0">
-            <FileTypeIcon fileType={item.fileType} mimeType={item.mimeType} />
+            {/* Miniatura real para imágenes con URL de servir; para el resto
+                (o si la imagen falla) cae al glifo de tipo internamente. */}
+            <Thumbnail item={item} size="small" />
             <span className="font-medium text-ink-700 truncate">{item.title}</span>
           </div>
           <div

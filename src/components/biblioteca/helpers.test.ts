@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_ORDEN,
+  DEFAULT_VISTA,
+  coerceVista,
+  fileTypeLabel,
   formatByteSize,
+  formatCardMeta,
   formatShortDate,
   parseOrden,
   toggleOrden,
@@ -58,5 +62,35 @@ describe('biblioteca/helpers', () => {
 
   it('DEFAULT_ORDEN es modificado-desc', () => {
     expect(DEFAULT_ORDEN).toBe('modificado-desc')
+  })
+
+  describe('fileTypeLabel', () => {
+    it('traduce la familia de archivo a una etiqueta legible', () => {
+      expect(fileTypeLabel('pdf')).toBe('PDF')
+      expect(fileTypeLabel('image')).toBe('Imagen')
+      expect(fileTypeLabel('spreadsheet')).toBe('Hoja de cálculo')
+      expect(fileTypeLabel('other')).toBe('Archivo')
+    })
+  })
+
+  describe('formatCardMeta', () => {
+    it('combina etiqueta y tamaño con punto medio', () => {
+      expect(formatCardMeta('pdf', 167_936)).toBe('PDF · 164 KB')
+    })
+    it('omite el tamaño cuando es null (solo la etiqueta)', () => {
+      expect(formatCardMeta('image', null)).toBe('Imagen')
+    })
+  })
+
+  describe('coerceVista', () => {
+    it('normaliza el query param a una vista válida', () => {
+      expect(coerceVista('cuadricula')).toBe('cuadricula')
+      expect(coerceVista('lista')).toBe('lista')
+      expect(coerceVista(null)).toBe(DEFAULT_VISTA)
+      expect(coerceVista('basura')).toBe(DEFAULT_VISTA)
+    })
+    it('DEFAULT_VISTA es lista', () => {
+      expect(DEFAULT_VISTA).toBe('lista')
+    })
   })
 })
