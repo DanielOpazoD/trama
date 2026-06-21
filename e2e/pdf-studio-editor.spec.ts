@@ -33,6 +33,25 @@ async function openPdfEditor(page: Page) {
   await expect(page.getByRole('dialog', { name: 'Editar página 1' })).toBeVisible()
 }
 
+async function openPdfEditorForStampSmoke(page: Page) {
+  await mockBackend(page, emptyState())
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await enableDemoMode(page, { world: 'notas' })
+  await page.goto('/?world=notas&section=pdf')
+  await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible()
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'qa-editor.pdf',
+    mimeType: 'application/pdf',
+    buffer: await makePdfBuffer(),
+  })
+
+  const thumb = page.getByAltText('Página 1')
+  await expect(thumb).toBeVisible()
+  await thumb.dblclick()
+  await expect(page.getByRole('dialog', { name: 'Editar página 1' })).toBeVisible()
+}
+
 async function toolbarMetrics(page: Page) {
   return page.evaluate(() => {
     const toolbar = document.querySelector<HTMLElement>(
@@ -990,6 +1009,46 @@ test.describe('Imprenta · editor PDF', () => {
       .poll(async () => (await stamp.boundingBox())?.height ?? 0)
       .toBeGreaterThan(before.height + 12)
   })
+
+  const pdfStampAssetsSmoke =
+    process.env.PDF_STAMP_ASSETS_SMOKE === '1' ? test : test.skip
+
+  pdfStampAssetsSmoke(
+    'persiste firma dibujada en la biblioteca y no revive tras eliminar',
+    async ({ page }) => {
+      await openPdfEditorForStampSmoke(page)
+      await page.getByRole('button', { name: 'Firma y timbre' }).click()
+      await expect(page.getByText('Guardado en nube')).toBeVisible()
+      await page.getByRole('button', { name: 'Dibujar firma' }).click()
+      await page.getByRole('button', { name: 'Guardar firma' }).click()
+
+      await page.getByRole('button', { name: 'Firma y timbre' }).click()
+      await expect(page.getByRole('button', { name: 'Insertar Firma' })).toBeVisible()
+
+      await page.reload()
+      await page.locator('input[type="file"]').setInputFiles({
+        name: 'qa-editor-reopen.pdf',
+        mimeType: 'application/pdf',
+        buffer: await makePdfBuffer(),
+      })
+      await page.getByAltText('Página 1').dblclick()
+      await page.getByRole('button', { name: 'Firma y timbre' }).click()
+      await expect(page.getByRole('button', { name: 'Insertar Firma' })).toBeVisible()
+
+      await page.getByRole('button', { name: 'Eliminar Firma' }).click()
+
+      await page.reload()
+      await page.locator('input[type="file"]').setInputFiles({
+        name: 'qa-editor-after-delete.pdf',
+        mimeType: 'application/pdf',
+        buffer: await makePdfBuffer(),
+      })
+      await page.getByAltText('Página 1').dblclick()
+      await page.getByRole('button', { name: 'Firma y timbre' }).click()
+      await expect(page.getByText('Aún no guardas firmas.')).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Insertar Firma' })).toBeHidden()
+    },
+  )
 
   test('mantiene proporción de imagen estampada al redimensionar con Shift', async ({
     page,

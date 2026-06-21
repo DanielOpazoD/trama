@@ -127,6 +127,61 @@ export function routeDemoRequest(
     }
   }
 
+  if (resource === 'pdf-stamp-assets') {
+    const rows = store.pdf_stamp_assets
+    if (method === 'GET' && !id) return live(rows)
+
+    if (method === 'POST' && !id) {
+      const timestamp = nowIso()
+      const row: Row = {
+        id: String(body.id ?? uid()),
+        user_id: 'legacy-single-user',
+        kind: body.kind === 'stamp' ? 'stamp' : 'signature',
+        name: String(body.name ?? 'Firma'),
+        src: String(body.src ?? ''),
+        mime_type: body.mimeType === 'image/jpeg' ? 'image/jpeg' : 'image/png',
+        width: Number(body.width ?? 1),
+        height: Number(body.height ?? 1),
+        byte_size: String(body.src ?? '').length,
+        created_at: timestamp,
+        updated_at: timestamp,
+        last_used_at: timestamp,
+        deleted_at: null,
+      }
+      const existing = rows.findIndex((item) => item.id === row.id)
+      if (existing >= 0) rows[existing] = row
+      else rows.unshift(row)
+      save(store)
+      return row
+    }
+
+    const existing = id ? findLive(rows, id) : undefined
+    if (!existing) return { ok: false }
+
+    if (method === 'PATCH') {
+      existing.name = String(body.name ?? existing.name)
+      existing.updated_at = nowIso()
+      save(store)
+      return existing
+    }
+
+    if (method === 'POST' && action === 'touch') {
+      const timestamp = nowIso()
+      existing.last_used_at = timestamp
+      existing.updated_at = timestamp
+      save(store)
+      return existing
+    }
+
+    if (method === 'DELETE') {
+      const timestamp = nowIso()
+      existing.deleted_at = timestamp
+      existing.updated_at = timestamp
+      save(store)
+      return { ok: true }
+    }
+  }
+
   if (resource === 'month-notes') {
     const catOf = (v: unknown) => (v === 'personal' ? 'personal' : 'trabajo')
     if (method === 'GET') {

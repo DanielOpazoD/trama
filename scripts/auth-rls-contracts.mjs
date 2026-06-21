@@ -157,6 +157,14 @@ export const PRIVATE_TABLE_CONTRACTS = [
     reason: 'Saved PDFs and edits are private document work products.',
   },
   {
+    table: 'pdf_stamp_assets',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership: 'owner scoped PDF Studio signatures and stamps',
+    reason: 'Signatures and stamps are private identity marks that must not cross users.',
+  },
+  {
     table: 'proactive_suggestions',
     lifecycle: 'soft-delete',
     userId: 'required',
@@ -558,6 +566,18 @@ export const ENDPOINT_PRIVACY_CONTRACTS = [
     evidence: ['netlify/functions/_lib/pdf-studio-saved-pdfs-endpoint.test.ts'],
   },
   {
+    route: '/api/pdf-stamp-assets',
+    files: [
+      'netlify/functions/pdf-stamp-assets.mts',
+      'netlify/functions/_lib/pdf-stamp-assets-endpoint.ts',
+    ],
+    auth: 'required',
+    operations: ['list', 'create', 'update', 'touch', 'soft-delete'],
+    tables: ['pdf_stamp_assets'],
+    ownership: 'PDF Studio signatures and stamps are visible only to their owner.',
+    evidence: ['netlify/functions/_lib/pdf-stamp-assets-endpoint.test.ts'],
+  },
+  {
     route: '/api/api-tokens',
     files: ['netlify/functions/api-tokens.mts'],
     auth: 'required',
@@ -676,6 +696,11 @@ export const SMOKE_DOMAIN_CONTRACTS = [
     domain: 'blobs',
     command: 'npm run smoke:multiuser:prod',
     assertions: ['B cannot download A attachment or private media blobs'],
+  },
+  {
+    domain: 'pdf-stamp-assets',
+    command: 'npm run smoke:multiuser:prod',
+    assertions: ['B cannot list/edit/delete PDF signatures or stamps created by A'],
   },
   {
     domain: 'momentos',

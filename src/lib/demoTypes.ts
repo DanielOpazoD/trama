@@ -15,6 +15,7 @@ export type Store = {
   prompts: Row[]
   secrets: Row[]
   notas_attachments: Row[]
+  pdf_stamp_assets: Row[]
   recortes: Row[]
   favoritos: Row[]
   'reading-tables': Row[]

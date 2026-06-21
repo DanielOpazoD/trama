@@ -175,6 +175,40 @@ describe('demo — CRUD con soft-delete', () => {
     const list = await demoRequest<Array<{ id: string }>>('/api/notes')
     expect(list.find((n) => n.id === created.id)).toBeDefined()
   })
+
+  it('pdf-stamp-assets crea, lista y soft-deletea firmas visuales', async () => {
+    const created = await demoRequest<Record<string, unknown>>('/api/pdf-stamp-assets', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: 'signature-demo',
+        kind: 'signature',
+        name: 'Firma demo',
+        src: 'data:image/png;base64,a',
+        mimeType: 'image/png',
+        width: 320,
+        height: 120,
+      }),
+    })
+
+    expect(created).toMatchObject({
+      id: 'signature-demo',
+      user_id: 'legacy-single-user',
+      mime_type: 'image/png',
+    })
+    expect(created).toHaveProperty('last_used_at')
+
+    const list = await demoRequest<Array<{ id: string }>>('/api/pdf-stamp-assets')
+    expect(list.map((item) => item.id)).toContain('signature-demo')
+
+    const del = await demoRequest<{ ok: boolean }>(
+      '/api/pdf-stamp-assets/signature-demo',
+      { method: 'DELETE' },
+    )
+    expect(del.ok).toBe(true)
+
+    const afterDelete = await demoRequest<Array<{ id: string }>>('/api/pdf-stamp-assets')
+    expect(afterDelete.find((item) => item.id === 'signature-demo')).toBeUndefined()
+  })
 })
 
 describe('demo — promover nota a Momento', () => {

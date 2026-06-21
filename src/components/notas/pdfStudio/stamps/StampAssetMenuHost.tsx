@@ -31,6 +31,7 @@ export function StampAssetMenuHost({
   return (
     <StampAssetMenu
       assets={stampAssets.assets}
+      syncStatus={stampAssets.syncStatus}
       onCreateFromFile={stampAssets.createFromFile}
       onCreateSignatureFromDataUrl={stampAssets.createSignatureFromDataUrl}
       onDelete={stampAssets.remove}

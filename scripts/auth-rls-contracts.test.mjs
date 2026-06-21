@@ -124,6 +124,7 @@ describe('Auth/RLS contracts inventory', () => {
       'search',
       'attachments',
       'blobs',
+      'pdf-stamp-assets',
       'momentos',
     ])
 
@@ -131,6 +132,25 @@ describe('Auth/RLS contracts inventory', () => {
       expect(contract.assertions.length).toBeGreaterThan(0)
       expect(contract.command).toBe('npm run smoke:multiuser:prod')
     }
+  })
+
+  it('mantiene el contrato de data URL de pdf_stamp_assets alineado con el endpoint', () => {
+    const sql = readFileSync(
+      join(
+        migrationsDir,
+        '20260620020000_pdf_stamp_assets_data_url_contract',
+        'migration.sql',
+      ),
+      'utf8',
+    )
+
+    expect(sql).toMatch(/DROP CONSTRAINT IF EXISTS pdf_stamp_assets_mime_type_check/)
+    expect(sql).toMatch(/DROP CONSTRAINT IF EXISTS pdf_stamp_assets_src_mime_check/)
+    expect(sql).toMatch(/LOWER\(mime_type\)\s+IN\s+\('image\/png', 'image\/jpeg'\)/)
+    expect(sql).toMatch(/LOWER\(src\)\s+LIKE\s+'data:image\/png;%'/)
+    expect(sql).toMatch(/LOWER\(src\)\s+LIKE\s+'data:image\/png,%'/)
+    expect(sql).toMatch(/LOWER\(src\)\s+LIKE\s+'data:image\/jpeg;%'/)
+    expect(sql).toMatch(/LOWER\(src\)\s+LIKE\s+'data:image\/jpeg,%'/)
   })
 
   it('genera un reporte compacto para CI y revisión de PR', () => {

@@ -156,18 +156,26 @@ ubicada dentro de un campo de firma de oficina.
 
 ## Firma y Timbre visual
 
-`Imprenta` tambien ofrece una biblioteca local de firmas y timbres visuales.
-Esta biblioteca vive en IndexedDB, aislada por `userKey`, y no agrega backend,
-tablas, blobs ni sincronizacion cloud. En un navegador compartido, un usuario no
-ve las firmas/timbres guardados por otro usuario porque cada record se guarda bajo
-la clave compuesta `userKey:id`.
+`Imprenta` tambien ofrece una biblioteca privada de firmas y timbres visuales.
+Desde Cloud Stamp Library v1, la fuente de verdad vive en Postgres
+(`pdf_stamp_assets`) bajo `user_id`, con RLS y soft-delete. IndexedDB sigue
+existiendo como cache/fallback local por `userKey`, para que el menu abra rapido y
+para tolerar fallos temporales de red. En un navegador compartido, un usuario no
+ve las firmas/timbres guardados por otro usuario porque la DB filtra por
+`user_id` y la cache local conserva la clave compuesta `userKey:id`.
 
 Los assets viven en `src/lib/pdfStudio/stamps/stampAssets.ts` y contienen:
 `id`, `kind` (`signature` o `stamp`), `name`, `src`, `mimeType`, dimensiones y
 fechas de creacion/actualizacion/ultimo uso. La UI del editor los muestra desde
 un menu compacto con tabs `Firmas`, `Timbres` y `Recientes`. Desde ese menu se
 puede subir una imagen PNG/JPEG, dibujar una firma, renombrar, eliminar e
-insertar el asset en la pagina activa.
+insertar el asset en la pagina activa. Crear/renombrar/eliminar/tocar un asset
+actualiza primero la UI y cache local, y luego sincroniza contra
+`/api/pdf-stamp-assets`; si la red falla, la marca queda disponible localmente
+hasta la siguiente hidratacion. El menu muestra una senal discreta:
+`Sincronizando`, `Guardado en nube` o `Guardado local`. No es una cola global;
+solo comunica si la biblioteca visible esta respaldada por la DB o por el cache
+local del navegador.
 
 Al insertarse, una firma/timbre se transforma en una `ImageAnnotation` normal con
 metadata opcional (`assetId`, `assetKind`, `label`). Esto mantiene una sola capa
@@ -177,9 +185,19 @@ estos assets como un tipo especial; `assembleAnnotations` embebe el data URL com
 PNG/JPEG y lo dibuja en las coordenadas de la pagina.
 
 Esta funcion NO es firma digital legal ni criptografica. Es una marca visual de
-oficina para documentos imprimibles o PDFs operativos. La decision v1 es
-local-only para mantener privacidad, evitar RLS/storage prematuros y no convertir
-un gesto de oficina en una plataforma de credenciales.
+oficina para documentos imprimibles o PDFs operativos. La persistencia cloud es
+privada por cuenta: no hay biblioteca compartida, no hay blobs publicos y no se
+sincronizan timbres entre usuarios. Si un usuario exporta un PDF que contiene la
+firma/timbre, esa imagen queda embebida en el PDF final como cualquier otra
+anotacion de imagen.
+
+Checks especificos:
+
+- `npm run check:pdf-stamp-assets-schema`: corre contra una DB migrada y valida
+  que las constraints reales acepten el mismo contrato de data URL que el
+  endpoint (`;`, `,` y MIME case-insensitive).
+- `npm run e2e:pdf-stamps-smoke`: smoke opt-in de Playwright para crear,
+  reabrir y eliminar una firma desde el menu de Imprenta.
 
 ### Planillas imprimibles
 

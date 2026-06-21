@@ -30,6 +30,7 @@ function asset(
 function setup(overrides: Partial<Parameters<typeof StampAssetMenu>[0]> = {}) {
   const props: Parameters<typeof StampAssetMenu>[0] = {
     assets: [],
+    syncStatus: 'cloud',
     onCreateFromFile: vi.fn(),
     onCreateSignatureFromDataUrl: vi.fn(),
     onDelete: vi.fn(),
@@ -72,6 +73,49 @@ describe('<StampAssetMenu />', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Timbres' }))
     expect(screen.getByText('Aún no guardas timbres.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Subir timbre' })).toBeInTheDocument()
+  })
+
+  it('expone el estado de sincronización de la biblioteca', () => {
+    const { rerender } = render(
+      <StampAssetMenu
+        assets={[]}
+        syncStatus="syncing"
+        onCreateFromFile={vi.fn()}
+        onCreateSignatureFromDataUrl={vi.fn()}
+        onDelete={vi.fn()}
+        onRename={vi.fn()}
+        onUse={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Firma y timbre' }))
+    expect(screen.getByText('Sincronizando')).toBeInTheDocument()
+
+    rerender(
+      <StampAssetMenu
+        assets={[]}
+        syncStatus="local"
+        onCreateFromFile={vi.fn()}
+        onCreateSignatureFromDataUrl={vi.fn()}
+        onDelete={vi.fn()}
+        onRename={vi.fn()}
+        onUse={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Guardado local')).toBeInTheDocument()
+
+    rerender(
+      <StampAssetMenu
+        assets={[]}
+        syncStatus="cloud"
+        onCreateFromFile={vi.fn()}
+        onCreateSignatureFromDataUrl={vi.fn()}
+        onDelete={vi.fn()}
+        onRename={vi.fn()}
+        onUse={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Guardado en nube')).toBeInTheDocument()
   })
 
   it('permite insertar un asset guardado y expone acciones de administración', () => {

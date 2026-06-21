@@ -264,6 +264,11 @@ jobs:
           DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
         run: npm run check:whatsapp-schema
 
+      - name: PDF stamp assets schema contract
+        env:
+          DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run check:pdf-stamp-assets-schema
+
       # Integración de comportamiento: corre el código REAL de persistencia
       # (persistCapture/persist-media) contra la DB migrada, validando RLS entre
       # usuarios, el CTE atómico de citas, casts y procedencia — lo que el SQL
