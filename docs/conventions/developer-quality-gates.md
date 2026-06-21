@@ -4,6 +4,8 @@ Este contrato agrega dos herramientas de mantenimiento con alcance acotado:
 
 - `npm run check:knip` o `npm run check:dead-code`: inventario de archivos, exports, scripts y dependencias que parecen no usados.
 - `npm run check:architecture` o `npm run check:dependency-cruiser`: grafo de imports con dependency-cruiser para fronteras de arquitectura.
+- `npm run report:quality-gates`: resumen auditable del baseline actual de Knip,
+  dependency-cruiser y comandos disponibles.
 
 El objetivo no es borrar codigo automaticamente. El objetivo es que la deuda nueva
 sea visible y que las excepciones vivan documentadas cerca del check.
@@ -46,6 +48,12 @@ como maximo 62 archivos con `ignoreIssues`, 70 tipos de issue ignorados, 5
 `ignoreFiles`, 3 `ignoreDependencies` y 2 `ignoreBinaries`. Si una excepcion
 nueva es inevitable, el mismo commit debe explicar por que no hay entrypoint real
 mejor y actualizar el ratchet deliberadamente.
+
+Para revisar el estado sin leer `knip.json` a mano, corre:
+
+```bash
+npm run report:quality-gates
+```
 
 Cuando limpies una entrada, elimina tambien su excepcion de `knip.json` en el
 mismo commit.

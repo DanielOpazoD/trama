@@ -28,6 +28,7 @@
     "check:dead-code": "node_modules/.bin/knip --no-progress --reporter compact",
     "check:architecture": "node scripts/check-architecture-boundaries.mjs",
     "check:dependency-cruiser": "node scripts/check-architecture-boundaries.mjs",
+    "report:quality-gates": "node scripts/report-quality-gates.mjs",
     "check:structure-ratchets": "node scripts/check-structure-ratchets.mjs",
     "check:frontend-boundaries": "node scripts/check-frontend-boundaries.mjs",
     "check:pdf-runtime-boundaries": "node scripts/pdf-runtime-boundaries.mjs",

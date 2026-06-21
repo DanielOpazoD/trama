@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'vitest'
 
 import { QUALITY_GATES } from './script-registry.mjs'
+import { QUALITY_GATE_BASELINE } from './quality-gates-baseline.mjs'
 
 const require = createRequire(import.meta.url)
 const ROOT = join(import.meta.dirname, '..')
@@ -96,11 +97,40 @@ describe('developer quality gates', () => {
       0,
     )
 
-    expect(ignoredIssueFiles.length).toBeLessThanOrEqual(62)
-    expect(ignoredIssueKinds).toBeLessThanOrEqual(70)
-    expect(config.ignoreFiles).toHaveLength(5)
-    expect(config.ignoreDependencies).toHaveLength(3)
-    expect(config.ignoreBinaries).toHaveLength(2)
+    expect(ignoredIssueFiles.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreIssueFiles,
+    )
+    expect(ignoredIssueKinds).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreIssueKinds,
+    )
+    expect(config.ignoreFiles.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreFiles,
+    )
+    expect(config.ignoreDependencies.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreDependencies,
+    )
+    expect(config.ignoreBinaries.length).toBeLessThanOrEqual(
+      QUALITY_GATE_BASELINE.knip.ignoreBinaries,
+    )
+  })
+
+  test('exposes a quality gates evidence report', () => {
+    const packageJson = JSON.parse(readRepoFile('package.json'))
+    const docs = readRepoFile('docs/conventions/developer-quality-gates.md')
+    const scriptsReadme = readRepoFile('scripts/README.md')
+    const registryEntry = QUALITY_GATES.find(
+      (gate) => gate.command === 'npm run report:quality-gates',
+    )
+
+    expect(packageJson.scripts['report:quality-gates']).toBe(
+      'node scripts/report-quality-gates.mjs',
+    )
+    expect(readRepoFile('scripts/report-quality-gates.mjs')).toContain(
+      'QUALITY_GATE_BASELINE',
+    )
+    expect(registryEntry).toMatchObject({ phase: 'operations', required: false })
+    expect(docs).toContain('npm run report:quality-gates')
+    expect(scriptsReadme).toContain('report:quality-gates')
   })
 
   test('does not keep resolved Sidebar cycles in the dependency-cruiser baseline', () => {
@@ -125,5 +155,8 @@ describe('developer quality gates', () => {
     const baseline = JSON.parse(readRepoFile('.dependency-cruiser-known-violations.json'))
 
     expect(baseline.knownViolations).toEqual([])
+    expect(baseline.knownViolations).toHaveLength(
+      QUALITY_GATE_BASELINE.dependencyCruiser.knownViolations,
+    )
   })
 })
