@@ -4,7 +4,7 @@ import {
   useMomentoShareInvitationsQuery,
   useProactiveQuery,
 } from '../state'
-import type { ViewMode } from './Sidebar'
+import type { ViewMode } from '../types/view'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
 import { MOBILE_PRIMARY_ITEMS, MOBILE_MORE_VIEWS } from '../lib/navigation'
 import { MobileMoreSheet } from './MobileMoreSheet'

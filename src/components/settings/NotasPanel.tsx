@@ -1,5 +1,5 @@
 import { PanelHeader } from './_shared'
-import { SECTIONS } from '../notas/NotasWorldChrome'
+import { SECTIONS } from '../notas/notasSections'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useUserPrefs, useSaveUserPrefs } from '../../state'
 import { DEFAULT_WORLD, type World } from '../../types/world'

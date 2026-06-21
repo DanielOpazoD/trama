@@ -1,4 +1,4 @@
-import type { SqlClient } from './db'
+import type { SqlClient } from './sql-client'
 import { AsyncLocalStorage } from 'node:async_hooks'
 
 export type UserRlsSql = (strings: TemplateStringsArray, ...values: unknown[]) => unknown

@@ -1,61 +1,17 @@
-import {
-  BibliotecaIcon,
-  ClipboardIcon,
-  FilePdfIcon,
-  HomeIcon,
-  KeyIcon,
-  NotesIcon,
-  PromptIcon,
-  SearchIcon,
-  SettingsIcon,
-  TasksIcon,
-} from '../Icons'
+import { SearchIcon, SettingsIcon } from '../Icons'
 import { AIModeToggle } from '../AIModeToggle'
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
 import type { World } from '../../types/world'
-import { NOTAS_SECTIONS, type NotasSection } from '../../types/notas'
+import type { NotasSection } from '../../types/notas'
+import { NOTAS_SECTION_TITLES, type NotasSectionMeta } from './notasSections'
 
 const ACCENT = 'var(--accent-sage)'
-
-export type NotasSectionMeta = {
-  id: NotasSection
-  label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
-}
-
-/** Registro canónico de las secciones del mundo Notas (orden de la chrome). */
-const SECTION_META_BY_ID: Record<NotasSection, Omit<NotasSectionMeta, 'id'>> = {
-  inicio: { label: 'Inicio', icon: HomeIcon },
-  notas: { label: 'Notas', icon: NotesIcon },
-  tareas: { label: 'Tareas', icon: TasksIcon },
-  prompts: { label: 'Prompts', icon: PromptIcon },
-  claves: { label: 'Claves', icon: KeyIcon },
-  pdf: { label: 'Imprenta', icon: FilePdfIcon },
-  planillas: { label: 'Planillas', icon: ClipboardIcon },
-  biblioteca: { label: 'Biblioteca', icon: BibliotecaIcon },
-}
-
-export const SECTIONS: NotasSectionMeta[] = NOTAS_SECTIONS.map((id) => ({
-  id,
-  ...SECTION_META_BY_ID[id],
-}))
-
-const SECTION_META: Record<NotasSection, { title: string; subtitle: string }> = {
-  inicio: { title: 'Inicio', subtitle: 'mundo notas' },
-  notas: { title: 'Notas', subtitle: 'capturas y anexos' },
-  tareas: { title: 'Tareas', subtitle: 'recordatorios de la semana' },
-  prompts: { title: 'Prompts', subtitle: 'biblioteca reutilizable' },
-  claves: { title: 'Claves', subtitle: 'bajo llave' },
-  pdf: { title: 'Imprenta', subtitle: 'editar PDF' },
-  planillas: { title: 'Planillas', subtitle: 'rellenar e imprimir' },
-  biblioteca: { title: 'Biblioteca', subtitle: 'tus archivos' },
-}
 
 export function NotasTopBar({ section }: { section: NotasSection }) {
   return (
     <div>
-      <TopBar view="inicio" titleOverride={SECTION_META[section]} />
+      <TopBar view="inicio" titleOverride={NOTAS_SECTION_TITLES[section]} />
       <div
         aria-hidden
         className="h-[2px] w-full shrink-0 transition-[background] duration-300 ease-out"
@@ -74,6 +30,7 @@ export function NotasSidebar({
   onChangeWorld,
   onChangeSection,
   onSectionIntent,
+  onWorldIntent,
   onOpenSearch,
   onOpenSettings,
 }: {
@@ -84,6 +41,7 @@ export function NotasSidebar({
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
   onSectionIntent?: (section: NotasSection) => void
+  onWorldIntent?: (world: World) => void
   onOpenSearch: () => void
   /** Abre el panel de Configuración (mismo que el mundo principal). */
   onOpenSettings: () => void
@@ -91,7 +49,11 @@ export function NotasSidebar({
   return (
     <aside className="surface-sidebar w-60 shrink-0 border-r border-ink-100 hidden md:flex flex-col">
       <header className="px-3 py-3 space-y-2">
-        <WorldSwitcher world={world} onChangeWorld={onChangeWorld} />
+        <WorldSwitcher
+          world={world}
+          onChangeWorld={onChangeWorld}
+          onWorldIntent={onWorldIntent}
+        />
         <button
           onClick={onOpenSearch}
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-paper-50 border border-ink-100/70 text-ink-400 hover:text-ink-700 hover:border-ink-200 transition-colors"
@@ -162,6 +124,7 @@ export function NotasMobileTabs({
   onChangeWorld,
   onChangeSection,
   onSectionIntent,
+  onWorldIntent,
   onOpenSearch,
   onOpenSettings,
 }: {
@@ -171,12 +134,18 @@ export function NotasMobileTabs({
   onChangeWorld: (w: World) => void
   onChangeSection: (section: NotasSection) => void
   onSectionIntent?: (section: NotasSection) => void
+  onWorldIntent?: (world: World) => void
   onOpenSearch: () => void
   onOpenSettings: () => void
 }) {
   return (
     <div className="md:hidden border-b border-ink-100 flex items-center gap-2 px-3 py-2 surface-sidebar">
-      <WorldSwitcher world={world} onChangeWorld={onChangeWorld} collapsed />
+      <WorldSwitcher
+        world={world}
+        onChangeWorld={onChangeWorld}
+        onWorldIntent={onWorldIntent}
+        collapsed
+      />
       <div className="w-px h-5 bg-ink-100 shrink-0" />
       <div className="flex gap-1 overflow-x-auto flex-1">
         {sections.map((s) => {
