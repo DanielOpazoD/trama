@@ -1,8 +1,10 @@
+import type { KeyboardEvent } from 'react'
 import { ChevronDownIcon } from '../Icons'
 import type { LibraryItem } from '../../types/biblioteca'
 import { Thumbnail } from './Thumbnail'
 import { BibliotecaItemActions } from './BibliotecaItemActions'
 import {
+  fileExtensionLabel,
   formatByteSize,
   formatShortDate,
   parseOrden,
@@ -12,22 +14,57 @@ import {
 
 /**
  * Lista de la Biblioteca con aspecto de tabla minimalista sobre papel
- * (no cards en caja). Encabezados Nombre / Modificado / Tamaño ordenables:
- * cada uno es un botón que alterna asc/desc y muestra un chevron en la
- * columna activa. `aria-sort` comunica el estado a lectores de pantalla.
+ * (no cards en caja). Columnas Nombre / Extensión / Creado / Modificado /
+ * Tamaño. Las ordenables (Nombre, Creado, Modificado, Tamaño) son botones que
+ * alternan asc/desc y muestran un chevron en la columna activa; Extensión es
+ * informativa (no ordenable). `aria-sort` comunica el estado a lectores.
  *
- * Presentacional: recibe items + orden + el callback de orden. El estado vive
- * en el orquestador (BibliotecaView).
+ * Cada fila es clickeable: abre el visor del archivo (`onOpen`). También por
+ * teclado (Enter/Espacio sobre la fila enfocada). Los botones de acción frenan
+ * la propagación, así no abren el visor al usarlos.
+ *
+ * Responsive: en pantallas chicas se ocultan las columnas menos críticas
+ * (Extensión, Creado, Tamaño) y quedan Nombre + Modificado.
+ *
+ * Presentacional: recibe items + orden + callbacks. El estado vive en el
+ * orquestador (BibliotecaView).
  */
 
-const COLUMNS: ReadonlyArray<{
-  key: SortColumn
+type Column = {
+  key: SortColumn | 'extension'
   label: string
-  align: 'left' | 'right'
-}> = [
-  { key: 'nombre', label: 'Nombre', align: 'left' },
-  { key: 'modificado', label: 'Modificado', align: 'right' },
-  { key: 'tamano', label: 'Tamaño', align: 'right' },
+  /** Clases de ancho/visibilidad de la celda (header y filas comparten). */
+  cellClass: string
+  /** Las columnas no ordenables (Extensión) no son botones. */
+  sortable: boolean
+}
+
+const COLUMNS: ReadonlyArray<Column> = [
+  { key: 'nombre', label: 'Nombre', cellClass: 'flex-1 min-w-0', sortable: true },
+  {
+    key: 'extension',
+    label: 'Extensión',
+    cellClass: 'w-20 justify-end hidden md:flex',
+    sortable: false,
+  },
+  {
+    key: 'creado',
+    label: 'Creado',
+    cellClass: 'w-16 justify-end hidden sm:flex',
+    sortable: true,
+  },
+  {
+    key: 'modificado',
+    label: 'Modificado',
+    cellClass: 'w-16 justify-end',
+    sortable: true,
+  },
+  {
+    key: 'tamano',
+    label: 'Tamaño',
+    cellClass: 'w-20 justify-end hidden md:flex',
+    sortable: true,
+  },
 ]
 
 function ariaSortFor(
@@ -45,6 +82,7 @@ export function BibliotecaListView({
   onSort,
   trash = false,
   onRename,
+  onOpen,
 }: {
   items: LibraryItem[]
   orden: BibliotecaOrden
@@ -52,63 +90,78 @@ export function BibliotecaListView({
   /** Vista papelera: las acciones de fila se reducen a Restaurar. */
   trash?: boolean
   onRename: (item: LibraryItem) => void
+  onOpen: (item: LibraryItem) => void
 }) {
   const { column: activeColumn, direction } = parseOrden(orden)
 
+  function handleRowKeyDown(event: KeyboardEvent<HTMLDivElement>, item: LibraryItem) {
+    // Enter/Espacio abren el visor; Espacio además evita el scroll de página.
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onOpen(item)
+    }
+  }
+
   return (
     <div role="table" aria-label="Archivos" className="text-sm">
-      {/* Encabezado — botones de orden */}
+      {/* Encabezado — botones de orden (Extensión es estática) */}
       <div
         role="row"
         className="flex items-center gap-3 h-9 px-2 border-b border-ink-100/70"
       >
         {COLUMNS.map((col) => {
-          const isActive = col.key === activeColumn
-          // Nombre se estira; Modificado/Tamaño tienen ancho fijo a la derecha.
-          // Tamaño se oculta bajo sm para no apretar en móvil.
-          const widthClass =
-            col.key === 'nombre'
-              ? 'flex-1 min-w-0'
-              : col.key === 'tamano'
-                ? 'w-20 justify-end hidden sm:flex'
-                : 'w-16 justify-end'
+          const isSortable = col.sortable
+          const sortKey = col.key as SortColumn
+          const isActive = isSortable && sortKey === activeColumn
           return (
             <div
               key={col.key}
               role="columnheader"
-              aria-sort={ariaSortFor(col.key, activeColumn, direction)}
-              className={widthClass}
+              aria-sort={
+                isSortable ? ariaSortFor(sortKey, activeColumn, direction) : undefined
+              }
+              className={`flex ${col.cellClass}`}
             >
-              <button
-                type="button"
-                onClick={() => onSort(col.key)}
-                className={`inline-flex items-center gap-1 text-micro uppercase tracking-eyebrow transition-colors ${
-                  isActive ? 'text-ink-600' : 'text-ink-400 hover:text-ink-600'
-                }`}
-              >
-                <span>{col.label}</span>
-                {isActive && (
-                  <span aria-hidden className="inline-flex">
-                    <ChevronDownIcon
-                      size={12}
-                      className={`transition-transform ${
-                        direction === 'asc' ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </span>
-                )}
-              </button>
+              {isSortable ? (
+                <button
+                  type="button"
+                  onClick={() => onSort(sortKey)}
+                  className={`inline-flex items-center gap-1 text-micro uppercase tracking-eyebrow transition-colors ${
+                    isActive ? 'text-ink-600' : 'text-ink-400 hover:text-ink-600'
+                  }`}
+                >
+                  <span>{col.label}</span>
+                  {isActive && (
+                    <span aria-hidden className="inline-flex">
+                      <ChevronDownIcon
+                        size={12}
+                        className={`transition-transform ${
+                          direction === 'asc' ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <span className="text-micro uppercase tracking-eyebrow text-ink-400">
+                  {col.label}
+                </span>
+              )}
             </div>
           )
         })}
       </div>
 
-      {/* Filas */}
+      {/* Filas — clickeables (abren el visor); accesibles por teclado. */}
       {items.map((item) => (
         <div
           key={item.id}
           role="row"
-          className="group flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 hover:bg-ink-50/60 transition-colors"
+          tabIndex={0}
+          aria-label={`Abrir ${item.title}`}
+          onClick={() => onOpen(item)}
+          onKeyDown={(e) => handleRowKeyDown(e, item)}
+          className="group flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 cursor-pointer hover:bg-ink-50/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink-300"
         >
           <div role="cell" className="flex items-center gap-3 flex-1 min-w-0">
             {/* Miniatura real para imágenes con URL de servir; para el resto
@@ -118,13 +171,25 @@ export function BibliotecaListView({
           </div>
           <div
             role="cell"
+            className="w-20 text-right text-caption text-ink-400 uppercase tabular-nums shrink-0 hidden md:block truncate"
+          >
+            {fileExtensionLabel(item)}
+          </div>
+          <div
+            role="cell"
+            className="w-16 text-right text-caption text-ink-400 tabular-nums shrink-0 hidden sm:block"
+          >
+            {formatShortDate(item.createdAt)}
+          </div>
+          <div
+            role="cell"
             className="w-16 text-right text-caption text-ink-400 tabular-nums shrink-0"
           >
             {formatShortDate(item.updatedAt)}
           </div>
           <div
             role="cell"
-            className="w-20 text-right text-caption text-ink-400 tabular-nums shrink-0 hidden sm:block"
+            className="w-20 text-right text-caption text-ink-400 tabular-nums shrink-0 hidden md:block"
           >
             {formatByteSize(item.byteSize)}
           </div>

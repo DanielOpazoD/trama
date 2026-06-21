@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from '../../test-utils'
 import { FileCard } from './FileCard'
 import { BibliotecaGridView } from './BibliotecaGridView'
@@ -30,7 +31,7 @@ function item(partial: Partial<LibraryItem> = {}): LibraryItem {
 
 describe('<FileCard />', () => {
   it('muestra el nombre y la metadata (tipo · tamaño)', () => {
-    renderWithProviders(<FileCard item={item()} onRename={noop} />)
+    renderWithProviders(<FileCard item={item()} onRename={noop} onOpen={noop} />)
     expect(screen.getByText('Contrato de edición.pdf')).toBeInTheDocument()
     // 167936 B ≈ 164 KB.
     expect(screen.getByText('PDF · 164 KB')).toBeInTheDocument()
@@ -38,13 +39,17 @@ describe('<FileCard />', () => {
 
   it('omite el tamaño cuando byteSize es null', () => {
     renderWithProviders(
-      <FileCard item={item({ byteSize: null, fileType: 'image' })} onRename={noop} />,
+      <FileCard
+        item={item({ byteSize: null, fileType: 'image' })}
+        onRename={noop}
+        onOpen={noop}
+      />,
     )
     expect(screen.getByText('Imagen')).toBeInTheDocument()
   })
 
   it('expone acciones de renombrar/descargar/eliminar', () => {
-    renderWithProviders(<FileCard item={item()} onRename={noop} />)
+    renderWithProviders(<FileCard item={item()} onRename={noop} onOpen={noop} />)
     expect(screen.getByRole('button', { name: 'Renombrar' })).toBeInTheDocument()
     // pdf-saved/pdf-stamp no son descargables; notas-attachment sí.
     expect(screen.getByRole('button', { name: 'Descargar' })).toBeInTheDocument()
@@ -52,7 +57,7 @@ describe('<FileCard />', () => {
   })
 
   it('en papelera solo muestra Restaurar', () => {
-    renderWithProviders(<FileCard item={item()} trash onRename={noop} />)
+    renderWithProviders(<FileCard item={item()} trash onRename={noop} onOpen={noop} />)
     expect(screen.getByRole('button', { name: 'Restaurar' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Eliminar' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Renombrar' })).toBeNull()
@@ -67,9 +72,29 @@ describe('<FileCard />', () => {
           storageKey: null,
         })}
         onRename={noop}
+        onOpen={noop}
       />,
     )
     expect(screen.queryByRole('button', { name: 'Descargar' })).toBeNull()
+  })
+
+  it('abre el visor al hacer clic en la card', async () => {
+    const onOpen = vi.fn()
+    renderWithProviders(<FileCard item={item()} onRename={noop} onOpen={onOpen} />)
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Abrir Contrato de edición.pdf' }),
+    )
+    expect(onOpen).toHaveBeenCalledTimes(1)
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ itemId: '1' }))
+  })
+
+  it('NO abre el visor cuando se clickea un botón de acción (stopPropagation)', async () => {
+    const onOpen = vi.fn()
+    const onRename = vi.fn()
+    renderWithProviders(<FileCard item={item()} onRename={onRename} onOpen={onOpen} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Renombrar' }))
+    expect(onRename).toHaveBeenCalledTimes(1)
+    expect(onOpen).not.toHaveBeenCalled()
   })
 })
 
@@ -82,6 +107,7 @@ describe('<BibliotecaGridView />', () => {
           item({ id: 'b', itemId: 'b', title: 'Dos.pdf' }),
         ]}
         onRename={noop}
+        onOpen={noop}
       />,
     )
     expect(screen.getAllByRole('listitem')).toHaveLength(2)

@@ -19,6 +19,7 @@ import { BibliotecaGridView } from './biblioteca/BibliotecaGridView'
 import { BibliotecaGridSkeleton } from './biblioteca/BibliotecaGridSkeleton'
 import { BibliotecaEmptyState } from './biblioteca/BibliotecaEmptyState'
 import { RenameModal } from './biblioteca/RenameModal'
+import { BibliotecaViewer } from './biblioteca/BibliotecaViewer'
 import {
   DEFAULT_ORDEN,
   DEFAULT_VISTA,
@@ -47,6 +48,8 @@ const VALID_TABS: ReadonlyArray<BibliotecaTab> = ['todo', 'imagenes', 'archivos'
 const VALID_ORDEN: ReadonlyArray<BibliotecaOrden> = [
   'modificado-desc',
   'modificado-asc',
+  'creado-desc',
+  'creado-asc',
   'nombre-asc',
   'nombre-desc',
   'tamano-desc',
@@ -112,6 +115,8 @@ export function BibliotecaView() {
 
   // Item en edición de nombre (un único modal sirve a lista y cuadrícula).
   const [renamingItem, setRenamingItem] = useState<LibraryItem | null>(null)
+  // Item abierto en el visor (un único overlay sirve a lista y cuadrícula).
+  const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null)
 
   // Búsqueda con debounce: el input es estado local inmediato; el query param
   // (y por ende la query) se actualiza 250 ms después de dejar de teclear.
@@ -248,6 +253,7 @@ export function BibliotecaView() {
               items={items}
               trash={incluyeEliminados}
               onRename={setRenamingItem}
+              onOpen={setViewingItem}
             />
           ) : (
             <BibliotecaListView
@@ -256,6 +262,7 @@ export function BibliotecaView() {
               onSort={handleSort}
               trash={incluyeEliminados}
               onRename={setRenamingItem}
+              onOpen={setViewingItem}
             />
           )}
           {query.hasNextPage && (
@@ -275,6 +282,10 @@ export function BibliotecaView() {
 
       {renamingItem && (
         <RenameModal item={renamingItem} open onClose={() => setRenamingItem(null)} />
+      )}
+
+      {viewingItem && (
+        <BibliotecaViewer item={viewingItem} onClose={() => setViewingItem(null)} />
       )}
     </>
   )

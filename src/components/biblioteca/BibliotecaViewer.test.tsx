@@ -1,0 +1,145 @@
+/**
+ * PR-A — BibliotecaViewer: enrutado por tipo (imagen / Office sin preview),
+ * cierre por Escape, y la tira de metadata (extensión + Creado + Modificado).
+ *
+ * Los visores de PDF y de texto son chunks lazy que bajan blobs; acá probamos
+ * el enrutado y el cascarón (la imagen, la tarjeta sin-preview y la metadata).
+ * El blob autenticado de la imagen se mockea como en AuthenticatedMedia.test.
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+
+const requestMocks = vi.hoisted(() => ({
+  requestBlob: vi.fn(async () => new Blob(['media'], { type: 'image/svg+xml' })),
+}))
+
+vi.mock('../../api/request', async (importActual) => ({
+  ...(await importActual<typeof import('../../api/request')>()),
+  requestBlob: requestMocks.requestBlob,
+}))
+
+import { renderWithProviders } from '../../test-utils'
+import { BibliotecaViewer } from './BibliotecaViewer'
+import type { LibraryItem } from '../../types/biblioteca'
+
+function item(partial: Partial<LibraryItem> = {}): LibraryItem {
+  return {
+    id: 'notas-attachment:a1',
+    kind: 'notas-attachment',
+    itemId: 'a1',
+    title: 'Contrato de edición.pdf',
+    fileType: 'pdf',
+    source: 'subido',
+    mimeType: 'application/pdf',
+    byteSize: 167_936,
+    storageKey: 'demo/a1.pdf',
+    storageDomain: 'notas-attachments',
+    tags: [],
+    pinned: false,
+    aiStatus: null,
+    createdAt: '2026-06-18T10:00:00.000Z',
+    updatedAt: '2026-06-20T10:00:00.000Z',
+    ...partial,
+  }
+}
+
+beforeEach(() => {
+  requestMocks.requestBlob.mockClear()
+  vi.stubGlobal(
+    'URL',
+    Object.assign(URL, {
+      createObjectURL: vi.fn(() => 'blob:viewer'),
+      revokeObjectURL: vi.fn(),
+    }),
+  )
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
+
+describe('<BibliotecaViewer />', () => {
+  it('muestra el título y la tira de metadata (extensión + Creado + Modificado)', () => {
+    renderWithProviders(<BibliotecaViewer item={item()} onClose={() => {}} />)
+    expect(
+      screen.getByRole('heading', { name: 'Contrato de edición.pdf' }),
+    ).toBeInTheDocument()
+    // Etiquetas de la tira de metadata (únicas). El valor "PDF" aparece dos
+    // veces (Extensión y Tipo), así que lo verificamos con getAllByText.
+    expect(screen.getByText('Extensión')).toBeInTheDocument()
+    expect(screen.getByText('Tipo')).toBeInTheDocument()
+    expect(screen.getByText('Creado')).toBeInTheDocument()
+    expect(screen.getByText('Modificado')).toBeInTheDocument()
+    expect(screen.getByText('Fuente')).toBeInTheDocument()
+    expect(screen.getAllByText('PDF').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('imagen → renderiza la imagen (object-URL autenticado)', async () => {
+    renderWithProviders(
+      <BibliotecaViewer
+        item={item({
+          title: 'foto.png',
+          fileType: 'image',
+          mimeType: 'image/png',
+          storageDomain: 'recortes-media',
+          storageKey: 'demo/foto-1.svg',
+        })}
+        onClose={() => {}}
+      />,
+    )
+    await waitFor(() => {
+      const img = screen.getByAltText('foto.png') as HTMLImageElement
+      expect(img.getAttribute('src')).toBe('blob:viewer')
+    })
+  })
+
+  it('Office (.xlsx) → tarjeta sin previsualización con CTA Descargar', () => {
+    renderWithProviders(
+      <BibliotecaViewer
+        item={item({
+          title: 'Presupuesto.xlsx',
+          fileType: 'spreadsheet',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          storageKey: 'demo/sheet.xlsx',
+        })}
+        onClose={() => {}}
+      />,
+    )
+    expect(screen.getByText(/no se puede previsualizar/i)).toBeInTheDocument()
+    // Hay un CTA Descargar (la tarjeta lo muestra prominente; el header además
+    // tiene el ícono de descarga, así que puede haber más de uno).
+    expect(
+      screen.getAllByRole('button', { name: 'Descargar' }).length,
+    ).toBeGreaterThanOrEqual(1)
+  })
+
+  it('no descargable (pdf-stamp data-url) → explica que no hay preview ni descarga', () => {
+    renderWithProviders(
+      <BibliotecaViewer
+        item={item({
+          title: 'Firma escaneada',
+          kind: 'pdf-stamp',
+          fileType: 'other',
+          mimeType: 'image/svg+xml',
+          storageDomain: 'pdf-stamp-assets',
+          storageKey: null,
+        })}
+        onClose={() => {}}
+      />,
+    )
+    expect(
+      screen.getByText(/no tiene una previsualización ni una descarga/i),
+    ).toBeInTheDocument()
+    // Sin URL servible no hay botón Descargar (ni en header ni en la tarjeta).
+    expect(screen.queryByRole('button', { name: 'Descargar' })).toBeNull()
+  })
+
+  it('Escape cierra el visor', async () => {
+    const onClose = vi.fn()
+    renderWithProviders(<BibliotecaViewer item={item()} onClose={onClose} />)
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+})

@@ -77,7 +77,9 @@ const SEED: LibraryItemRow[] = [
     source: 'subido',
     mime_type: 'application/pdf',
     byte_size: 845_201,
-    storage_key: 'legacy-single-user/demo-att-1',
+    // PR-A: key con extensión `.pdf` para que demoMedia sirva un PDF mínimo
+    // válido y el visor pdf.js renderice en modo prueba (en vez de errorear).
+    storage_key: 'legacy-single-user/demo-att-1.pdf',
     storage_domain: 'notas-attachments',
     tags: [],
     pinned: false,
@@ -159,7 +161,9 @@ const SEED: LibraryItemRow[] = [
     source: 'generado',
     mime_type: 'text/markdown',
     byte_size: 12_044,
-    storage_key: 'legacy-single-user/demo-doc-2',
+    // PR-A: key con extensión `.md` para que demoMedia sirva texto y el visor
+    // de texto lo muestre en modo prueba.
+    storage_key: 'legacy-single-user/demo-doc-2.md',
     storage_domain: 'notas-attachments',
     tags: [],
     pinned: false,
@@ -208,7 +212,9 @@ const SEED: LibraryItemRow[] = [
     source: 'generado',
     mime_type: 'application/json',
     byte_size: 102_400,
-    storage_key: 'legacy-single-user/demo-other-1',
+    // PR-A: key con extensión `.json` para que demoMedia sirva JSON y el visor
+    // de texto lo muestre (pretty-printed) en modo prueba.
+    storage_key: 'legacy-single-user/demo-other-1.json',
     storage_domain: 'notas-attachments',
     tags: ['backup'],
     pinned: false,
@@ -283,6 +289,11 @@ function compareUpdatedAt(a: LibraryItemRow, b: LibraryItemRow): number {
   return a.updated_at < b.updated_at ? -1 : 1
 }
 
+function compareCreatedAt(a: LibraryItemRow, b: LibraryItemRow): number {
+  if (a.created_at === b.created_at) return 0
+  return a.created_at < b.created_at ? -1 : 1
+}
+
 function compareTitle(a: LibraryItemRow, b: LibraryItemRow): number {
   return foldTitle(a.title).localeCompare(foldTitle(b.title))
 }
@@ -355,6 +366,12 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
     switch (orden) {
       case 'modificado-asc':
         primary = compareUpdatedAt(a, b)
+        break
+      case 'creado-desc':
+        primary = -compareCreatedAt(a, b)
+        break
+      case 'creado-asc':
+        primary = compareCreatedAt(a, b)
         break
       case 'nombre-asc':
         primary = compareTitle(a, b)

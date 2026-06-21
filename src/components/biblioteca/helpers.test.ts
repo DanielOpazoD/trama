@@ -4,13 +4,16 @@ import {
   DEFAULT_VISTA,
   coerceVista,
   fileExtension,
+  fileExtensionLabel,
   fileTypeLabel,
   formatByteSize,
   formatCardMeta,
   formatShortDate,
   parseOrden,
   resolveRenamedTitle,
+  sourceLabel,
   toggleOrden,
+  viewerModeFor,
 } from './helpers'
 
 describe('biblioteca/helpers', () => {
@@ -32,10 +35,16 @@ describe('biblioteca/helpers', () => {
     })
 
     it('arranca en dirección natural al cambiar de columna', () => {
-      // nombre → A→Z (asc); modificado/tamaño → más reciente/grande (desc)
+      // nombre → A→Z (asc); fechas/tamaño → más reciente/grande (desc)
       expect(toggleOrden('modificado-desc', 'nombre')).toBe('nombre-asc')
       expect(toggleOrden('nombre-asc', 'modificado')).toBe('modificado-desc')
       expect(toggleOrden('nombre-asc', 'tamano')).toBe('tamano-desc')
+      expect(toggleOrden('nombre-asc', 'creado')).toBe('creado-desc')
+    })
+
+    it('alterna asc↔desc en la columna Creado', () => {
+      expect(toggleOrden('creado-desc', 'creado')).toBe('creado-asc')
+      expect(toggleOrden('creado-asc', 'creado')).toBe('creado-desc')
     })
   })
 
@@ -126,6 +135,90 @@ describe('biblioteca/helpers', () => {
     it('devuelve "" cuando el nombre queda vacío', () => {
       expect(resolveRenamedTitle('a.pdf', '   ')).toBe('')
       expect(resolveRenamedTitle('a.pdf', '')).toBe('')
+    })
+  })
+
+  describe('fileExtensionLabel', () => {
+    it('devuelve la extensión en MAYÚSCULAS sin punto', () => {
+      expect(fileExtensionLabel({ title: 'a.pdf', fileType: 'pdf' })).toBe('PDF')
+      expect(
+        fileExtensionLabel({ title: 'Notas del seminario.docx', fileType: 'document' }),
+      ).toBe('DOCX')
+    })
+    it('cae a la etiqueta de tipo cuando no hay extensión real', () => {
+      expect(fileExtensionLabel({ title: 'Recorte', fileType: 'image' })).toBe('Imagen')
+      expect(fileExtensionLabel({ title: '.gitignore', fileType: 'other' })).toBe(
+        'Archivo',
+      )
+    })
+  })
+
+  describe('sourceLabel', () => {
+    it('traduce la fuente a una etiqueta legible (singular)', () => {
+      expect(sourceLabel('subido')).toBe('Subido')
+      expect(sourceLabel('generado')).toBe('Generado')
+      expect(sourceLabel('capturado')).toBe('Capturado')
+      expect(sourceLabel('whatsapp')).toBe('WhatsApp')
+    })
+  })
+
+  describe('viewerModeFor', () => {
+    it('imagen → modo image', () => {
+      expect(
+        viewerModeFor({ title: 'foto.jpg', fileType: 'image', mimeType: 'image/jpeg' }),
+      ).toBe('image')
+    })
+    it('pdf → modo pdf', () => {
+      expect(
+        viewerModeFor({ title: 'doc.pdf', fileType: 'pdf', mimeType: 'application/pdf' }),
+      ).toBe('pdf')
+    })
+    it('texto/markdown/JSON → modo text (por mime o por extensión)', () => {
+      expect(
+        viewerModeFor({ title: 'a.md', fileType: 'document', mimeType: 'text/markdown' }),
+      ).toBe('text')
+      expect(
+        viewerModeFor({
+          title: 'export.json',
+          fileType: 'other',
+          mimeType: 'application/json',
+        }),
+      ).toBe('text')
+      // Sin mime útil, decide por extensión.
+      expect(
+        viewerModeFor({ title: 'notas.txt', fileType: 'other', mimeType: null }),
+      ).toBe('text')
+      expect(
+        viewerModeFor({ title: 'datos.csv', fileType: 'other', mimeType: null }),
+      ).toBe('text')
+    })
+    it('Office / audio / video / binario → modo none (sin previsualización)', () => {
+      expect(
+        viewerModeFor({
+          title: 'hoja.xlsx',
+          fileType: 'spreadsheet',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+      ).toBe('none')
+      expect(
+        viewerModeFor({
+          title: 'charla.pptx',
+          fileType: 'presentation',
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        }),
+      ).toBe('none')
+      expect(
+        viewerModeFor({
+          title: 'contrato.docx',
+          fileType: 'document',
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }),
+      ).toBe('none')
+      expect(
+        viewerModeFor({ title: 'nota.m4a', fileType: 'audio', mimeType: 'audio/mp4' }),
+      ).toBe('none')
     })
   })
 })

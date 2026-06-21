@@ -82,6 +82,11 @@ describe('BibliotecaListQuery', () => {
       orden: 'tamano-asc',
     })
   })
+
+  test('acepta el orden por creado (asc/desc)', () => {
+    expect(BibliotecaListQuery.parse({ orden: 'creado-desc' }).orden).toBe('creado-desc')
+    expect(BibliotecaListQuery.parse({ orden: 'creado-asc' }).orden).toBe('creado-asc')
+  })
 })
 
 describe('parseCursorOffset', () => {
@@ -171,6 +176,28 @@ describe('sortAndPaginate', () => {
     expect(asc.items.map((r) => r.title)).toEqual(['Apple', 'banana', 'cherry'])
     const desc = sortAndPaginate(rows, { orden: 'nombre-desc', limit: 10, offset: 0 })
     expect(desc.items.map((r) => r.title)).toEqual(['cherry', 'banana', 'Apple'])
+  })
+
+  test('orden por creado usa created_at (no updated_at)', () => {
+    // created_at y updated_at deliberadamente desalineados: 'a' se modificó
+    // último pero se creó primero, así el orden por creado difiere del de
+    // modificado.
+    const rows = [
+      row({
+        item_id: 'a',
+        created_at: '2026-06-01T00:00:00.000Z',
+        updated_at: '2026-06-09T00:00:00.000Z',
+      }),
+      row({
+        item_id: 'b',
+        created_at: '2026-06-05T00:00:00.000Z',
+        updated_at: '2026-06-06T00:00:00.000Z',
+      }),
+    ]
+    const desc = sortAndPaginate(rows, { orden: 'creado-desc', limit: 10, offset: 0 })
+    expect(desc.items.map((r) => r.item_id)).toEqual(['b', 'a'])
+    const asc = sortAndPaginate(rows, { orden: 'creado-asc', limit: 10, offset: 0 })
+    expect(asc.items.map((r) => r.item_id)).toEqual(['a', 'b'])
   })
 
   test('orden por tamaño deja los nulls al final en ambas direcciones', () => {
