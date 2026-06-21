@@ -28,6 +28,7 @@ describe('operational events', () => {
       'owner.mismatch',
       'smoke.failed',
       'smoke.passed',
+      'storage.manifest.failed',
     ])
   })
 

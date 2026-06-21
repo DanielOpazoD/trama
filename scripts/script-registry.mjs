@@ -172,6 +172,14 @@ const SCRIPT_ENTRIES = [
       'Inventaria filas y blobs legacy para planificar reasignacion futura sin escribir datos.',
   },
   {
+    file: 'scripts/storage-assets-report.mjs',
+    domain: 'database',
+    kind: 'report',
+    critical: false,
+    packageScripts: ['storage-assets:report'],
+    summary: 'Reporta cobertura read-only del manifest storage_assets por dominio.',
+  },
+  {
     file: 'scripts/check-migration-duplicates.mjs',
     domain: 'database',
     kind: 'check',

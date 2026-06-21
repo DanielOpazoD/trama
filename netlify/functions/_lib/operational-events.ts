@@ -10,6 +10,7 @@ export const operationalEventNames = [
   'owner.mismatch',
   'smoke.failed',
   'smoke.passed',
+  'storage.manifest.failed',
 ] as const
 
 export type OperationalEventName = (typeof operationalEventNames)[number]

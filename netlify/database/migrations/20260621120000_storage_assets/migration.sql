@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS storage_assets (
       )
     ),
   CONSTRAINT storage_assets_provider_check
-    CHECK (provider IN ('netlify-blobs')),
+    CHECK (provider IN ('netlify-blobs', 'postgres-data-url')),
   CONSTRAINT storage_assets_owner_check
     CHECK (length(owner_type) BETWEEN 1 AND 80 AND length(owner_id) BETWEEN 1 AND 300),
   CONSTRAINT storage_assets_storage_key_check

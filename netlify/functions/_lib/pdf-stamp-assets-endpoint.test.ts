@@ -4,6 +4,7 @@ import {
   expectCanonicalError,
   mockContext,
   mockSqlResponses,
+  mockSqlState,
   setupMockSql,
 } from './test-utils'
 
@@ -69,6 +70,7 @@ describe('pdf-stamp-assets endpoint', () => {
   it('POST crea un asset con ensureUserRow y calcula byte_size sin loguear src', async () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([row({ id: 'stamp-1', kind: 'stamp', name: 'Timbre' })])
+    mockSqlResponses.push([{ id: 'asset-stamp-1' }])
 
     const res = await handler(
       buildJsonApiRequest('/api/pdf-stamp-assets', {
@@ -94,6 +96,21 @@ describe('pdf-stamp-assets endpoint', () => {
     expect(insert?.template).toMatch(/user_id/i)
     expect(insert?.values).toContain(TEST_USERS.a.id)
     expect(insert?.values).toContain(PNG_SRC.length)
+    const manifestInsert = mockSqlState.calls.find((call) =>
+      /INSERT INTO storage_assets/i.test(call.template),
+    )
+    expect(manifestInsert?.values).toEqual(
+      expect.arrayContaining([
+        TEST_USERS.a.id,
+        'pdf-stamp-assets',
+        'pdf-stamp-asset',
+        'stamp-1',
+        'postgres-data-url',
+        `pdf_stamp_assets/${TEST_USERS.a.id}/stamp-1`,
+        'image/png',
+        PNG_SRC.length,
+      ]),
+    )
     expect(await res.json()).toMatchObject({ id: 'stamp-1', kind: 'stamp' })
   })
 
@@ -215,5 +232,31 @@ describe('pdf-stamp-assets endpoint', () => {
     const update = mockSqlResponses.calls[0]
     expect(update?.template).toMatch(/SET deleted_at = NOW\(\)/i)
     expect(update?.template).toMatch(/RETURNING id/i)
+  })
+
+  it('DELETE soft-deletea el manifest lógico del asset propio', async () => {
+    mockSqlResponses.push([{ id: 'stamp-1' }])
+    mockSqlResponses.push([{ id: 'asset-stamp-1' }])
+
+    const res = await handler(
+      buildApiRequest('/api/pdf-stamp-assets/stamp-1', {
+        method: 'DELETE',
+        user: TEST_USERS.a,
+      }),
+      mockContext({ id: 'stamp-1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const manifestUpdate = mockSqlState.calls.find((call) =>
+      /UPDATE storage_assets/i.test(call.template),
+    )
+    expect(manifestUpdate?.values).toEqual(
+      expect.arrayContaining([
+        TEST_USERS.a.id,
+        'pdf-stamp-assets',
+        'postgres-data-url',
+        `pdf_stamp_assets/${TEST_USERS.a.id}/stamp-1`,
+      ]),
+    )
   })
 })

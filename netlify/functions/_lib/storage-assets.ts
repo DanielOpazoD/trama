@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { sqlTyped, type SqlClient } from './db.js'
+import { logOperationalEvent } from './operational-events.js'
 
 export type StorageAssetDomain =
   | 'notas-attachments'
@@ -8,7 +9,7 @@ export type StorageAssetDomain =
   | 'pdf-studio-saved-pdfs'
   | 'pdf-stamp-assets'
 
-export type StorageAssetProvider = 'netlify-blobs'
+export type StorageAssetProvider = 'netlify-blobs' | 'postgres-data-url'
 
 export type StorageAssetInput = {
   userId: string
@@ -29,6 +30,11 @@ export type StorageAssetDeleteInput = {
   storageKey: string
 }
 
+export type StorageAssetRecordOptions = {
+  requestId?: string
+  operation?: string
+}
+
 function sha256Hex(value: string | ArrayBuffer | Uint8Array): string {
   const hash = createHash('sha256')
   if (typeof value === 'string') hash.update(value)
@@ -37,7 +43,7 @@ function sha256Hex(value: string | ArrayBuffer | Uint8Array): string {
   return hash.digest('hex')
 }
 
-export function checksumSha256(bytes: ArrayBuffer | Uint8Array): string {
+export function checksumSha256(bytes: string | ArrayBuffer | Uint8Array): string {
   return `sha256:${sha256Hex(bytes)}`
 }
 
@@ -55,30 +61,55 @@ export function storageKeyForLog(storageKey: string): {
 export async function recordStorageAsset(
   sql: SqlClient,
   input: StorageAssetInput,
+  options: StorageAssetRecordOptions = {},
 ): Promise<string | null> {
-  const rows = await sqlTyped<{ id: string }>(sql`
-    INSERT INTO storage_assets (
-      user_id, domain, owner_type, owner_id, provider, storage_key,
-      mime_type, byte_size, checksum
-    )
-    VALUES (
-      ${input.userId}, ${input.domain}, ${input.ownerType}, ${input.ownerId},
-      ${input.provider}, ${input.storageKey}, ${input.mimeType}, ${input.byteSize},
-      ${input.checksum}
-    )
-    ON CONFLICT (provider, domain, storage_key)
-    DO UPDATE SET
-      user_id = EXCLUDED.user_id,
-      owner_type = EXCLUDED.owner_type,
-      owner_id = EXCLUDED.owner_id,
-      mime_type = EXCLUDED.mime_type,
-      byte_size = EXCLUDED.byte_size,
-      checksum = EXCLUDED.checksum,
-      deleted_at = NULL,
-      updated_at = NOW()
-    RETURNING id
-  `)
-  return rows[0]?.id ?? null
+  try {
+    const rows = await sqlTyped<{ id: string }>(sql`
+      INSERT INTO storage_assets (
+        user_id, domain, owner_type, owner_id, provider, storage_key,
+        mime_type, byte_size, checksum
+      )
+      VALUES (
+        ${input.userId}, ${input.domain}, ${input.ownerType}, ${input.ownerId},
+        ${input.provider}, ${input.storageKey}, ${input.mimeType}, ${input.byteSize},
+        ${input.checksum}
+      )
+      ON CONFLICT (provider, domain, storage_key)
+      DO UPDATE SET
+        user_id = EXCLUDED.user_id,
+        owner_type = EXCLUDED.owner_type,
+        owner_id = EXCLUDED.owner_id,
+        mime_type = EXCLUDED.mime_type,
+        byte_size = EXCLUDED.byte_size,
+        checksum = EXCLUDED.checksum,
+        deleted_at = NULL,
+        updated_at = NOW()
+      RETURNING id
+    `)
+    return rows[0]?.id ?? null
+  } catch (err) {
+    const safeKey = storageKeyForLog(input.storageKey)
+    logOperationalEvent({
+      event: 'storage.manifest.failed',
+      severity: 'error',
+      requestId: options.requestId,
+      operation: options.operation ?? 'storage.manifest.write',
+      userId: input.userId,
+      reason: 'record_storage_asset_failed',
+      details: {
+        domain: input.domain,
+        provider: input.provider,
+        ownerType: input.ownerType,
+        ownerId: input.ownerId,
+        mimeType: input.mimeType,
+        byteSize: input.byteSize,
+        ownerPrefix: safeKey.ownerPrefix,
+        keyHash: safeKey.keyHash,
+        errorName: err instanceof Error ? err.name : 'UnknownError',
+      },
+    })
+    throw err
+  }
 }
 
 export async function softDeleteStorageAsset(

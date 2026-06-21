@@ -41,31 +41,33 @@ mutaciones privadas y smokes productivos.
 
 Vocabulario permitido:
 
-| Evento               | Cuándo aparece                                     | Severidad típica |
-| -------------------- | -------------------------------------------------- | ---------------- |
-| `auth.denied`        | Request privada termina en 401                     | `warn`           |
-| `auth.fallback`      | Clerk no está configurado, owner legacy o fallback | `warn`           |
-| `auth.verified`      | Token/PAT válido resuelve owner                    | `info`           |
-| `owner.mismatch`     | Recurso existe pero no pertenece al owner actual   | `warn`           |
-| `blob.access.denied` | Blob/attachment privado rechaza acceso cross-user  | `warn`           |
-| `mutation.created`   | Mutación crea fixture o entidad privada observable | `info`           |
-| `mutation.deleted`   | Mutación borra/soft-delete fixture privada         | `info`           |
-| `smoke.passed`       | Smoke multiusuario productivo termina verde        | `info`           |
-| `smoke.failed`       | Smoke multiusuario productivo falla                | `error`          |
+| Evento                    | Cuándo aparece                                                  | Severidad típica |
+| ------------------------- | --------------------------------------------------------------- | ---------------- |
+| `auth.denied`             | Request privada termina en 401                                  | `warn`           |
+| `auth.fallback`           | Clerk no está configurado, owner legacy o fallback              | `warn`           |
+| `auth.verified`           | Token/PAT válido resuelve owner                                 | `info`           |
+| `owner.mismatch`          | Recurso existe pero no pertenece al owner actual                | `warn`           |
+| `blob.access.denied`      | Blob/attachment privado rechaza acceso cross-user               | `warn`           |
+| `mutation.created`        | Mutación crea fixture o entidad privada observable              | `info`           |
+| `mutation.deleted`        | Mutación borra/soft-delete fixture privada                      | `info`           |
+| `smoke.passed`            | Smoke multiusuario productivo termina verde                     | `info`           |
+| `smoke.failed`            | Smoke multiusuario productivo falla                             | `error`          |
+| `storage.manifest.failed` | Registro en `storage_assets` falla después de validar ownership | `error`          |
 
 Matriz de acción rápida:
 
-| Evento               | Origen principal                           | Acción esperada                                              |
-| -------------------- | ------------------------------------------ | ------------------------------------------------------------ |
-| `auth.denied`        | `withObservability` ante request sin auth  | Confirmar anónimo = 401 y que no esté activo fallback legacy |
-| `auth.fallback`      | `getAuthedUser()`                          | Revisar `ALLOW_LEGACY_FALLBACK` y owner legacy               |
-| `auth.verified`      | `getAuthedUser()`                          | Usar como correlación de owner para requestId                |
-| `owner.mismatch`     | Mutación/lectura por id scopiada por owner | Investigar intento cross-user o fixture inexistente          |
-| `blob.access.denied` | Lectura/delete de attachment/blob privado  | Revisar key namespace, owner y endpoint de blobs             |
-| `mutation.created`   | Smoke o mutación privada observable        | Confirmar cleanup/soft-delete posterior                      |
-| `mutation.deleted`   | Smoke o mutación privada observable        | Confirmar que el owner ya no lista el fixture                |
-| `smoke.passed`       | `smoke:production-report`                  | Pegar Markdown en PR/incidente                               |
-| `smoke.failed`       | `smoke:production-report`                  | Bloquear merge/deploy hasta aislar causa                     |
+| Evento                    | Origen principal                           | Acción esperada                                              |
+| ------------------------- | ------------------------------------------ | ------------------------------------------------------------ |
+| `auth.denied`             | `withObservability` ante request sin auth  | Confirmar anónimo = 401 y que no esté activo fallback legacy |
+| `auth.fallback`           | `getAuthedUser()`                          | Revisar `ALLOW_LEGACY_FALLBACK` y owner legacy               |
+| `auth.verified`           | `getAuthedUser()`                          | Usar como correlación de owner para requestId                |
+| `owner.mismatch`          | Mutación/lectura por id scopiada por owner | Investigar intento cross-user o fixture inexistente          |
+| `blob.access.denied`      | Lectura/delete de attachment/blob privado  | Revisar key namespace, owner y endpoint de blobs             |
+| `mutation.created`        | Smoke o mutación privada observable        | Confirmar cleanup/soft-delete posterior                      |
+| `mutation.deleted`        | Smoke o mutación privada observable        | Confirmar que el owner ya no lista el fixture                |
+| `smoke.passed`            | `smoke:production-report`                  | Pegar Markdown en PR/incidente                               |
+| `smoke.failed`            | `smoke:production-report`                  | Bloquear merge/deploy hasta aislar causa                     |
+| `storage.manifest.failed` | `recordStorageAsset()`                     | Revisar DB/RLS y reintentar; usar `keyHash`, no storage key  |
 
 El payload permitido debe caber en contexto operacional: `requestId`, `method`,
 `path sin querystring`, `operation`, `userId`, `status`, `reason` y `details` ya

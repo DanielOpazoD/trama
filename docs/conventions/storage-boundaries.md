@@ -26,7 +26,7 @@ cada payload.
 | `user_id`                            | Owner real para aislamiento multiusuario y RLS.                                                                             |
 | `domain`                             | Superficie funcional: `notas-attachments`, `recortes-media`, `momentos-media`, `pdf-studio-saved-pdfs`, `pdf-stamp-assets`. |
 | `owner_type` / `owner_id`            | Referencia logica al objeto que usa el blob.                                                                                |
-| `provider`                           | Provider actual. Hoy solo `netlify-blobs`.                                                                                  |
+| `provider`                           | Provider actual: `netlify-blobs`; `postgres-data-url` solo para firmas/timbres guardados como data URL en Postgres.         |
 | `storage_key`                        | Key privada completa; no se loguea en claro.                                                                                |
 | `mime_type`, `byte_size`, `checksum` | Metadata minima para auditoria, cleanup y futura migracion.                                                                 |
 | `deleted_at`                         | Soft-delete del manifiesto cuando el dominio borra el recurso.                                                              |
@@ -40,6 +40,22 @@ Toda subida nueva debe:
 3. Escribir bytes con `createNetlifyBlobStorageAdapter(store).put(...)`.
 4. Registrar `recordStorageAsset(...)` con `checksumSha256(...)`.
 5. Si hay borrado logico del dominio, llamar `softDeleteStorageAsset(...)`.
+
+Las firmas/timbres PDF (`pdf_stamp_assets`) todavia no escriben bytes en un
+bucket. Se registran con provider `postgres-data-url` y `storage_key` logico
+`pdf_stamp_assets/${userId}/${id}` para que el futuro inventario de assets no
+los pierda cuando se externalicen.
+
+## Reporte read-only
+
+Para estimar cobertura del manifest antes de una migracion:
+
+```bash
+npm run storage-assets:report
+```
+
+El comando solo lee `storage_assets`: total por dominio, activos, soft-deleted y
+assets sin checksum.
 
 ## Logs
 
