@@ -1,6 +1,6 @@
 import { NumberTicker } from '../NumberTicker'
 import { Tooltip } from '../Tooltip'
-import type { ViewMode } from '../Sidebar'
+import type { ViewMode } from '../../types/view'
 
 /**
  * ε2: NavButton — el botón de navegación del sidebar, en sus dos modos

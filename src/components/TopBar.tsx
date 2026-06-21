@@ -1,5 +1,5 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
-import type { ViewMode } from './Sidebar'
+import type { ViewMode } from '../types/view'
 import type { World } from '../types/world'
 import { ReadingIcon } from './Icons'
 import { UserMenu } from './UserMenu'

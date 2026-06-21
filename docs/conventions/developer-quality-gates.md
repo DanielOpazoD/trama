@@ -2,8 +2,8 @@
 
 Este contrato agrega dos herramientas de mantenimiento con alcance acotado:
 
-- `npm run check:knip`: inventario de archivos, exports, scripts y dependencias que parecen no usados.
-- `npm run check:architecture`: grafo de imports con dependency-cruiser para fronteras de arquitectura.
+- `npm run check:knip` o `npm run check:dead-code`: inventario de archivos, exports, scripts y dependencias que parecen no usados.
+- `npm run check:architecture` o `npm run check:dependency-cruiser`: grafo de imports con dependency-cruiser para fronteras de arquitectura.
 
 El objetivo no es borrar codigo automaticamente. El objetivo es que la deuda nueva
 sea visible y que las excepciones vivan documentadas cerca del check.
@@ -14,6 +14,8 @@ Corre:
 
 ```bash
 npm run check:knip
+# alias compatible:
+npm run check:dead-code
 ```
 
 Knip parte desde entrypoints reales de Trama: Vite, tests, Playwright, Netlify
@@ -48,6 +50,8 @@ Corre:
 
 ```bash
 npm run check:architecture
+# alias compatible:
+npm run check:dependency-cruiser
 ```
 
 Reglas activas:

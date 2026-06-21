@@ -19,8 +19,12 @@ describe('developer quality gates', () => {
     const gateCommands = new Set(QUALITY_GATES.map((gate) => gate.command))
 
     expect(packageJson.scripts['check:knip']).toContain('knip')
+    expect(packageJson.scripts['check:dead-code']).toBe(packageJson.scripts['check:knip'])
     expect(packageJson.scripts['check:architecture']).toBe(
       'node scripts/check-architecture-boundaries.mjs',
+    )
+    expect(packageJson.scripts['check:dependency-cruiser']).toBe(
+      packageJson.scripts['check:architecture'],
     )
     expect(readRepoFile('scripts/check-architecture-boundaries.mjs')).toContain(
       'depcruise',
@@ -40,7 +44,9 @@ describe('developer quality gates', () => {
     expect(docs).toContain('falso positivo')
     expect(docs).toContain('excepcion')
     expect(scriptsReadme).toContain('check:knip')
+    expect(scriptsReadme).toContain('check:dead-code')
     expect(scriptsReadme).toContain('check:architecture')
+    expect(scriptsReadme).toContain('check:dependency-cruiser')
   })
 
   test('keeps dependency-cruiser rules focused on agreed architecture boundaries', () => {
@@ -79,6 +85,24 @@ describe('developer quality gates', () => {
         'playwright-report/**',
         'test-results/**',
       ]),
+    )
+  })
+
+  test('does not keep resolved Sidebar cycles in the dependency-cruiser baseline', () => {
+    const baseline = JSON.parse(readRepoFile('.dependency-cruiser-known-violations.json'))
+    const cycleKeys = baseline.knownViolations.map(
+      (violation) => `${violation.from} -> ${violation.to}`,
+    )
+
+    expect(cycleKeys).not.toContain(
+      'src/components/Sidebar.tsx -> src/components/sidebar/NavButton.tsx',
+    )
+    expect(cycleKeys).not.toContain('src/components/Sidebar.tsx -> src/lib/navigation.ts')
+    expect(cycleKeys).not.toContain(
+      'src/components/Sidebar.tsx -> src/lib/sectionAccent.ts',
+    )
+    expect(cycleKeys).not.toContain(
+      'src/components/TopBar.tsx -> src/components/WorldSwitcher.tsx',
     )
   })
 })

@@ -26,30 +26,6 @@
     },
     {
       "rule": "no-circular",
-      "from": "src/components/Sidebar.tsx",
-      "to": "src/components/sidebar/NavButton.tsx",
-      "reason": "Historical sidebar component cycle; tracked as structural debt."
-    },
-    {
-      "rule": "no-circular",
-      "from": "src/components/Sidebar.tsx",
-      "to": "src/lib/navigation.ts",
-      "reason": "Historical navigation/sidebar cycle; tracked as structural debt."
-    },
-    {
-      "rule": "no-circular",
-      "from": "src/components/Sidebar.tsx",
-      "to": "src/lib/sectionAccent.ts",
-      "reason": "Historical section accent/sidebar cycle; tracked as structural debt."
-    },
-    {
-      "rule": "no-circular",
-      "from": "src/components/TopBar.tsx",
-      "to": "src/components/WorldSwitcher.tsx",
-      "reason": "Historical top bar/world switcher cycle; tracked as structural debt."
-    },
-    {
-      "rule": "no-circular",
       "from": "src/components/WorldSwitcher.tsx",
       "to": "src/components/notas/NotasWorld.tsx",
       "reason": "Historical world switcher lazy import cycle; tracked as structural debt."

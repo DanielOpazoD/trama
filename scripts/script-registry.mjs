@@ -83,7 +83,7 @@ const SCRIPT_ENTRIES = [
     domain: 'ci',
     kind: 'check',
     critical: true,
-    packageScripts: ['check:architecture'],
+    packageScripts: ['check:architecture', 'check:dependency-cruiser'],
     summary: 'Ejecuta dependency-cruiser y bloquea violaciones nuevas del baseline.',
   },
   {
