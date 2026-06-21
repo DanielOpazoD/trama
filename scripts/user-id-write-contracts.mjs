@@ -10,6 +10,52 @@ const FUNCTIONS_DIR = join(ROOT, 'netlify/functions')
 const INSERT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\s*\(([^)]*)\)/gi
 const INSERT_STATEMENT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\b([\s\S]*?)(?=;|$)/gi
 
+export const USER_ID_WRITE_WARNING_ALLOWLIST = [
+  {
+    file: 'netlify/functions/_lib/recortes-endpoint.ts',
+    table: 'quotes',
+    kind: 'insert_select_manual_review',
+    reason:
+      'recorte owner and target entity are both constrained by authenticated user_id',
+  },
+  {
+    file: 'netlify/functions/_lib/recortes-endpoint.ts',
+    table: 'momentos',
+    kind: 'insert_select_manual_review',
+    reason: 'recorte owner gates the promotion CTE before writing momentos.user_id',
+  },
+  {
+    file: 'netlify/functions/_lib/whatsapp/album.ts',
+    table: 'recorte_images',
+    kind: 'insert_select_manual_review',
+    reason: 'album append selects the owner-visible recorte before writing image user_id',
+  },
+  {
+    file: 'netlify/functions/entities-merge.mts',
+    table: 'momento_entities',
+    kind: 'insert_select_manual_review',
+    reason: 'merge writes only through owner-visible source and destination entities',
+  },
+  {
+    file: 'netlify/functions/favoritos.mts',
+    table: 'favoritos',
+    kind: 'insert_select_manual_review',
+    reason: 'favorite upsert selects from the authenticated owner surface',
+  },
+  {
+    file: 'netlify/functions/momentos-merge.mts',
+    table: 'momento_entities',
+    kind: 'insert_select_manual_review',
+    reason: 'momento merge joins owner-visible momentos before inserting links',
+  },
+  {
+    file: 'netlify/functions/prompts.mts',
+    table: 'prompts',
+    kind: 'insert_select_manual_review',
+    reason: 'prompt duplication carries the authenticated owner user_id explicitly',
+  },
+]
+
 function walk(dir) {
   const out = []
   for (const entry of readdirSync(dir)) {
@@ -123,14 +169,44 @@ export function findUserIdWriteContractWarnings({
   })
 }
 
-export function buildUserIdWriteContractReport() {
-  const issues = findUserIdWriteContractIssues()
-  const warnings = findUserIdWriteContractWarnings()
+function warningKey(warning) {
+  return `${warning.file}::${warning.table}::${warning.kind}`
+}
+
+function acceptedWarningReasons(allowlist = USER_ID_WRITE_WARNING_ALLOWLIST) {
+  return new Map(allowlist.map((entry) => [warningKey(entry), entry.reason]))
+}
+
+export function splitAcceptedUserIdWriteWarnings(
+  warnings,
+  allowlist = USER_ID_WRITE_WARNING_ALLOWLIST,
+) {
+  const reasons = acceptedWarningReasons(allowlist)
+  const accepted = []
+  const unresolved = []
+  for (const warning of warnings) {
+    const reason = reasons.get(warningKey(warning))
+    if (reason) accepted.push({ ...warning, reason })
+    else unresolved.push(warning)
+  }
+  return { accepted, unresolved }
+}
+
+export function buildUserIdWriteContractReport(options = {}) {
+  const issues = findUserIdWriteContractIssues(options)
+  const allWarnings = findUserIdWriteContractWarnings(options)
+  const { accepted, unresolved } = splitAcceptedUserIdWriteWarnings(
+    allWarnings,
+    options.warningAllowlist,
+  )
+  const sources = options.sources ?? productionSources()
   return {
-    checkedPrivateTables: PRIVATE_TABLE_CONTRACTS.length,
-    checkedSources: productionSources().length,
+    checkedPrivateTables: options.privateTables?.length ?? PRIVATE_TABLE_CONTRACTS.length,
+    checkedSources: sources.length,
     issues: issues.length,
-    warnings: warnings.length,
+    warnings: unresolved.length,
+    acceptedWarnings: accepted.length,
+    acceptedWarningDetails: accepted,
   }
 }
 
@@ -146,5 +222,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(1)
   }
   const warnings = findUserIdWriteContractWarnings()
-  for (const warning of warnings) console.warn(warning.message)
+  const { accepted, unresolved } = splitAcceptedUserIdWriteWarnings(warnings)
+  for (const warning of unresolved) console.warn(warning.message)
+  for (const warning of accepted) {
+    console.warn(`${warning.message} ACEPTADO: ${warning.reason}`)
+  }
 }
