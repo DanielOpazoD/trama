@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { BibliotecaView } from '../BibliotecaView'
 import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
@@ -202,6 +203,7 @@ export function NotasWorld({
                   {section === 'tareas' && <TareasView />}
                   {section === 'prompts' && <PromptsView />}
                   {section === 'claves' && <ClavesView />}
+                  {section === 'biblioteca' && <BibliotecaView />}
                 </div>
               </div>
             </>

@@ -1,0 +1,185 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { BibliotecaView } from './BibliotecaView'
+import { renderWithProviders } from '../test-utils'
+
+/**
+ * Smoke tests para BibliotecaView. Ejercita el hook real (useBibliotecaList →
+ * api.biblioteca.list → request → fetch stub), por lo que el fetch devuelve
+ * filas snake_case como el endpoint. Verifica el cascarón (header + tabs), el
+ * paso skeleton → lista, el estado vacío, el cambio de pestaña y el toggle de
+ * orden al clickear un encabezado.
+ */
+
+type Row = {
+  item_kind: string
+  item_id: string
+  title: string
+  file_type: string
+  source: string
+  mime_type: string | null
+  byte_size: number | null
+  storage_key: string | null
+  storage_domain: string
+  tags: string[]
+  pinned: boolean
+  ai_status: string | null
+  created_at: string
+  updated_at: string
+}
+
+function row(partial: Partial<Row> & Pick<Row, 'item_id' | 'title'>): Row {
+  return {
+    item_kind: 'notas-attachment',
+    file_type: 'document',
+    source: 'subido',
+    mime_type: 'application/pdf',
+    byte_size: 1024,
+    storage_key: `legacy/${partial.item_id}`,
+    storage_domain: 'notas-attachments',
+    tags: [],
+    pinned: false,
+    ai_status: null,
+    created_at: '2026-06-19T10:00:00.000Z',
+    updated_at: '2026-06-19T10:00:00.000Z',
+    ...partial,
+  }
+}
+
+function jsonResp(body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+/** Captura las URLs pedidas a /api/biblioteca para verificar params. */
+let requestedUrls: string[] = []
+
+function stubFetch(items: Row[], nextCursor: string | null = null) {
+  requestedUrls = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string | Request | URL) => {
+      const url = String(input)
+      if (url.includes('/api/biblioteca')) {
+        requestedUrls.push(url)
+        return jsonResp({ items, nextCursor })
+      }
+      return jsonResp({ items: [], nextCursor: null })
+    }),
+  )
+}
+
+beforeEach(() => {
+  // URL limpia: useSearchParamState lee de window.location en el mount.
+  window.history.replaceState(null, '', '/')
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  window.history.replaceState(null, '', '/')
+})
+
+describe('<BibliotecaView />', () => {
+  it('renderiza el header con título "Biblioteca" y las pestañas', async () => {
+    stubFetch([])
+    renderWithProviders(<BibliotecaView />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { level: 2, name: 'Biblioteca' }),
+      ).toBeInTheDocument()
+    })
+    expect(
+      screen.getByRole('button', { name: 'Todo', pressed: true }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Imágenes' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Archivos' })).toBeInTheDocument()
+  })
+
+  it('muestra "Nuevo" inerte (aria-disabled) en PR2', async () => {
+    stubFetch([])
+    renderWithProviders(<BibliotecaView />)
+    // Inerte pero focusable (aria-disabled) para que el tooltip funcione; no
+    // usa el atributo `disabled` nativo a propósito.
+    const nuevo = await screen.findByRole('button', { name: 'Nuevo' })
+    expect(nuevo).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('pasa de skeleton a lista cuando la query resuelve', async () => {
+    stubFetch([
+      row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf' }),
+      row({ item_id: 'b', title: 'Apuntes.docx', file_type: 'document' }),
+    ])
+    renderWithProviders(<BibliotecaView />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Contrato.pdf')).toBeInTheDocument()
+    })
+    expect(screen.getByText('Apuntes.docx')).toBeInTheDocument()
+    // Encabezados ordenables presentes (botón de orden por Nombre).
+    expect(screen.getByRole('button', { name: /Nombre/i })).toBeInTheDocument()
+  })
+
+  it('muestra el estado vacío cuando no hay items', async () => {
+    stubFetch([])
+    renderWithProviders(<BibliotecaView />)
+    await waitFor(() => {
+      expect(screen.getByText(/No se encontraron archivos/i)).toBeInTheDocument()
+    })
+  })
+
+  it('cambiar de pestaña actualiza el estado y la URL', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Foto.jpg', file_type: 'image' })])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Foto.jpg')
+    fireEvent.click(screen.getByRole('button', { name: 'Imágenes' }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Imágenes', pressed: true }),
+      ).toBeInTheDocument()
+    })
+    expect(window.location.search).toContain('tab=imagenes')
+    // La query refetcheó con el tab nuevo.
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('tab=imagenes'))).toBe(true)
+    })
+  })
+
+  it('clickear un encabezado de orden alterna asc/desc en la URL', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf' })])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+
+    // El botón de orden de la columna Nombre. Lo re-consultamos en cada paso:
+    // el re-render trae un onClick con el orden nuevo.
+    const nombreSort = () => screen.getByRole('button', { name: /Nombre/i })
+
+    // 1er click → nombre-asc (dirección natural de un nombre: A→Z). Cambiar el
+    // orden cambia la queryKey, así que la lista pasa por skeleton; esperamos a
+    // que la fila vuelva antes de volver a clickear.
+    fireEvent.click(nombreSort())
+    await waitFor(() => {
+      expect(window.location.search).toContain('orden=nombre-asc')
+    })
+    await screen.findByText('Contrato.pdf')
+
+    // 2do click → alterna a nombre-desc.
+    fireEvent.click(nombreSort())
+    await waitFor(() => {
+      expect(window.location.search).toContain('orden=nombre-desc')
+    })
+  })
+
+  it('muestra "Cargar más" cuando hay más páginas', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf' })], '1')
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+    expect(screen.getByRole('button', { name: /Cargar más/i })).toBeInTheDocument()
+  })
+})

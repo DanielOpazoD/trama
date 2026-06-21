@@ -14,6 +14,7 @@
 import { aiApi } from './ai'
 import { aiSettingsApi } from './ai-settings'
 import { atlasApi } from './atlas'
+import { bibliotecaApi } from './biblioteca'
 import { chatApi } from './chat'
 import { cronicasApi } from './cronicas'
 import { cronologiaApi } from './cronologia'
@@ -62,6 +63,7 @@ export const api = {
   monthNotes: monthNotesApi,
   userPrefs: userPrefsApi,
   atlas: atlasApi,
+  biblioteca: bibliotecaApi,
   ...cronologiaApi,
   ...aiApi,
   ...aiSettingsApi,
@@ -132,6 +134,16 @@ export type { Prompt, PromptCreate, PromptPatch } from './prompts'
 export type { Secret, SecretCreate, SecretKind, SecretPatch } from './secrets'
 
 export type { NotasAttachment, NotasAttachmentOwner } from './notas-attachments'
+
+export type {
+  LibraryItem,
+  LibraryItemKind,
+  LibraryFileType,
+  LibrarySource,
+  LibraryStorageDomain,
+  BibliotecaListParams,
+  BibliotecaListResult,
+} from '../types/biblioteca'
 
 export type { AtlasMember, AtlasConstellation, AtlasResponse } from './atlas'
 

@@ -85,6 +85,16 @@ export const PRIVATE_TABLE_CONTRACTS = [
     reason: 'Favorites reveal private navigation and selected objects.',
   },
   {
+    table: 'library_item_overrides',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership:
+      'owner scoped Library metadata (rename, tags, pinned, AI status, trash) over existing assets',
+    reason:
+      'Decorates private files with per-user titles and a Library-level soft-delete without touching the source rows.',
+  },
+  {
     table: 'momento_access',
     lifecycle: 'join',
     userId: 'required',

@@ -484,6 +484,17 @@ export const CronologiaIcon = ({ size = 16, className }: Props) => (
   </svg>
 )
 
+/* Biblioteca — lomos de libros en un estante. Lee como "archivo de papel":
+   una colección física de recursos, no un dashboard de archivos. Tres lomos
+   de alturas distintas + una balda inferior. */
+export const BibliotecaIcon = ({ size = 16, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M5 4h3v15H5zM10 4h3v15h-3z" />
+    <path d="M15.5 4.6l3 .8-3.2 13.4-2.9-.7" />
+    <path d="M4 19h16" />
+  </svg>
+)
+
 /* Atlas — constelación: nodos dispersos unidos por líneas finas, un mapa
    de cercanías semánticas. Lee como "el cielo de tu trama": grupos que se
    reconocen por su figura, no por su posición exacta. */
@@ -822,6 +833,41 @@ export const FileIcon = ({ size = 14, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
     <path d="M14 3v4h4" />
+  </svg>
+)
+
+/** Imagen — marco con sol y montaña (glifo de foto/imagen). */
+export const FileImageIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <rect x="4" y="4" width="16" height="16" rx="2" />
+    <circle cx="9" cy="9" r="1.5" />
+    <path d="M4 16l4-4 4 4 3-3 5 5" />
+  </svg>
+)
+
+/** Hoja de cálculo — documento con grilla de celdas. */
+export const FileSheetIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M14 3v4h4" />
+    <path d="M8 12h8M8 16h8M11.5 12v6" />
+  </svg>
+)
+
+/** Presentación — documento con barras (lámina de diapositiva). */
+export const FileSlidesIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M14 3v4h4" />
+    <path d="M9 16.5l2-2.5 1.8 1.8L16 12" />
+  </svg>
+)
+
+/** Código / JSON — llaves `{ }`, el glifo universal de archivo estructurado. */
+export const FileCodeIcon = ({ size = 14, className }: Props) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+    <path d="M9 5c-2 0-2 2-2 3.5S6 11 4.5 11C6 11 7 11.5 7 14.5S7 19 9 19" />
+    <path d="M15 5c2 0 2 2 2 3.5s1 2.5 2.5 2.5C18 11 17 11.5 17 14.5S17 19 15 19" />
   </svg>
 )
 

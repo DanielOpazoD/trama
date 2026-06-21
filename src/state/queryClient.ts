@@ -27,6 +27,7 @@ export const queryKeys = {
   cronicas: ['cronicas'] as const,
   cronologiaInfinite: ['cronologia', 'infinite'] as const,
   momentosInfinite: ['momentos', 'infinite'] as const,
+  bibliotecaInfinite: ['biblioteca', 'infinite'] as const,
   momentoShareInvitations: ['momentos', 'share-invitations'] as const,
   momentoShareAccess: ['momentos', 'share-access'] as const,
   momentoFeedback: (momentoId: string) => ['momentos', 'feedback', momentoId] as const,

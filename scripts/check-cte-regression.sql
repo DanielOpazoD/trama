@@ -475,4 +475,272 @@ BEGIN
   RAISE NOTICE 'OK desc-claim (reclama+limpia atómico; el segundo consumidor no encuentra nada)';
 END $$;
 
+-- ============================================================================
+-- 8) library-read-model.ts — fetchLibraryRows: el read-model UNION de la
+--    Biblioteca. Prueba que la query es válida contra el esquema real (6 ramas
+--    heterogéneas con tipos alineados, LEFT JOIN a la tabla decoradora, filtros
+--    centinela). El SQL está COPIADO de netlify/functions/_lib/library-read-model.ts;
+--    si tocás la query allá, actualizá esta copia.
+--
+--    Recreamos las tablas fuente con TODAS las columnas que la query referencia
+--    (las secciones previas las crearon con un subconjunto). Las secciones 1–7
+--    ya corrieron sus aserciones, así que dropear acá es seguro.
+-- ============================================================================
+DROP TABLE IF EXISTS
+  library_item_overrides, pdf_stamp_assets, pdf_studio_saved_pdfs,
+  notas_attachments, recorte_images, recortes, momentos CASCADE;
+
+CREATE TABLE notas_attachments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id text NOT NULL REFERENCES users(id),
+  owner_type text, owner_id uuid,
+  file_name text, mime_type text, byte_size int, storage_key text,
+  origin jsonb NOT NULL DEFAULT '{"kind":"manual"}',
+  created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(),
+  deleted_at timestamptz);
+
+CREATE TABLE recortes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), text text NOT NULL,
+  source_title text, image_key text, capture_mode text, status text,
+  source text, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(),
+  deleted_at timestamptz, user_id text NOT NULL REFERENCES users(id));
+
+CREATE TABLE recorte_images (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recorte_id uuid NOT NULL REFERENCES recortes(id) ON DELETE CASCADE,
+  user_id text NOT NULL REFERENCES users(id),
+  storage_key text NOT NULL, mime text NOT NULL,
+  position int NOT NULL DEFAULT 0,
+  created_at timestamptz DEFAULT now());
+
+CREATE TABLE momentos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), kind text, captured_at timestamptz,
+  payload jsonb, note text, origin jsonb NOT NULL DEFAULT '{"kind":"manual"}',
+  created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(),
+  deleted_at timestamptz, user_id text NOT NULL REFERENCES users(id));
+
+CREATE TABLE pdf_studio_saved_pdfs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id text NOT NULL REFERENCES users(id),
+  saved_doc_id text, name text, kind text, mime_type text, byte_size int, storage_key text,
+  created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(),
+  deleted_at timestamptz);
+
+CREATE TABLE pdf_stamp_assets (
+  id text NOT NULL, user_id text NOT NULL REFERENCES users(id),
+  kind text, name text, src text, mime_type text, width int, height int, byte_size int,
+  created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(),
+  last_used_at timestamptz, deleted_at timestamptz,
+  PRIMARY KEY (user_id, id));
+
+-- Tabla decoradora (espejo de la migración 20260621130000_library_item_overrides).
+CREATE TABLE library_item_overrides (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_kind text NOT NULL, item_id text NOT NULL,
+  display_title text, tags text[] NOT NULL DEFAULT '{}',
+  pinned boolean NOT NULL DEFAULT false, ai_status text,
+  deleted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, item_kind, item_id));
+
+-- Fixtures: una fila por rama + casos límite (override que renombra/oculta,
+-- recorte legacy vs multi, momento foto con storageKey, otro usuario).
+INSERT INTO users (id, email) VALUES ('u2', 'u2@test');
+
+-- Rama 1: adjunto subido (documento) + adjunto generado por IA (otro usuario, no debe salir).
+INSERT INTO notas_attachments (id, user_id, owner_type, owner_id, file_name, mime_type, byte_size, storage_key, origin, created_at, updated_at) VALUES
+ ('c1111111-1111-4111-8111-111111111111','u1','note',NULL,'apunte.txt','text/plain',10,'u1/apunte.txt','{"kind":"manual"}','2026-06-01','2026-06-01'),
+ ('c1111111-1111-4111-8111-111111111112','u1','note',NULL,'reporte.pdf','application/pdf',2048,'u1/reporte.pdf','{"kind":"ai"}','2026-06-02','2026-06-02'),
+ ('c1111111-1111-4111-8111-111111111113','u2','note',NULL,'ajeno.txt','text/plain',5,'u2/ajeno.txt','{"kind":"manual"}','2026-06-02','2026-06-02');
+
+-- Rama 2/3: un recorte multi-imagen (whatsapp) + un recorte legacy (image_key, sin recorte_images).
+INSERT INTO recortes (id, user_id, text, source_title, image_key, source, created_at, updated_at) VALUES
+ ('c2222222-2222-4222-8222-222222222221','u1','rec multi','Multi WA',NULL,'whatsapp','2026-06-03','2026-06-03'),
+ ('c2222222-2222-4222-8222-222222222222','u1','rec legacy','',  'u1/legacy.webp','captura','2026-06-04','2026-06-04');
+INSERT INTO recorte_images (id, recorte_id, user_id, storage_key, mime, position, created_at) VALUES
+ ('c3333333-3333-4333-8333-333333333331','c2222222-2222-4222-8222-222222222221','u1','u1/multi-0.webp','image/webp',0,'2026-06-03');
+
+-- Rama 4: momento foto con storageKey + momento nota (no debe salir) + foto sin storageKey (no debe salir).
+INSERT INTO momentos (id, user_id, kind, captured_at, payload, origin, created_at, updated_at) VALUES
+ ('c4444444-4444-4444-8444-444444444441','u1','foto','2026-06-05','{"caption":"Atardecer","storageKey":"u1/foto.jpg"}','{"kind":"manual"}','2026-06-05','2026-06-05'),
+ ('c4444444-4444-4444-8444-444444444442','u1','nota','2026-06-05','{"bodyText":"x"}','{"kind":"manual"}','2026-06-05','2026-06-05'),
+ ('c4444444-4444-4444-8444-444444444443','u1','foto','2026-06-05','{"caption":"sin blob"}','{"kind":"manual"}','2026-06-05','2026-06-05');
+
+-- Rama 5: PDF guardado.
+INSERT INTO pdf_studio_saved_pdfs (id, user_id, saved_doc_id, name, kind, mime_type, byte_size, storage_key, created_at, updated_at) VALUES
+ ('c5555555-5555-4555-8555-555555555551','u1','doc-1','Contrato','creation','application/pdf',4096,'u1/contrato.pdf','2026-06-06','2026-06-06');
+
+-- Rama 6: firma.
+INSERT INTO pdf_stamp_assets (id, user_id, kind, name, src, mime_type, byte_size, created_at, updated_at) VALUES
+ ('stamp-1','u1','signature','Mi firma','data:image/png;base64,AAAA','image/png',128,'2026-06-07','2026-06-07');
+
+-- Overrides: renombra el apunte; oculta (soft-delete Biblioteca) el PDF guardado.
+INSERT INTO library_item_overrides (user_id, item_kind, item_id, display_title, deleted_at) VALUES
+ ('u1','notas-attachment','c1111111-1111-4111-8111-111111111111','Apunte renombrado',NULL),
+ ('u1','pdf-saved','c5555555-5555-4555-8555-555555555551',NULL, now());
+
+-- Persistimos el resultado del read-model en una tabla throwaway para aseverar.
+CREATE TABLE library_probe (
+  item_kind text, item_id text, title text, mime_type text, byte_size bigint,
+  file_type text, source text, storage_key text, storage_domain text,
+  created_at timestamptz, updated_at timestamptz, tags text[], pinned boolean, ai_status text);
+
+-- Caso A: listado por defecto (no eliminados, sin filtros), user u1.
+-- (SQL copiado de fetchLibraryRows; ${userId}='u1', ${incluyeEliminados}=false,
+--  ${tab}='todo', ${tipo}='', ${fuente}='', ${q}='').
+INSERT INTO library_probe
+WITH base AS (
+  SELECT 'notas-attachment'::text AS item_kind, na.id::text AS item_id, na.user_id AS user_id,
+    na.file_name AS title_native, na.mime_type AS mime_type, na.byte_size::bigint AS byte_size,
+    CASE
+      WHEN na.mime_type LIKE 'image/%' THEN 'image'
+      WHEN na.mime_type = 'application/pdf' THEN 'pdf'
+      WHEN na.mime_type LIKE 'audio/%' THEN 'audio'
+      WHEN na.mime_type LIKE 'video/%' THEN 'video'
+      WHEN na.mime_type IN ('application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv') THEN 'spreadsheet'
+      WHEN na.mime_type IN ('application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation') THEN 'presentation'
+      WHEN na.mime_type = 'application/msword' OR na.mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' OR na.mime_type = 'application/json' OR na.mime_type LIKE 'text/%' THEN 'document'
+      ELSE 'other'
+    END AS file_type,
+    CASE WHEN na.origin->>'kind' = 'ai' THEN 'generado' ELSE 'subido' END AS source,
+    na.storage_key AS storage_key, 'notas-attachments'::text AS storage_domain,
+    na.created_at AS created_at, na.updated_at AS updated_at
+  FROM notas_attachments na WHERE na.deleted_at IS NULL AND na.user_id = 'u1'
+  UNION ALL
+  SELECT 'recorte-image'::text, ri.id::text, ri.user_id,
+    COALESCE(NULLIF(r.source_title, ''), 'Recorte'), ri.mime, NULL::bigint, 'image'::text,
+    CASE WHEN r.source = 'whatsapp' THEN 'whatsapp' ELSE 'capturado' END,
+    ri.storage_key, 'recortes-media'::text, ri.created_at, r.updated_at
+  FROM recorte_images ri JOIN recortes r ON r.id = ri.recorte_id AND r.deleted_at IS NULL
+  WHERE ri.user_id = 'u1'
+  UNION ALL
+  SELECT 'recorte-image'::text, r.id::text, r.user_id,
+    COALESCE(NULLIF(r.source_title, ''), 'Recorte'), NULL::text, NULL::bigint, 'image'::text,
+    CASE WHEN r.source = 'whatsapp' THEN 'whatsapp' ELSE 'capturado' END,
+    r.image_key, 'recortes-media'::text, r.created_at, r.updated_at
+  FROM recortes r
+  WHERE r.deleted_at IS NULL AND r.user_id = 'u1' AND r.image_key IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM recorte_images ri2 WHERE ri2.recorte_id = r.id)
+  UNION ALL
+  SELECT 'momento-foto'::text, m.id::text, m.user_id,
+    COALESCE(NULLIF(m.payload->>'caption', ''), 'Foto'), NULL::text, NULL::bigint, 'image'::text,
+    CASE WHEN m.origin->>'kind' = 'ai' THEN 'generado' ELSE 'capturado' END,
+    COALESCE(m.payload->>'storageKey', m.payload->>'primaryStorageKey', m.payload->'items'->0->>'storageKey', m.payload->'photos'->0->>'storageKey'),
+    'momentos-media'::text, m.created_at, m.updated_at
+  FROM momentos m
+  WHERE m.deleted_at IS NULL AND m.kind = 'foto' AND m.user_id = 'u1'
+    AND COALESCE(m.payload->>'storageKey', m.payload->>'primaryStorageKey', m.payload->'items'->0->>'storageKey', m.payload->'photos'->0->>'storageKey') IS NOT NULL
+  UNION ALL
+  SELECT 'pdf-saved'::text, sp.id::text, sp.user_id, sp.name, sp.mime_type, sp.byte_size::bigint,
+    CASE
+      WHEN sp.mime_type LIKE 'image/%' THEN 'image'
+      WHEN sp.mime_type = 'application/pdf' THEN 'pdf'
+      WHEN sp.mime_type LIKE 'audio/%' THEN 'audio'
+      WHEN sp.mime_type LIKE 'video/%' THEN 'video'
+      WHEN sp.mime_type IN ('application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv') THEN 'spreadsheet'
+      WHEN sp.mime_type IN ('application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation') THEN 'presentation'
+      WHEN sp.mime_type = 'application/msword' OR sp.mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' OR sp.mime_type = 'application/json' OR sp.mime_type LIKE 'text/%' THEN 'document'
+      ELSE 'other'
+    END,
+    'generado'::text, sp.storage_key, 'pdf-studio-saved-pdfs'::text, sp.created_at, sp.updated_at
+  FROM pdf_studio_saved_pdfs sp WHERE sp.deleted_at IS NULL AND sp.user_id = 'u1'
+  UNION ALL
+  SELECT 'pdf-stamp'::text, ps.id, ps.user_id, ps.name, ps.mime_type, ps.byte_size::bigint,
+    'image'::text, 'generado'::text, NULL::text, 'pdf-stamp-assets'::text, ps.created_at, ps.updated_at
+  FROM pdf_stamp_assets ps WHERE ps.deleted_at IS NULL AND ps.user_id = 'u1'
+),
+joined AS (
+  SELECT base.item_kind, base.item_id, base.user_id,
+    COALESCE(o.display_title, base.title_native) AS title,
+    base.mime_type, base.byte_size, base.file_type, base.source, base.storage_key, base.storage_domain,
+    base.created_at, base.updated_at, o.tags AS tags, o.pinned AS pinned, o.ai_status AS ai_status,
+    o.deleted_at AS lib_deleted_at
+  FROM base
+  LEFT JOIN library_item_overrides o
+    ON o.user_id = base.user_id AND o.item_kind = base.item_kind AND o.item_id = base.item_id
+)
+SELECT item_kind, item_id, title, mime_type, byte_size, file_type, source, storage_key, storage_domain,
+  created_at, updated_at, COALESCE(tags, '{}') AS tags, COALESCE(pinned, false) AS pinned, ai_status
+FROM joined
+WHERE ((false::boolean AND lib_deleted_at IS NOT NULL) OR (NOT false::boolean AND lib_deleted_at IS NULL))
+  AND ('todo' = 'todo' OR ('todo' = 'imagenes' AND file_type = 'image') OR ('todo' = 'archivos' AND file_type <> 'image'))
+  AND ('' = '' OR file_type = '')
+  AND ('' = '' OR source = '')
+  AND ('' = '' OR title ILIKE '%' || '' || '%')
+ORDER BY updated_at DESC;
+
+DO $$
+BEGIN
+  -- 7 fuentes activas - 1 oculta por override (pdf-saved) = 6 items visibles.
+  IF (SELECT count(*) FROM library_probe) <> 6 THEN
+    RAISE EXCEPTION 'biblioteca: esperaba 6 items visibles, hubo %', (SELECT count(*) FROM library_probe);
+  END IF;
+  -- Aislamiento por usuario: nada de u2.
+  IF EXISTS (SELECT 1 FROM library_probe WHERE storage_key LIKE 'u2/%') THEN
+    RAISE EXCEPTION 'biblioteca: se filtró un item de otro usuario';
+  END IF;
+  -- El override renombró el apunte.
+  IF (SELECT title FROM library_probe WHERE item_id = 'c1111111-1111-4111-8111-111111111111') <> 'Apunte renombrado' THEN
+    RAISE EXCEPTION 'biblioteca: el display_title del override no se aplicó';
+  END IF;
+  -- El PDF guardado (oculto por override.deleted_at) no aparece.
+  IF EXISTS (SELECT 1 FROM library_probe WHERE item_kind = 'pdf-saved') THEN
+    RAISE EXCEPTION 'biblioteca: un item con override.deleted_at no se ocultó';
+  END IF;
+  -- file_type derivado del mime: pdf y document.
+  IF (SELECT file_type FROM library_probe WHERE item_id = 'c1111111-1111-4111-8111-111111111112') <> 'pdf' THEN
+    RAISE EXCEPTION 'biblioteca: application/pdf no derivó file_type=pdf';
+  END IF;
+  IF (SELECT source FROM library_probe WHERE item_id = 'c1111111-1111-4111-8111-111111111112') <> 'generado' THEN
+    RAISE EXCEPTION 'biblioteca: origin.kind=ai no derivó source=generado';
+  END IF;
+  -- Recorte multi (whatsapp) y legacy (captura) presentes con su fuente.
+  IF (SELECT source FROM library_probe WHERE item_id = 'c3333333-3333-4333-8333-333333333331') <> 'whatsapp' THEN
+    RAISE EXCEPTION 'biblioteca: recorte whatsapp no derivó source=whatsapp';
+  END IF;
+  IF (SELECT storage_key FROM library_probe WHERE item_id = 'c2222222-2222-4222-8222-222222222222') <> 'u1/legacy.webp' THEN
+    RAISE EXCEPTION 'biblioteca: recorte legacy no expuso image_key como storage_key';
+  END IF;
+  -- Momento foto: resuelve storageKey y caption.
+  IF (SELECT storage_key FROM library_probe WHERE item_id = 'c4444444-4444-4444-8444-444444444441') <> 'u1/foto.jpg' THEN
+    RAISE EXCEPTION 'biblioteca: momento foto no resolvió storageKey del payload';
+  END IF;
+  IF EXISTS (SELECT 1 FROM library_probe WHERE item_id = 'c4444444-4444-4444-8444-444444444443') THEN
+    RAISE EXCEPTION 'biblioteca: foto sin storageKey no debía aparecer';
+  END IF;
+  -- Firma: storage_key NULL, file_type image.
+  IF (SELECT storage_key FROM library_probe WHERE item_kind = 'pdf-stamp') IS NOT NULL THEN
+    RAISE EXCEPTION 'biblioteca: pdf-stamp debería tener storage_key NULL';
+  END IF;
+  RAISE NOTICE 'OK biblioteca read-model (6 ramas, override rename+hide, aislamiento por usuario)';
+END $$;
+
+-- Caso B: papelera (incluyeEliminados=true) → solo el PDF oculto por override.
+TRUNCATE library_probe;
+INSERT INTO library_probe
+WITH base AS (
+  SELECT 'pdf-saved'::text AS item_kind, sp.id::text AS item_id, sp.user_id AS user_id,
+    sp.name AS title_native, sp.mime_type AS mime_type, sp.byte_size::bigint AS byte_size,
+    'pdf'::text AS file_type, 'generado'::text AS source, sp.storage_key AS storage_key,
+    'pdf-studio-saved-pdfs'::text AS storage_domain, sp.created_at AS created_at, sp.updated_at AS updated_at
+  FROM pdf_studio_saved_pdfs sp WHERE sp.deleted_at IS NULL AND sp.user_id = 'u1'
+),
+joined AS (
+  SELECT base.item_kind, base.item_id, COALESCE(o.display_title, base.title_native) AS title,
+    base.file_type, base.source, o.deleted_at AS lib_deleted_at
+  FROM base LEFT JOIN library_item_overrides o
+    ON o.user_id = base.user_id AND o.item_kind = base.item_kind AND o.item_id = base.item_id
+)
+SELECT item_kind, item_id, title, NULL, NULL, file_type, source, NULL, 'pdf-studio-saved-pdfs', now(), now(), '{}', false, NULL
+FROM joined
+WHERE ((true::boolean AND lib_deleted_at IS NOT NULL) OR (NOT true::boolean AND lib_deleted_at IS NULL));
+
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM library_probe WHERE item_kind = 'pdf-saved') <> 1 THEN
+    RAISE EXCEPTION 'biblioteca: la papelera (incluyeEliminados=true) no devolvió el item oculto';
+  END IF;
+  RAISE NOTICE 'OK biblioteca papelera (centinela incluyeEliminados invierte el filtro de lib_deleted_at)';
+END $$;
+
 SELECT 'TODOS LOS CTE OK' AS resultado;
