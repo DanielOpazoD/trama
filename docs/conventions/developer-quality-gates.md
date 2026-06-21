@@ -32,7 +32,7 @@ Functions, scripts operacionales y extension. Si reporta un falso positivo:
 No uses `knip --fix` en este repo salvo para cambios revisados manualmente. No
 uses `--allow-remove-files` en un PR de calidad gates.
 
-### Baseline inicial
+### Baseline
 
 `knip.json` contiene excepciones exactas para deuda historica detectada al
 activar el gate: archivos sin uso confirmado, exports/tipos publicos que hoy no
@@ -40,6 +40,12 @@ tienen consumidor visible, binarios externos (`psql`) y dependencias usadas por
 scripts operacionales (`pg`, `playwright`). Esas excepciones no significan que
 la deuda este resuelta; significan que el check bloquea deuda nueva sin mezclar
 este PR con una poda funcional.
+
+El baseline actual queda ratcheado en `scripts/developer-quality-gates.test.mjs`:
+como maximo 62 archivos con `ignoreIssues`, 70 tipos de issue ignorados, 5
+`ignoreFiles`, 3 `ignoreDependencies` y 2 `ignoreBinaries`. Si una excepcion
+nueva es inevitable, el mismo commit debe explicar por que no hay entrypoint real
+mejor y actualizar el ratchet deliberadamente.
 
 Cuando limpies una entrada, elimina tambien su excepcion de `knip.json` en el
 mismo commit.

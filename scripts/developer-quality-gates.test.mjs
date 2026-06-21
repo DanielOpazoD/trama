@@ -88,6 +88,21 @@ describe('developer quality gates', () => {
     )
   })
 
+  test('keeps the Knip baseline intentionally small', () => {
+    const config = JSON.parse(readRepoFile('knip.json'))
+    const ignoredIssueFiles = Object.keys(config.ignoreIssues ?? {})
+    const ignoredIssueKinds = Object.values(config.ignoreIssues ?? {}).reduce(
+      (total, issues) => total + issues.length,
+      0,
+    )
+
+    expect(ignoredIssueFiles.length).toBeLessThanOrEqual(62)
+    expect(ignoredIssueKinds).toBeLessThanOrEqual(70)
+    expect(config.ignoreFiles).toHaveLength(5)
+    expect(config.ignoreDependencies).toHaveLength(3)
+    expect(config.ignoreBinaries).toHaveLength(2)
+  })
+
   test('does not keep resolved Sidebar cycles in the dependency-cruiser baseline', () => {
     const baseline = JSON.parse(readRepoFile('.dependency-cruiser-known-violations.json'))
     const cycleKeys = baseline.knownViolations.map(

@@ -38,28 +38,14 @@
     "test-results/**"
   ],
   "ignoreFiles": [
-    "docs/superpowers/reports/**",
-    "docs/superpowers/plans/**",
     "src/api/objectProperties.ts",
     "src/components/notas/pdfStudio/shell/DocSettingsMenu.tsx",
     "src/components/recortes/RecortesFilterChips.tsx",
     "src/lib/tagAutocomplete.ts",
-    "src/schemas/proposal.test-d.ts",
-    "public/**/*.png",
-    "public/**/*.svg"
+    "src/schemas/proposal.test-d.ts"
   ],
-  "ignoreDependencies": [
-    "@axe-core/playwright",
-    "autoprefixer",
-    "dependency-cruiser",
-    "husky",
-    "lint-staged",
-    "pg",
-    "postcss",
-    "playwright",
-    "tailwindcss"
-  ],
-  "ignoreBinaries": ["docker", "gitleaks", "psql", "scripts/apply-migrations.sh"],
+  "ignoreDependencies": ["dependency-cruiser", "pg", "playwright"],
+  "ignoreBinaries": ["psql", "scripts/apply-migrations.sh"],
   "ignoreIssues": {
     "src/api/ai-settings.ts": ["types"],
     "src/api/atlas.ts": ["types"],
@@ -77,7 +63,6 @@
     "src/api/transform.ts": ["exports"],
     "src/components/EmptyMessage.tsx": ["exports"],
     "src/components/Icons.tsx": ["exports"],
-    "src/components/WorldSwitcher.tsx": ["exports"],
     "src/components/graph/GraphEdge.tsx": ["exports"],
     "src/components/momentos/editModal/FotoPhotoTile.tsx": ["types"],
     "src/components/notas/PriorityDots.tsx": ["exports"],
