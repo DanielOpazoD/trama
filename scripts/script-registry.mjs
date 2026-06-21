@@ -136,6 +136,24 @@ const SCRIPT_ENTRIES = [
     summary: 'Evita deploy productivo con fallback legacy o Clerk incompleto.',
   },
   {
+    file: 'scripts/check-legacy-identity-schema.mjs',
+    domain: 'database',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:legacy-identity-schema'],
+    summary:
+      'Consulta Postgres real para confirmar que user_id no conserva DEFAULT legacy.',
+  },
+  {
+    file: 'scripts/legacy-identity-contracts.mjs',
+    domain: 'auth',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:legacy-identity-contracts'],
+    summary:
+      'Verifica que legacy-single-user sea compatibilidad historica y no DEFAULT operativo.',
+  },
+  {
     file: 'scripts/check-migration-duplicates.mjs',
     domain: 'database',
     kind: 'check',
@@ -397,6 +415,13 @@ export const QUALITY_GATES = [
     summary: 'Regresión SQL de CTEs atómicos sobre DB throwaway.',
   },
   {
+    command: 'npm run check:legacy-identity-schema',
+    job: 'migrations',
+    phase: 'database',
+    required: true,
+    summary: 'DB migrada no conserva defaults legacy de user_id.',
+  },
+  {
     command: 'npm run check:script-registry',
     job: 'lint',
     phase: 'operations',
@@ -416,6 +441,13 @@ export const QUALITY_GATES = [
     phase: 'auth',
     required: true,
     summary: 'Contratos RLS y multiusuario.',
+  },
+  {
+    command: 'npm run check:legacy-identity-contracts',
+    job: 'lint',
+    phase: 'auth',
+    required: true,
+    summary: 'legacy-single-user no puede seguir como DEFAULT operativo.',
   },
   {
     command: 'npm run check:runtime-api-routes',
