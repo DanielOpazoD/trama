@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trama · Evaluacion multiparametrica y PRs prioritarios</title>
+    <style>
+      :root {
+        --bg: #f6f1e8;
+        --paper: #fffaf2;
+        --paper-2: #fdf6eb;
+        --ink: #1e1b17;
+        --muted: #5e574d;
+        --faint: #8d8375;
+        --line: #e2d6c5;
+        --line-strong: #cdbda7;
+        --red: #a94539;
+        --amber: #b27a22;
+        --olive: #7d8434;
+        --green: #2f7a56;
+        --teal: #2d6f73;
+        --blue: #385f89;
+        --shadow: 0 1px 2px rgb(47 38 25 / 0.04), 0 18px 40px rgb(47 38 25 / 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(180deg, rgb(255 250 242 / 0.86), rgb(246 241 232 / 0.98)),
+          radial-gradient(circle at 15% 0%, rgb(178 122 34 / 0.12), transparent 28%),
+          radial-gradient(circle at 90% 8%, rgb(45 111 115 / 0.12), transparent 30%);
+        color: var(--ink);
+        font:
+          15px/1.55 Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .hero {
+        background: #24211d;
+        color: #fff7ea;
+        border-bottom: 4px solid #7b2f29;
+      }
+
+      .wrap {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      .hero .wrap {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 290px;
+        gap: 36px;
+        align-items: end;
+        padding: 64px 0 44px;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: #d7c7ae;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        max-width: 12ch;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: clamp(42px, 7vw, 78px);
+        font-weight: 600;
+      }
+
+      .hero p {
+        max-width: 68ch;
+        margin: 20px 0 0;
+        color: #e2d5c2;
+        font-size: 17px;
+      }
+
+      .score-card {
+        padding: 24px;
+        border: 1px solid rgb(255 247 234 / 0.18);
+        background: rgb(255 247 234 / 0.08);
+        box-shadow: var(--shadow);
+      }
+
+      .score-value {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-family: Georgia, 'Times New Roman', serif;
+      }
+
+      .score-value strong {
+        font-size: 74px;
+        line-height: 0.9;
+        color: #f6d28f;
+      }
+
+      .score-value span {
+        color: #dfc8a3;
+        font-size: 24px;
+      }
+
+      .score-card .label {
+        margin-top: 12px;
+        color: #f0dfc4;
+        font-weight: 700;
+      }
+
+      .score-card .meta {
+        margin-top: 10px;
+        color: #cdbca4;
+        font-size: 13px;
+      }
+
+      main {
+        padding: 34px 0 60px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 18px;
+      }
+
+      .panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .panel.pad {
+        padding: 24px;
+      }
+
+      .span-4 {
+        grid-column: span 4;
+      }
+
+      .span-6 {
+        grid-column: span 6;
+      }
+
+      .span-8 {
+        grid-column: span 8;
+      }
+
+      .span-12 {
+        grid-column: span 12;
+      }
+
+      h2 {
+        margin-bottom: 14px;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 30px;
+      }
+
+      h3 {
+        margin-bottom: 10px;
+        font-size: 17px;
+      }
+
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 4px 10px;
+        border: 1px solid color-mix(in srgb, var(--c) 40%, white);
+        background: color-mix(in srgb, var(--c) 10%, white);
+        color: var(--c);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .metric-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .metric {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) 1.5fr 48px;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 14px;
+        border-top: 1px solid var(--line);
+      }
+
+      .metric:first-child {
+        border-top: 0;
+      }
+
+      .metric-name {
+        font-weight: 700;
+      }
+
+      .bar {
+        height: 8px;
+        overflow: hidden;
+        background: #e6dccd;
+      }
+
+      .bar span {
+        display: block;
+        width: calc(var(--score) / 7 * 100%);
+        height: 100%;
+        background: var(--c);
+      }
+
+      .num {
+        color: var(--c);
+        font-weight: 800;
+        text-align: right;
+      }
+
+      .callout {
+        border-left: 4px solid var(--c);
+        background: color-mix(in srgb, var(--c) 8%, white);
+        padding: 16px 18px;
+      }
+
+      .callout strong {
+        color: var(--c);
+      }
+
+      .callout p {
+        margin: 6px 0 0;
+        color: var(--muted);
+      }
+
+      ul.clean,
+      ol.clean {
+        margin: 12px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      ul.clean li,
+      ol.clean li {
+        position: relative;
+        margin: 10px 0;
+        padding-left: 20px;
+        color: var(--muted);
+      }
+
+      ul.clean li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.75em;
+        width: 7px;
+        height: 7px;
+        background: var(--c, var(--teal));
+      }
+
+      ol.clean {
+        counter-reset: item;
+      }
+
+      ol.clean li {
+        padding-left: 32px;
+      }
+
+      ol.clean li::before {
+        counter-increment: item;
+        content: counter(item);
+        position: absolute;
+        left: 0;
+        top: 0.05em;
+        display: grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        background: var(--c, var(--teal));
+        color: white;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .evidence {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .evidence div {
+        padding: 14px;
+        border: 1px solid var(--line);
+        background: var(--paper-2);
+      }
+
+      .evidence b {
+        display: block;
+        color: var(--ink);
+        font-size: 22px;
+      }
+
+      .evidence span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .pr-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .pr {
+        display: grid;
+        grid-template-columns: 70px minmax(0, 1fr);
+        gap: 18px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .pr-rank {
+        display: grid;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        background: var(--c);
+        color: white;
+        font-weight: 900;
+        font-size: 20px;
+      }
+
+      .pr h3 {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .pr p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .commits {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .commit {
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        background: var(--paper-2);
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        background: var(--paper);
+      }
+
+      th,
+      td {
+        padding: 12px 14px;
+        border-top: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        border-top: 0;
+        background: #eee3d3;
+        color: #3b332a;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      td {
+        color: var(--muted);
+      }
+
+      td strong {
+        color: var(--ink);
+      }
+
+      code {
+        padding: 2px 5px;
+        background: #efe4d5;
+        color: #42382e;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+        font-size: 0.92em;
+      }
+
+      .footer {
+        margin-top: 26px;
+        color: var(--faint);
+        font-size: 13px;
+      }
+
+      @media (max-width: 900px) {
+        .hero .wrap,
+        .grid,
+        .evidence,
+        .commits {
+          grid-template-columns: 1fr;
+        }
+
+        .span-4,
+        .span-6,
+        .span-8,
+        .span-12 {
+          grid-column: auto;
+        }
+
+        .metric {
+          grid-template-columns: 1fr;
+        }
+
+        .num {
+          text-align: left;
+        }
+
+        .pr {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div>
+          <p class="eyebrow">Trama · auditoria de arquitectura</p>
+          <h1>Evaluacion multiparametrica</h1>
+          <p>
+            Lectura profesional del estado actual de la aplicacion en <code>main</code>,
+            inspirada en la auditoria externa y contrastada con evidencia local: gates,
+            RLS, TypeScript, ratchets, hotspots y deuda pendiente. Actualizada tras smoke
+            productivo del 2026-06-21.
+          </p>
+        </div>
+        <aside class="score-card">
+          <div class="score-value"><strong>5.7</strong><span>/7</span></div>
+          <div class="label">Aplicacion seria con multiusuario productivo verificado</div>
+          <div class="meta">
+            Claude la evaluo en 5.1/7. Mi lectura sube levemente por la calidad real de
+            gates, RLS, CI y avances recientes en Imprenta/PDF. El techo actual ya no es
+            el cutover legacy operativo, sino hotspots estructurales y deuda historica
+            opcional.
+          </div>
+        </aside>
+      </div>
+    </header>
+
+    <main>
+      <div class="wrap grid">
+        <section class="panel pad span-8">
+          <h2>Diagnostico ejecutivo</h2>
+          <p class="lead">
+            Trama ya no se comporta como prototipo: tiene fronteras de API, errores
+            canonicos, RLS, migraciones disciplinadas, CI con contratos, presupuestos de
+            bundle y una superficie funcional amplia. El problema principal no es falta de
+            oficio, sino deuda estructural acumulada en puntos concretos: handlers gordos,
+            duplicacion de rutas demo/backend, deuda historica legacy opcional y ratchets
+            que contienen la deuda pero no siempre la reducen.
+          </p>
+          <div class="pill-row">
+            <span class="pill" style="--c: var(--green)">RLS con contratos</span>
+            <span class="pill" style="--c: var(--teal)">Typecheck verde</span>
+            <span class="pill" style="--c: var(--blue)">CI con gates</span>
+            <span class="pill" style="--c: var(--amber)">Hotspots grandes</span>
+            <span class="pill" style="--c: var(--green)">Cutover legacy resuelto</span>
+          </div>
+        </section>
+
+        <section class="panel pad span-4">
+          <h2>Evidencia rapida</h2>
+          <div class="evidence" style="grid-template-columns: 1fr 1fr">
+            <div><b>92</b><span>Netlify functions</span></div>
+            <div><b>74</b><span>migraciones SQL</span></div>
+            <div><b>39</b><span>tablas privadas en contrato RLS</span></div>
+            <div><b>70</b><span>scripts operacionales</span></div>
+          </div>
+        </section>
+
+        <section class="panel span-12">
+          <div class="pad">
+            <h2>Notas por parametro</h2>
+            <p class="lead">
+              Escala 1 a 7: 1 es fragil o inmaduro; 4 es funcional con deuda relevante; 7
+              es excelente, profesional, escalable y mantenible.
+            </p>
+          </div>
+          <div class="metric-list">
+            <div class="metric">
+              <div class="metric-name">Arquitectura general</div>
+              <div class="bar"><span style="--score: 5.4; --c: var(--olive)"></span></div>
+              <div class="num" style="--c: var(--olive)">5.4</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Calidad de codigo</div>
+              <div class="bar"><span style="--score: 5.7; --c: var(--green)"></span></div>
+              <div class="num" style="--c: var(--green)">5.7</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Buenas practicas</div>
+              <div class="bar"><span style="--score: 6; --c: var(--green)"></span></div>
+              <div class="num" style="--c: var(--green)">6.0</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Modularidad y mantenibilidad</div>
+              <div class="bar"><span style="--score: 4.8; --c: var(--amber)"></span></div>
+              <div class="num" style="--c: var(--amber)">4.8</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Frontend y experiencia de usuario</div>
+              <div class="bar"><span style="--score: 5.4; --c: var(--olive)"></span></div>
+              <div class="num" style="--c: var(--olive)">5.4</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Backend y endpoints</div>
+              <div class="bar"><span style="--score: 4.9; --c: var(--amber)"></span></div>
+              <div class="num" style="--c: var(--amber)">4.9</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Modelo de datos y migraciones</div>
+              <div class="bar"><span style="--score: 5.7; --c: var(--green)"></span></div>
+              <div class="num" style="--c: var(--green)">5.7</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Seguridad, privacidad y multiusuario</div>
+              <div class="bar"><span style="--score: 6.2; --c: var(--green)"></span></div>
+              <div class="num" style="--c: var(--green)">6.2</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Testing y contratos criticos</div>
+              <div class="bar"><span style="--score: 5.8; --c: var(--green)"></span></div>
+              <div class="num" style="--c: var(--green)">5.8</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Performance y bundle/runtime</div>
+              <div class="bar"><span style="--score: 5.6; --c: var(--green)"></span></div>
+              <div class="num" style="--c: var(--green)">5.6</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Observabilidad y operacion</div>
+              <div class="bar"><span style="--score: 5.2; --c: var(--olive)"></span></div>
+              <div class="num" style="--c: var(--olive)">5.2</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">DX, scripts, docs y CI</div>
+              <div class="bar"><span style="--score: 5.6; --c: var(--green)"></span></div>
+              <div class="num" style="--c: var(--green)">5.6</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Deuda tecnica estructural</div>
+              <div class="bar"><span style="--score: 4.8; --c: var(--amber)"></span></div>
+              <div class="num" style="--c: var(--amber)">4.8</div>
+            </div>
+            <div class="metric">
+              <div class="metric-name">Riesgo de escalar nuevas funciones</div>
+              <div class="bar"><span style="--score: 5; --c: var(--olive)"></span></div>
+              <div class="num" style="--c: var(--olive)">5.0</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel pad span-6">
+          <h2>Fortalezas</h2>
+          <ul class="clean" style="--c: var(--green)">
+            <li>
+              RLS y aislamiento multiusuario estan mucho mejor que el promedio: el
+              contrato reporta 39 tablas privadas y dominios smoke relevantes.
+            </li>
+            <li>
+              CI tiene gates con dientes: auth/RLS, runtime API routes, hard-delete, docs
+              drift, ratchets, frontend boundaries y bundle.
+            </li>
+            <li>
+              TypeScript esta en buen estado: el typecheck completo paso en el checkout
+              actual, incluyendo extension.
+            </li>
+            <li>
+              Hay cultura de PRs deployables: las mejoras recientes dejan tests, docs,
+              scripts y runbooks en vez de solo cambios funcionales.
+            </li>
+            <li>
+              La disciplina de performance existe: budgets y lazy entrypoints PDF
+              previenen que Imprenta degrade silenciosamente el bundle.
+            </li>
+          </ul>
+        </section>
+
+        <section class="panel pad span-6">
+          <h2>Debilidades</h2>
+          <ul class="clean" style="--c: var(--red)">
+            <li>
+              La deuda legacy operativa esta resuelta: produccion corre en Clerk estricto,
+              anonimo responde 401 y el smoke A/B valida aislamiento de lectura, mutacion
+              y blobs. Lo que queda es deuda historica opcional de reasignacion de datos.
+            </li>
+            <li>
+              Hay mega-archivos: <code>whatsapp-webhook.mts</code> ~1465 lineas,
+              <code>demoRouter.ts</code> ~825, <code>Icons.tsx</code> ~896.
+            </li>
+            <li>
+              La capa de servicios de dominio aun es limitada: existen solo tres
+              <code>*-service.ts</code> principales.
+            </li>
+            <li>
+              Demo mode duplica bastante comportamiento backend, aumentando el costo de
+              cada feature nueva.
+            </li>
+            <li>
+              Los ratchets contienen la deuda, pero varios limites estan pegados al tamano
+              actual de hotspots, no orientados a reduccion progresiva.
+            </li>
+          </ul>
+        </section>
+
+        <section class="panel pad span-12">
+          <h2>Comparacion con Claude</h2>
+          <div class="grid">
+            <div class="span-6 callout" style="--c: var(--amber)">
+              <strong>Claude: 5.1/7</strong>
+              <p>
+                Evaluacion exigente y valida para su fecha. Castigaba fuerte el cutover
+                legacy; ese punto quedo obsoleto tras PR #260/#261 y smoke productivo.
+              </p>
+            </div>
+            <div class="span-6 callout" style="--c: var(--green)">
+              <strong>Mi nota actualizada: 5.7/7</strong>
+              <p>
+                Subo la nota porque el cutover legacy operativo ya esta verificado:
+                <code>auth_clerk</code>, <code>auth_strict</code>,
+                <code>anonymous_401</code> y aislamiento A/B pasaron en produccion. No la
+                subo mas porque los hotspots estructurales siguen siendo el techo.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel pad span-12">
+          <h2>PRs prioritarios para saldar deuda estructural</h2>
+          <p class="lead">
+            Cada PR esta pensado como rama ambiciosa pero deployable, con multiples
+            commits y un delta aproximado de 1000 a 3000 lineas. El orden prioriza lo
+            irreversible: datos historicos, abuso/costo; luego mantenibilidad y DX. El
+            cutover legacy operativo ya no se lista como deuda pendiente.
+          </p>
+          <div class="pr-list" style="margin-top: 20px">
+            <article class="pr" style="--c: var(--red)">
+              <div class="pr-rank">✓</div>
+              <div>
+                <h3>
+                  Legacy Identity Cutover v1
+                  <span class="pill" style="--c: var(--green)">completado</span>
+                </h3>
+                <p>
+                  Ya sacado del camino normal. Produccion esta en Clerk estricto, anonimo
+                  responde 401 y el smoke A/B valida aislamiento. Mantener esta fila solo
+                  como hito cerrado, no como PR pendiente.
+                </p>
+                <div class="commits">
+                  <div class="commit">
+                    PR #260: defaults legacy removidos y owner alias explicito.
+                  </div>
+                  <div class="commit">PR #261: dry-run de deuda historica legacy.</div>
+                  <div class="commit">
+                    Smoke productivo: auth_clerk, auth_strict, anonymous_401.
+                  </div>
+                  <div class="commit">Smoke A/B: read, mutation y blob isolation ok.</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="pr" style="--c: var(--amber)">
+              <div class="pr-rank">2</div>
+              <div>
+                <h3>
+                  Anonymous Abuse and Cost Controls v1
+                  <span class="pill" style="--c: var(--amber)">1000-1800 lineas</span>
+                </h3>
+                <p>
+                  Proteger endpoints anonimos y gasto LLM antes de abrir la app a mas
+                  usuarios. Mantenerlo simple: ventana por contador, errores canonicos y
+                  observabilidad cuando el cost-cap degrada.
+                </p>
+                <div class="commits">
+                  <div class="commit">Rate-limit basico para webhooks y callbacks.</div>
+                  <div class="commit">Uso canonico de ApiErrors.rateLimited.</div>
+                  <div class="commit">Evento operacional para cost-cap fail-open.</div>
+                  <div class="commit">
+                    Tests de ventana, bypass legitimo y degradacion.
+                  </div>
+                  <div class="commit">
+                    Health/observability expone enforcement status.
+                  </div>
+                  <div class="commit">Runbook de abuso/costo y thresholds iniciales.</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="pr" style="--c: var(--blue)">
+              <div class="pr-rank">3</div>
+              <div>
+                <h3>
+                  Backend Service Extraction v1
+                  <span class="pill" style="--c: var(--blue)">1800-3000 lineas</span>
+                </h3>
+                <p>
+                  Hacer real la capa de servicios donde duele: quotes, WhatsApp y CTEs
+                  repetidos. No es arquitectura hexagonal; es extraer dominio testeable de
+                  handlers que hoy mezclan HTTP, SQL y reglas.
+                </p>
+                <div class="commits">
+                  <div class="commit">Extraer quotes-service.ts con tests puros.</div>
+                  <div class="commit">
+                    Extraer media intake o command dispatch de WhatsApp.
+                  </div>
+                  <div class="commit">
+                    Centralizar mappers/CTEs repetidos de alto uso.
+                  </div>
+                  <div class="commit">Mantener wrappers HTTP finos y compatibles.</div>
+                  <div class="commit">Bajar ratchets de archivos intervenidos.</div>
+                  <div class="commit">Docs de patron servicio de dominio aplicado.</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="pr" style="--c: var(--teal)">
+              <div class="pr-rank">4</div>
+              <div>
+                <h3>
+                  Structural Ratchets That Reduce Debt v1
+                  <span class="pill" style="--c: var(--teal)">1000-1600 lineas</span>
+                </h3>
+                <p>
+                  Convertir los ratchets de una foto estatica a una herramienta de
+                  reduccion. Agregar hotspots no vigilados y bloquear nuevos mega-archivos
+                  productivos sin justificacion.
+                </p>
+                <div class="commits">
+                  <div class="commit">
+                    Agregar Icons, demoRouter y hotspots faltantes.
+                  </div>
+                  <div class="commit">
+                    Politica de ratchet decreciente cuando se toca archivo.
+                  </div>
+                  <div class="commit">
+                    Techo por defecto para nuevos archivos productivos.
+                  </div>
+                  <div class="commit">Reporte before/after de hotspots.</div>
+                  <div class="commit">Docs de excepciones justificadas.</div>
+                  <div class="commit">
+                    CI falla si un nuevo hotspot entra silenciosamente.
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="pr" style="--c: var(--olive)">
+              <div class="pr-rank">5</div>
+              <div>
+                <h3>
+                  Demo Backend Contract Compression v1
+                  <span class="pill" style="--c: var(--olive)">1500-2500 lineas</span>
+                </h3>
+                <p>
+                  Reducir el costo de mantener un backend demo paralelo. La meta es que
+                  demo mode siga siendo util, pero con factories y contratos compartidos
+                  por dominio.
+                </p>
+                <div class="commits">
+                  <div class="commit">Inventario demoRouter vs endpoints reales.</div>
+                  <div class="commit">Factories compartidas para rows demo.</div>
+                  <div class="commit">
+                    Modulos demo por dominio: notas, recortes, momentos, PDF.
+                  </div>
+                  <div class="commit">
+                    Tests de contrato request/response demo vs API client.
+                  </div>
+                  <div class="commit">Ratchet fuerte para demoRouter.ts.</div>
+                  <div class="commit">Docs de como agregar una ruta demo nueva.</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="pr" style="--c: var(--green)">
+              <div class="pr-rank">6</div>
+              <div>
+                <h3>
+                  Architecture Docs and Contract Truth v1
+                  <span class="pill" style="--c: var(--green)">1000-1800 lineas</span>
+                </h3>
+                <p>
+                  Hacer que la documentacion sea fuente confiable para humanos e IAs:
+                  rutas reales, servicios reales, CTEs actuales, scripts actuales y drift
+                  detectado por simbolos/rutas, no solo frases.
+                </p>
+                <div class="commits">
+                  <div class="commit">
+                    Actualizar arquitectura a src/api/ y _lib actuales.
+                  </div>
+                  <div class="commit">
+                    Docs de RLS, CTEs y servicios sin aspiracionalidad.
+                  </div>
+                  <div class="commit">
+                    check-docs-drift valida rutas y simbolos citados.
+                  </div>
+                  <div class="commit">
+                    Inventarios generados de endpoints/scripts/services.
+                  </div>
+                  <div class="commit">CONTRIBUTING realista: DB, tests, CI, Netlify.</div>
+                  <div class="commit">
+                    CI protege docs clave contra referencias obsoletas.
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel pad span-12">
+          <h2>Secuencia recomendada</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Orden</th>
+                <th>PR</th>
+                <th>Por que ahora</th>
+                <th>Sube principalmente</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1</strong></td>
+                <td>Legacy Identity Cutover v1</td>
+                <td>Es el riesgo mas irreversible: identidad y datos de usuarios.</td>
+                <td>Seguridad, multiusuario, datos, riesgo de escalar.</td>
+              </tr>
+              <tr>
+                <td><strong>2</strong></td>
+                <td>Anonymous Abuse and Cost Controls v1</td>
+                <td>Evita abuso y gasto antes de uso multiusuario mas amplio.</td>
+                <td>Operacion, costo, seguridad.</td>
+              </tr>
+              <tr>
+                <td><strong>3</strong></td>
+                <td>Backend Service Extraction v1</td>
+                <td>Reduce el costo de tocar dominios centrales sin romper handlers.</td>
+                <td>Backend, mantenibilidad, testing.</td>
+              </tr>
+              <tr>
+                <td><strong>4</strong></td>
+                <td>Structural Ratchets That Reduce Debt v1</td>
+                <td>Convierte gates existentes en presion real hacia menor deuda.</td>
+                <td>Deuda estructural, calidad, DX.</td>
+              </tr>
+              <tr>
+                <td><strong>5</strong></td>
+                <td>Demo Backend Contract Compression v1</td>
+                <td>Reduce duplicacion recurrente en cada feature nueva.</td>
+                <td>DX, testing, mantenibilidad.</td>
+              </tr>
+              <tr>
+                <td><strong>6</strong></td>
+                <td>Architecture Docs and Contract Truth v1</td>
+                <td>Hace que docs y gates reflejen la realidad del codigo.</td>
+                <td>Arquitectura, onboarding, decisiones futuras.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="panel pad span-12">
+          <h2>Primer movimiento propuesto</h2>
+          <div class="callout" style="--c: var(--red)">
+            <strong>Partir con PR 1: Legacy Identity Cutover v1.</strong>
+            <p>
+              Es el PR mas sensible, pero tambien el que mas cambia la nota real. Lo haria
+              con TDD: primero inventario/gate y tests que describen el estado deseado;
+              despues migracion nueva y helpers; al final runbook y smoke. Sin tocar
+              funcionalidades de producto ni reescribir auth completa.
+            </p>
+          </div>
+        </section>
+
+        <p class="footer span-12">
+          Generado para Trama el 20 de junio de 2026. Basado en revision local de
+          <code>main</code>, auditoria externa de Claude y checks estructurales
+          ejecutados: <code>check:auth-rls-contracts</code>,
+          <code>check:script-registry</code>, <code>check:structure-ratchets</code> y
+          <code>typecheck</code>.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

@@ -9,6 +9,41 @@
 > La decisión específica de sacar `legacy-single-user` del camino operativo vive
 > en [ADR 0011](adr/0011-legacy-identity-cutover.md).
 
+## Estado productivo verificado
+
+Estado al 2026-06-21: **resuelto operativamente**.
+
+`legacy-single-user` ya no está en el camino normal de producción. Producción
+corre en modo Clerk estricto y el fallback anónimo está apagado. La identidad
+legacy se conserva solo como compatibilidad histórica para datos/blobs pre-Clerk
+del owner configurado en `LEGACY_OWNER_CLERK_ID`.
+
+Evidencia productiva:
+
+```text
+cutover_smoke: ok
+cutover_preflight: ok
+health: ok
+auth_clerk: ok
+auth_strict: ok
+anonymous_401: ok
+read_isolation: ok
+mutation_isolation: ok
+blob_isolation: ok
+```
+
+Evidencia adicional:
+
+- `health.auth.mode = clerk` con token del usuario histórico asociado a Clerk.
+- El usuario histórico puede leer `/api/notes` autenticado por Clerk.
+- `check:legacy-identity-contracts` reporta `unresolvedLegacyDefaults: 0`.
+- `check:user-id-writes` reporta `issues: 0`.
+
+Qué queda como deuda opcional: reasignar datos históricos desde
+`legacy-single-user` al `sub` real de Clerk y mover/reconciliar blobs legacy. Esa
+deuda está inventariada por `legacy-data-reassignment:dry-run`, pero ya no
+bloquea el modo multiusuario productivo.
+
 ## Pre-requisitos
 
 - [ ] PR del endurecimiento RLS mergeado y deployado (policies de
