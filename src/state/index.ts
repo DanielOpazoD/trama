@@ -39,6 +39,8 @@ export {
 export {
   useBibliotecaList,
   flattenBibliotecaItems,
+  useRenameLibraryItem,
+  useSetLibraryItemDeleted,
   type BibliotecaListInput,
 } from './useBiblioteca'
 export {

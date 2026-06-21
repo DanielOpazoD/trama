@@ -3,11 +3,13 @@ import {
   DEFAULT_ORDEN,
   DEFAULT_VISTA,
   coerceVista,
+  fileExtension,
   fileTypeLabel,
   formatByteSize,
   formatCardMeta,
   formatShortDate,
   parseOrden,
+  resolveRenamedTitle,
   toggleOrden,
 } from './helpers'
 
@@ -91,6 +93,39 @@ describe('biblioteca/helpers', () => {
     })
     it('DEFAULT_VISTA es lista', () => {
       expect(DEFAULT_VISTA).toBe('lista')
+    })
+  })
+
+  describe('fileExtension', () => {
+    it('extrae la extensión con el punto', () => {
+      expect(fileExtension('a.pdf')).toBe('.pdf')
+      expect(fileExtension('foto.final.JPG')).toBe('.JPG')
+    })
+    it('devuelve "" cuando no hay extensión real', () => {
+      expect(fileExtension('sin-extension')).toBe('')
+      expect(fileExtension('.gitignore')).toBe('') // punto inicial no cuenta
+      expect(fileExtension('archivo.')).toBe('') // punto final no cuenta
+      expect(fileExtension('raro.unaextensionmuylarga')).toBe('') // > 8 chars
+    })
+  })
+
+  describe('resolveRenamedTitle', () => {
+    it('preserva la extensión del original si el usuario la quitó', () => {
+      expect(resolveRenamedTitle('a.pdf', 'b')).toBe('b.pdf')
+      expect(resolveRenamedTitle('informe.docx', '  resumen ')).toBe('resumen.docx')
+    })
+    it('respeta la extensión si el usuario la mantuvo o escribió otra', () => {
+      expect(resolveRenamedTitle('a.pdf', 'b.pdf')).toBe('b.pdf')
+      expect(resolveRenamedTitle('a.pdf', 'b.txt')).toBe('b.txt')
+      // Case-insensitive: no duplica si el sufijo coincide ignorando mayúsculas.
+      expect(resolveRenamedTitle('a.PDF', 'b.pdf')).toBe('b.pdf')
+    })
+    it('si el original no tiene extensión, no inventa una', () => {
+      expect(resolveRenamedTitle('notas', 'apuntes')).toBe('apuntes')
+    })
+    it('devuelve "" cuando el nombre queda vacío', () => {
+      expect(resolveRenamedTitle('a.pdf', '   ')).toBe('')
+      expect(resolveRenamedTitle('a.pdf', '')).toBe('')
     })
   })
 })

@@ -12,18 +12,22 @@ import type { LibraryFileType, LibrarySource } from '../../types/biblioteca'
 function Host({
   initialTipo = '',
   initialFuente = '',
+  initialEliminados = false,
   onChange,
 }: {
   initialTipo?: LibraryFileType | ''
   initialFuente?: LibrarySource | ''
+  initialEliminados?: boolean
   onChange?: (next: { tipo: LibraryFileType | ''; fuente: LibrarySource | '' }) => void
 }) {
   const [tipo, setTipo] = useState<LibraryFileType | ''>(initialTipo)
   const [fuente, setFuente] = useState<LibrarySource | ''>(initialFuente)
+  const [eliminados, setEliminados] = useState<boolean>(initialEliminados)
   return (
     <FilterPopover
       tipo={tipo}
       fuente={fuente}
+      incluyeEliminados={eliminados}
       onChangeTipo={(next) => {
         setTipo(next)
         onChange?.({ tipo: next, fuente })
@@ -32,6 +36,7 @@ function Host({
         setFuente(next)
         onChange?.({ tipo, fuente: next })
       }}
+      onToggleEliminados={setEliminados}
     />
   )
 }
@@ -105,5 +110,17 @@ describe('<FilterPopover />', () => {
     render(<Host />)
     // El único texto del botón sería el badge; vacío = sin badge.
     expect(screen.getByRole('button', { name: 'Filtros' })).toHaveTextContent('')
+  })
+
+  it('alterna "Eliminados recientemente" y lo cuenta en el badge', () => {
+    render(<Host />)
+    openPopover()
+    const entry = screen.getByRole('menuitemradio', { name: /Eliminados recientemente/ })
+    expect(entry).toHaveAttribute('aria-checked', 'false')
+    fireEvent.click(entry)
+    expect(
+      screen.getByRole('menuitemradio', { name: /Eliminados recientemente/ }),
+    ).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByRole('button', { name: 'Filtros' })).toHaveTextContent('1')
   })
 })
