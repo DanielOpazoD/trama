@@ -28,19 +28,19 @@ agregalo a `QUALITY_GATES`.
 
 ## Dominios
 
-| Dominio     | Protege                                                                    | Scripts principales                                                                                              |
-| ----------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `api`       | Fronteras cliente/servidor, request parsing y rutas runtime.               | `api-request-contracts`, `runtime-api-routes`, `client-api-contracts`.                                           |
-| `auth`      | Estado Clerk/fallback, RLS y contratos de privacidad.                      | `check-legacy-fallback-prod`, `auth-rls-contracts`, `legacy-identity-contracts`, `user-id-write-contracts`.      |
-| `backend`   | Handlers Netlify y servicios de dominio testeables.                        | `backend-domain-services`.                                                                                       |
-| `bundle`    | Budgets gzip, chunks manuales y payload lazy.                              | `check-bundle-size`, `bundle-budget`, `vite-manual-chunks`.                                                      |
-| `database`  | Migraciones, soft-delete, CTEs atomicos e integraciones con Postgres real. | `apply-migrations`, `check-migration-duplicates`, `check-hard-delete-allowlist`, `check-legacy-identity-schema`. |
-| `docs`      | Runbooks y convenciones que no deben quedar stale.                         | `check-docs-drift`.                                                                                              |
-| `frontend`  | Fronteras UI y ownership entre superficies.                                | `check-frontend-boundaries`.                                                                                     |
-| `multiuser` | Cutover, smokes productivos, reportes y observabilidad de aislamiento.     | `cutover-*`, `smoke-isolation`, `multiuser-production-report`.                                                   |
-| `pdf`       | Runtime PDF, payload lazy, snapshots de bundle y smoke visual dedicado.    | `pdf-runtime-boundaries`, `pdf-lazy-entrypoints`, `pdf-bundle-families`.                                         |
-| `test`      | Runners y normalizacion de argumentos de Vitest.                           | `run-vitest`, `vitest-runner-args`.                                                                              |
-| `whatsapp`  | Schema y persistencia del puente WhatsApp.                                 | `check-whatsapp-schema`, `gen-whatsapp-cheatsheet`.                                                              |
+| Dominio     | Protege                                                                    | Scripts principales                                                                                                                   |
+| ----------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `api`       | Fronteras cliente/servidor, request parsing y rutas runtime.               | `api-request-contracts`, `runtime-api-routes`, `client-api-contracts`.                                                                |
+| `auth`      | Estado Clerk/fallback, RLS y contratos de privacidad.                      | `check-legacy-fallback-prod`, `auth-rls-contracts`, `legacy-identity-contracts`, `legacy-identity-report`, `user-id-write-contracts`. |
+| `backend`   | Handlers Netlify y servicios de dominio testeables.                        | `backend-domain-services`.                                                                                                            |
+| `bundle`    | Budgets gzip, chunks manuales y payload lazy.                              | `check-bundle-size`, `bundle-budget`, `vite-manual-chunks`.                                                                           |
+| `database`  | Migraciones, soft-delete, CTEs atomicos e integraciones con Postgres real. | `apply-migrations`, `check-migration-duplicates`, `check-hard-delete-allowlist`, `check-legacy-identity-schema`.                      |
+| `docs`      | Runbooks y convenciones que no deben quedar stale.                         | `check-docs-drift`.                                                                                                                   |
+| `frontend`  | Fronteras UI y ownership entre superficies.                                | `check-frontend-boundaries`.                                                                                                          |
+| `multiuser` | Cutover, smokes productivos, reportes y observabilidad de aislamiento.     | `cutover-*`, `run-legacy-identity-smoke`, `smoke-isolation`, `multiuser-production-report`.                                           |
+| `pdf`       | Runtime PDF, payload lazy, snapshots de bundle y smoke visual dedicado.    | `pdf-runtime-boundaries`, `pdf-lazy-entrypoints`, `pdf-bundle-families`.                                                              |
+| `test`      | Runners y normalizacion de argumentos de Vitest.                           | `run-vitest`, `vitest-runner-args`.                                                                                                   |
+| `whatsapp`  | Schema y persistencia del puente WhatsApp.                                 | `check-whatsapp-schema`, `gen-whatsapp-cheatsheet`.                                                                                   |
 
 ## Reglas para scripts nuevos
 

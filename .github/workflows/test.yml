@@ -70,6 +70,16 @@ jobs:
       - name: User id write contracts
         run: npm run check:user-id-writes
 
+      - name: Legacy identity report
+        run: npm run legacy-identity:report > legacy-identity-report.md
+
+      - name: Upload legacy identity report
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-identity-report
+          path: legacy-identity-report.md
+          retention-days: 14
+
       # Contrato runtime de rutas: los wrappers pueden delegar handler a _lib,
       # pero config.path vive en netlify/functions/*.mts para que Netlify monte
       # /api/* de forma verificable antes de deployar.

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { findUserIdWriteContractIssues } from './user-id-write-contracts.mjs'
+import {
+  findUserIdWriteContractIssues,
+  findUserIdWriteContractWarnings,
+} from './user-id-write-contracts.mjs'
 
 describe('user_id write contracts', () => {
   it('detecta inserts a tablas privadas que no escriben user_id explicitamente', () => {
@@ -65,5 +68,58 @@ describe('user_id write contracts', () => {
     })
 
     expect(issues).toEqual([])
+  })
+
+  it('advierte inserts privados sin lista de columnas', () => {
+    const warnings = findUserIdWriteContractWarnings({
+      privateTables: ['notes'],
+      sources: [
+        {
+          file: 'netlify/functions/notes.mts',
+          source: `
+            await sql\`
+              INSERT INTO notes VALUES (\${id}, \${content})
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(warnings).toEqual([
+      {
+        file: 'netlify/functions/notes.mts',
+        table: 'notes',
+        kind: 'insert_without_column_list',
+        message:
+          'netlify/functions/notes.mts usa INSERT INTO notes sin lista de columnas; no se puede verificar user_id estaticamente.',
+      },
+    ])
+  })
+
+  it('advierte inserts privados INSERT ... SELECT para revisión manual', () => {
+    const warnings = findUserIdWriteContractWarnings({
+      privateTables: ['notes'],
+      sources: [
+        {
+          file: 'netlify/functions/import.mts',
+          source: `
+            await sql\`
+              INSERT INTO notes (content, title, user_id)
+              SELECT content, title, owner_id FROM imported_notes
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(warnings).toEqual([
+      {
+        file: 'netlify/functions/import.mts',
+        table: 'notes',
+        kind: 'insert_select_manual_review',
+        message:
+          'netlify/functions/import.mts usa INSERT INTO notes ... SELECT; verifica que user_id venga del owner autenticado.',
+      },
+    ])
   })
 })

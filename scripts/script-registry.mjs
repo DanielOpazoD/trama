@@ -154,6 +154,15 @@ const SCRIPT_ENTRIES = [
       'Verifica que legacy-single-user sea compatibilidad historica y no DEFAULT operativo.',
   },
   {
+    file: 'scripts/legacy-identity-report.mjs',
+    domain: 'auth',
+    kind: 'report',
+    critical: false,
+    packageScripts: ['legacy-identity:report'],
+    summary:
+      'Genera artifact Markdown con tablas, defaults removidos y checks legacy identity.',
+  },
+  {
     file: 'scripts/check-migration-duplicates.mjs',
     domain: 'database',
     kind: 'check',
@@ -288,6 +297,15 @@ const SCRIPT_ENTRIES = [
     critical: true,
     packageScripts: ['cutover:smoke:isolation'],
     summary: 'Corre smoke focalizado de aislamiento A/B contra un deploy.',
+  },
+  {
+    file: 'scripts/run-legacy-identity-smoke.mjs',
+    domain: 'multiuser',
+    kind: 'smoke',
+    critical: false,
+    packageScripts: ['cutover:smoke:legacy-identity'],
+    summary:
+      'Smoke opcional para deploy preview: A crea, B no lee y owner legacy puede leer.',
   },
   {
     file: 'scripts/run-cutover-smoke.mjs',
@@ -464,6 +482,13 @@ export const QUALITY_GATES = [
     phase: 'auth',
     required: true,
     summary: 'INSERTs privados escriben user_id explícito.',
+  },
+  {
+    command: 'npm run legacy-identity:report',
+    job: 'lint',
+    phase: 'auth',
+    required: false,
+    summary: 'Artifact Markdown con evidencia de identidad legacy.',
   },
   {
     command: 'npm run check:runtime-api-routes',
