@@ -6,6 +6,8 @@
 > endurecidas en `20260610150000_momento_space_rls_hardening`); este runbook
 > es la lista de pasos del switch y su verificación. El contexto de fondo vive
 > en [migracion-multi-user.md](migracion-multi-user.md).
+> La decisión específica de sacar `legacy-single-user` del camino operativo vive
+> en [ADR 0011](adr/0011-legacy-identity-cutover.md).
 
 ## Pre-requisitos
 
