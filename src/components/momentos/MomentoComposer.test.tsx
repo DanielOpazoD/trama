@@ -206,4 +206,28 @@ describe('<MomentoComposer />', () => {
 
     expect(screen.getByLabelText(/fecha personalizada/i)).toHaveValue('2026-06-18T09:30')
   })
+
+  it('permite elegir fecha personalizada antes de subir aunque no haya EXIF', () => {
+    render(
+      <MomentoComposer
+        composer={makeComposer({
+          kind: 'foto',
+          photoDrafts: [
+            {
+              file: new File(['foto'], 'iphone-sin-exif.jpg', { type: 'image/jpeg' }),
+              previewUrl: 'blob:iphone-sin-exif',
+              capturedAt: null,
+            },
+          ],
+          photoCapturedAtSuggestion: null,
+          photoDateMode: 'custom',
+          customPhotoCapturedAt: '2026-07-04T09:30',
+        } as Partial<Composer>)}
+        defaultExpanded
+      />,
+    )
+
+    expect(screen.getByText(/fecha de la foto no disponible/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/fecha personalizada/i)).toHaveValue('2026-07-04T09:30')
+  })
 })

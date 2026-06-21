@@ -532,6 +532,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readPendingMedia: no hay foto pendiente
     mockSqlResponses.push([{ kind: 'note', cap_id: 'n1' }]) // readLastPointer
     mockSqlResponses.push([{ t: 'comprar pan' }]) // readCaptureText (content)
     mockSqlResponses.push([{ id: 'm1' }]) // persistMomento INSERT RETURNING
@@ -594,6 +595,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readPendingMedia: no hay foto pendiente
     mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer
     mockSqlResponses.push([{ t: 'mi gato' }]) // readCaptureText (recorte.text)
     mockSqlResponses.push([{ storage_key: 'u/a.jpg' }, { storage_key: 'u/b.jpg' }]) // readRecorteImageKeys (recorte_images)
@@ -622,6 +624,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMtest' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readPendingMedia: no hay foto pendiente
     mockSqlResponses.push([{ kind: 'recorte', cap_id: 'r1' }]) // readLastPointer
     mockSqlResponses.push([{ t: 'una cita sin imagen' }]) // readCaptureText (caption del branch)
     mockSqlResponses.push([]) // readRecorteImageKeys: recorte_images vacío
@@ -705,7 +708,7 @@ describe('whatsapp-webhook', () => {
     expect(res.status).toBe(405)
   })
 
-  it('foto sin prefijo → Recorte (descarga, sube y persiste)', async () => {
+  it('foto con caption libre → Recorte (descarga, sube y persiste)', async () => {
     // Para procesar media se necesita TWILIO_AUTH_TOKEN, lo que activa la
     // verificación de firma: la calculamos para que el request sea válido.
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
@@ -721,7 +724,7 @@ describe('whatsapp-webhook', () => {
     const fields = {
       MessageSid: 'SMmedia',
       From: 'whatsapp:+56912345678',
-      Body: '',
+      Body: 'foto para revisar',
       NumMedia: '1',
       MediaUrl0: 'https://api.twilio.com/Media/abc',
       MediaContentType0: 'image/jpeg',
@@ -735,7 +738,6 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmedia' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte RETURNING id
     mockSqlResponses.push([]) // recordLastCapture (fire-and-forget)
     const res = await webhookHandler(
@@ -755,7 +757,7 @@ describe('whatsapp-webhook', () => {
     expect(xml).toContain('view=recortes')
   })
 
-  it('dos fotos sin prefijo → un solo recorte-evento (image_key + recorte_images)', async () => {
+  it('dos fotos con prefijo recorte → un solo recorte-evento (image_key + recorte_images)', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
     vi.stubGlobal(
@@ -769,7 +771,7 @@ describe('whatsapp-webhook', () => {
     const fields = {
       MessageSid: 'SMmedia2',
       From: 'whatsapp:+56912345678',
-      Body: '',
+      Body: 'recorte:',
       NumMedia: '2',
       MediaUrl0: 'https://api.twilio.com/Media/abc',
       MediaContentType0: 'image/jpeg',
@@ -785,7 +787,6 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmedia2' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // CTE: INSERT recorte + recorte_images RETURNING id
     mockSqlResponses.push([]) // recordLastCapture (fire-and-forget)
     const res = await webhookHandler(
@@ -804,6 +805,126 @@ describe('whatsapp-webhook', () => {
     // Una sola entrada-evento: confirma "2 imágenes" como un evento, no 2 sueltas.
     expect(xml).toContain('2 imágenes')
     expect(xml).toContain('evento')
+  })
+
+  it('foto sin caption queda pendiente y pregunta destino sin crear recorte por defecto', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMpendingFoto',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/pending',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMpendingFoto' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ n: 1 }]) // storePendingMedia
+    mockSqlResponses.push([]) // persistWhatsAppEvent
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('¿Dónde la guardo?')
+    expect(xml).toContain('momento')
+    expect(xml).toContain('recorte')
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /INSERT INTO recortes\b/i.test(c.template) &&
+          !/recorte_images/i.test(c.template),
+      ),
+    ).toBe(false)
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO whatsapp_pending_media/i.test(c.template),
+      ),
+    ).toBe(true)
+  })
+
+  it('responder "momento" consume media pendiente y crea un Momento foto', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    const fields = {
+      MessageSid: 'SMpendingDestino',
+      From: 'whatsapp:+56912345678',
+      Body: 'momento',
+      NumMedia: '0',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMpendingDestino' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([
+      {
+        id: 'p1',
+        storage_key: 'u1/pending.jpg',
+        mime: 'image/jpeg',
+        captured_at: '2026-06-19T23:10:00.000Z',
+        caption: '',
+      },
+    ]) // readPendingMedia
+    mockSqlResponses.push([{ id: 'm-pending' }]) // persistImageMomentoEpisode
+    mockSqlResponses.push([{ n: 1 }]) // consumePendingMedia
+    mockSqlResponses.push([]) // recordLastCapture
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Guardado en Momentos')
+    expect(xml).toContain('view=momentos')
+    const insert = mockSqlResponses.calls.find((c) =>
+      /INSERT INTO momentos/i.test(c.template),
+    )
+    expect(insert?.values).toContain('2026-06-19T23:10:00.000Z')
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /UPDATE whatsapp_pending_media/i.test(c.template),
+      ),
+    ).toBe(true)
   })
 
   it('dos fotos con prefijo "momento:" → un solo Momento foto episódico (items[])', async () => {
@@ -842,7 +963,6 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmomento2' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'm1' }]) // persistImageMomentoEpisode INSERT
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -961,7 +1081,6 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMnat2' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'm2' }]) // persistImageMomentoEpisode INSERT
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -1006,7 +1125,7 @@ describe('whatsapp-webhook', () => {
       MessageSid: 'SMmediabtn',
       From: 'whatsapp:+56912345678',
       To: 'whatsapp:+14155238886',
-      Body: '',
+      Body: 'recorte:',
       NumMedia: '1',
       MediaUrl0: 'https://api.twilio.com/Media/abc',
       MediaContentType0: 'image/jpeg',
@@ -1020,7 +1139,6 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMmediabtn' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
     mockSqlResponses.push([]) // recordLastCapture
     const res = await webhookHandler(
@@ -1095,7 +1213,7 @@ describe('whatsapp-webhook', () => {
     expect(insert?.template).toContain("'video'")
   })
 
-  it('foto sin pie + List Picker configurado → manda la lista «Acciones» (ContentSid actions)', async () => {
+  it('foto con recorte explícito sin pie + List Picker configurado → manda la lista «Acciones» (ContentSid actions)', async () => {
     // Prueba de cableado de extremo a extremo del UX-2: con la plantilla List
     // Picker encendida (env var), una foto sin pie hace que Trama MANDE la lista
     // «⚡ Acciones» por la Content API (con la confirmación como {{1}}) en vez de
@@ -1116,7 +1234,7 @@ describe('whatsapp-webhook', () => {
       MessageSid: 'SMlist1',
       From: 'whatsapp:+56912345678',
       To: 'whatsapp:+14155238886',
-      Body: '',
+      Body: 'recorte:',
       NumMedia: '1',
       MediaUrl0: 'https://api.twilio.com/Media/z',
       MediaContentType0: 'image/jpeg',
@@ -1130,7 +1248,6 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMlist1' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
     mockSqlResponses.push([]) // recordLastCapture
     mockSqlResponses.push([]) // setAwaitingDescription
@@ -1158,7 +1275,7 @@ describe('whatsapp-webhook', () => {
     expect(body.get('ContentVariables')).toContain('Recortes')
   })
 
-  it('álbum partido: foto sin caption tras un recorte reciente → se ANEXA al evento', async () => {
+  it('álbum partido: foto con "juntar" tras un recorte reciente → se ANEXA al evento', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
     vi.stubGlobal(
@@ -1172,7 +1289,7 @@ describe('whatsapp-webhook', () => {
     const fields = {
       MessageSid: 'SMcont1',
       From: 'whatsapp:+56912345678',
-      Body: '',
+      Body: 'juntar',
       NumMedia: '1',
       MediaUrl0: 'https://api.twilio.com/Media/x',
       MediaContentType0: 'image/jpeg',
@@ -1220,7 +1337,7 @@ describe('whatsapp-webhook', () => {
     ).toBe(false)
   })
 
-  it('álbum partido: foto "a momento" tras un recorte reciente → sube el álbum a Momento', async () => {
+  it('álbum partido: foto "a momento. juntar" tras un recorte reciente → sube el álbum a Momento', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
     vi.stubGlobal(
@@ -1234,7 +1351,7 @@ describe('whatsapp-webhook', () => {
     const fields = {
       MessageSid: 'SMcont2',
       From: 'whatsapp:+56912345678',
-      Body: 'a momento',
+      Body: 'a momento. juntar',
       NumMedia: '1',
       MediaUrl0: 'https://api.twilio.com/Media/y',
       MediaContentType0: 'image/jpeg',
@@ -1280,7 +1397,7 @@ describe('whatsapp-webhook', () => {
     )
   })
 
-  it('foto sin pie → ofrece agregar una descripción (estado conversacional)', async () => {
+  it('foto con recorte explícito sin pie → ofrece agregar una descripción (estado conversacional)', async () => {
     vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
     vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
     vi.stubGlobal(
@@ -1294,7 +1411,7 @@ describe('whatsapp-webhook', () => {
     const fields = {
       MessageSid: 'SMdesc1',
       From: 'whatsapp:+56912345678',
-      Body: '',
+      Body: 'recorte:',
       NumMedia: '1',
       MediaUrl0: 'https://api.twilio.com/Media/z',
       MediaContentType0: 'image/jpeg',
@@ -1308,7 +1425,6 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMdesc1' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
-    mockSqlResponses.push([]) // readRecentMediaCapture: sin álbum reciente
     mockSqlResponses.push([{ id: 'r1' }]) // INSERT recorte
     mockSqlResponses.push([]) // recordLastCapture
     mockSqlResponses.push([]) // setAwaitingDescription

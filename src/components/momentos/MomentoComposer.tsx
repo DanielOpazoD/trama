@@ -411,24 +411,30 @@ function FotoFields({ composer }: { composer: Composer }) {
           {composer.photoUploadProgress.total}…
         </p>
       )}
-      {composer.photoCapturedAtSuggestion && (
+      {(composer.photoDrafts.length > 0 || composer.photoCapturedAtSuggestion) && (
         <div className="rounded-lg border border-ink-100/70 bg-paper-50/55 p-2.5 space-y-2">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-micro uppercase tracking-eyebrow text-ink-300">
-                fecha detectada
+                {composer.photoCapturedAtSuggestion
+                  ? 'fecha detectada'
+                  : 'fecha de la foto no disponible'}
               </p>
               <p className="text-caption text-ink-500">
-                {formatDetectedPhotoDate(composer.photoCapturedAtSuggestion)}
+                {composer.photoCapturedAtSuggestion
+                  ? formatDetectedPhotoDate(composer.photoCapturedAtSuggestion)
+                  : 'Puedes usar ahora o elegir una fecha personalizada antes de guardar.'}
               </p>
             </div>
             <div className="flex flex-wrap gap-1">
-              <PhotoDateButton
-                active={composer.photoDateMode === 'photo'}
-                onClick={() => composer.setPhotoDateMode('photo')}
-              >
-                Usar fecha de la foto
-              </PhotoDateButton>
+              {composer.photoCapturedAtSuggestion && (
+                <PhotoDateButton
+                  active={composer.photoDateMode === 'photo'}
+                  onClick={() => composer.setPhotoDateMode('photo')}
+                >
+                  Usar fecha de la foto
+                </PhotoDateButton>
+              )}
               <PhotoDateButton
                 active={composer.photoDateMode === 'now'}
                 onClick={() => composer.setPhotoDateMode('now')}
