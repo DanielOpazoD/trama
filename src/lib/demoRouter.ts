@@ -5,6 +5,8 @@ import {
   routeDemoBibliotecaLinks,
   routeDemoBibliotecaMutation,
   routeDemoLibraryUpload,
+  routeDemoLibraryUploadComplete,
+  routeDemoLibraryUploadPresign,
   type DemoTargetResolver,
   type DemoUploadFile,
 } from './demoBiblioteca'
@@ -127,6 +129,16 @@ export function routeDemoRequest(
       ? (body.__uploadFiles as DemoUploadFile[])
       : []
     return routeDemoLibraryUpload(files)
+  }
+
+  // Biblioteca — subida DIRECTA a R2 (archivos grandes): presign + complete. En
+  // modo prueba no hay R2, y `api.upload` ya enruta TODO por multipart acá; estos
+  // dos responden algo coherente solo si se pega a las rutas a mano.
+  if (resource === 'library-uploads-presign' && method === 'POST') {
+    return routeDemoLibraryUploadPresign(body)
+  }
+  if (resource === 'library-uploads-complete' && method === 'POST') {
+    return routeDemoLibraryUploadComplete(body)
   }
 
   // Biblioteca — conexiones (PR-C): /api/biblioteca-links/:kind/:id (GET/POST/DELETE).

@@ -1,4 +1,5 @@
 import { request, requestBlob } from './request'
+import { isDemoMode } from '../lib/demo'
 import type {
   BibliotecaListParams,
   BibliotecaListResult,
@@ -143,6 +144,84 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
+/**
+ * Umbral chico/grande de subida (4 MB). Espeja el límite del camino multipart:
+ * por encima de esto, el archivo va DIRECTO a R2 (presign + PUT + complete) para
+ * no chocar con el tope de body (~6 MB) de las funciones de Netlify. Coincide
+ * con el `>4 * 1024 * 1024` del guard de la vista (post-compresión de imágenes).
+ */
+const LARGE_FILE_THRESHOLD = 4 * 1024 * 1024
+
+/**
+ * Sube un archivo por multipart (`POST /api/library-uploads`). Camino de los
+ * archivos chicos (y de TODOS en modo prueba). Devuelve los items creados y los
+ * fallos que el endpoint reporte (éxito parcial server-side).
+ */
+async function uploadFileMultipart(
+  file: File,
+  takenAt?: string,
+): Promise<{ items: LibraryItem[]; failed: { name: string; message: string }[] }> {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('takenAt', takenAt ?? '')
+  const res = await request<{
+    items: LibraryItem[]
+    failed?: { name: string; message: string }[]
+  }>('/api/library-uploads', { method: 'POST', body: form })
+  return { items: res.items, failed: res.failed ?? [] }
+}
+
+/**
+ * Sube un archivo grande DIRECTO a R2: presign → PUT al bucket → complete.
+ *
+ *   1. `POST /api/library-uploads-presign` → `{ uploadUrl, storageKey }`. Si R2
+ *      no está configurado, el endpoint devuelve un error con mensaje claro que
+ *      se propaga (lo verá el usuario).
+ *   2. `PUT uploadUrl` con el archivo crudo y su Content-Type. Va DERECHO a R2
+ *      (no a una función): sin el límite de 6 MB. Un PUT no-ok lanza para que el
+ *      archivo caiga a `failed`.
+ *   3. `POST /api/library-uploads-complete` → registra el manifest y devuelve el
+ *      item ya en forma camelCase, listo para insertar en la lista.
+ */
+async function uploadFileToR2(file: File, takenAt?: string): Promise<LibraryItem> {
+  const { uploadUrl, storageKey } = await request<{
+    uploadUrl: string
+    storageKey: string
+  }>('/api/library-uploads-presign', {
+    method: 'POST',
+    body: JSON.stringify({
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      byteSize: file.size,
+    }),
+  })
+
+  // PUT directo a R2 (no pasa por `request`: es cross-origin, sin auth de Trama;
+  // la URL ya va firmada). Sin el límite de body de las funciones.
+  const putResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+  })
+  if (!putResponse.ok) {
+    throw new Error(
+      `No se pudo subir el archivo al almacenamiento (${putResponse.status})`,
+    )
+  }
+
+  const { item } = await request<{ item: LibraryItem }>('/api/library-uploads-complete', {
+    method: 'POST',
+    body: JSON.stringify({
+      storageKey,
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      byteSize: file.size,
+      takenAt: takenAt ?? undefined,
+    }),
+  })
+  return item
+}
+
 export const bibliotecaApi = {
   async list(params: BibliotecaListParams = {}): Promise<BibliotecaListResult> {
     const query = buildQuery(params)
@@ -155,32 +234,46 @@ export const bibliotecaApi = {
   },
 
   /**
-   * Sube uno o varios archivos directo a la Biblioteca (multipart). Cada entrada
-   * lleva el `File` y, opcional, su `takenAt` (ISO de la fecha de captura —
+   * Sube uno o varios archivos directo a la Biblioteca. Cada entrada lleva el
+   * `File` y, opcional, su `takenAt` (ISO de la fecha de captura —
    * EXIF/lastModified, resuelta en el cliente) que el servidor ancla en
    * `created_at`. Devuelve los items creados (ya en forma camelCase, listos para
-   * insertar en la lista). `POST /api/library-uploads`.
+   * insertar en la lista).
+   *
+   * Dos caminos según tamaño:
+   *   - Chicos (≤4 MB): multipart a `POST /api/library-uploads` (Netlify Blobs).
+   *     Las funciones de Netlify topean el body (~6 MB), así que solo sirve para
+   *     archivos chicos.
+   *   - Grandes (>4 MB): subida DIRECTA a R2 — `POST /api/library-uploads-presign`
+   *     (firma una URL) → `PUT` del archivo derecho al bucket (sin función, sin
+   *     límite de 6 MB) → `POST /api/library-uploads-complete` (registra el
+   *     manifest). Evita el 500 por body grande.
+   *
+   * En MODO PRUEBA no hay R2 (ni un bucket al que PUTear): forzamos TODOS los
+   * archivos por el camino multipart, que el router de la demo maneja en memoria.
+   * Así una subida grande "funciona" en la demo sin pegar a R2.
+   *
+   * Secuencial y con éxito parcial: cada archivo va por separado; un fallo no
+   * tumba al resto y se reporta en `failed` con su motivo (el cliente reintenta
+   * solo esos, sin duplicar los que sí entraron).
    */
   async upload(
     files: { file: File; takenAt?: string }[],
   ): Promise<{ items: LibraryItem[]; failed: { name: string; message: string }[] }> {
     const items: LibraryItem[] = []
     const failed: { name: string; message: string }[] = []
-    // UNA request POR archivo: las funciones de Netlify topean el tamaño del
-    // body (~6 MB), así que mandar varias fotos juntas se pasa de largo y falla
-    // (500). Secuencial: cada request es chica, un fallo no tumba al resto y
-    // reportamos el motivo por archivo. El endpoint igual acepta varios.
+    const demo = isDemoMode()
     for (const { file, takenAt } of files) {
       try {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('takenAt', takenAt ?? '')
-        const res = await request<{
-          items: LibraryItem[]
-          failed?: { name: string; message: string }[]
-        }>('/api/library-uploads', { method: 'POST', body: form })
-        items.push(...res.items)
-        if (res.failed) failed.push(...res.failed)
+        // En demo, todo por multipart (sin R2). Fuera de demo, los grandes van
+        // directo a R2 para esquivar el límite de body de las funciones.
+        if (!demo && file.size > LARGE_FILE_THRESHOLD) {
+          items.push(await uploadFileToR2(file, takenAt))
+        } else {
+          const res = await uploadFileMultipart(file, takenAt)
+          items.push(...res.items)
+          failed.push(...res.failed)
+        }
       } catch (err) {
         failed.push({
           name: file.name,

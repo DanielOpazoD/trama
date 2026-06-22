@@ -579,6 +579,43 @@ export function routeDemoLibraryUpload(files: DemoUploadFile[]): {
   return { items }
 }
 
+/**
+ * Subida DIRECTA a R2 en modo prueba — NO hay R2 ni bucket al que PUTear. El
+ * cliente (`api.upload`) ya fuerza TODOS los archivos por el camino multipart
+ * cuando detecta modo prueba, así que estos dos handlers casi nunca se invocan;
+ * existen para que el router responda algo coherente si alguien pega a las rutas
+ * a mano (en vez de caer al fallback genérico, que rompería el flujo).
+ *
+ * `presign` devuelve una URL de mentira: PUTear ahí fallaría, por eso el cliente
+ * NO usa este camino en demo. `complete` sí materializa una fila en memoria
+ * (igual que `routeDemoLibraryUpload`), por si el flujo se ejercita directo.
+ */
+export function routeDemoLibraryUploadPresign(body: Record<string, unknown>): {
+  uploadUrl: string
+  storageKey: string
+} {
+  const fileName = typeof body.fileName === 'string' ? body.fileName : 'archivo'
+  const itemId = `demo-upload-${crypto.randomUUID()}`
+  const ext = fileName.includes('.') ? `.${fileName.split('.').pop()}` : ''
+  const storageKey = `legacy-single-user/${itemId}${ext}`
+  // URL inerte: en demo no hay R2; el PUT a esta URL no debe ocurrir.
+  return { uploadUrl: `https://demo.invalid/r2/${storageKey}`, storageKey }
+}
+
+/** Materializa el manifest de una subida directa a R2 en memoria (demo). */
+export function routeDemoLibraryUploadComplete(body: Record<string, unknown>): {
+  item: DemoUploadedItem
+} {
+  const file: DemoUploadFile = {
+    name: typeof body.fileName === 'string' ? body.fileName : 'Archivo',
+    mime: typeof body.mimeType === 'string' ? body.mimeType : 'application/octet-stream',
+    size: typeof body.byteSize === 'number' ? body.byteSize : 0,
+    takenAt: typeof body.takenAt === 'string' ? body.takenAt : null,
+  }
+  const { items } = routeDemoLibraryUpload([file])
+  return { item: items[0]! }
+}
+
 // ---------------------------------------------------------------------------
 // Conexiones (PR-C) — "aparece en". Store en memoria de vínculos por item con
 // objetos de dominio (entidad / nota / momento). Espejo conceptual de

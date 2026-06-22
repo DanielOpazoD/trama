@@ -88,6 +88,10 @@ Comandos útiles:
 | `VITE_CLERK_PUBLISHABLE_KEY` | string (opcional)                                     | Activa `ClerkProvider` en el cliente.                                                                                                                                                  |
 | `LEGACY_OWNER_CLERK_ID`      | string (opcional)                                     | Mapea el Clerk ID del dueño a `legacy-single-user` durante el cutover.                                                                                                                 |
 | `ALLOW_LEGACY_FALLBACK`      | `true` solo en dev/cutover                            | Permite requests sin token como `legacy-single-user`. Producción debe ir a `false` antes de abrir multi-user real.                                                                     |
+| `R2_ACCOUNT_ID`              | string (opcional)                                     | ID de cuenta de Cloudflare R2. Habilita la subida directa de archivos grandes (>4 MB) de la Biblioteca. Sin las 4 vars `R2_*`, la subida grande devuelve un error claro.               |
+| `R2_ACCESS_KEY_ID`           | string (opcional)                                     | Access key del token de API de R2 (S3-compatible).                                                                                                                                     |
+| `R2_SECRET_ACCESS_KEY`       | string (opcional)                                     | Secret key del token de API de R2. **NUNCA al frontend.**                                                                                                                              |
+| `R2_BUCKET`                  | string (opcional)                                     | Nombre del bucket R2 donde viven los archivos grandes subidos. Requiere CORS que permita PUT+GET desde el dominio de la app.                                                           |
 | `SPOTIFY_CLIENT_ID`          | string                                                | OAuth client id de tu app en Spotify Developer                                                                                                                                         |
 | `SPOTIFY_CLIENT_SECRET`      | string                                                | OAuth client secret. **NUNCA al frontend.**                                                                                                                                            |
 | `SPOTIFY_REDIRECT_URI`       | url                                                   | Debe coincidir exacta con la registrada en Spotify Developer                                                                                                                           |
@@ -202,7 +206,7 @@ trama/
 │   └── *.spec.ts                         # add-entity · add-quote · chat-send · momentos · …
 └── netlify/
     ├── database/migrations/              # SQL versionado, aplicado en deploy
-    └── functions/                        # 98 endpoints `.mts`
+    └── functions/                        # 100 endpoints `.mts`
         ├── _lib/                         # lógica compartida
         │   ├── db.ts                     # getSql() singleton
         │   ├── auth.ts                   # Clerk verifyToken + ALLOW_LEGACY_FALLBACK

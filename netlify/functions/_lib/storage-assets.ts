@@ -10,7 +10,7 @@ export type StorageAssetDomain =
   | 'pdf-stamp-assets'
   | 'library-uploads'
 
-export type StorageAssetProvider = 'netlify-blobs' | 'postgres-data-url'
+export type StorageAssetProvider = 'netlify-blobs' | 'postgres-data-url' | 'r2'
 
 export type StorageAssetInput = {
   userId: string
