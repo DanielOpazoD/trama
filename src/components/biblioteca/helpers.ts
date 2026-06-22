@@ -3,13 +3,17 @@
  * Sin React, fáciles de testear en aislamiento.
  */
 
-import type { BibliotecaListParams, LibraryFileType } from '../../types/biblioteca'
+import type {
+  BibliotecaListParams,
+  LibraryFileType,
+  LibraryItem,
+} from '../../types/biblioteca'
 
 /** El valor de `orden` que viaja a la URL y al backend. */
 export type BibliotecaOrden = NonNullable<BibliotecaListParams['orden']>
 
 /** Columnas ordenables de la lista. */
-export type SortColumn = 'nombre' | 'modificado' | 'tamano'
+export type SortColumn = 'nombre' | 'modificado' | 'creado' | 'tamano'
 
 /** Dirección de orden derivada. */
 export type SortDirection = 'asc' | 'desc'
@@ -52,6 +56,8 @@ export function toggleOrden(
     const next: SortDirection = direction === 'asc' ? 'desc' : 'asc'
     return `${column}-${next}` as BibliotecaOrden
   }
+  // Dirección "natural" al estrenar una columna: nombre A→Z; fechas y tamaño
+  // arrancan descendentes (lo más reciente / lo más grande primero).
   const naturalDirection: SortDirection = column === 'nombre' ? 'asc' : 'desc'
   return `${column}-${naturalDirection}` as BibliotecaOrden
 }
@@ -84,6 +90,18 @@ const FILE_TYPE_LABELS: Record<LibraryFileType, string> = {
 
 export function fileTypeLabel(fileType: LibraryFileType): string {
   return FILE_TYPE_LABELS[fileType] ?? FILE_TYPE_LABELS.other
+}
+
+/** Etiqueta legible de la fuente del archivo, para la metadata del visor. */
+const SOURCE_LABELS: Record<LibraryItem['source'], string> = {
+  subido: 'Subido',
+  generado: 'Generado',
+  capturado: 'Capturado',
+  whatsapp: 'WhatsApp',
+}
+
+export function sourceLabel(source: LibraryItem['source']): string {
+  return SOURCE_LABELS[source] ?? source
 }
 
 /**
@@ -136,4 +154,63 @@ export function resolveRenamedTitle(original: string, typed: string): string {
   if (trimmed.toLowerCase().endsWith(originalExt.toLowerCase())) return trimmed
   if (fileExtension(trimmed)) return trimmed
   return `${trimmed}${originalExt}`
+}
+
+/**
+ * Extensión en MAYÚSCULAS para la columna de la lista (`PDF`, `DOCX`), sin el
+ * punto. Si el nombre no trae una extensión "de verdad" (ver `fileExtension`),
+ * cae a la etiqueta de la familia de archivo (`PDF`, `Imagen`, …) para no dejar
+ * la celda vacía. Puro: lo testeamos en aislamiento.
+ */
+export function fileExtensionLabel(item: {
+  title: string
+  fileType: LibraryFileType
+}): string {
+  const ext = fileExtension(item.title)
+  if (ext) return ext.slice(1).toUpperCase()
+  return fileTypeLabel(item.fileType)
+}
+
+/**
+ * Modo de visor para un item: qué superficie abrir al hacer clic.
+ *
+ *   - `image`  → lightbox de imagen (object-URL autenticado).
+ *   - `pdf`    → visor pdf.js paginado (lazy).
+ *   - `text`   → panel de texto/markdown/JSON (se baja el blob como texto).
+ *   - `none`   → sin previsualización posible (Office, audio, video, etc.):
+ *                solo metadata + CTA de descarga.
+ *
+ * La decisión combina `fileType` (derivado del mime en el servidor) con el mime
+ * y la extensión, porque algunos archivos de texto/JSON llegan con `fileType`
+ * 'document' u 'other'. Puro y testeable: la UI solo enruta.
+ */
+export type ViewerMode = 'image' | 'pdf' | 'text' | 'none'
+
+const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown', 'json', 'csv', 'log'])
+
+export function viewerModeFor(item: {
+  title: string
+  fileType: LibraryFileType
+  mimeType: string | null
+}): ViewerMode {
+  if (item.fileType === 'image') return 'image'
+  if (item.fileType === 'pdf') return 'pdf'
+
+  // Normaliza el mime (sin parámetros tipo `; charset=utf-8`).
+  const baseMime = item.mimeType?.toLowerCase().split(';', 1)[0]?.trim() ?? ''
+  const isTextMime =
+    baseMime.startsWith('text/') ||
+    baseMime === 'application/json' ||
+    baseMime.endsWith('+json') ||
+    baseMime === 'application/xml' ||
+    baseMime.endsWith('+xml')
+
+  const ext = fileExtension(item.title).slice(1).toLowerCase()
+  const isTextExt = TEXT_EXTENSIONS.has(ext)
+
+  if (isTextMime || isTextExt) return 'text'
+
+  // Office (.doc/.docx/.xls/.xlsx/.ppt/.pptx), audio, video, binarios → sin
+  // previsualización en navegador para archivos privados.
+  return 'none'
 }

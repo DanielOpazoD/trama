@@ -67,10 +67,12 @@ export type LibraryItem = {
  */
 export type BibliotecaTab = 'todo' | 'imagenes' | 'archivos'
 
-/** Orden disponible (Modificado / Nombre / Tamaño, asc/desc). */
+/** Orden disponible (Modificado / Creado / Nombre / Tamaño, asc/desc). */
 type BibliotecaOrden =
   | 'modificado-desc'
   | 'modificado-asc'
+  | 'creado-desc'
+  | 'creado-asc'
   | 'nombre-asc'
   | 'nombre-desc'
   | 'tamano-desc'

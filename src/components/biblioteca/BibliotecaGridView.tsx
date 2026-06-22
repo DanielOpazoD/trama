@@ -10,10 +10,12 @@ export function BibliotecaGridView({
   items,
   trash = false,
   onRename,
+  onOpen,
 }: {
   items: LibraryItem[]
   trash?: boolean
   onRename: (item: LibraryItem) => void
+  onOpen: (item: LibraryItem) => void
 }) {
   return (
     <div
@@ -23,7 +25,7 @@ export function BibliotecaGridView({
     >
       {items.map((item) => (
         <div role="listitem" key={item.id}>
-          <FileCard item={item} trash={trash} onRename={onRename} />
+          <FileCard item={item} trash={trash} onRename={onRename} onOpen={onOpen} />
         </div>
       ))}
     </div>

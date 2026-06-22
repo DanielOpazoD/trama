@@ -46,6 +46,8 @@ const SOURCES: readonly LibrarySource[] = ['subido', 'generado', 'capturado', 'w
 const ORDENES = [
   'modificado-desc',
   'modificado-asc',
+  'creado-desc',
+  'creado-asc',
   'nombre-asc',
   'nombre-desc',
   'tamano-desc',
@@ -198,6 +200,10 @@ function compareUpdatedAt(a: LibraryItemRow, b: LibraryItemRow): number {
   return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
 }
 
+function compareCreatedAt(a: LibraryItemRow, b: LibraryItemRow): number {
+  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+}
+
 /**
  * Ordena las filas según `orden` y devuelve una página + `nextCursor`.
  *
@@ -218,6 +224,12 @@ export function sortAndPaginate(
         break
       case 'modificado-asc':
         primary = compareUpdatedAt(a, b)
+        break
+      case 'creado-desc':
+        primary = -compareCreatedAt(a, b)
+        break
+      case 'creado-asc':
+        primary = compareCreatedAt(a, b)
         break
       case 'nombre-asc':
         primary = compareTitle(a, b)

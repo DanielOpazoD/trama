@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react'
 import type { LibraryItem } from '../../types/biblioteca'
 import { formatCardMeta } from './helpers'
 import { Thumbnail } from './Thumbnail'
@@ -20,13 +21,30 @@ export function FileCard({
   item,
   trash = false,
   onRename,
+  onOpen,
 }: {
   item: LibraryItem
   trash?: boolean
   onRename: (item: LibraryItem) => void
+  onOpen: (item: LibraryItem) => void
 }) {
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    // Enter/Espacio abren el visor; Espacio además evita el scroll de página.
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onOpen(item)
+    }
+  }
+
   return (
-    <div className="card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full">
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir ${item.title}`}
+      onClick={() => onOpen(item)}
+      onKeyDown={handleKeyDown}
+      className="card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300"
+    >
       {/* Acciones — tira vertical en el borde derecho. En táctil siempre
           visible; con puntero aparece al hover/focus de la card. */}
       <div className="absolute top-2.5 right-2 z-10 rounded-lg bg-paper-50/85 backdrop-blur-sm opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 motion-reduce:transition-none">

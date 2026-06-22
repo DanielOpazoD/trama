@@ -39,4 +39,33 @@ describe('demoMediaResponse', () => {
 
     expect(image?.headers.get('Content-Type')).toBe('image/svg+xml')
   })
+
+  it('sirve un PDF mínimo válido para un anexo demo .pdf (para el visor pdf.js)', async () => {
+    const response = demoMediaResponse(
+      '/api/notas-attachments-file/legacy-single-user/demo-att-1.pdf',
+    )
+    expect(response?.headers.get('Content-Type')).toBe('application/pdf')
+    const bytes = new Uint8Array(await response!.arrayBuffer())
+    // Cabecera %PDF y marca de fin %%EOF: pdf.js necesita ambas.
+    expect(String.fromCharCode(...bytes.slice(0, 5))).toBe('%PDF-')
+    const tail = String.fromCharCode(...bytes.slice(-6))
+    expect(tail).toContain('%%EOF')
+  })
+
+  it('sirve JSON para un anexo demo .json (visor de texto)', async () => {
+    const response = demoMediaResponse(
+      '/api/notas-attachments-file/legacy-single-user/demo-other-1.json',
+    )
+    expect(response?.headers.get('Content-Type')).toBe('application/json')
+    const parsed = JSON.parse(await response!.text())
+    expect(parsed).toMatchObject({ export: 'trama' })
+  })
+
+  it('sirve texto plano para un anexo demo .md (visor de texto)', async () => {
+    const response = demoMediaResponse(
+      '/api/notas-attachments-file/legacy-single-user/demo-doc-2.md',
+    )
+    expect(response?.headers.get('Content-Type')).toContain('text/plain')
+    expect(await response!.text()).toContain('Borrador de ensayo')
+  })
 })

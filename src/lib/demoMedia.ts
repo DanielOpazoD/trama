@@ -53,8 +53,89 @@ function silentWav(durationSeconds = 1): Uint8Array {
   return bytes
 }
 
+/**
+ * PDF mínimo válido (una página A4 con un título), construido a mano. pdf.js lo
+ * abre y renderiza, así el visor de la Biblioteca funciona en modo prueba en vez
+ * de errorear. No usamos pdf-lib acá a propósito: este módulo es liviano y debe
+ * quedar fuera de la frontera lazy del runtime de PDF.
+ */
+function demoPdfBytes(): Uint8Array {
+  const objects = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] ' +
+      '/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n',
+    '4 0 obj\n<< /Length 84 >>\nstream\nBT /F1 24 Tf 64 760 Td ' +
+      '(Documento de prueba — Trama) Tj ET\nendstream\nendobj\n',
+    '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+  ]
+  let body = '%PDF-1.4\n'
+  const offsets: number[] = []
+  for (const obj of objects) {
+    offsets.push(body.length)
+    body += obj
+  }
+  const xrefStart = body.length
+  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`
+  for (const offset of offsets) {
+    body += `${String(offset).padStart(10, '0')} 00000 n \n`
+  }
+  body +=
+    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n` +
+    `startxref\n${xrefStart}\n%%EOF`
+  const bytes = new Uint8Array(body.length)
+  for (let i = 0; i < body.length; i += 1) bytes[i] = body.charCodeAt(i)
+  return bytes
+}
+
+/** Texto de muestra para el visor de texto/markdown en modo prueba. */
+const DEMO_TEXT_SAMPLE = `# Borrador de ensayo
+
+La biblioteca de Babel contiene todos los libros posibles. Este es un texto
+de prueba para ver el visor de texto de la Biblioteca en modo prueba.
+
+- Una lista
+- de ejemplo
+- para hojear
+
+"Siempre imaginé que el Paraíso sería algún tipo de biblioteca." — J. L. Borges
+`
+
+/** JSON de muestra para el visor de texto en modo prueba (se pretty-printea). */
+const DEMO_JSON_SAMPLE = JSON.stringify(
+  {
+    export: 'trama',
+    version: 1,
+    entidades: 42,
+    relaciones: 87,
+    generado: '2026-06-21T09:00:00.000Z',
+  },
+  null,
+  2,
+)
+
 export function demoMediaResponse(url: string): Response | null {
   const path = url.split('?')[0] ?? url
+  // Anexos demo no-imagen (PR-A): el visor baja el blob por su extensión. Servimos
+  // un PDF mínimo válido para `.pdf` y texto/JSON para `.md`/`.txt`/`.json`/…, así
+  // los visores de PDF y de texto renderizan en modo prueba en vez de errorear.
+  if (path.startsWith('/api/notas-attachments-file/')) {
+    if (/\.pdf$/i.test(path)) {
+      return new Response(demoPdfBytes().buffer as ArrayBuffer, {
+        headers: { 'Content-Type': 'application/pdf' },
+      })
+    }
+    if (/\.json$/i.test(path)) {
+      return new Response(DEMO_JSON_SAMPLE, {
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (/\.(md|markdown|txt|csv|log)$/i.test(path)) {
+      return new Response(DEMO_TEXT_SAMPLE, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      })
+    }
+  }
   // Fotos de Momentos en modo prueba: como los recortes/anexos, cualquier key
   // sirve un placeholder para que las miniaturas y el visor se vean (en vez de
   // quedar rotos). Si la key parece audio (nota de voz), un WAV silencioso; si
