@@ -22,5 +22,21 @@ export function manualVendorChunks(id: string) {
   if (id.includes('tesseract.js')) {
     return 'vendor-ocr'
   }
+  // mammoth (.docx → HTML) y sus deps de descompresión/XML. Solo se alcanza por
+  // el import dinámico de BibliotecaOfficeViewer; nombrarlo le da un chunk lazy
+  // estable (presupuestado) en vez de un `index-*` que choque con el bundle.
+  if (
+    id.includes('mammoth') ||
+    /[\\/](?:jszip|@xmldom[\\/]xmldom|lop|dingbat-to-unicode|xmlbuilder)[\\/]/.test(id)
+  ) {
+    return 'vendor-mammoth'
+  }
+  // xlsx/SheetJS (.xlsx/.xls → HTML) y sus deps de (de)serialización binaria.
+  if (
+    id.includes('xlsx') ||
+    /[\\/](?:cfb|codepage|crc-32|adler-32|ssf|wmf)[\\/]/.test(id)
+  ) {
+    return 'vendor-xlsx'
+  }
   return undefined
 }

@@ -9,6 +9,7 @@ import {
   formatByteSize,
   formatCardMeta,
   formatShortDate,
+  officeKindFor,
   parseOrden,
   resolveRenamedTitle,
   sourceLabel,
@@ -192,12 +193,42 @@ describe('biblioteca/helpers', () => {
         viewerModeFor({ title: 'datos.csv', fileType: 'other', mimeType: null }),
       ).toBe('text')
     })
-    it('Office / audio / video / binario → modo none (sin previsualización)', () => {
+    it('docx / xlsx / xls → modo office (previsualización rica)', () => {
+      expect(
+        viewerModeFor({
+          title: 'contrato.docx',
+          fileType: 'document',
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }),
+      ).toBe('office')
       expect(
         viewerModeFor({
           title: 'hoja.xlsx',
           fileType: 'spreadsheet',
           mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+      ).toBe('office')
+      // .xls (binario legacy): xlsx lo lee igual.
+      expect(
+        viewerModeFor({
+          title: 'viejo.xls',
+          fileType: 'spreadsheet',
+          mimeType: 'application/vnd.ms-excel',
+        }),
+      ).toBe('office')
+      // Sin mime útil, decide por extensión.
+      expect(
+        viewerModeFor({ title: 'apuntes.docx', fileType: 'document', mimeType: null }),
+      ).toBe('office')
+    })
+    it('.doc / .ppt / .pptx / audio / binario → modo none (sin previsualización)', () => {
+      // .doc legacy: mammoth NO lo abre → sin preview.
+      expect(
+        viewerModeFor({
+          title: 'tesis.doc',
+          fileType: 'document',
+          mimeType: 'application/msword',
         }),
       ).toBe('none')
       expect(
@@ -209,16 +240,44 @@ describe('biblioteca/helpers', () => {
         }),
       ).toBe('none')
       expect(
-        viewerModeFor({
-          title: 'contrato.docx',
-          fileType: 'document',
+        viewerModeFor({ title: 'nota.m4a', fileType: 'audio', mimeType: 'audio/mp4' }),
+      ).toBe('none')
+    })
+  })
+
+  describe('officeKindFor', () => {
+    it('detecta docx por mime y por extensión', () => {
+      expect(
+        officeKindFor({
+          title: 'a.docx',
           mimeType:
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         }),
-      ).toBe('none')
+      ).toBe('docx')
+      expect(officeKindFor({ title: 'a.docx', mimeType: null })).toBe('docx')
+    })
+    it('detecta xlsx/xls por mime y por extensión', () => {
       expect(
-        viewerModeFor({ title: 'nota.m4a', fileType: 'audio', mimeType: 'audio/mp4' }),
-      ).toBe('none')
+        officeKindFor({
+          title: 'a.xlsx',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+      ).toBe('xlsx')
+      expect(
+        officeKindFor({ title: 'a.xls', mimeType: 'application/vnd.ms-excel' }),
+      ).toBe('xlsx')
+      expect(officeKindFor({ title: 'a.xls', mimeType: null })).toBe('xlsx')
+    })
+    it('devuelve null para .doc / .pptx / no-Office', () => {
+      expect(officeKindFor({ title: 'a.doc', mimeType: 'application/msword' })).toBeNull()
+      expect(
+        officeKindFor({
+          title: 'a.pptx',
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        }),
+      ).toBeNull()
+      expect(officeKindFor({ title: 'foto.jpg', mimeType: 'image/jpeg' })).toBeNull()
     })
   })
 })

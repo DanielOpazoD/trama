@@ -95,14 +95,16 @@ describe('<BibliotecaViewer />', () => {
     })
   })
 
-  it('Office (.xlsx) → tarjeta sin previsualización con CTA Descargar', () => {
+  it('Office sin visor (.pptx) → tarjeta sin previsualización con CTA Descargar', () => {
+    // .docx/.xlsx ahora tienen visor (modo office); .pptx sigue sin preview.
     renderWithProviders(
       <BibliotecaViewer
         item={item({
-          title: 'Presupuesto.xlsx',
-          fileType: 'spreadsheet',
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          storageKey: 'demo/sheet.xlsx',
+          title: 'Charla.pptx',
+          fileType: 'presentation',
+          mimeType:
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          storageKey: 'demo/charla.pptx',
         })}
         onClose={() => {}}
       />,

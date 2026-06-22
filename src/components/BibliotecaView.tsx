@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   flattenBibliotecaItems,
   useBibliotecaList,
+  useToast,
   useUploadLibraryFiles,
 } from '../state'
 import { resolveCaptureDate } from '../lib/exifDate'
@@ -78,6 +79,14 @@ const VALID_FUENTES: ReadonlyArray<LibrarySource> = [
   'capturado',
   'whatsapp',
 ]
+
+/**
+ * Tope de tamaño por archivo al subir. Las funciones de Netlify topean el body
+ * (~6 MB); dejamos margen para el envoltorio multipart y headers. Las imágenes
+ * grandes ya se comprimen antes (`compressImageForUpload`); esto frena lo que no
+ * se puede comprimir (videos, .docx pesados) con un aviso claro en vez de un 500.
+ */
+const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024
 
 function coerceTab(raw: string | null): BibliotecaTab {
   return raw && (VALID_TABS as readonly string[]).includes(raw)
@@ -176,6 +185,7 @@ export function BibliotecaView({
   // Biblioteca la posicione por cuándo se tomó, no por la hora de subida.
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadFiles = useUploadLibraryFiles()
+  const toast = useToast()
 
   async function handleFilesSelected(fileList: FileList | null) {
     const files = fileList ? Array.from(fileList) : []
@@ -186,13 +196,35 @@ export function BibliotecaView({
     // bajo. resolveCaptureDate cae a lastModified si no hay EXIF, así que
     // mandamos takenAt siempre (el servidor decide si lo usa).
     const withDates: { file: File; takenAt: string }[] = []
+    const oversized: string[] = []
     for (const file of files) {
       // La fecha se lee del ORIGINAL (comprimir borra el EXIF). Luego, si la
       // imagen es grande, se comprime para entrar bajo el límite de la función.
       const takenAt = await resolveCaptureDate(file)
       const prepared = await compressImageForUpload(file)
+      // Tope de seguridad: la función de subida topea el body (~6 MB). Si tras
+      // comprimir el archivo sigue por encima del límite (videos largos, .docx
+      // pesados, etc.) NO lo subimos — daría un 500 opaco. Lo reportamos con un
+      // mensaje claro y dejamos pasar el resto.
+      if (prepared.size > MAX_UPLOAD_BYTES) {
+        oversized.push(prepared.name)
+        continue
+      }
       withDates.push({ file: prepared, takenAt })
     }
+
+    if (oversized.length > 0) {
+      toast.show({
+        message:
+          oversized.length === 1
+            ? `«${oversized[0]}» es demasiado grande para subir (máx ~4 MB)`
+            : `${oversized.length} archivos superan el límite de subida (~4 MB)`,
+        tone: 'error',
+      })
+    }
+
+    // Si todo lo seleccionado quedó fuera del límite, no llamamos la mutación.
+    if (withDates.length === 0) return
     uploadFiles.mutate(withDates)
   }
 
