@@ -52,13 +52,13 @@ const COLUMNS: ReadonlyArray<Column> = [
   {
     key: 'creado',
     label: 'Creado',
-    cellClass: 'w-16 justify-end hidden sm:flex',
+    cellClass: 'w-28 justify-end hidden sm:flex',
     sortable: true,
   },
   {
     key: 'modificado',
     label: 'Modificado',
-    cellClass: 'w-16 justify-end',
+    cellClass: 'w-28 justify-end',
     sortable: true,
   },
   {
@@ -224,13 +224,13 @@ export function BibliotecaListView({
           </div>
           <div
             role="cell"
-            className="w-16 text-right text-caption text-ink-400 tabular-nums shrink-0 hidden sm:block"
+            className="w-28 text-right text-caption text-ink-400 tabular-nums shrink-0 hidden sm:block"
           >
             {formatShortDate(item.createdAt)}
           </div>
           <div
             role="cell"
-            className="w-16 text-right text-caption text-ink-400 tabular-nums shrink-0"
+            className="w-28 text-right text-caption text-ink-400 tabular-nums shrink-0"
           >
             {formatShortDate(item.updatedAt)}
           </div>

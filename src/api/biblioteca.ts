@@ -164,23 +164,31 @@ export const bibliotecaApi = {
   async upload(
     files: { file: File; takenAt?: string }[],
   ): Promise<{ items: LibraryItem[]; failed: { name: string; message: string }[] }> {
-    const form = new FormData()
+    const items: LibraryItem[] = []
+    const failed: { name: string; message: string }[] = []
+    // UNA request POR archivo: las funciones de Netlify topean el tamaño del
+    // body (~6 MB), así que mandar varias fotos juntas se pasa de largo y falla
+    // (500). Secuencial: cada request es chica, un fallo no tumba al resto y
+    // reportamos el motivo por archivo. El endpoint igual acepta varios.
     for (const { file, takenAt } of files) {
-      form.append('file', file)
-      // `takenAt` viaja en paralelo a `file`, alineado por índice (siempre se
-      // agrega aunque esté vacío, así los índices no se desfasan).
-      form.append('takenAt', takenAt ?? '')
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        form.append('takenAt', takenAt ?? '')
+        const res = await request<{
+          items: LibraryItem[]
+          failed?: { name: string; message: string }[]
+        }>('/api/library-uploads', { method: 'POST', body: form })
+        items.push(...res.items)
+        if (res.failed) failed.push(...res.failed)
+      } catch (err) {
+        failed.push({
+          name: file.name,
+          message: err instanceof Error ? err.message : 'No se pudo subir',
+        })
+      }
     }
-    // El endpoint sube con éxito parcial: devuelve los que entraron y los que
-    // fallaron, para que el cliente reintente solo esos (sin duplicar).
-    const response = await request<{
-      items: LibraryItem[]
-      failed?: { name: string; message: string }[]
-    }>('/api/library-uploads', {
-      method: 'POST',
-      body: form,
-    })
-    return { items: response.items, failed: response.failed ?? [] }
+    return { items, failed }
   },
 
   /** Renombra un item (upsert de display_title en el override). */
