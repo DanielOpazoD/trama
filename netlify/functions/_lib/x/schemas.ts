@@ -19,7 +19,8 @@ export const XTokenResponse = z
     refresh_token: z.string().optional(),
     token_type: z.string(),
     scope: z.string().optional(),
-    expires_in: z.number(),
+    // Entero positivo (OAuth2): el expiry es `Date.now() + expires_in*1000`.
+    expires_in: z.number().int().positive(),
   })
   .passthrough()
 export type XTokenResponseT = z.infer<typeof XTokenResponse>

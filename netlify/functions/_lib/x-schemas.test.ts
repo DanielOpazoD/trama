@@ -36,6 +36,14 @@ describe('XTokenResponse', () => {
       }),
     ).toThrow()
   })
+
+  it('exige expires_in entero positivo (OAuth2)', () => {
+    const base = { access_token: 'at', token_type: 'bearer' }
+    expect(() => XTokenResponse.parse({ ...base, expires_in: 0 })).toThrow()
+    expect(() => XTokenResponse.parse({ ...base, expires_in: -5 })).toThrow()
+    expect(() => XTokenResponse.parse({ ...base, expires_in: 1.5 })).toThrow()
+    expect(XTokenResponse.parse({ ...base, expires_in: 7200 }).expires_in).toBe(7200)
+  })
 })
 
 describe('XProfileResponse', () => {

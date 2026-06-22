@@ -91,6 +91,15 @@ describe('check-storage-orphans (read-only)', () => {
     })
   })
 
+  test('collectProviderInventory rechaza un provider no-r2 en vivo (sin deps)', async () => {
+    // Sin deps inyectadas el sondeo usaría r2ObjectExists; un provider != r2
+    // cotejaría keys contra el backend equivocado → debe cortar ANTES de tocar
+    // DB/red, no misclasificar.
+    await expect(collectProviderInventory({ provider: 'netlify-blobs' })).rejects.toThrow(
+      /solo se puede sondear el provider 'r2'/i,
+    )
+  })
+
   test('summarizeOrphans nunca declara escrituras y lista non-goals', () => {
     const summary = summarizeOrphans(
       {

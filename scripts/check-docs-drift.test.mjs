@@ -77,6 +77,8 @@ describe('checkDocsDrift', () => {
         'Handlers `*.mts`; migración `netlify/database/migrations/<ts>_<slug>/migration.sql`.',
         'Endpoint `POST /api/extract`; paquete `@netlify/database`; tabla `entity_types`.',
         'Ejemplo de test colocado: `foo.ts` → `foo.test.ts`. Shell `App.tsx`.',
+        // Traversal a directorio padre: se ignora (no se valida fuera del repo).
+        'Ruta traversal `../missing.ts` no debe validarse.',
       ].join('\n'),
     )
 

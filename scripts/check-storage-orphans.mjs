@@ -134,6 +134,18 @@ export async function collectProviderInventory({
   maxProbes = DEFAULT_MAX_PROBES,
   deps,
 } = {}) {
+  // El sondeo en vivo usa `r2ObjectExists`: solo tiene sentido para R2. Con `deps`
+  // inyectadas (tests) el caller provee el `objectExists` que corresponda, así que
+  // ahí no forzamos provider. Sin deps (camino real/CLI), un provider != r2 daría
+  // un veredicto FALSO (keys cotejadas contra el backend equivocado: todo se vería
+  // como "manifest sin objeto") → cortamos con un error claro.
+  if (!deps && provider !== PROBEABLE_PROVIDER) {
+    throw new Error(
+      `Solo se puede sondear el provider '${PROBEABLE_PROVIDER}' en vivo (HEAD firmado a R2); ` +
+        `'${provider}' no es comprobable read-only desde acá. La existencia de objetos de otros ` +
+        `providers se delega a la regla de lifecycle del bucket (ver docs/storage-orphans.md).`,
+    )
+  }
   const resolved = deps ?? (await resolveLiveDeps(dbUrl))
   const { client, objectExists, ownsClient } = resolved
   try {

@@ -56,6 +56,16 @@ describe('SpotifyTokenResponse', () => {
       }),
     ).toThrow()
   })
+
+  it('exige expires_in entero positivo', () => {
+    const base = { access_token: 'at', token_type: 'Bearer', scope: 's' }
+    expect(() => SpotifyTokenResponse.parse({ ...base, expires_in: 0 })).toThrow()
+    expect(() => SpotifyTokenResponse.parse({ ...base, expires_in: -1 })).toThrow()
+    expect(() => SpotifyTokenResponse.parse({ ...base, expires_in: 2.5 })).toThrow()
+    expect(SpotifyTokenResponse.parse({ ...base, expires_in: 3600 }).expires_in).toBe(
+      3600,
+    )
+  })
 })
 
 describe('SpotifyProfileResponse', () => {
@@ -168,6 +178,16 @@ describe('SpotifyPlaylistResponse / SpotifyPlaylistTracksPage', () => {
       tracks: { total: 1, next: null, items: [{ added_at: null, track: null }] },
     })
     expect(parsed.tracks.items[0]?.track).toBeNull()
+  })
+
+  it('acepta owner.display_name null (la Spotify Web API lo permite)', () => {
+    const parsed = SpotifyPlaylistResponse.parse({
+      name: 'P',
+      description: null,
+      owner: { id: 'o', display_name: null },
+      tracks: { total: 0, next: null, items: [] },
+    })
+    expect(parsed.owner.display_name).toBeNull()
   })
 
   it('falla ruidoso si falta tracks.total (contrato roto)', () => {

@@ -76,6 +76,10 @@ function looksLikeRepoFilePath(token) {
   if (token.startsWith('@') || token.startsWith('/') || token.includes(' ')) return false
   // Parámetros de ruta tipo `:id` delatan un endpoint, no un archivo.
   if (token.includes(':')) return false
+  // Traversal a directorio padre: `../x.ts` resolvería con join() a algo FUERA
+  // del árbol del repo y validaría como "existe", debilitando el chequeo. No es
+  // una ruta interna del repo.
+  if (token.includes('..')) return false
 
   const anchoredAtRoot = REPO_ROOTS.some((root) => token.startsWith(root))
   if (anchoredAtRoot) return true

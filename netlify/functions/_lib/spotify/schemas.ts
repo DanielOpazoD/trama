@@ -26,7 +26,9 @@ export const SpotifyTokenResponse = z
     refresh_token: z.string().optional(),
     token_type: z.string(),
     scope: z.string(),
-    expires_in: z.number(),
+    // Entero positivo: el cálculo de expiry es `Date.now() + expires_in*1000`;
+    // un 0/negativo/fraccional daría un vencimiento inválido.
+    expires_in: z.number().int().positive(),
   })
   .passthrough()
 export type SpotifyTokenResponseT = z.infer<typeof SpotifyTokenResponse>
@@ -153,7 +155,9 @@ export const SpotifyPlaylistResponse = z
     name: z.string(),
     description: z.string().nullable(),
     owner: z
-      .object({ display_name: z.string().optional(), id: z.string() })
+      // display_name puede ser null en la Spotify Web API (no solo ausente);
+      // playlist.ts hace `display_name ?? id`, así que el null es esperado.
+      .object({ display_name: z.string().nullable().optional(), id: z.string() })
       .passthrough(),
     tracks: z
       .object({
