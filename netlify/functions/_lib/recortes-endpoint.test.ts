@@ -496,6 +496,39 @@ describe('recortes endpoint', () => {
     expect(blobStore.set).not.toHaveBeenCalled()
   })
 
+  it('promote con drift de columnas (SELECT futuro omite image_key) devuelve 500 canónico', async () => {
+    // E6: si un SELECT crítico deja de proyectar una columna, parseRows lanza
+    // y withObservability lo convierte en 500 trazable, en vez de devolver una
+    // fila truncada al cliente. Aquí el CTE devuelve la fila SIN image_key.
+    const { image_key: _omitted, ...broken } = buildRecorteRow({
+      status: 'promoted',
+      promoted_target: 'entity',
+    })
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([broken]) // CTE de promoción con columna faltante
+
+    const res = await recortesHandler(
+      new Request(`http://localhost/api/recortes/${ROW.id}/promote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-request-id': 'rid-recorte-drift',
+        },
+        body: JSON.stringify({
+          target: 'entity',
+          entity: { type: 'concepto', name: 'Memoria' },
+        }),
+      }),
+      mockContext({ id: ROW.id }),
+    )
+
+    await expectCanonicalError(res, {
+      status: 500,
+      code: 'INTERNAL',
+      requestId: 'rid-recorte-drift',
+    })
+  })
+
   it('unpromote revierte: soft-borra el destino y devuelve el recorte a pending', async () => {
     mockSqlResponses.push([
       { ...ROW, status: 'pending', promoted_target: null, promoted_id: null },
