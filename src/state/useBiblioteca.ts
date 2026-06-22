@@ -279,12 +279,25 @@ export function useUploadLibraryFiles() {
   return useMutation({
     mutationFn: (files: { file: File; takenAt?: string }[]) =>
       api.biblioteca.upload(files),
-    onSuccess: (items) => {
+    onSuccess: ({ items, failed }) => {
       const count = items.length
-      toast.show({
-        message: count === 1 ? 'Archivo subido' : `${count} archivos subidos`,
-        tone: 'success',
-      })
+      if (count > 0) {
+        toast.show({
+          message: count === 1 ? 'Archivo subido' : `${count} archivos subidos`,
+          tone: 'success',
+        })
+      }
+      // Éxito parcial: avisamos de los que no entraron (el cliente puede
+      // reintentar solo esos, sin duplicar los que sí subieron).
+      if (failed.length > 0) {
+        toast.show({
+          message:
+            failed.length === 1
+              ? `No se pudo subir "${failed[0]!.name}"`
+              : `${failed.length} archivos no se pudieron subir`,
+          tone: 'error',
+        })
+      }
     },
     onError: (err) => {
       toast.show({

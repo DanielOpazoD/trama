@@ -179,15 +179,15 @@ export function BibliotecaView({
   async function handleFilesSelected(fileList: FileList | null) {
     const files = fileList ? Array.from(fileList) : []
     if (files.length === 0) return
-    const withDates = await Promise.all(
-      files.map(async (file) => ({
-        file,
-        // Solo las imágenes traen fecha de captura relevante; para el resto
-        // resolveCaptureDate cae a lastModified igual, así que la mandamos
-        // siempre (el servidor decide si la usa).
-        takenAt: await resolveCaptureDate(file),
-      })),
-    )
+    // Resolvemos la fecha de captura SECUENCIALMENTE (no Promise.all): leer el
+    // EXIF de muchos archivos a la vez asignaría muchos buffers y podría colgar
+    // la pestaña. Cada lectura es solo un slice de cabecera, así que el costo es
+    // bajo. resolveCaptureDate cae a lastModified si no hay EXIF, así que
+    // mandamos takenAt siempre (el servidor decide si lo usa).
+    const withDates: { file: File; takenAt: string }[] = []
+    for (const file of files) {
+      withDates.push({ file, takenAt: await resolveCaptureDate(file) })
+    }
     uploadFiles.mutate(withDates)
   }
 

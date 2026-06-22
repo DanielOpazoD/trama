@@ -161,7 +161,9 @@ export const bibliotecaApi = {
    * `created_at`. Devuelve los items creados (ya en forma camelCase, listos para
    * insertar en la lista). `POST /api/library-uploads`.
    */
-  async upload(files: { file: File; takenAt?: string }[]): Promise<LibraryItem[]> {
+  async upload(
+    files: { file: File; takenAt?: string }[],
+  ): Promise<{ items: LibraryItem[]; failed: { name: string; message: string }[] }> {
     const form = new FormData()
     for (const { file, takenAt } of files) {
       form.append('file', file)
@@ -169,11 +171,16 @@ export const bibliotecaApi = {
       // agrega aunque esté vacío, así los índices no se desfasan).
       form.append('takenAt', takenAt ?? '')
     }
-    const response = await request<{ items: LibraryItem[] }>('/api/library-uploads', {
+    // El endpoint sube con éxito parcial: devuelve los que entraron y los que
+    // fallaron, para que el cliente reintente solo esos (sin duplicar).
+    const response = await request<{
+      items: LibraryItem[]
+      failed?: { name: string; message: string }[]
+    }>('/api/library-uploads', {
       method: 'POST',
       body: form,
     })
-    return response.items
+    return { items: response.items, failed: response.failed ?? [] }
   },
 
   /** Renombra un item (upsert de display_title en el override). */

@@ -33,7 +33,7 @@ const FIELD_TYPE_ASCII = 2
  * la hora como UTC (EXIF no trae offset) para que el resultado sea determinista.
  */
 export function parseExifDateString(value: string): string | null {
-  const match = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(value.trim())
+  const match = /^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(value.trim())
   if (!match) return null
   const [, y, mo, d, h, mi, s] = match
   const year = Number(y)
@@ -94,6 +94,12 @@ function scanIfd(
   if (entryCount === null) return { value: null, exifIfdPointer: null }
 
   let exifIfdPointer: number | null = null
+  // Elegimos el match por PRECEDENCIA de `wantedTags` (no por orden en el IFD):
+  // un tag antes en la lista gana. Así DateTimeOriginal (0x9003) vence a
+  // DateTimeDigitized (0x9004) aunque aparezca después en el archivo. Recorremos
+  // el IFD completo (también para capturar el puntero al sub-IFD EXIF).
+  let bestValue: string | null = null
+  let bestRank = wantedTags.length
   const ENTRY_SIZE = 12
   const firstEntry = ifdOffset + 2
 
@@ -108,7 +114,8 @@ function scanIfd(
       continue
     }
 
-    if (wantedTags.includes(tag)) {
+    const rank = wantedTags.indexOf(tag)
+    if (rank !== -1 && rank < bestRank) {
       const fieldType = readUint16(view, entry + 2, little)
       const count = readUint32(view, entry + 4, little)
       if (fieldType !== FIELD_TYPE_ASCII || count === null) continue
@@ -117,11 +124,14 @@ function scanIfd(
       const valueOffset =
         count <= 4 ? entry + 8 : tiffStart + (readUint32(view, entry + 8, little) ?? -1)
       const ascii = readAscii(view, valueOffset, count)
-      if (ascii) return { value: ascii, exifIfdPointer }
+      if (ascii) {
+        bestValue = ascii
+        bestRank = rank
+      }
     }
   }
 
-  return { value: null, exifIfdPointer }
+  return { value: bestValue, exifIfdPointer }
 }
 
 /**
@@ -208,7 +218,11 @@ export async function resolveCaptureDate(file: File): Promise<string> {
   // de parseo cae al fallback sin romper la subida.
   if (file.type !== 'image/jpeg' && file.type !== 'image/jpg') return fallbackIso
   try {
-    const buffer = await file.arrayBuffer()
+    // El bloque EXIF (APP1, ≤64 KB) vive en la cabecera del JPEG: leemos solo un
+    // slice acotado en vez del archivo entero, para no cargar MBs en memoria por
+    // imagen (clave al subir muchas a la vez).
+    const slice = file.slice(0, 128 * 1024)
+    const buffer = await slice.arrayBuffer()
     const iso = readExifDateFromBuffer(buffer)
     return iso ?? fallbackIso
   } catch {

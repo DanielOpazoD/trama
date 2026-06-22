@@ -182,70 +182,87 @@ export default withObservability(
 
     const storage = createNetlifyBlobStorageAdapter(STORE)
     const items: UploadedItem[] = []
+    const failed: { name: string; message: string }[] = []
 
+    // Subida con ÉXITO PARCIAL: blob + manifest no son transaccionales entre sí
+    // (Blobs y Postgres son sistemas distintos), así que no podemos hacer la
+    // tanda atómica. En vez de abortar y dejar a medias (un reintegro entero
+    // duplicaría lo ya subido, porque la storage_key es aleatoria), registramos
+    // el fallo de CADA archivo y seguimos: el cliente sabe qué entró y reintenta
+    // solo lo que falló.
     for (let i = 0; i < files.length; i++) {
       const file = files[i]!
       const name = cleanFileName(file.name)
       const mime = file.type
       const size = file.size
       const takenAt = normalizeTakenAt(takenAtRaw[i])
-
       const storageKey = `${userId}/${randomKey()}${extensionFor(file.name)}`
-      const buf = await file.arrayBuffer()
-      await storage.put(storageKey, buf, {
-        mime,
-        size: String(buf.byteLength),
-        name,
-      })
 
-      // owner_id = storageKey: estable, único y dentro del rango 1..300 del
-      // CHECK; estos uploads no tienen una fila "dueña" externa a la que apuntar.
-      const assetId = await recordStorageAsset(sql, {
-        userId,
-        domain: 'library-uploads',
-        ownerType: 'biblioteca-upload',
-        ownerId: storageKey,
-        provider: 'netlify-blobs',
-        storageKey,
-        mimeType: mime,
-        byteSize: size,
-        checksum: checksumSha256(buf),
-        createdAt: takenAt,
-      })
-      if (!assetId) {
-        return ApiErrors.internal(requestId, 'No se pudo registrar el archivo')
+      try {
+        const buf = await file.arrayBuffer()
+        await storage.put(storageKey, buf, {
+          mime,
+          size: String(buf.byteLength),
+          name,
+        })
+
+        // owner_id = storageKey: estable, único y dentro del rango 1..300 del
+        // CHECK; estos uploads no tienen una fila "dueña" externa a la que apuntar.
+        const assetId = await recordStorageAsset(sql, {
+          userId,
+          domain: 'library-uploads',
+          ownerType: 'biblioteca-upload',
+          ownerId: storageKey,
+          provider: 'netlify-blobs',
+          storageKey,
+          mimeType: mime,
+          byteSize: size,
+          checksum: checksumSha256(buf),
+          createdAt: takenAt,
+        })
+        if (!assetId) throw new Error('No se pudo registrar el archivo')
+
+        // El nombre real vive en el override (`storage_assets` no tiene columna
+        // de nombre); el read-model hace COALESCE(display_title, 'Archivo').
+        const override = await renameLibraryItem(sql, {
+          userId,
+          itemKind: 'library-upload',
+          itemId: assetId,
+          displayTitle: name,
+        })
+
+        const createdAt = takenAt ?? new Date().toISOString()
+        items.push({
+          id: `library-upload:${assetId}`,
+          kind: 'library-upload',
+          itemId: assetId,
+          title: name,
+          fileType: fileTypeForMime(mime),
+          source: 'subido',
+          mimeType: mime,
+          byteSize: size,
+          storageKey,
+          storageDomain: 'library-uploads',
+          tags: [],
+          pinned: false,
+          aiStatus: null,
+          createdAt,
+          updatedAt: override?.updated_at ?? createdAt,
+        })
+      } catch (err) {
+        failed.push({
+          name,
+          message: err instanceof Error ? err.message : 'No se pudo subir',
+        })
       }
-
-      // El nombre real vive en el override (`storage_assets` no tiene columna de
-      // nombre); el read-model hace COALESCE(display_title, 'Archivo').
-      const override = await renameLibraryItem(sql, {
-        userId,
-        itemKind: 'library-upload',
-        itemId: assetId,
-        displayTitle: name,
-      })
-
-      const createdAt = takenAt ?? new Date().toISOString()
-      items.push({
-        id: `library-upload:${assetId}`,
-        kind: 'library-upload',
-        itemId: assetId,
-        title: name,
-        fileType: fileTypeForMime(mime),
-        source: 'subido',
-        mimeType: mime,
-        byteSize: size,
-        storageKey,
-        storageDomain: 'library-uploads',
-        tags: [],
-        pinned: false,
-        aiStatus: null,
-        createdAt,
-        updatedAt: override?.updated_at ?? createdAt,
-      })
     }
 
-    return Response.json({ items }, { status: 201 })
+    // Si no entró ninguno pese a pasar la validación, es un fallo del servidor
+    // (no un parcial): respondemos error para que el cliente lo trate como tal.
+    if (items.length === 0 && failed.length > 0) {
+      return ApiErrors.internal(requestId, 'No se pudo subir ningún archivo')
+    }
+    return Response.json({ items, failed }, { status: 201 })
   },
 )
 
