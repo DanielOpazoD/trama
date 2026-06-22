@@ -381,14 +381,14 @@ describe('<BibliotecaView />', () => {
     )
     await screen.findByRole('button', { name: 'Nuevo' })
 
-    // Un video de ~5 MB supera el tope (~4.5 MB) y no se puede comprimir.
-    selectFiles([fakeFile('clip.mp4', 'video/mp4', 5 * 1024 * 1024)])
+    // Un video de ~201 MB supera el tope absoluto (200 MB): ni R2 lo acepta.
+    selectFiles([fakeFile('clip.mp4', 'video/mp4', 201 * 1024 * 1024)])
 
     // Mensaje claro de "demasiado grande" (caso singular, con el nombre).
     expect(
-      await screen.findByText(/«clip\.mp4» es demasiado grande para subir/i),
+      await screen.findByText(/"clip\.mp4" es demasiado grande, máx 200 MB/i),
     ).toBeInTheDocument()
-    // La mutación no debe dispararse: nunca se pega a /api/library-uploads.
+    // Nada de red: ni el multipart ni el presign de R2 (el includes cubre ambos).
     expect(requestedUrls.some((u) => u.includes('/api/library-uploads'))).toBe(false)
   })
 
@@ -403,12 +403,12 @@ describe('<BibliotecaView />', () => {
     await screen.findByRole('button', { name: 'Nuevo' })
 
     selectFiles([
-      fakeFile('a.mp4', 'video/mp4', 5 * 1024 * 1024),
-      fakeFile('b.mov', 'video/quicktime', 6 * 1024 * 1024),
+      fakeFile('a.mp4', 'video/mp4', 201 * 1024 * 1024),
+      fakeFile('b.mov', 'video/quicktime', 202 * 1024 * 1024),
     ])
 
     expect(
-      await screen.findByText(/2 archivos superan el límite de subida/i),
+      await screen.findByText(/2 archivos son demasiado grandes, máx 200 MB/i),
     ).toBeInTheDocument()
     expect(requestedUrls.some((u) => u.includes('/api/library-uploads'))).toBe(false)
   })

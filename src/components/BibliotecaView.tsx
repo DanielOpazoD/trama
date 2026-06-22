@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   flattenBibliotecaItems,
   useBibliotecaList,
-  useToast,
   useUploadLibraryFiles,
 } from '../state'
 import { resolveCaptureDate } from '../lib/exifDate'
 import { compressImageForUpload } from '../lib/compressImage'
+import { useToast } from '../state/toast'
 import { useSearchParamState } from '../hooks/useSearchParamState'
 import { ViewHeader } from './ViewHeader'
 import { ErrorState } from './ErrorState'
@@ -81,12 +81,12 @@ const VALID_FUENTES: ReadonlyArray<LibrarySource> = [
 ]
 
 /**
- * Tope de tamaño por archivo al subir. Las funciones de Netlify topean el body
- * (~6 MB); dejamos margen para el envoltorio multipart y headers. Las imágenes
- * grandes ya se comprimen antes (`compressImageForUpload`); esto frena lo que no
- * se puede comprimir (videos, .docx pesados) con un aviso claro en vez de un 500.
+ * Tope absoluto de subida (200 MB). Los archivos grandes ya NO se omiten: van
+ * directo a R2 (subida presignada) vía `api.upload`. Pero por encima de este cap
+ * los saltamos con un aviso claro — coincide con el máximo que aceptan los
+ * endpoints de presign/complete.
  */
-const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024
+const MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 
 function coerceTab(raw: string | null): BibliotecaTab {
   return raw && (VALID_TABS as readonly string[]).includes(raw)
@@ -196,36 +196,31 @@ export function BibliotecaView({
     // bajo. resolveCaptureDate cae a lastModified si no hay EXIF, así que
     // mandamos takenAt siempre (el servidor decide si lo usa).
     const withDates: { file: File; takenAt: string }[] = []
-    const oversized: string[] = []
+    const skipped: string[] = []
     for (const file of files) {
       // La fecha se lee del ORIGINAL (comprimir borra el EXIF). Luego, si la
-      // imagen es grande, se comprime para entrar bajo el límite de la función.
+      // imagen es grande, se comprime para bajar el peso (las demás familias van
+      // tal cual). Los grandes ya NO se omiten: api.upload los manda directo a R2.
       const takenAt = await resolveCaptureDate(file)
       const prepared = await compressImageForUpload(file)
-      // Tope de seguridad: la función de subida topea el body (~6 MB). Si tras
-      // comprimir el archivo sigue por encima del límite (videos largos, .docx
-      // pesados, etc.) NO lo subimos — daría un 500 opaco. Lo reportamos con un
-      // mensaje claro y dejamos pasar el resto.
+      // Único corte por tamaño: el cap absoluto, tras la compresión. Por encima
+      // lo saltamos con un aviso (ni R2 ni el manifest aceptan más que esto).
       if (prepared.size > MAX_UPLOAD_BYTES) {
-        oversized.push(prepared.name)
+        skipped.push(file.name)
         continue
       }
       withDates.push({ file: prepared, takenAt })
     }
-
-    if (oversized.length > 0) {
+    if (skipped.length > 0) {
       toast.show({
         message:
-          oversized.length === 1
-            ? `«${oversized[0]}» es demasiado grande para subir (máx ~4 MB)`
-            : `${oversized.length} archivos superan el límite de subida (~4 MB)`,
+          skipped.length === 1
+            ? `"${skipped[0]}" es demasiado grande, máx 200 MB`
+            : `${skipped.length} archivos son demasiado grandes, máx 200 MB`,
         tone: 'error',
       })
     }
-
-    // Si todo lo seleccionado quedó fuera del límite, no llamamos la mutación.
-    if (withDates.length === 0) return
-    uploadFiles.mutate(withDates)
+    if (withDates.length > 0) uploadFiles.mutate(withDates)
   }
 
   // Búsqueda con debounce: el input es estado local inmediato; el query param

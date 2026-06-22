@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { logOperationalEvent } from './_lib/operational-events.js'
 import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { presignGet } from './_lib/r2.js'
 
 /**
  * GET /api/library-uploads-file/:userId/:key
@@ -17,7 +18,15 @@ import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
  *     authed user (`${userId}/...`). Conocer la key no alcanza para leerla.
  *   - Confirmamos contra `storage_assets` que la fila existe, es del usuario, es
  *     del dominio `library-uploads` y no está soft-deleted; de ahí sacamos el
- *     mime real para el Content-Type.
+ *     mime real y el provider.
+ *
+ * Dos providers:
+ *   - `netlify-blobs` (archivos chicos): servimos el blob directo desde Blobs.
+ *   - `r2` (archivos grandes subidos directo a R2): firmamos un GET presignado y
+ *     devolvemos un 302 al objeto. El fetch autenticado de media sigue el
+ *     redirect; el bearer se cae cross-origin (correcto — la URL de R2 ya va
+ *     firmada y vigente). Cache-Control private + no-store en el redirect para
+ *     que la URL firmada no quede cacheada.
  *
  * Cache-Control: private + no-store + Vary Authorization — contenido privado,
  * no debe quedar en caches compartidas.
@@ -62,8 +71,8 @@ export default withObservability(
     }
 
     const sql = getSql()
-    const refs = await sqlTyped<{ mime_type: string }>(sql`
-      SELECT mime_type
+    const refs = await sqlTyped<{ mime_type: string; provider: string }>(sql`
+      SELECT mime_type, provider
       FROM storage_assets
       WHERE storage_key = ${storageKey}
         AND user_id = ${userId}
@@ -82,6 +91,20 @@ export default withObservability(
         reason: 'library_upload_manifest_missing',
       })
       return ApiErrors.notFound(requestId, 'No encontrado')
+    }
+
+    // Archivos grandes en R2: firmamos un GET presignado y redirigimos. No
+    // pasamos el byte stream por la función (el objeto puede ser de cientos de
+    // MB). La URL firmada lleva su propia auth en el query string.
+    if (refs[0]!.provider === 'r2') {
+      const signedUrl = await presignGet(storageKey)
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: signedUrl,
+          'Cache-Control': 'private, no-store',
+        },
+      })
     }
 
     const blob = await createNetlifyBlobStorageAdapter(STORE).getWithMetadata<ArrayBuffer>(

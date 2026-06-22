@@ -38,6 +38,12 @@ const DIRECT_FETCH_ALLOWLIST = [
     count: 1,
     reason: 'browser object-url bitmap export',
   },
+  {
+    file: 'src/api/biblioteca.ts',
+    count: 1,
+    reason: 'direct PUT to R2 presigned URL (cross-origin, no Trama auth)',
+    requires: ['await fetch(uploadUrl, {', "method: 'PUT'"],
+  },
 ]
 
 const RAW_API_FETCH_ALLOWLIST = [

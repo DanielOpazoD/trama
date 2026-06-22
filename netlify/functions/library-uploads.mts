@@ -9,6 +9,7 @@ import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
 import { renameLibraryItem } from './_lib/library-overrides.js'
 import { readFormData, requireMethod } from './_lib/request-contracts.js'
 import { logOperationalEvent } from './_lib/operational-events.js'
+import { fileTypeForMime, isAllowedLibraryMime } from './_lib/library-upload-mime.js'
 
 /**
  * POST /api/library-uploads
@@ -32,59 +33,6 @@ import { logOperationalEvent } from './_lib/operational-events.js'
 const STORE = 'library-uploads'
 const MAX_BYTES = 50 * 1024 * 1024
 const MAX_FILES = 50
-
-/** Tope de mimes exactos permitidos (los `image/*`, `video/*`, `text/*` se
- *  validan por prefijo aparte). */
-const ALLOWED_EXACT_MIMES = new Set([
-  'application/pdf',
-  'application/json',
-  // Office (docx / xlsx / pptx + legados)
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-])
-
-/** ¿Es un mime aceptado para la Biblioteca? Imágenes, videos y texto por
- *  prefijo; el resto contra la lista exacta. */
-function isAllowedMime(mime: string): boolean {
-  if (mime.startsWith('image/')) return true
-  if (mime.startsWith('video/')) return true
-  if (mime.startsWith('text/')) return true
-  return ALLOWED_EXACT_MIMES.has(mime)
-}
-
-/** Familia de archivo derivada del mime (espejo del CASE del read-model). */
-function fileTypeForMime(mime: string): string {
-  if (mime.startsWith('image/')) return 'image'
-  if (mime === 'application/pdf') return 'pdf'
-  if (mime.startsWith('audio/')) return 'audio'
-  if (mime.startsWith('video/')) return 'video'
-  if (
-    mime === 'application/vnd.ms-excel' ||
-    mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-    mime === 'text/csv'
-  ) {
-    return 'spreadsheet'
-  }
-  if (
-    mime === 'application/vnd.ms-powerpoint' ||
-    mime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-  ) {
-    return 'presentation'
-  }
-  if (
-    mime === 'application/msword' ||
-    mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-    mime === 'application/json' ||
-    mime.startsWith('text/')
-  ) {
-    return 'document'
-  }
-  return 'other'
-}
 
 function randomKey(): string {
   const arr = new Uint8Array(16)
@@ -173,7 +121,7 @@ export default withObservability(
       if (file.size > MAX_BYTES) {
         return ApiErrors.payloadTooLarge(requestId, `"${name}" supera los 50 MB`)
       }
-      if (!isAllowedMime(file.type)) {
+      if (!isAllowedLibraryMime(file.type)) {
         return ApiErrors.unsupportedMediaType(
           requestId,
           `mimeType "${file.type}" no soportado`,
