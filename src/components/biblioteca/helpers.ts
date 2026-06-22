@@ -176,17 +176,59 @@ export function fileExtensionLabel(item: {
  *
  *   - `image`  → lightbox de imagen (object-URL autenticado).
  *   - `pdf`    → visor pdf.js paginado (lazy).
+ *   - `office` → Word (.docx) / Excel (.xlsx/.xls) renderizados a HTML por un
+ *                visor lazy (mammoth / xlsx). NO incluye .doc/.ppt/.pptx, que no
+ *                tienen un convertidor liviano en el navegador.
  *   - `text`   → panel de texto/markdown/JSON (se baja el blob como texto).
- *   - `none`   → sin previsualización posible (Office, audio, video, etc.):
+ *   - `none`   → sin previsualización posible (.doc/.ppt/.pptx, audio, etc.):
  *                solo metadata + CTA de descarga.
  *
  * La decisión combina `fileType` (derivado del mime en el servidor) con el mime
  * y la extensión, porque algunos archivos de texto/JSON llegan con `fileType`
  * 'document' u 'other'. Puro y testeable: la UI solo enruta.
  */
-export type ViewerMode = 'image' | 'pdf' | 'text' | 'video' | 'none'
+export type ViewerMode = 'image' | 'pdf' | 'office' | 'text' | 'video' | 'none'
 
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown', 'json', 'csv', 'log'])
+
+/** Qué familia de Office previsualizable es un item (o `null` si ninguna). */
+export type OfficeKind = 'docx' | 'xlsx'
+
+const DOCX_MIME =
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+const XLS_MIME = 'application/vnd.ms-excel'
+
+/**
+ * Detecta si un item es un documento de Office previsualizable y de qué tipo.
+ * Solo cubre lo que un convertidor liviano del navegador sabe abrir:
+ *   - `docx` → Word moderno (mammoth convierte .docx, NO .doc).
+ *   - `xlsx` → Excel moderno y el binario legacy .xls (xlsx lee ambos).
+ * `.doc`, `.ppt` y `.pptx` quedan fuera (→ `null`): no hay render confiable.
+ *
+ * Mira el mime normalizado primero y la extensión como respaldo (algunos
+ * archivos llegan con un mime genérico). Compartido por `viewerModeFor` y el
+ * visor para que ambos coincidan en la elección de librería.
+ */
+export function officeKindFor(item: {
+  title: string
+  mimeType: string | null
+}): OfficeKind | null {
+  // Normaliza el mime (sin parámetros tipo `; charset=utf-8`).
+  const baseMime = item.mimeType?.toLowerCase().split(';', 1)[0]?.trim() ?? ''
+  const ext = fileExtension(item.title).slice(1).toLowerCase()
+
+  if (baseMime === DOCX_MIME || ext === 'docx') return 'docx'
+  if (
+    baseMime === XLSX_MIME ||
+    baseMime === XLS_MIME ||
+    ext === 'xlsx' ||
+    ext === 'xls'
+  ) {
+    return 'xlsx'
+  }
+  return null
+}
 
 export function viewerModeFor(item: {
   title: string
@@ -196,6 +238,10 @@ export function viewerModeFor(item: {
   if (item.fileType === 'image') return 'image'
   if (item.fileType === 'pdf') return 'pdf'
   if (item.fileType === 'video') return 'video'
+
+  // Office previsualizable (.docx / .xlsx / .xls) ANTES del chequeo de texto:
+  // sus mimes no son de texto, pero queremos el visor rico, no el de descarga.
+  if (officeKindFor(item)) return 'office'
 
   // Normaliza el mime (sin parámetros tipo `; charset=utf-8`).
   const baseMime = item.mimeType?.toLowerCase().split(';', 1)[0]?.trim() ?? ''
@@ -211,7 +257,7 @@ export function viewerModeFor(item: {
 
   if (isTextMime || isTextExt) return 'text'
 
-  // Office (.doc/.docx/.xls/.xlsx/.ppt/.pptx), audio, video, binarios → sin
-  // previsualización en navegador para archivos privados.
+  // .doc/.ppt/.pptx, audio, binarios → sin previsualización en navegador para
+  // archivos privados (mammoth no abre .doc; no hay visor liviano de slides).
   return 'none'
 }

@@ -34,6 +34,19 @@ describe('manualVendorChunks', () => {
     )
   })
 
+  it('aísla el visor de Office (mammoth / xlsx) en chunks lazy propios', () => {
+    expect(manualVendorChunks('/repo/node_modules/mammoth/lib/index.js')).toBe(
+      'vendor-mammoth',
+    )
+    // Deps exclusivas de mammoth viajan en el mismo chunk.
+    expect(manualVendorChunks('/repo/node_modules/jszip/lib/index.js')).toBe(
+      'vendor-mammoth',
+    )
+    expect(manualVendorChunks('/repo/node_modules/xlsx/xlsx.mjs')).toBe('vendor-xlsx')
+    // Deps de (de)serialización binaria de xlsx viajan con él.
+    expect(manualVendorChunks('/repo/node_modules/cfb/cfb.js')).toBe('vendor-xlsx')
+  })
+
   it('no fuerza chunks manuales para codigo de aplicacion', () => {
     expect(manualVendorChunks('/repo/src/App.tsx')).toBeUndefined()
   })

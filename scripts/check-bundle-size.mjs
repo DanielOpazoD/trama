@@ -43,6 +43,12 @@ const BUDGETS = {
   'html2canvas.esm': 55,
   'vendor-pdf-lib': 575,
   'vendor-ocr': 55,
+  // Visor de Office de la Biblioteca: chunks lazy de mammoth (.docx → HTML) y
+  // xlsx/SheetJS (.xlsx/.xls → HTML). Solo se bajan al abrir un documento Office
+  // desde el visor (import dinámico en BibliotecaOfficeViewer); NO entran al
+  // bundle inicial. Medidos ~131 / ~143 KB gzip; headroom chico.
+  'vendor-mammoth': 140,
+  'vendor-xlsx': 155,
   // Rutas principales lazy: mantenerlas con headroom chico evita que una vista
   // arrastre dependencias pesadas sin aparecer en el bundle inicial.
   ChatView: 10,

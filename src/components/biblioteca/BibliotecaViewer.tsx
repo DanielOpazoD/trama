@@ -25,6 +25,9 @@ import {
 // dispara su chunk.
 const BibliotecaPdfViewer = lazy(() => import('./BibliotecaPdfViewer'))
 const BibliotecaTextViewer = lazy(() => import('./BibliotecaTextViewer'))
+// Office (.docx/.xlsx/.xls): mammoth + xlsx pesan ~150 KB y ~430 KB; el visor se
+// monta lazy para que esas librerías recién bajen al abrir un documento Office.
+const BibliotecaOfficeViewer = lazy(() => import('./BibliotecaOfficeViewer'))
 
 /**
  * Visor de un archivo de la Biblioteca: un overlay único que abre el item y
@@ -244,6 +247,16 @@ function ViewerBody({
       <Suspense fallback={<CenteredHint dark>cargando visor…</CenteredHint>}>
         <BibliotecaPdfViewer serveUrl={serveUrl} />
       </Suspense>
+    )
+  }
+
+  if (mode === 'office') {
+    return (
+      <div className="h-full overflow-hidden rounded-lg border border-white/10">
+        <Suspense fallback={<CenteredHint>cargando…</CenteredHint>}>
+          <BibliotecaOfficeViewer item={item} serveUrl={serveUrl} />
+        </Suspense>
+      </div>
     )
   }
 

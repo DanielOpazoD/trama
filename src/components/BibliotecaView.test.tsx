@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { BibliotecaView } from './BibliotecaView'
+import { ToastHost } from './ToastHost'
 import { renderWithProviders } from '../test-utils'
 
 /**
@@ -62,8 +63,10 @@ function stubFetch(items: Row[], nextCursor: string | null = null) {
     'fetch',
     vi.fn(async (input: string | Request | URL) => {
       const url = String(input)
+      // Registramos TODA URL pedida (no solo /api/biblioteca) para poder afirmar
+      // que la subida NO se disparó en la guarda de tamaño.
+      requestedUrls.push(url)
       if (url.includes('/api/biblioteca')) {
-        requestedUrls.push(url)
         return jsonResp({ items, nextCursor })
       }
       return jsonResp({ items: [], nextCursor: null })
@@ -348,5 +351,65 @@ describe('<BibliotecaView />', () => {
       expect(window.location.search).not.toContain('etiqueta=lectura')
     })
     expect(screen.queryByText('Etiqueta:')).toBeNull()
+  })
+
+  // ---- Guarda de tamaño en la subida ----
+
+  /** File con un `size` falso (sin allocar megabytes reales) para la guarda. */
+  function fakeFile(name: string, type: string, size: number): File {
+    const file = new File(['x'], name, { type })
+    Object.defineProperty(file, 'size', { value: size })
+    return file
+  }
+
+  /** Setea archivos en el input oculto y dispara el change handler. */
+  function selectFiles(files: File[]) {
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')
+    if (!input) throw new Error('no se encontró el input file')
+    Object.defineProperty(input, 'files', { value: files, configurable: true })
+    fireEvent.change(input)
+  }
+
+  it('archivo demasiado grande: avisa y NO llama al endpoint de subida', async () => {
+    stubFetch([])
+    // ToastHost se monta junto a la vista para poder leer el mensaje del aviso.
+    renderWithProviders(
+      <>
+        <BibliotecaView />
+        <ToastHost />
+      </>,
+    )
+    await screen.findByRole('button', { name: 'Nuevo' })
+
+    // Un video de ~5 MB supera el tope (~4.5 MB) y no se puede comprimir.
+    selectFiles([fakeFile('clip.mp4', 'video/mp4', 5 * 1024 * 1024)])
+
+    // Mensaje claro de "demasiado grande" (caso singular, con el nombre).
+    expect(
+      await screen.findByText(/«clip\.mp4» es demasiado grande para subir/i),
+    ).toBeInTheDocument()
+    // La mutación no debe dispararse: nunca se pega a /api/library-uploads.
+    expect(requestedUrls.some((u) => u.includes('/api/library-uploads'))).toBe(false)
+  })
+
+  it('varios archivos grandes: usa el mensaje plural', async () => {
+    stubFetch([])
+    renderWithProviders(
+      <>
+        <BibliotecaView />
+        <ToastHost />
+      </>,
+    )
+    await screen.findByRole('button', { name: 'Nuevo' })
+
+    selectFiles([
+      fakeFile('a.mp4', 'video/mp4', 5 * 1024 * 1024),
+      fakeFile('b.mov', 'video/quicktime', 6 * 1024 * 1024),
+    ])
+
+    expect(
+      await screen.findByText(/2 archivos superan el límite de subida/i),
+    ).toBeInTheDocument()
+    expect(requestedUrls.some((u) => u.includes('/api/library-uploads'))).toBe(false)
   })
 })
