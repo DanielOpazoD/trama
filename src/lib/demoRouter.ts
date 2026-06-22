@@ -896,6 +896,7 @@ export function routeDemoRequest(
         budget: { limitCents: 0, remainingCents: 0, pct: 0 },
         byProvider: [],
         recentErrors: [],
+        status: 'ok',
         alerts: [],
         embeddings: { pendingEntities: 0, pendingQuotes: 0 },
         dailyCost: [],

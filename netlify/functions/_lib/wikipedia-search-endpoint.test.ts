@@ -86,4 +86,24 @@ describe('wikipedia-search endpoint', () => {
     )
     expect(res.status).toBe(502)
   })
+
+  it('falla ruidoso (no resultados vacíos en silencio) si el shape cambia', async () => {
+    // E5: 200 OK pero `pages` cambió de array a objeto → el parse Zod tira y
+    // el endpoint lo mapea a 502 UPSTREAM, en vez de devolver results:[] como
+    // si no hubiera coincidencias.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ pages: { unexpected: 'shape' } }),
+      })),
+    )
+    const res = await handler(
+      new Request('http://localhost/api/wikipedia/search?q=x'),
+      mockContext(),
+    )
+    expect(res.status).toBe(502)
+    expect((await res.json()).error?.code).toBe('UPSTREAM')
+  })
 })

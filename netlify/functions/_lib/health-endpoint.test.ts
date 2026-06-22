@@ -48,6 +48,38 @@ describe('health endpoint — aislamiento por user_id', () => {
     const body = await res.json()
     expect(body.counts).toEqual({ entities: 5, quotes: 10, relationships: 3 })
     expect(body.month.costCents).toBeCloseTo(1.5, 4)
+    // Sin señales problemáticas: sin alertas y estado global ok.
+    expect(body.alerts).toEqual([])
+    expect(body.status).toBe('ok')
+  })
+
+  it('deriva status critical y una alerta error ante una ráfaga de errores en 24h', async () => {
+    mockSqlResponses.reset()
+    mockSqlResponses.push(
+      [{ set_config: 'legacy-single-user' }],
+      [{ cap: null }], // users.monthly_budget_cents
+      [{ c: '5' }], // entities
+      [{ c: '10' }], // quotes
+      [{ c: '3' }], // relationships
+      [{ calls: '0', tokens_in: '0', tokens_out: '0', cost_cents: '0' }], // month
+      [], // providers
+      [], // errores 7d
+      [{ c: '12' }], // errores 24h → ráfaga (>=10)
+      [{ entities: '0', quotes: '0' }], // embeddings pendientes
+      [], // daily cost
+    )
+
+    const res = await handler(new Request('http://localhost/api/health'), mockContext())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('critical')
+    expect(body.alerts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'errors_burst', severity: 'error' }),
+      ]),
+    )
+    // Contrato de privacidad: la alerta resume el conteo, nunca contenido.
+    expect(JSON.stringify(body.alerts)).not.toMatch(/@|sk_|bearer|jwt/i)
   })
 
   it('TODAS las queries de datos filtran por user_id', async () => {

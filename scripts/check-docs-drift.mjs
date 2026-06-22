@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join, resolve } from 'node:path'
 
@@ -26,6 +26,112 @@ const checks = [
     message: 'docs/escala.md still describes WebGL graph rendering as future work.',
   },
 ]
+
+// Documentos cuyas rutas de archivo entre backticks se validan contra el árbol.
+// Si un doc cita `src/api.ts` y ese archivo no existe (hoy es `src/api/`), falla.
+const STRUCTURAL_DOCS = ['ARCHITECTURE.md', 'AGENTS.md']
+
+// Top-level dirs reales del repo. Una ruta entre backticks que empiece con uno
+// de estos (o termine en una extensión real con al menos un `/`) se considera
+// "una ruta de archivo del repo" y debe existir.
+const REPO_ROOTS = ['src/', 'netlify/', 'scripts/', 'docs/', '.github/']
+
+// Extensiones de archivos que de verdad viven en el repo. Una ruta que termina
+// en una de estas Y contiene un `/` se valida aunque no empiece en un REPO_ROOT
+// (p.ej. `_lib/db.ts`).
+const REAL_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.mts',
+  '.mjs',
+  '.cjs',
+  '.js',
+  '.md',
+  '.sql',
+  '.css',
+  '.json',
+  '.yml',
+  '.yaml',
+  '.html',
+]
+
+function hasRealExtension(token) {
+  return REAL_EXTENSIONS.some((ext) => token.endsWith(ext))
+}
+
+/**
+ * ¿El token entre backticks apunta claramente a un archivo del repo?
+ *
+ * Conservador a propósito: el objetivo es atrapar rutas reales rotas
+ * (`src/api.ts`) sin marcar ejemplos ilustrativos ni símbolos. Por eso solo
+ * consideramos rutas "ancladas": empiezan en un dir top-level conocido, o
+ * contienen un `/` y terminan en una extensión real. Un nombre suelto sin
+ * carpeta (`foo.ts`, `App.tsx`, `byYear.ts`) es ambiguo y se ignora.
+ */
+function looksLikeRepoFilePath(token) {
+  // Globs y placeholders ilustrativos: no son rutas concretas.
+  if (token.includes('*') || token.includes('<') || token.includes('>')) return false
+  // Paquetes npm (`@netlify/database`) y rutas HTTP de la API (`/api/...`,
+  // `POST /api/...`): tienen `/` pero no son archivos del repo.
+  if (token.startsWith('@') || token.startsWith('/') || token.includes(' ')) return false
+  // Parámetros de ruta tipo `:id` delatan un endpoint, no un archivo.
+  if (token.includes(':')) return false
+  // Traversal a directorio padre: `../x.ts` resolvería con join() a algo FUERA
+  // del árbol del repo y validaría como "existe", debilitando el chequeo. No es
+  // una ruta interna del repo.
+  if (token.includes('..')) return false
+
+  const anchoredAtRoot = REPO_ROOTS.some((root) => token.startsWith(root))
+  if (anchoredAtRoot) return true
+
+  // No anclado en un root: solo lo tratamos como ruta si tiene carpeta + ext
+  // real (descarta `entity_types`, `getSql()`, etc.; descarta `App.tsx` por no
+  // tener `/`).
+  return token.includes('/') && hasRealExtension(token)
+}
+
+/**
+ * Resuelve un token-ruta contra el árbol. Acepta variantes razonables para
+ * rutas citadas sin su prefijo completo (`_lib/db.ts` vive bajo
+ * `netlify/functions/`).
+ */
+function repoPathExists(root, token) {
+  const candidates = [token]
+  if (token.startsWith('_lib/')) {
+    candidates.push(join('netlify/functions', token))
+  }
+  return candidates.some((candidate) => existsSync(join(root, candidate)))
+}
+
+function extractBacktickTokens(content) {
+  const tokens = []
+  const regex = /`([^`\n]+)`/g
+  let match
+  while ((match = regex.exec(content)) !== null) {
+    tokens.push(match[1].trim())
+  }
+  return tokens
+}
+
+function checkStructuralFilePaths(root) {
+  const failures = []
+  for (const doc of STRUCTURAL_DOCS) {
+    if (!existsSync(join(root, doc))) continue
+    const content = readFileSync(join(root, doc), 'utf8')
+    const seen = new Set()
+    for (const token of extractBacktickTokens(content)) {
+      if (seen.has(token)) continue
+      seen.add(token)
+      if (!looksLikeRepoFilePath(token)) continue
+      if (repoPathExists(root, token)) continue
+      failures.push({
+        file: doc,
+        message: `${doc} cites \`${token}\`, but that path does not exist in the repo tree.`,
+      })
+    }
+  }
+  return failures
+}
 
 function readProjectFile(root, file) {
   return readFileSync(join(root, file), 'utf8')
@@ -64,6 +170,7 @@ export function checkDocsDrift(root = process.cwd()) {
   )
   const functionCountFailure = checkDocumentedFunctionCount(projectRoot)
   if (functionCountFailure) failures.push(functionCountFailure)
+  failures.push(...checkStructuralFilePaths(projectRoot))
 
   return { ok: failures.length === 0, failures }
 }

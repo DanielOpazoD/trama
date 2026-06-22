@@ -10,6 +10,7 @@
  */
 
 import { API_BASE, AUTH_URL, TOKEN_URL, readEnv, type SqlClient } from './client.js'
+import { XProfileResponse, XTokenResponse, type XTokenResponseT } from './schemas.js'
 
 // Scopes: leer tweets + perfil + bookmarks, y offline.access para refresh.
 // (El 400 del authorize era el dominio twitter.com → x.com, no este scope.)
@@ -57,13 +58,8 @@ export function buildAuthUrl(state: string, codeChallenge: string): string {
   return `${AUTH_URL}?${params.toString()}`
 }
 
-type TokenResponse = {
-  access_token: string
-  refresh_token?: string
-  token_type: string
-  scope?: string
-  expires_in: number
-}
+// Shape validado en runtime — ver `XTokenResponse` en schemas.ts.
+type TokenResponse = XTokenResponseT
 
 function basicAuth(): string {
   return btoa(`${readEnv('X_CLIENT_ID')}:${readEnv('X_CLIENT_SECRET')}`)
@@ -91,7 +87,7 @@ export async function exchangeCodeForTokens(
   if (!res.ok) {
     throw new Error(`X token exchange failed (${res.status}): ${await res.text()}`)
   }
-  return (await res.json()) as TokenResponse
+  return XTokenResponse.parse(await res.json())
 }
 
 async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> {
@@ -111,7 +107,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> 
   if (!res.ok) {
     throw new Error(`X token refresh failed (${res.status}): ${await res.text()}`)
   }
-  return (await res.json()) as TokenResponse
+  return XTokenResponse.parse(await res.json())
 }
 
 export async function getStoredTokens(
@@ -205,9 +201,7 @@ export async function getXProfile(
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!r.ok) return null
-  const data = (await r.json()) as {
-    data?: { id: string; username: string; name?: string | null }
-  }
+  const data = XProfileResponse.parse(await r.json())
   if (!data.data) return null
   return { id: data.data.id, username: data.data.username, name: data.data.name ?? null }
 }

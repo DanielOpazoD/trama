@@ -213,6 +213,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Reporta cobertura read-only del manifest storage_assets por dominio.',
   },
   {
+    file: 'scripts/check-storage-orphans.mjs',
+    domain: 'database',
+    kind: 'report',
+    critical: false,
+    packageScripts: ['storage:orphans:dry-run'],
+    summary:
+      'Cruza read-only el manifest storage_assets contra HEADs R2 para detectar huérfanos.',
+  },
+  {
     file: 'scripts/check-migration-duplicates.mjs',
     domain: 'database',
     kind: 'check',

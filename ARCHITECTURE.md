@@ -144,7 +144,7 @@ JSONB porque: (a) flexible para agregar campos sin migración, (b) consultable c
 
 ### Eliminación en cascada
 
-Si una entidad se soft-deletea (`deleted_at` se setea), también se soft-deletean sus relaciones (entrantes y salientes) y sus citas. Esto se hace en `entities.mts` con tres UPDATE secuenciales después del UPDATE principal.
+Si una entidad se soft-deletea (`deleted_at` se setea), también se soft-deletean sus relaciones (entrantes y salientes), sus citas y sus links a momentos. Esto se hace en `netlify/functions/_lib/entities-endpoint.ts` con un único CTE atómico: la entidad y todo su cascade comparten un mismo `deleted_at` (la CTE `ts`), de modo que no puede quedar la entidad borrada pero el cascade no. El restore usa ese timestamp exacto para revertir solo lo que ese borrado tocó.
 
 ## El flujo principal de la IA
 
@@ -181,7 +181,7 @@ Hoy distingue manual / ai / imported. Mañana queremos saber qué prompt, qué f
 
 ### Por qué `EntityType` y `RelationshipType` son `string` y no unions cerradas
 
-La fuente de verdad real son las tablas `entity_types` y `relationship_types`. Las antiguas unions literales forzaban un cast cada vez que aparecía un tipo nuevo en la DB. Las constantes `ENTITY_TYPES` y `RELATIONSHIP_TYPES` en `src/types.ts` siguen siendo útiles para los selects manuales — son un fallback en sync con la migración seed, no la verdad.
+La fuente de verdad real son las tablas `entity_types` y `relationship_types`. Las antiguas unions literales forzaban un cast cada vez que aparecía un tipo nuevo en la DB. Las constantes `ENTITY_TYPES` (en `src/types/entity.ts`) y `RELATIONSHIP_TYPES` (en `src/types/relationship.ts`) siguen siendo útiles para los selects manuales — son un fallback en sync con la migración seed, no la verdad.
 
 ### Por qué los layouts del grafo son funciones puras separadas
 
@@ -193,7 +193,7 @@ La fuente de verdad real son las tablas `entity_types` y `relationship_types`. L
 
 ### Por qué snake_case en SQL y camelCase en JS
 
-Convención dominante de cada ecosistema. En vez de quotear identificadores en SQL o nombrar variables raras en JS, se hace transformación explícita en `api.ts` y en cada `*.mts`. La frontera está marcada.
+Convención dominante de cada ecosistema. En vez de quotear identificadores en SQL o nombrar variables raras en JS, se hace transformación explícita en `src/api/transform.ts` (cliente) y en cada `*.mts` (servidor). La frontera está marcada.
 
 ### Por qué SVG + sigma.js en vez de un solo renderer
 
@@ -259,7 +259,7 @@ Vitest corre tests con `npm test`. Configuración en `vitest.config.ts`.
 | `netlify/functions/_lib/reclassify-validate.ts`           | Drop de items sin entity match, type no válido, no-op (mismo tipo), reason opcional                                                                             |
 | `netlify/functions/_lib/suggest-relationships-prompt.ts`  | Prompt lista entidades + citas + relaciones existentes; demanda justificación                                                                                   |
 | `netlify/functions/_lib/chat-validate.ts`                 | Parse del marker `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>`, tolerancia a JSON malformado, detección de propuestas vacías                                        |
-| `src/api.ts`                                              | Transforms snake↔camel, normalización de `origin` legacy                                                                                                        |
+| `src/api/transform.ts`                                    | Transforms snake↔camel, normalización de `origin` legacy                                                                                                        |
 | `src/storage.ts`                                          | LocalStorage round-trip, tolerancia a JSON corrupto                                                                                                             |
 | `src/hooks/layouts/byType.ts`, `byYear.ts`, `byDegree.ts` | Cada layout: nodos posicionados, clustering correcto, edge cases                                                                                                |
 

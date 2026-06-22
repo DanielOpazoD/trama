@@ -186,12 +186,41 @@ describe('fetchPlaylist', () => {
       'Spotify playlist fetch failed (403): forbidden',
     )
   })
+
+  it('E5: falla ruidoso si la playlist viene con shape inválida (200 OK)', async () => {
+    // Faltan tracks.total → el parse Zod tira en vez de propagar undefined.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse({
+          name: 'Rota',
+          description: null,
+          owner: { id: 'o' },
+          tracks: { next: null, items: [] },
+        }),
+      ),
+    )
+    await expect(fetchPlaylist('token-1', 'playlist-1')).rejects.toThrow()
+  })
 })
 
 describe('fetchRecentlyPlayed', () => {
   it('envía limit, after y bearer token', async () => {
     const fetchMock = vi.fn(async () =>
-      jsonResponse({ items: [{ played_at: '2026-05-01T10:00:00Z' }] }),
+      jsonResponse({
+        items: [
+          {
+            played_at: '2026-05-01T10:00:00Z',
+            track: {
+              id: 'track-1',
+              name: 'Canción Uno',
+              duration_ms: 180000,
+              artists: [{ id: 'artist-1', name: 'Artista Uno' }],
+              album: { id: 'album-1', name: 'Album Uno' },
+            },
+          },
+        ],
+      }),
     )
     vi.stubGlobal('fetch', fetchMock)
 
@@ -203,6 +232,14 @@ describe('fetchRecentlyPlayed', () => {
     expect(String(url)).toContain('limit=50')
     expect(String(url)).toContain('after=1234')
     expect(init).toEqual({ headers: { Authorization: 'Bearer token-1' } })
+  })
+
+  it('E5: falla ruidoso si un item llega sin track (shape rota del proveedor)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ items: [{ played_at: '2026-05-01T10:00:00Z' }] })),
+    )
+    await expect(fetchRecentlyPlayed('token-1')).rejects.toThrow()
   })
 })
 

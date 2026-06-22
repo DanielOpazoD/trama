@@ -5,6 +5,11 @@
  */
 
 import { API_BASE } from './client.js'
+import {
+  SpotifySavedTracksResponse,
+  SpotifyTopArtistsResponse,
+  SpotifyTopTracksResponse,
+} from './schemas.js'
 
 /**
  * Saved-tracks count. Sólo necesitamos el total (no la lista entera), así que
@@ -20,7 +25,7 @@ export async function fetchSavedTracksCount(accessToken: string): Promise<number
     const text = await r.text()
     throw new Error(`Spotify /me/tracks failed (${r.status}): ${text}`)
   }
-  const body = (await r.json()) as { total?: number }
+  const body = SpotifySavedTracksResponse.parse(await r.json())
   return Number(body.total ?? 0)
 }
 
@@ -57,9 +62,7 @@ export async function fetchTopArtists(
     const text = await r.text()
     throw new Error(`Spotify /me/top/artists failed (${r.status}): ${text}`)
   }
-  const body = (await r.json()) as {
-    items?: Array<{ id: string; name: string; genres: string[]; popularity: number }>
-  }
+  const body = SpotifyTopArtistsResponse.parse(await r.json())
   return (body.items ?? []).map((a) => ({
     id: a.id,
     name: a.name,
@@ -92,15 +95,7 @@ export async function fetchTopTracks(
     const text = await r.text()
     throw new Error(`Spotify /me/top/tracks failed (${r.status}): ${text}`)
   }
-  const body = (await r.json()) as {
-    items?: Array<{
-      id: string
-      name: string
-      artists: Array<{ name: string }>
-      album: { release_date?: string }
-      popularity: number
-    }>
-  }
+  const body = SpotifyTopTracksResponse.parse(await r.json())
   return (body.items ?? []).map((t) => {
     const year =
       t.album?.release_date && /^\d{4}/.test(t.album.release_date)

@@ -24,7 +24,12 @@ import {
 } from './embeddings.js'
 import { z } from 'zod'
 import { logOperationalEvent } from './operational-events.js'
-import { recorteImageSourceKeys, type RecorteRow } from './recortes-service.js'
+import {
+  recorteImageSourceKeys,
+  RecorteRowSchema,
+  type RecorteRow,
+} from './recortes-service.js'
+import { parseRows } from './row-parse.js'
 import {
   createRecorte,
   deleteRecorte,
@@ -115,7 +120,8 @@ export default withObservability(
         )
         const quoteEmbVector = quoteEmb ? toPgVector(quoteEmb.vector) : null
         const quoteEmbAt = quoteEmb ? new Date().toISOString() : null
-        rows = await sqlTyped<RecorteRow>(sql`
+        rows = parseRows(
+          await sqlTyped<RecorteRow>(sql`
           WITH current_recorte AS (
             SELECT id, status
             FROM recortes
@@ -172,7 +178,10 @@ export default withObservability(
           JOIN current_recorte cr ON cr.id = r.id
           WHERE cr.status = 'promoted'
           LIMIT 1
-        `)
+        `),
+          RecorteRowSchema,
+          'recortes.promote.quote',
+        )
       } else if (parsed.data.target === 'entity') {
         const entity = parsed.data.entity
         const entityEmb = await embedSafe(
@@ -185,7 +194,8 @@ export default withObservability(
         )
         const entityEmbVector = entityEmb ? toPgVector(entityEmb.vector) : null
         const entityEmbAt = entityEmb ? new Date().toISOString() : null
-        rows = await sqlTyped<RecorteRow>(sql`
+        rows = parseRows(
+          await sqlTyped<RecorteRow>(sql`
           WITH current_recorte AS (
             SELECT id, status
             FROM recortes
@@ -233,7 +243,10 @@ export default withObservability(
           JOIN current_recorte cr ON cr.id = r.id
           WHERE cr.status = 'promoted'
           LIMIT 1
-        `)
+        `),
+          RecorteRowSchema,
+          'recortes.promote.entity',
+        )
       } else {
         const momento = parsed.data.momento
         const kind = momento.kind
@@ -390,7 +403,8 @@ export default withObservability(
     // a 'pending', limpiando promoted_target/promoted_id en el mismo CTE. Cada
     // rama de borrado se condiciona al target real para tocar una sola tabla.
     if (req.method === 'POST' && id && new URL(req.url).pathname.endsWith('/unpromote')) {
-      const rows = await sqlTyped<RecorteRow>(sql`
+      const rows = parseRows(
+        await sqlTyped<RecorteRow>(sql`
         WITH current_recorte AS (
           SELECT id, promoted_target, promoted_id
           FROM recortes
@@ -436,7 +450,10 @@ export default withObservability(
           image_url, image_key, capture_mode, status, promoted_target,
           promoted_id, captured_at, created_at, updated_at
         FROM reset
-      `)
+      `),
+        RecorteRowSchema,
+        'recortes.unpromote',
+      )
       if (rows.length === 0) {
         return ApiErrors.notFound(
           requestId,

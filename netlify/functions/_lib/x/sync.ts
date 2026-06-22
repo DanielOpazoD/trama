@@ -6,17 +6,7 @@
  */
 
 import { API_BASE, type SqlClient } from './client.js'
-
-type BookmarkTweet = {
-  id: string
-  text: string
-  created_at?: string
-  author_id?: string
-}
-type BookmarksResponse = {
-  data?: BookmarkTweet[]
-  includes?: { users?: Array<{ id: string; username: string; name?: string | null }> }
-}
+import { XBookmarksResponse } from './schemas.js'
 
 export type NormalizedBookmark = {
   tweetId: string
@@ -57,7 +47,7 @@ export async function fetchBookmarks(
   if (!r.ok) {
     throw new XApiError(r.status, await r.text())
   }
-  const data = (await r.json()) as BookmarksResponse
+  const data = XBookmarksResponse.parse(await r.json())
   const usersById = new Map((data.includes?.users ?? []).map((u) => [u.id, u] as const))
   return (data.data ?? []).map((t) => {
     const author = t.author_id ? usersById.get(t.author_id) : undefined
