@@ -57,6 +57,21 @@ npm run storage-assets:report
 El comando solo lee `storage_assets`: total por dominio, activos, soft-deleted y
 assets sin checksum.
 
+## Huerfanos de storage
+
+Tras las subidas directas a R2, el manifest y el store pueden desincronizarse
+(filas sin objeto u objetos sin fila). El inventario read-only y la regla de
+lifecycle del bucket para limpiarlos estan documentados en
+[`docs/storage-orphans.md`](../storage-orphans.md):
+
+```bash
+npm run storage:orphans:dry-run
+```
+
+Solo hace `SELECT` + `HEAD` firmado; el veredicto vive en el nucleo puro
+`netlify/functions/_lib/storage-orphans.ts`. La limpieza correcta es la regla de
+lifecycle del bucket, no un endpoint ni el script.
+
 ## Logs
 
 No loguear contenido, nombres completos de archivos sensibles, PDFs, notas,
