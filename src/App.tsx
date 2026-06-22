@@ -37,6 +37,7 @@ import { MomentoNotificationsCenter } from './components/momentos/MomentoNotific
 import { ShellTopChrome } from './components/appShell/ShellTopChrome'
 import { ShellAttentionLayer } from './components/appShell/ShellAttentionLayer'
 import { buildShellVisibility, type EntityTab } from './components/appShell/appShellModel'
+import { WorldLoadingFallback } from './components/appShell/WorldLoadingFallback'
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
@@ -488,6 +489,11 @@ function WorldShell() {
       /* storage deshabilitado */
     }
   }, [initialWorldFromUrl])
+  // Precarga el bundle (lazy) de Notas tras el arranque: cambiar de mundo no espera el chunk.
+  useEffect(() => {
+    const t = window.setTimeout(() => preloadWorldBundle('notas'), 1200)
+    return () => window.clearTimeout(t)
+  }, [])
 
   // Multiusuario en navegador compartido: si cambia el usuario autenticado, no
   // hereda el último mundo / espejo de prefs del anterior — los descarta y
@@ -551,7 +557,7 @@ function WorldShell() {
             onRevealNotasModule={revealNotasModule}
           />
         ) : (
-          <Suspense fallback={<div className="h-screen w-screen bg-paper-50" />}>
+          <Suspense fallback={<WorldLoadingFallback />}>
             <NotasWorld
               world={world}
               onChangeWorld={changeWorld}
