@@ -12,6 +12,7 @@ import {
   routeDemoBiblioteca,
   routeDemoBibliotecaLinks,
   routeDemoBibliotecaMutation,
+  routeDemoLibraryUpload,
   type DemoLibraryLinkRow,
   type DemoTargetResolver,
 } from './demoBiblioteca'
@@ -238,5 +239,47 @@ describe('demoBiblioteca — conexiones (PR-C)', () => {
       targetKind: 'entidad',
       targetId: 'e-z',
     })
+  })
+})
+
+describe('demoBiblioteca — subida (modo prueba)', () => {
+  it('subir devuelve items camelCase y aparecen en la lista', () => {
+    const res = routeDemoLibraryUpload([
+      { name: 'apunte nuevo.pdf', mime: 'application/pdf', size: 1234 },
+    ])
+    expect(res.items).toHaveLength(1)
+    const item = res.items[0]!
+    expect(item.kind).toBe('library-upload')
+    expect(item.title).toBe('apunte nuevo.pdf')
+    expect(item.fileType).toBe('pdf')
+    expect(item.source).toBe('subido')
+    expect(item.storageDomain).toBe('library-uploads')
+    // El item recién subido aparece en el listado (lo antepone).
+    expect(titles()).toContain('apunte nuevo.pdf')
+  })
+
+  it('usa takenAt como created_at cuando llega', () => {
+    const takenAt = '2019-03-21T08:30:00.000Z'
+    const res = routeDemoLibraryUpload([
+      { name: 'foto.jpg', mime: 'image/jpeg', size: 9000, takenAt },
+    ])
+    expect(res.items[0]!.createdAt).toBe(takenAt)
+    // Sin takenAt cae a "ahora" (no explota ni queda vacío).
+    const res2 = routeDemoLibraryUpload([
+      { name: 'otra.png', mime: 'image/png', size: 10 },
+    ])
+    expect(Number.isNaN(new Date(res2.items[0]!.createdAt).getTime())).toBe(false)
+  })
+
+  it('clasifica el file_type por mime (imagen / documento)', () => {
+    const res = routeDemoLibraryUpload([
+      { name: 'a.jpg', mime: 'image/jpeg', size: 1 },
+      {
+        name: 'b.docx',
+        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        size: 2,
+      },
+    ])
+    expect(res.items.map((i) => i.fileType)).toEqual(['image', 'document'])
   })
 })

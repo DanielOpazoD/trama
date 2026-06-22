@@ -98,13 +98,18 @@ describe('<BibliotecaView />', () => {
     expect(screen.getByRole('button', { name: 'Archivos' })).toBeInTheDocument()
   })
 
-  it('muestra "Nuevo" inerte (aria-disabled) en PR2', async () => {
+  it('"Nuevo" está habilitado y abre el selector de archivos', async () => {
     stubFetch([])
     renderWithProviders(<BibliotecaView />)
-    // Inerte pero focusable (aria-disabled) para que el tooltip funcione; no
-    // usa el atributo `disabled` nativo a propósito.
     const nuevo = await screen.findByRole('button', { name: 'Nuevo' })
-    expect(nuevo).toHaveAttribute('aria-disabled', 'true')
+    // Ahora es funcional: subir archivos a la Biblioteca (no inerte).
+    expect(nuevo).toBeEnabled()
+    // Clickearlo dispara el click del input file oculto.
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]')
+    expect(fileInput).not.toBeNull()
+    const clickSpy = vi.spyOn(fileInput!, 'click')
+    fireEvent.click(nuevo)
+    expect(clickSpy).toHaveBeenCalled()
   })
 
   it('pasa de skeleton a lista cuando la query resuelve', async () => {

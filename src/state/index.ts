@@ -43,6 +43,7 @@ export {
   useSetLibraryItemDeleted,
   useSetLibraryItemTags,
   useSetLibraryItemPinned,
+  useUploadLibraryFiles,
   useLibraryItemLinks,
   useAddLibraryItemLink,
   useRemoveLibraryItemLink,

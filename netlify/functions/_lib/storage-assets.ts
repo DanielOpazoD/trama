@@ -8,6 +8,7 @@ export type StorageAssetDomain =
   | 'recortes-media'
   | 'pdf-studio-saved-pdfs'
   | 'pdf-stamp-assets'
+  | 'library-uploads'
 
 export type StorageAssetProvider = 'netlify-blobs' | 'postgres-data-url'
 
@@ -21,6 +22,12 @@ export type StorageAssetInput = {
   mimeType: string
   byteSize: number
   checksum: string | null
+  /**
+   * Fecha de creación explícita (ISO). Sirve para anclar la fila a una fecha de
+   * captura (EXIF / lastModified) en vez de la hora de subida — la Biblioteca
+   * ordena/posiciona por `created_at`. Si se omite, la DB usa `NOW()`.
+   */
+  createdAt?: string | null
 }
 
 export type StorageAssetDeleteInput = {
@@ -64,15 +71,18 @@ export async function recordStorageAsset(
   options: StorageAssetRecordOptions = {},
 ): Promise<string | null> {
   try {
+    // `created_at` solo se setea explícito si llega `createdAt`; si no, cae al
+    // default NOW() de la tabla (COALESCE deja pasar el NULL al default).
+    const createdAt = input.createdAt ?? null
     const rows = await sqlTyped<{ id: string }>(sql`
       INSERT INTO storage_assets (
         user_id, domain, owner_type, owner_id, provider, storage_key,
-        mime_type, byte_size, checksum
+        mime_type, byte_size, checksum, created_at
       )
       VALUES (
         ${input.userId}, ${input.domain}, ${input.ownerType}, ${input.ownerId},
         ${input.provider}, ${input.storageKey}, ${input.mimeType}, ${input.byteSize},
-        ${input.checksum}
+        ${input.checksum}, COALESCE(${createdAt}::timestamptz, NOW())
       )
       ON CONFLICT (provider, domain, storage_key)
       DO UPDATE SET

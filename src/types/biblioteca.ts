@@ -13,6 +13,7 @@
 
 /** Discriminador de la fuente nativa del item. */
 export type LibraryItemKind =
+  | 'library-upload'
   | 'notas-attachment'
   | 'recorte-image'
   | 'momento-foto'
@@ -35,6 +36,7 @@ export type LibrarySource = 'subido' | 'generado' | 'capturado' | 'whatsapp'
 
 /** Dominio de blobs donde vive el archivo (para construir URLs en PR3). */
 export type LibraryStorageDomain =
+  | 'library-uploads'
   | 'notas-attachments'
   | 'recortes-media'
   | 'momentos-media'

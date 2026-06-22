@@ -39,6 +39,40 @@ type LibraryItemRow = {
 
 const DEFAULT_LIMIT = 30
 
+/**
+ * Familia de archivo derivada del mime (espejo del CASE del read-model y del
+ * endpoint de subida). En modo prueba la usamos al subir para clasificar la
+ * card sin backend.
+ */
+function fileTypeForMime(mime: string): string {
+  if (mime.startsWith('image/')) return 'image'
+  if (mime === 'application/pdf') return 'pdf'
+  if (mime.startsWith('audio/')) return 'audio'
+  if (mime.startsWith('video/')) return 'video'
+  if (
+    mime === 'application/vnd.ms-excel' ||
+    mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    mime === 'text/csv'
+  ) {
+    return 'spreadsheet'
+  }
+  if (
+    mime === 'application/vnd.ms-powerpoint' ||
+    mime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ) {
+    return 'presentation'
+  }
+  if (
+    mime === 'application/msword' ||
+    mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    mime === 'application/json' ||
+    mime.startsWith('text/')
+  ) {
+    return 'document'
+  }
+  return 'other'
+}
+
 /** ISO de hace N días (a una hora fija para que el orden sea estable). */
 function daysAgo(n: number): string {
   const d = new Date('2026-06-21T09:00:00.000Z')
@@ -274,6 +308,13 @@ function overrideKey(kind: string, itemId: string): string {
   return `${kind}:${itemId}`
 }
 
+/**
+ * Archivos subidos en la sesión (PR1 de subida). Viven en memoria como filas
+ * snake_case (igual que el seed) y se anteponen a la lista en cada GET, así la
+ * subida es visible al instante en modo prueba. Se pierden al recargar.
+ */
+const uploadedRows: LibraryItemRow[] = []
+
 /** Aplica los overrides en memoria a una fila del seed. */
 function applyOverride(row: LibraryItemRow): LibraryItemRow & { deleted: boolean } {
   const ov = demoOverrides.get(overrideKey(row.item_kind, row.item_id))
@@ -347,11 +388,12 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
   const cursorRaw = Number.parseInt(params.get('cursor') ?? '0', 10)
   const offset = Number.isFinite(cursorRaw) && cursorRaw > 0 ? cursorRaw : 0
 
-  // Aplicar overrides (título / papelera) sobre el seed, luego filtrar por el
-  // estado de papelera (la lista normal oculta los eliminados y viceversa).
-  let rows = SEED.map(applyOverride).filter((row) =>
-    incluyeEliminados ? row.deleted : !row.deleted,
-  )
+  // Aplicar overrides (título / papelera) sobre el seed + las subidas de la
+  // sesión, luego filtrar por el estado de papelera (la lista normal oculta los
+  // eliminados y viceversa). Las subidas van primero (más recientes).
+  let rows = [...uploadedRows, ...SEED]
+    .map(applyOverride)
+    .filter((row) => (incluyeEliminados ? row.deleted : !row.deleted))
 
   // Filtro por pestaña: imagenes → solo image; archivos → todo menos image.
   rows = rows.filter((row) => {
@@ -447,6 +489,94 @@ export function routeDemoBibliotecaMutation(
   }
   demoOverrides.set(key, current)
   return { ok: true }
+}
+
+/** Metadata de un archivo a subir (lo que el router extrae de la FormData). */
+export type DemoUploadFile = {
+  name: string
+  mime: string
+  size: number
+  takenAt?: string | null
+}
+
+/** Item subido, en la forma camelCase de `GET /api/biblioteca` (lo que el
+ *  cliente devuelve tal cual desde `bibliotecaApi.upload`). */
+export type DemoUploadedItem = {
+  id: string
+  kind: 'library-upload'
+  itemId: string
+  title: string
+  fileType: string
+  source: 'subido'
+  mimeType: string
+  byteSize: number
+  storageKey: string
+  storageDomain: 'library-uploads'
+  tags: string[]
+  pinned: boolean
+  aiStatus: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * Maneja POST /api/library-uploads en modo prueba: por cada archivo arma una
+ * fila `library-upload`, la antepone a la lista en memoria (para que aparezca en
+ * el siguiente GET) y devuelve `{ items }` en camelCase, espejo del endpoint
+ * real. `created_at` usa la fecha de captura (takenAt) si llegó, si no la actual.
+ */
+export function routeDemoLibraryUpload(files: DemoUploadFile[]): {
+  items: DemoUploadedItem[]
+} {
+  const items: DemoUploadedItem[] = []
+  for (const file of files) {
+    const itemId = `demo-upload-${crypto.randomUUID()}`
+    const mime = file.mime || 'application/octet-stream'
+    const createdAt =
+      file.takenAt && !Number.isNaN(new Date(file.takenAt).getTime())
+        ? new Date(file.takenAt).toISOString()
+        : new Date().toISOString()
+    // La key lleva una extensión derivada del nombre para que `demoMedia` pueda
+    // servir un placeholder coherente (imágenes → miniatura).
+    const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
+    const storageKey = `legacy-single-user/${itemId}${ext}`
+
+    const row: LibraryItemRow = {
+      item_kind: 'library-upload',
+      item_id: itemId,
+      title: file.name || 'Archivo',
+      file_type: fileTypeForMime(mime),
+      source: 'subido',
+      mime_type: mime,
+      byte_size: Number.isFinite(file.size) ? file.size : null,
+      storage_key: storageKey,
+      storage_domain: 'library-uploads',
+      tags: [],
+      pinned: false,
+      ai_status: null,
+      created_at: createdAt,
+      updated_at: createdAt,
+    }
+    uploadedRows.unshift(row)
+    items.push({
+      id: `library-upload:${itemId}`,
+      kind: 'library-upload',
+      itemId,
+      title: row.title,
+      fileType: row.file_type,
+      source: 'subido',
+      mimeType: mime,
+      byteSize: row.byte_size ?? 0,
+      storageKey,
+      storageDomain: 'library-uploads',
+      tags: [],
+      pinned: false,
+      aiStatus: null,
+      createdAt,
+      updatedAt: createdAt,
+    })
+  }
+  return { items }
 }
 
 // ---------------------------------------------------------------------------

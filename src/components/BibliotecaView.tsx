@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { flattenBibliotecaItems, useBibliotecaList } from '../state'
+import {
+  flattenBibliotecaItems,
+  useBibliotecaList,
+  useUploadLibraryFiles,
+} from '../state'
+import { resolveCaptureDate } from '../lib/exifDate'
 import { useSearchParamState } from '../hooks/useSearchParamState'
 import { ViewHeader } from './ViewHeader'
 import { ErrorState } from './ErrorState'
-import { Tooltip } from './Tooltip'
-import { ChevronDownIcon, CloseIcon, PlusIcon, SearchIcon } from './Icons'
+import { CloseIcon, PlusIcon, SearchIcon } from './Icons'
 import { BibliotecaTabs } from './biblioteca/BibliotecaTabs'
 import { BibliotecaToolbar } from './biblioteca/BibliotecaToolbar'
 import type {
@@ -37,7 +41,8 @@ import {
  * de vista (lista / cuadrícula), cada uno espejado en la URL vía
  * `useSearchParamState` para que la vista sea enlazable. La búsqueda tiene un
  * debounce de 250 ms antes de tocar el query param / disparar la query.
- * Renderiza el header editorial (con buscador compacto + "Nuevo" deshabilitado),
+ * Renderiza el header editorial (con buscador compacto + "Nuevo" que sube
+ * archivos vía un input file oculto),
  * la fila de pestañas + barra de controles (filtros + conmutador de vista), la
  * lista ordenable o la cuadrícula de cards, y los estados de carga / error /
  * vacío, más el botón "Cargar más" (paginación por cursor).
@@ -165,6 +170,27 @@ export function BibliotecaView({
     eliminadosParam,
   ])
 
+  // Subida (PR1 de subida): el botón "Nuevo" abre un input file oculto. Por cada
+  // imagen leemos su fecha de captura (EXIF → lastModified) para que la
+  // Biblioteca la posicione por cuándo se tomó, no por la hora de subida.
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadFiles = useUploadLibraryFiles()
+
+  async function handleFilesSelected(fileList: FileList | null) {
+    const files = fileList ? Array.from(fileList) : []
+    if (files.length === 0) return
+    const withDates = await Promise.all(
+      files.map(async (file) => ({
+        file,
+        // Solo las imágenes traen fecha de captura relevante; para el resto
+        // resolveCaptureDate cae a lastModified igual, así que la mandamos
+        // siempre (el servidor decide si la usa).
+        takenAt: await resolveCaptureDate(file),
+      })),
+    )
+    uploadFiles.mutate(withDates)
+  }
+
   // Búsqueda con debounce: el input es estado local inmediato; el query param
   // (y por ende la query) se actualiza 250 ms después de dejar de teclear.
   const [searchInput, setSearchInput] = useState(q)
@@ -285,24 +311,31 @@ export function BibliotecaView({
                 className="min-w-0 flex-1 bg-transparent text-sm text-ink-700 placeholder:text-ink-300 focus:outline-none"
               />
             </label>
-            {/* "Nuevo" llega en PR4 (subida). Lo dejamos visible pero
-                inerte: usamos `aria-disabled` en vez del atributo nativo
-                `disabled` para que el Tooltip siga recibiendo hover/focus y
-                pueda explicar "Disponible pronto" (un botón `disabled` real no
-                dispara eventos y el tooltip nunca aparecería). */}
-            <Tooltip content="Disponible pronto">
-              <button
-                type="button"
-                aria-disabled="true"
-                aria-label="Nuevo"
-                onClick={(e) => e.preventDefault()}
-                className="btn-ink inline-flex items-center gap-1.5 shrink-0 bg-ink-200 hover:bg-ink-200 cursor-not-allowed active:scale-100"
-              >
-                <PlusIcon size={14} />
-                <span>Nuevo</span>
-                <ChevronDownIcon size={12} className="opacity-80" />
-              </button>
-            </Tooltip>
+            {/* "Nuevo" abre el selector de archivos (input oculto) y sube a la
+                Biblioteca. Mientras sube, se deshabilita y muestra "Subiendo…".
+                El tray drag-drop + barra de progreso son un PR posterior. */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,video/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/msword,application/vnd.ms-excel,application/vnd.ms-powerpoint,text/*,application/json"
+              className="sr-only"
+              onChange={(e) => {
+                void handleFilesSelected(e.target.files)
+                // Limpiar el value permite re-seleccionar el mismo archivo.
+                e.target.value = ''
+              }}
+            />
+            <button
+              type="button"
+              aria-label="Nuevo"
+              disabled={uploadFiles.isPending}
+              onClick={() => fileInputRef.current?.click()}
+              className="btn-ink inline-flex items-center gap-1.5 shrink-0 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <PlusIcon size={14} />
+              <span>{uploadFiles.isPending ? 'Subiendo…' : 'Nuevo'}</span>
+            </button>
           </div>
         }
       />

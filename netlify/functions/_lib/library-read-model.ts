@@ -6,7 +6,7 @@
  * que ya tienen los datos y las decora con `library_item_overrides`:
  *
  *   notas_attachments · recorte_images(+recortes) · momentos(foto) ·
- *   pdf_studio_saved_pdfs · pdf_stamp_assets
+ *   pdf_studio_saved_pdfs · pdf_stamp_assets · storage_assets(library-uploads)
  *
  * Este módulo sigue el ethos de `momentos-list.ts`: un schema Zod para los query
  * params y funciones PURAS (parseo, orden, paginación) testeables sin DB, más la
@@ -273,7 +273,7 @@ export function sortAndPaginate(
 /**
  * Trae las filas de la Biblioteca para `userId`, aplicando filtros en SQL.
  *
- * Forma de la query (ver plan §3): un UNION ALL de 6 ramas que proyectan la
+ * Forma de la query (ver plan §3): un UNION ALL de 7 ramas que proyectan la
  * MISMA lista de columnas/tipos, decoradas con `library_item_overrides` vía LEFT
  * JOIN, y un SELECT final con filtros centinela (se pasan como bind params, así
  * '' = "sin filtro" sin ramificar el SQL). Cada rama filtra su propio
@@ -462,6 +462,44 @@ export async function fetchLibraryRows(
       FROM pdf_stamp_assets ps
       WHERE ps.deleted_at IS NULL
         AND ps.user_id = ${userId}
+
+      UNION ALL
+
+      -- 7) Archivos subidos directo a la Biblioteca. No tienen tabla nativa:
+      --    storage_assets ES su fuente de verdad. El nombre real lo aporta el
+      --    override (display_title); acá title_native es solo el fallback.
+      --    byte_size viene del manifest; created_at puede ser la fecha de
+      --    captura (EXIF / lastModified) seteada al subir.
+      SELECT
+        'library-upload'::text AS item_kind,
+        sa.id::text AS item_id,
+        sa.user_id AS user_id,
+        'Archivo'::text AS title_native,
+        sa.mime_type AS mime_type,
+        sa.byte_size::bigint AS byte_size,
+        CASE
+          WHEN sa.mime_type LIKE 'image/%' THEN 'image'
+          WHEN sa.mime_type = 'application/pdf' THEN 'pdf'
+          WHEN sa.mime_type LIKE 'audio/%' THEN 'audio'
+          WHEN sa.mime_type LIKE 'video/%' THEN 'video'
+          WHEN sa.mime_type IN ('application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv') THEN 'spreadsheet'
+          WHEN sa.mime_type IN ('application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation') THEN 'presentation'
+          WHEN sa.mime_type = 'application/msword'
+            OR sa.mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            OR sa.mime_type = 'application/json'
+            OR sa.mime_type LIKE 'text/%' THEN 'document'
+          ELSE 'other'
+        END AS file_type,
+        'subido'::text AS source,
+        sa.storage_key AS storage_key,
+        'library-uploads'::text AS storage_domain,
+        sa.created_at AS created_at,
+        sa.updated_at AS updated_at
+      FROM storage_assets sa
+      WHERE sa.deleted_at IS NULL
+        AND sa.domain = 'library-uploads'
+        AND sa.owner_type = 'biblioteca-upload'
+        AND sa.user_id = ${userId}
     ),
     joined AS (
       SELECT

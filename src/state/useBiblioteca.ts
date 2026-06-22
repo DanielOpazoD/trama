@@ -267,6 +267,36 @@ export function useSetLibraryItemPinned() {
 }
 
 // ---------------------------------------------------------------------------
+// Subida (PR1 de subida): sube uno o varios archivos directo a la Biblioteca.
+// No es optimista (no conocemos el id ni la miniatura hasta que el servidor
+// responde); al asentar invalidamos la superficie para que la lista los traiga.
+// ---------------------------------------------------------------------------
+
+/** Sube archivos a la Biblioteca y refresca la lista. Toast en éxito/error. */
+export function useUploadLibraryFiles() {
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (files: { file: File; takenAt?: string }[]) =>
+      api.biblioteca.upload(files),
+    onSuccess: (items) => {
+      const count = items.length
+      toast.show({
+        message: count === 1 ? 'Archivo subido' : `${count} archivos subidos`,
+        tone: 'success',
+      })
+    },
+    onError: (err) => {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudieron subir los archivos',
+        tone: 'error',
+      })
+    },
+    onSettled: () => invalidateBibliotecaSurface(queryClient),
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Conexiones (PR-C): listar / agregar / quitar vínculos de un item con objetos
 // de dominio (entidad, nota, momento). Query por item; las mutaciones invalidan
 // esa query (lista chica, refetch barato).
