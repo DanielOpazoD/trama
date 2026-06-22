@@ -163,6 +163,9 @@ export function BibliotecaListView({
             </div>
           )
         })}
+        {/* Espaciador de la columna de acciones (ancho fijo): alinea el header
+            con la celda de acciones de cada fila para que nada se descuadre. */}
+        <div role="columnheader" aria-hidden className="w-24 shrink-0" />
       </div>
 
       {/* Filas — clickeables (abren el visor); accesibles por teclado. */}
@@ -241,7 +244,7 @@ export function BibliotecaListView({
               puntero aparecen al hover/focus de la fila. */}
           <div
             role="cell"
-            className="shrink-0 opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 motion-reduce:transition-none"
+            className="w-24 shrink-0 flex justify-end opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 motion-reduce:transition-none"
           >
             <BibliotecaItemActions item={item} trash={trash} onRename={onRename} />
           </div>

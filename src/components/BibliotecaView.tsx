@@ -215,6 +215,28 @@ export function BibliotecaView({
     [items, selectedIds],
   )
 
+  // Scroll infinito: un centinela al final de la lista auto-carga la página
+  // siguiente al entrar en viewport (con 200 px de adelanto, para que la carga
+  // sea imperceptible). Reemplaza el "Cargar más" manual; queda un botón de
+  // respaldo por accesibilidad / si el observer no estuviera disponible.
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query
+  useEffect(() => {
+    const el = loadMoreRef.current
+    // Sin IntersectionObserver (p. ej. jsdom en tests) cae al botón de respaldo.
+    if (!el || !hasNextPage || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+
   function handleSort(column: SortColumn) {
     const next = toggleOrden(orden, column)
     // El default no necesita ensuciar la URL.
@@ -357,15 +379,18 @@ export function BibliotecaView({
             />
           )}
           {query.hasNextPage && (
-            <div className="flex justify-center pt-6">
-              <button
-                type="button"
-                onClick={() => query.fetchNextPage()}
-                disabled={query.isFetchingNextPage}
-                className="btn-ghost"
-              >
-                {query.isFetchingNextPage ? 'Cargando…' : 'Cargar más'}
-              </button>
+            <div ref={loadMoreRef} className="flex justify-center pt-6">
+              {query.isFetchingNextPage ? (
+                <span className="text-caption text-ink-400">Cargando…</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => query.fetchNextPage()}
+                  className="btn-ghost"
+                >
+                  Cargar más
+                </button>
+              )}
             </div>
           )}
         </>
