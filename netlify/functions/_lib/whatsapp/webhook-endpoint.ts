@@ -937,8 +937,6 @@ async function handleInboundMedia(
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
     if (appendedTotal !== null) {
-      // Continuación de álbum: anexamos a la captura reciente (confirmación
-      // suave, sin "guardado" de nuevo — es el mismo evento que crece).
       const noun = lastKind === 'momento' ? 'tu momento' : 'tu evento en Recortes'
       lines.push(
         newImageCount === 1
@@ -947,8 +945,6 @@ async function handleInboundMedia(
       )
       lines.push('Para separarla la próxima vez, escribe “nuevo” o “no juntar”.')
     } else {
-      // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
-      // recorte — no N elementos sueltos.
       const isPhotoEpisode =
         lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
       const isRecorteEvent =
@@ -963,7 +959,12 @@ async function handleInboundMedia(
               : `✅ ${saved} elementos guardados.`,
       )
     }
-    if (mediaDirectives.dateLabel && lastKind === 'momento') {
+    const explicitDateApplied =
+      mediaDirectives.explicitCapturedAt !== null &&
+      lastKind === 'momento' &&
+      appendedTotal === null
+
+    if (mediaDirectives.dateLabel && explicitDateApplied) {
       lines.push(`📅 Fecha aplicada: ${mediaDirectives.dateLabel}.`)
     }
     if (skipped.has('vision')) {
@@ -972,8 +973,6 @@ async function handleInboundMedia(
     if (wantsDescription) {
       lines.push('✍️ Responde con una descripción y se la agrego.')
     }
-    // El deep link (texto o botón [Abrir en Trama]) y el deshacer los agrega el
-    // caller (replyWithCapture) según haya plantillas/captura.
   }
   if (skipped.has('video_format')) {
     lines.push('🎬 Ese formato de video no lo soporto aún. Envía MP4, WEBM o MOV.')

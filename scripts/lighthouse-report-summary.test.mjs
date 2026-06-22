@@ -1,3 +1,7 @@
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { summarizeLighthouseReport } from './lighthouse-report-summary.mjs'
 
@@ -41,5 +45,28 @@ describe('summarizeLighthouseReport', () => {
       url: 'https://tramahub.app/trama-icon.png',
       transferKb: 678,
     })
+  })
+
+  it('reporta JSON inválido sin stack trace crudo', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'trama-lh-'))
+    const file = join(dir, 'bad.json')
+    writeFileSync(file, '{ no es json', 'utf8')
+
+    try {
+      const result = spawnSync(
+        process.execPath,
+        ['scripts/lighthouse-report-summary.mjs', file],
+        {
+          cwd: process.cwd(),
+          encoding: 'utf8',
+        },
+      )
+
+      expect(result.status).toBe(1)
+      expect(result.stderr).toContain('No pude leer o parsear el reporte Lighthouse')
+      expect(result.stderr).not.toContain('SyntaxError:')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })

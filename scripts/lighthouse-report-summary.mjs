@@ -94,7 +94,15 @@ function main(argv = process.argv.slice(2)) {
     process.exitCode = 1
     return
   }
-  const report = JSON.parse(readFileSync(file, 'utf8'))
+  let report
+  try {
+    report = JSON.parse(readFileSync(file, 'utf8'))
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`No pude leer o parsear el reporte Lighthouse: ${message}`)
+    process.exitCode = 1
+    return
+  }
   printSummary(summarizeLighthouseReport(report))
 }
 

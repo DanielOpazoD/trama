@@ -1,11 +1,19 @@
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = resolve(__dirname, '../..')
 
 function readRepoFile(path: string) {
   return readFileSync(resolve(root, path), 'utf8')
+}
+
+function cspDirectiveAllows(csp: string, directive: string, origin: string) {
+  const normalized = csp.replace(/\s+/g, ' ')
+  const match = new RegExp(`${directive}\\s+([^;"]*)`, 'i').exec(normalized)
+  return match ? match[1]!.includes(origin) : false
 }
 
 describe('shell performance contracts', () => {
@@ -22,9 +30,15 @@ describe('shell performance contracts', () => {
   it('permite el beacon inyectado por Cloudflare Insights en CSP', () => {
     const netlifyToml = readRepoFile('netlify.toml')
 
-    expect(netlifyToml).toMatch(
-      /script-src[^"]*https:\/\/static\.cloudflareinsights\.com/,
-    )
-    expect(netlifyToml).toMatch(/connect-src[^"]*https:\/\/cloudflareinsights\.com/)
+    expect(
+      cspDirectiveAllows(
+        netlifyToml,
+        'script-src',
+        'https://static.cloudflareinsights.com',
+      ),
+    ).toBe(true)
+    expect(
+      cspDirectiveAllows(netlifyToml, 'connect-src', 'https://cloudflareinsights.com'),
+    ).toBe(true)
   })
 })
