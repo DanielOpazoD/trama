@@ -10,8 +10,12 @@ import {
   ITEM_ID_MAX,
   LIBRARY_ITEM_KINDS,
   LibraryOverrideValidationError,
+  TAG_MAX,
+  TAGS_MAX,
   renameLibraryItem,
   setLibraryItemDeleted,
+  setLibraryItemPinned,
+  setLibraryItemTags,
 } from './_lib/library-overrides.js'
 
 /**
@@ -21,6 +25,8 @@ import {
  *   PATCH /api/biblioteca-item/:kind/:id
  *     { displayTitle }      → renombrar (upsert display_title)
  *     { deleted: boolean }  → papelera (true) / restaurar (false)
+ *     { tags: string[] }    → reemplazar etiquetas (upsert tags)
+ *     { pinned: boolean }   → fijar (true) / soltar (false)
  *
  * El lado GET no vive acá: la lista (y la papelera, vía `incluyeEliminados`) la
  * sirve `GET /api/biblioteca` con el read-model que ya aplica overrides. Acá solo
@@ -32,15 +38,26 @@ import {
 const ItemKindParam = z.enum(LIBRARY_ITEM_KINDS)
 
 /**
- * Body del PATCH: o renombrar, o cambiar el estado de papelera. Union estricta
- * (uno u otro, no ambos): `displayTitle` no vacío 1..400, o `deleted` boolean.
+ * Body del PATCH: una sola acción por request. Union de cuatro formas:
+ * renombrar (`displayTitle` 1..400), papelera (`deleted`), etiquetas (`tags`,
+ * cada una 1..TAG_MAX, hasta TAGS_MAX; la normalización fina vive en el dominio)
+ * o fijado (`pinned`). El handler discrimina por la clave presente.
  */
 const BibliotecaItemPatchBody = z.union([
-  z.object({
+  // `strictObject` rechaza payloads con claves extra: así `{ displayTitle,
+  // deleted }` (dos acciones a la vez) falla la validación en vez de ejecutar
+  // una en silencio — refuerza el contrato de "una sola acción por request".
+  z.strictObject({
     displayTitle: z.string().trim().min(1).max(DISPLAY_TITLE_MAX),
   }),
-  z.object({
+  z.strictObject({
     deleted: z.boolean(),
+  }),
+  z.strictObject({
+    tags: z.array(z.string().trim().min(1).max(TAG_MAX)).max(TAGS_MAX),
+  }),
+  z.strictObject({
+    pinned: z.boolean(),
   }),
 ])
 
@@ -83,6 +100,36 @@ export default withObservability(
           kind: kindResult.data,
           itemId,
           title: row?.display_title ?? body.displayTitle.trim(),
+        })
+      }
+
+      if ('tags' in body) {
+        const row = await setLibraryItemTags(sql, {
+          userId,
+          itemKind: kindResult.data,
+          itemId,
+          tags: body.tags,
+        })
+        return Response.json({
+          ok: true,
+          kind: kindResult.data,
+          itemId,
+          tags: row?.tags ?? body.tags,
+        })
+      }
+
+      if ('pinned' in body) {
+        const row = await setLibraryItemPinned(sql, {
+          userId,
+          itemKind: kindResult.data,
+          itemId,
+          pinned: body.pinned,
+        })
+        return Response.json({
+          ok: true,
+          kind: kindResult.data,
+          itemId,
+          pinned: row?.pinned ?? body.pinned,
         })
       }
 

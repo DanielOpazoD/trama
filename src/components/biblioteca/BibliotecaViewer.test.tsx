@@ -7,7 +7,7 @@
  * El blob autenticado de la imagen se mockea como en AuthenticatedMedia.test.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 const requestMocks = vi.hoisted(() => ({
@@ -141,5 +141,83 @@ describe('<BibliotecaViewer />', () => {
     renderWithProviders(<BibliotecaViewer item={item()} onClose={onClose} />)
     await userEvent.keyboard('{Escape}')
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  // ---- Fijar + inspector "Detalles" (PR-C) ----
+
+  it('el botón de fijar refleja el estado (Fijar / Soltar)', () => {
+    const { rerender } = renderWithProviders(
+      <BibliotecaViewer item={item()} onClose={() => {}} />,
+    )
+    // Sin fijar → ofrece "Fijar".
+    expect(screen.getByRole('button', { name: 'Fijar' })).toBeInTheDocument()
+
+    rerender(<BibliotecaViewer item={item({ pinned: true })} onClose={() => {}} />)
+    // Fijado → ofrece "Soltar" y queda presionado.
+    const soltar = screen.getByRole('button', { name: 'Soltar' })
+    expect(soltar).toBeInTheDocument()
+    expect(soltar).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('clickear "Fijar" dispara el PATCH con { pinned: true }', async () => {
+    // El visor es controlado (lee item.pinned de props), así que el toggle "en
+    // sesión" lo prueba BibliotecaView; acá cubrimos que el CLICK realmente
+    // dispara la mutación (el hueco que un test de solo-props no cubre).
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderWithProviders(<BibliotecaViewer item={item()} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Fijar' }))
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes('/api/biblioteca-item/'),
+      )
+      expect(call).toBeTruthy()
+      expect(call?.[1]?.method).toBe('PATCH')
+      expect(String(call?.[1]?.body)).toContain('"pinned":true')
+    })
+  })
+
+  it('el toggle "Detalles" abre el inspector con Etiquetas y Aparece en', async () => {
+    // El inspector lista conexiones (fetch real): stub vacío para acallarlo.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ links: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    )
+
+    renderWithProviders(
+      <BibliotecaViewer item={item({ tags: ['lectura'] })} onClose={() => {}} />,
+    )
+
+    const detalles = screen.getByRole('button', { name: 'Detalles' })
+    expect(detalles).toHaveAttribute('aria-pressed', 'false')
+
+    await userEvent.click(detalles)
+    expect(detalles).toHaveAttribute('aria-pressed', 'true')
+
+    // Secciones del inspector + el chip de etiqueta existente. Buscamos DENTRO
+    // del panel (la tira de metadata del header también tiene un "Etiquetas"
+    // sr-only, así que acotamos al complementary "Detalles del archivo").
+    const panel = within(
+      screen.getByRole('complementary', { name: 'Detalles del archivo' }),
+    )
+    expect(panel.getByText('Etiquetas')).toBeInTheDocument()
+    expect(panel.getByText('Aparece en')).toBeInTheDocument()
+    expect(
+      panel.getByRole('button', { name: 'Quitar etiqueta lectura' }),
+    ).toBeInTheDocument()
   })
 })

@@ -104,6 +104,9 @@ export const BibliotecaListQuery = z.object({
   // (no rompe el listado, igual que kind en momentos-list).
   tipo: z.preprocess(normalizeEnum(FILE_TYPES), z.string()),
   fuente: z.preprocess(normalizeEnum(SOURCES), z.string()),
+  // tag: filtro por etiqueta exacta; '' = sin filtro. Texto libre (no hay enum),
+  // solo se recorta y se topa la longitud.
+  tag: z.preprocess(QueryParam.trimmedString({ max: 50 }).normalize, z.string().max(50)),
   orden: z.preprocess((value) => {
     const raw = typeof value === 'string' ? value.trim() : ''
     return (ORDENES as readonly string[]).includes(raw) ? raw : 'modificado-desc'
@@ -129,6 +132,7 @@ export type LibraryFetchParams = {
   tab: 'todo' | 'imagenes' | 'archivos'
   tipo: string
   fuente: string
+  tag: string
   incluyeEliminados: boolean
 }
 
@@ -160,6 +164,7 @@ export function buildLibraryListParams(query: BibliotecaListQueryT): {
       tab: query.tab,
       tipo: query.tipo,
       fuente: query.fuente,
+      tag: query.tag,
       incluyeEliminados: query.incluyeEliminados,
     },
     page: {
@@ -207,6 +212,7 @@ function compareCreatedAt(a: LibraryItemRow, b: LibraryItemRow): number {
 /**
  * Ordena las filas según `orden` y devuelve una página + `nextCursor`.
  *
+ * - Los items fijados (`pinned`) van SIEMPRE primero, antes de aplicar `orden`.
  * - `nombre` compara título sin distinguir mayúsculas/acentos.
  * - `tamano` ordena por byteSize con nulls al final (en ambas direcciones).
  * - Desempate estable por item_id, así dos llamadas devuelven el mismo orden.
@@ -217,6 +223,9 @@ export function sortAndPaginate(
   { orden, limit, offset }: LibraryPageParams,
 ): { items: LibraryItemRow[]; nextCursor: string | null } {
   const sorted = [...rows].sort((a, b) => {
+    // Los fijados van primero, sea cual sea el orden elegido (acceso rápido).
+    const pinnedDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+    if (pinnedDiff !== 0) return pinnedDiff
     let primary = 0
     switch (orden) {
       case 'modificado-desc':
@@ -285,7 +294,7 @@ export async function fetchLibraryRows(
   userId: string,
   params: LibraryFetchParams,
 ): Promise<LibraryItemRow[]> {
-  const { q, tab, tipo, fuente, incluyeEliminados } = params
+  const { q, tab, tipo, fuente, tag, incluyeEliminados } = params
   // Escapa los comodines de LIKE (`%`, `_`, `\`) en la búsqueda. Sin esto, un
   // término como "informe_medico" trataría el guion bajo como comodín (los
   // nombres de archivo los usan mucho) y daría falsos positivos.
@@ -505,6 +514,7 @@ export async function fetchLibraryRows(
       )
       AND (${tipo} = '' OR file_type = ${tipo})
       AND (${fuente} = '' OR source = ${fuente})
+      AND (${tag} = '' OR ${tag}::text = ANY(COALESCE(tags, '{}')))
       AND (${q} = '' OR title ILIKE '%' || ${qLike} || '%' ESCAPE '\\')
     ORDER BY updated_at DESC
   `)

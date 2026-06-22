@@ -5,8 +5,11 @@ import {
   isLibraryItemKind,
   normalizeDisplayTitle,
   normalizeItemKey,
+  normalizeTags,
   renameLibraryItem,
   setLibraryItemDeleted,
+  setLibraryItemPinned,
+  setLibraryItemTags,
 } from './library-overrides'
 
 const sql = setupMockSql().getSql()
@@ -63,6 +66,22 @@ describe('library-overrides — validación pura', () => {
       LibraryOverrideValidationError,
     )
     expect(() => normalizeDisplayTitle(42)).toThrow(LibraryOverrideValidationError)
+  })
+
+  it('normalizeTags recorta, descarta vacíos y deduplica sin distinguir mayúsculas', () => {
+    expect(normalizeTags(['  Foto ', 'foto', 'PDF', '  ', 'pdf'])).toEqual([
+      'Foto',
+      'PDF',
+    ])
+    expect(normalizeTags([])).toEqual([])
+  })
+
+  it('normalizeTags rechaza no-arrays, no-strings y excesos de tamaño/cantidad', () => {
+    expect(() => normalizeTags('foto')).toThrow(LibraryOverrideValidationError)
+    expect(() => normalizeTags([42])).toThrow(LibraryOverrideValidationError)
+    expect(() => normalizeTags(['x'.repeat(51)])).toThrow(LibraryOverrideValidationError)
+    const tooMany = Array.from({ length: 31 }, (_, i) => `t${i}`)
+    expect(() => normalizeTags(tooMany)).toThrow(LibraryOverrideValidationError)
   })
 })
 
@@ -146,5 +165,67 @@ describe('library-overrides — upserts (mock SQL)', () => {
         deleted: true,
       }),
     ).rejects.toThrow(LibraryOverrideValidationError)
+  })
+
+  it('setLibraryItemTags upsertea tags normalizados con cast text[] y user_id explícito', async () => {
+    mockSqlResponses.push([overrideRow({ tags: ['factura', '2026'] })])
+
+    const row = await setLibraryItemTags(sql, {
+      userId: 'user-a',
+      itemKind: 'notas-attachment',
+      itemId: 'a1',
+      tags: ['  factura ', 'factura', '2026'],
+    })
+
+    expect(row?.tags).toEqual(['factura', '2026'])
+    const call = mockSqlState.calls.at(-1)
+    expect(call?.template).toMatch(/INSERT INTO library_item_overrides/i)
+    expect(call?.template).toMatch(/tags = EXCLUDED\.tags/i)
+    expect(call?.template).toMatch(/::text\[\]/i)
+    expect(call?.values).toContain('user-a')
+    // Los tags viajan trimmeados + deduplicados como un único bind array.
+    expect(call?.values).toContainEqual(['factura', '2026'])
+  })
+
+  it('setLibraryItemTags rechaza un tags no-lista sin tocar SQL', async () => {
+    await expect(
+      setLibraryItemTags(sql, {
+        userId: 'user-a',
+        itemKind: 'notas-attachment',
+        itemId: 'a1',
+        tags: 'no-soy-lista',
+      }),
+    ).rejects.toThrow(LibraryOverrideValidationError)
+    expect(mockSqlState.calls).toHaveLength(0)
+  })
+
+  it('setLibraryItemPinned upsertea pinned con user_id explícito', async () => {
+    mockSqlResponses.push([overrideRow({ pinned: true })])
+
+    const row = await setLibraryItemPinned(sql, {
+      userId: 'user-a',
+      itemKind: 'pdf-saved',
+      itemId: 'p1',
+      pinned: true,
+    })
+
+    expect(row?.pinned).toBe(true)
+    const call = mockSqlState.calls.at(-1)
+    expect(call?.template).toMatch(/pinned = EXCLUDED\.pinned/i)
+    expect(call?.values).toEqual(
+      expect.arrayContaining(['user-a', 'pdf-saved', 'p1', true]),
+    )
+  })
+
+  it('setLibraryItemPinned rechaza pinned no booleano sin tocar SQL', async () => {
+    await expect(
+      setLibraryItemPinned(sql, {
+        userId: 'user-a',
+        itemKind: 'pdf-saved',
+        itemId: 'p1',
+        pinned: 'sí' as unknown as boolean,
+      }),
+    ).rejects.toThrow(LibraryOverrideValidationError)
+    expect(mockSqlState.calls).toHaveLength(0)
   })
 })

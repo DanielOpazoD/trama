@@ -58,6 +58,10 @@ const BUDGETS = {
   // Feed unificado notas+recortes: triage (RecorteCard + PromoteModal),
   // calendario de actividad, NoteCard y captura de adjuntos.
   NotasFeedView: 28,
+  // Vista Biblioteca (lazy desde el mundo Notas): lista/grilla + visor con
+  // inspector (etiquetas + conexiones + picker de entidad/nota/momento). Los
+  // sub-visores PDF/texto y pdf.js viven en sus propios chunks.
+  BibliotecaView: 16,
   Settings: 18,
   'index.es': 60,
   'purify.es': 12,

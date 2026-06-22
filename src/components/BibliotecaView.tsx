@@ -4,7 +4,7 @@ import { useSearchParamState } from '../hooks/useSearchParamState'
 import { ViewHeader } from './ViewHeader'
 import { ErrorState } from './ErrorState'
 import { Tooltip } from './Tooltip'
-import { ChevronDownIcon, PlusIcon, SearchIcon } from './Icons'
+import { ChevronDownIcon, CloseIcon, PlusIcon, SearchIcon } from './Icons'
 import { BibliotecaTabs } from './biblioteca/BibliotecaTabs'
 import { BibliotecaToolbar } from './biblioteca/BibliotecaToolbar'
 import type {
@@ -112,6 +112,7 @@ export function BibliotecaView({
   const [ordenParam, setOrdenParam] = useSearchParamState('orden')
   const [tipoParam, setTipoParam] = useSearchParamState('tipo')
   const [fuenteParam, setFuenteParam] = useSearchParamState('fuente')
+  const [etiquetaParam, setEtiquetaParam] = useSearchParamState('etiqueta')
   const [vistaParam, setVistaParam] = useSearchParamState('vista')
   const [eliminadosParam, setEliminadosParam] = useSearchParamState('eliminados')
 
@@ -122,11 +123,18 @@ export function BibliotecaView({
   const vista = coerceVista(vistaParam)
   const incluyeEliminados = eliminadosParam === '1'
   const q = qParam ?? ''
+  // Filtro por etiqueta (PR-C): se setea al clickear un chip de etiqueta en una
+  // card / fila, y se quita desde el indicador junto a la barra de controles.
+  const tag = (etiquetaParam ?? '').trim()
 
   // Item en edición de nombre (un único modal sirve a lista y cuadrícula).
   const [renamingItem, setRenamingItem] = useState<LibraryItem | null>(null)
   // Item abierto en el visor (un único overlay sirve a lista y cuadrícula).
-  const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null)
+  // Guardamos el item al abrir, pero el visor lee el item VIVO de la cache
+  // (`viewingItem`, derivado más abajo): así fijar/etiquetar de forma optimista
+  // se refleja en la misma sesión y las ediciones sucesivas no pisan un
+  // snapshot viejo.
+  const [openedItem, setOpenedItem] = useState<LibraryItem | null>(null)
 
   // Selección múltiple (PR-B): ids `${kind}:${itemId}` marcados. La barra de
   // selección flota cuando hay ≥1, y permite "Enviar a Imprenta" + eliminar.
@@ -147,7 +155,15 @@ export function BibliotecaView({
   // selección "fantasma" entre vistas confundiría.
   useEffect(() => {
     clearSelection()
-  }, [tabParam, qParam, ordenParam, tipoParam, fuenteParam, eliminadosParam])
+  }, [
+    tabParam,
+    qParam,
+    ordenParam,
+    tipoParam,
+    fuenteParam,
+    etiquetaParam,
+    eliminadosParam,
+  ])
 
   // Búsqueda con debounce: el input es estado local inmediato; el query param
   // (y por ende la query) se actualiza 250 ms después de dejar de teclear.
@@ -181,9 +197,17 @@ export function BibliotecaView({
     orden,
     tipo: tipo || undefined,
     fuente: fuente || undefined,
+    tag: tag || undefined,
     incluyeEliminados,
   })
   const items = useMemo(() => flattenBibliotecaItems(query.data), [query.data])
+  // Item del visor, re-derivado de la lista viva para reflejar los updates
+  // optimistas (tags / fijar). Cae al snapshot de apertura si la lista no lo
+  // tiene a mano (p. ej. durante un refetch) para que el overlay no parpadee.
+  const viewingItem = useMemo(
+    () => (openedItem ? (items.find((i) => i.id === openedItem.id) ?? openedItem) : null),
+    [openedItem, items],
+  )
   // Items seleccionados, resueltos contra la lista cargada (la barra necesita el
   // LibraryItem completo, no solo el id, para bajar blobs / soft-delete).
   const selectedItems = useMemo(
@@ -199,6 +223,12 @@ export function BibliotecaView({
 
   function handleTab(next: BibliotecaTab) {
     setTabParam(next === 'todo' ? null : next)
+  }
+
+  function handleTagClick(next: string) {
+    // Clickear la etiqueta ya activa la quita (toggle); si no, la fija.
+    const trimmed = next.trim()
+    setEtiquetaParam(trimmed && trimmed !== tag ? trimmed : null)
   }
 
   function handleVista(next: typeof vista) {
@@ -269,6 +299,24 @@ export function BibliotecaView({
         />
       </div>
 
+      {/* Indicador del filtro por etiqueta activo — removible. */}
+      {tag && (
+        <div className="mb-3 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--accent-sage-soft)] pl-3 pr-1.5 py-1 text-caption text-ink-700">
+            <span className="text-ink-400">Etiqueta:</span>
+            <span className="font-medium">{tag}</span>
+            <button
+              type="button"
+              onClick={() => setEtiquetaParam(null)}
+              aria-label={`Quitar filtro de etiqueta ${tag}`}
+              className="touch-target inline-flex size-4 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-200/70 hover:text-ink-700"
+            >
+              <CloseIcon size={11} />
+            </button>
+          </span>
+        </div>
+      )}
+
       {query.isLoading ? (
         vista === 'cuadricula' ? (
           <BibliotecaGridSkeleton />
@@ -292,7 +340,8 @@ export function BibliotecaView({
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onRename={setRenamingItem}
-              onOpen={setViewingItem}
+              onOpen={setOpenedItem}
+              onTagClick={handleTagClick}
             />
           ) : (
             <BibliotecaListView
@@ -303,7 +352,8 @@ export function BibliotecaView({
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onRename={setRenamingItem}
-              onOpen={setViewingItem}
+              onOpen={setOpenedItem}
+              onTagClick={handleTagClick}
             />
           )}
           {query.hasNextPage && (
@@ -326,7 +376,7 @@ export function BibliotecaView({
       )}
 
       {viewingItem && (
-        <BibliotecaViewer item={viewingItem} onClose={() => setViewingItem(null)} />
+        <BibliotecaViewer item={viewingItem} onClose={() => setOpenedItem(null)} />
       )}
 
       <BibliotecaSelectionBar

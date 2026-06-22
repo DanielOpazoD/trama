@@ -154,6 +154,44 @@ describe('<FileCard />', () => {
       screen.getByRole('checkbox', { name: 'Seleccionar Contrato de edición.pdf' }),
     ).toBeChecked()
   })
+
+  // ---- Fijado + etiquetas (PR-C) ----
+
+  it('muestra el indicador de fijado cuando item.pinned', () => {
+    const { rerender } = renderWithProviders(
+      <FileCard item={item()} onToggleSelect={noop} onRename={noop} onOpen={noop} />,
+    )
+    expect(screen.queryByLabelText('Fijado')).toBeNull()
+
+    rerender(
+      <FileCard
+        item={item({ pinned: true })}
+        onToggleSelect={noop}
+        onRename={noop}
+        onOpen={noop}
+      />,
+    )
+    expect(screen.getByLabelText('Fijado')).toBeInTheDocument()
+  })
+
+  it('clickear una etiqueta llama onTagClick sin abrir el visor', async () => {
+    const onOpen = vi.fn()
+    const onTagClick = vi.fn()
+    renderWithProviders(
+      <FileCard
+        item={item({ tags: ['lectura'] })}
+        onToggleSelect={noop}
+        onRename={noop}
+        onOpen={onOpen}
+        onTagClick={onTagClick}
+      />,
+    )
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Filtrar por etiqueta lectura' }),
+    )
+    expect(onTagClick).toHaveBeenCalledWith('lectura')
+    expect(onOpen).not.toHaveBeenCalled()
+  })
 })
 
 describe('<BibliotecaGridView />', () => {

@@ -1,10 +1,17 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { api } from '../api'
 import type {
   BibliotecaListParams,
   BibliotecaListResult,
   LibraryItem,
   LibraryItemKind,
+  LibraryItemLink,
+  LibraryLinkTargetKind,
 } from '../types/biblioteca'
 import { queryKeys } from './queryClient'
 import { invalidateBibliotecaSurface } from './cacheInvalidation'
@@ -30,11 +37,11 @@ const BIBLIOTECA_INFINITE = queryKeys.bibliotecaInfinite
  */
 export type BibliotecaListInput = Pick<
   BibliotecaListParams,
-  'tab' | 'q' | 'orden' | 'tipo' | 'fuente' | 'incluyeEliminados'
+  'tab' | 'q' | 'orden' | 'tipo' | 'fuente' | 'tag' | 'incluyeEliminados'
 >
 
 export function useBibliotecaList(input: BibliotecaListInput) {
-  const { tab, q, orden, tipo, fuente, incluyeEliminados } = input
+  const { tab, q, orden, tipo, fuente, tag, incluyeEliminados } = input
   return useInfiniteQuery<BibliotecaListResult>({
     // El prefijo `biblioteca` invalida todas las variantes de filtro; los
     // segmentos siguientes separan cada combinación de filtros en su cache
@@ -46,6 +53,7 @@ export function useBibliotecaList(input: BibliotecaListInput) {
       orden ?? 'modificado-desc',
       tipo ?? '',
       fuente ?? '',
+      tag ?? '',
       incluyeEliminados ? 'eliminados' : 'activos',
     ],
     initialPageParam: undefined as string | undefined,
@@ -56,6 +64,7 @@ export function useBibliotecaList(input: BibliotecaListInput) {
         orden,
         tipo,
         fuente,
+        tag,
         incluyeEliminados,
         cursor: pageParam as string | undefined,
       }),
@@ -186,5 +195,140 @@ export function useSetLibraryItemDeleted() {
       })
     },
     onSettled: () => invalidateBibliotecaSurface(queryClient),
+  })
+}
+
+/** Reemplaza las etiquetas de un item (optimista sobre `item.tags`). */
+export function useSetLibraryItemTags() {
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (input: { kind: LibraryItemKind; itemId: string; tags: string[] }) =>
+      api.biblioteca.setTags(input.kind, input.itemId, input.tags),
+    onMutate: async ({ kind, itemId, tags }) => {
+      await queryClient.cancelQueries(BIBLIOTECA_PREFIX)
+      const snapshot = snapshotQueries<BibliotecaInfiniteData>(
+        queryClient,
+        BIBLIOTECA_PREFIX,
+      )
+      queryClient.setQueriesData<BibliotecaInfiniteData>(BIBLIOTECA_PREFIX, (data) =>
+        patchBibliotecaPages(data, (items) =>
+          items.map((item) => (sameItem(item, kind, itemId) ? { ...item, tags } : item)),
+        ),
+      )
+      return { snapshot }
+    },
+    onError: (err, _vars, context) => {
+      if (context?.snapshot) restoreQueriesSnapshot(queryClient, context.snapshot)
+      toast.show({
+        message:
+          err instanceof Error ? err.message : 'No se pudieron guardar las etiquetas',
+        tone: 'error',
+      })
+    },
+    onSettled: () => invalidateBibliotecaSurface(queryClient),
+  })
+}
+
+/**
+ * Fija o suelta un item (optimista sobre `item.pinned`). El reordenamiento
+ * fijados-primero lo hace el servidor; la invalidación reconcilia el orden.
+ */
+export function useSetLibraryItemPinned() {
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (input: { kind: LibraryItemKind; itemId: string; pinned: boolean }) =>
+      api.biblioteca.setPinned(input.kind, input.itemId, input.pinned),
+    onMutate: async ({ kind, itemId, pinned }) => {
+      await queryClient.cancelQueries(BIBLIOTECA_PREFIX)
+      const snapshot = snapshotQueries<BibliotecaInfiniteData>(
+        queryClient,
+        BIBLIOTECA_PREFIX,
+      )
+      queryClient.setQueriesData<BibliotecaInfiniteData>(BIBLIOTECA_PREFIX, (data) =>
+        patchBibliotecaPages(data, (items) =>
+          items.map((item) =>
+            sameItem(item, kind, itemId) ? { ...item, pinned } : item,
+          ),
+        ),
+      )
+      return { snapshot }
+    },
+    onError: (err, _vars, context) => {
+      if (context?.snapshot) restoreQueriesSnapshot(queryClient, context.snapshot)
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo fijar',
+        tone: 'error',
+      })
+    },
+    onSettled: () => invalidateBibliotecaSurface(queryClient),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Conexiones (PR-C): listar / agregar / quitar vínculos de un item con objetos
+// de dominio (entidad, nota, momento). Query por item; las mutaciones invalidan
+// esa query (lista chica, refetch barato).
+// ---------------------------------------------------------------------------
+
+/** Conexiones ("aparece en") de un item; deshabilitable mientras no haya item. */
+export function useLibraryItemLinks(
+  kind: LibraryItemKind | null,
+  itemId: string | null,
+  enabled = true,
+) {
+  return useQuery<LibraryItemLink[]>({
+    queryKey: queryKeys.bibliotecaLinks(kind ?? '', itemId ?? ''),
+    queryFn: () => api.biblioteca.listLinks(kind as LibraryItemKind, itemId as string),
+    enabled: enabled && kind !== null && itemId !== null,
+  })
+}
+
+type LinkMutationInput = {
+  kind: LibraryItemKind
+  itemId: string
+  targetKind: LibraryLinkTargetKind
+  targetId: string
+}
+
+export function useAddLibraryItemLink() {
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (input: LinkMutationInput) =>
+      api.biblioteca.addLink(input.kind, input.itemId, input.targetKind, input.targetId),
+    onError: (err) => {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo conectar',
+        tone: 'error',
+      })
+    },
+    onSettled: (_d, _e, { kind, itemId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bibliotecaLinks(kind, itemId) })
+    },
+  })
+}
+
+export function useRemoveLibraryItemLink() {
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (input: LinkMutationInput) =>
+      api.biblioteca.removeLink(
+        input.kind,
+        input.itemId,
+        input.targetKind,
+        input.targetId,
+      ),
+    onError: (err) => {
+      toast.show({
+        message: err instanceof Error ? err.message : 'No se pudo quitar la conexión',
+        tone: 'error',
+      })
+    },
+    onSettled: (_d, _e, { kind, itemId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bibliotecaLinks(kind, itemId) })
+    },
   })
 }

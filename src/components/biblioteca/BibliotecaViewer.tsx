@@ -4,11 +4,12 @@ import { createPortal } from 'react-dom'
 import type { LibraryItem } from '../../types/biblioteca'
 import { canDownloadLibraryItem, libraryItemServeUrl } from '../../api/biblioteca'
 import { api } from '../../api'
-import { useToast } from '../../state'
+import { useSetLibraryItemPinned, useToast } from '../../state'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { CloseIcon, DownloadIcon } from '../Icons'
+import { CloseIcon, DownloadIcon, InfoIcon, PinIcon } from '../Icons'
 import { FileTypeIcon } from './FileTypeIcon'
+import { BibliotecaInspector } from './BibliotecaInspector'
 import {
   fileExtensionLabel,
   fileTypeLabel,
@@ -51,6 +52,8 @@ export function BibliotecaViewer({
   const mode = viewerModeFor(item)
   const serveUrl = libraryItemServeUrl(item)
   const downloadable = canDownloadLibraryItem(item)
+  // Inspector "Detalles" (etiquetas + conexiones) — cajón lateral derecho.
+  const [inspectorOpen, setInspectorOpen] = useState(false)
 
   return createPortal(
     <>
@@ -72,7 +75,13 @@ export function BibliotecaViewer({
         aria-label={`Visor — ${item.title}`}
         className="fixed inset-0 z-[100] flex flex-col pointer-events-none animate-fade-up motion-reduce:animate-none"
       >
-        <ViewerHeader item={item} downloadable={downloadable} onClose={onClose} />
+        <ViewerHeader
+          item={item}
+          downloadable={downloadable}
+          inspectorOpen={inspectorOpen}
+          onToggleInspector={() => setInspectorOpen((v) => !v)}
+          onClose={onClose}
+        />
 
         {/* Contenido — los márgenes dejan pasar el clic al fondo (cerrar). */}
         <div className="flex-1 min-h-0 w-full overflow-hidden pointer-events-none">
@@ -80,20 +89,31 @@ export function BibliotecaViewer({
             <ViewerBody item={item} mode={mode} serveUrl={serveUrl} onClose={onClose} />
           </div>
         </div>
+
+        {/* Inspector lateral — sobre el fondo, anclado a la derecha del overlay. */}
+        <BibliotecaInspector
+          item={item}
+          open={inspectorOpen}
+          onClose={() => setInspectorOpen(false)}
+        />
       </div>
     </>,
     document.body,
   )
 }
 
-/** Barra superior: título + tira de metadata + descargar + cerrar. */
+/** Barra superior: título + tira de metadata + fijar + detalles + descargar + cerrar. */
 function ViewerHeader({
   item,
   downloadable,
+  inspectorOpen,
+  onToggleInspector,
   onClose,
 }: {
   item: LibraryItem
   downloadable: boolean
+  inspectorOpen: boolean
+  onToggleInspector: () => void
   onClose: () => void
 }) {
   return (
@@ -104,6 +124,20 @@ function ViewerHeader({
             {item.title}
           </h2>
           <div className="flex items-center gap-1.5 shrink-0">
+            <PinButton item={item} />
+            <button
+              type="button"
+              onClick={onToggleInspector}
+              aria-label="Detalles"
+              aria-pressed={inspectorOpen}
+              className={`size-9 flex items-center justify-center rounded-full transition-colors ${
+                inspectorOpen
+                  ? 'bg-white/15 text-white'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <InfoIcon size={18} />
+            </button>
             {downloadable && <DownloadButton item={item} />}
             <button
               onClick={onClose}
@@ -117,6 +151,30 @@ function ViewerHeader({
         <MetadataStrip item={item} />
       </div>
     </div>
+  )
+}
+
+/**
+ * Botón Fijar / Soltar del header. Relleno con `--accent-sage` cuando el item
+ * está fijado; contorno tenue cuando no. Optimista vía `useSetLibraryItemPinned`.
+ */
+function PinButton({ item }: { item: LibraryItem }) {
+  const setPinned = useSetLibraryItemPinned()
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        setPinned.mutate({ kind: item.kind, itemId: item.itemId, pinned: !item.pinned })
+      }
+      disabled={setPinned.isPending}
+      aria-label={item.pinned ? 'Soltar' : 'Fijar'}
+      aria-pressed={item.pinned}
+      title={item.pinned ? 'Soltar' : 'Fijar'}
+      className="size-9 flex items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-50"
+      style={item.pinned ? { color: 'var(--accent-sage)' } : undefined}
+    >
+      <PinIcon size={17} className={item.pinned ? 'fill-current' : 'text-white/80'} />
+    </button>
   )
 }
 

@@ -202,7 +202,7 @@ trama/
 │   └── *.spec.ts                         # add-entity · add-quote · chat-send · momentos · …
 └── netlify/
     ├── database/migrations/              # SQL versionado, aplicado en deploy
-    └── functions/                        # 95 endpoints `.mts`
+    └── functions/                        # 96 endpoints `.mts`
         ├── _lib/                         # lógica compartida
         │   ├── db.ts                     # getSql() singleton
         │   ├── auth.ts                   # Clerk verifyToken + ALLOW_LEGACY_FALLBACK

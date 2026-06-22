@@ -95,6 +95,16 @@ export const PRIVATE_TABLE_CONTRACTS = [
       'Decorates private files with per-user titles and a Library-level soft-delete without touching the source rows.',
   },
   {
+    table: 'library_item_links',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership:
+      'owner scoped connections between a Library file and entities/notes/momentos',
+    reason:
+      'Links reveal private relationships between a file and the user objects it appears in.',
+  },
+  {
     table: 'momento_access',
     lifecycle: 'join',
     userId: 'required',

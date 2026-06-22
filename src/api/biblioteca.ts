@@ -5,6 +5,8 @@ import type {
   LibraryFileType,
   LibraryItem,
   LibraryItemKind,
+  LibraryItemLink,
+  LibraryLinkTargetKind,
   LibrarySource,
   LibraryStorageDomain,
 } from '../types/biblioteca'
@@ -62,6 +64,7 @@ function buildQuery(params: BibliotecaListParams): string {
   if (params.tab) search.set('tab', params.tab)
   if (params.tipo) search.set('tipo', params.tipo)
   if (params.fuente) search.set('fuente', params.fuente)
+  if (params.tag) search.set('tag', params.tag)
   if (params.orden) search.set('orden', params.orden)
   if (params.incluyeEliminados) search.set('incluyeEliminados', 'true')
   if (params.limit !== undefined) search.set('limit', String(params.limit))
@@ -117,6 +120,11 @@ function libraryItemPath(kind: LibraryItemKind, itemId: string): string {
   return `/api/biblioteca-item/${encodeURIComponent(kind)}/${encodeURIComponent(itemId)}`
 }
 
+/** Path del endpoint de conexiones, con kind/id codificados para la URL. */
+function libraryLinksPath(kind: LibraryItemKind, itemId: string): string {
+  return `/api/biblioteca-links/${encodeURIComponent(kind)}/${encodeURIComponent(itemId)}`
+}
+
 /**
  * Dispara la descarga de un blob en el navegador como `filename`. Crea un
  * object-url efímero y un <a download> sintético; lo revoca tras el click.
@@ -167,6 +175,54 @@ export const bibliotecaApi = {
       method: 'PATCH',
       body: JSON.stringify({ deleted }),
     })
+  },
+
+  /** Reemplaza las etiquetas del item (upsert de tags en el override). */
+  async setTags(kind: LibraryItemKind, itemId: string, tags: string[]): Promise<void> {
+    await request(libraryItemPath(kind, itemId), {
+      method: 'PATCH',
+      body: JSON.stringify({ tags }),
+    })
+  },
+
+  /** Fija (pinned=true) o suelta (pinned=false) el item. */
+  async setPinned(kind: LibraryItemKind, itemId: string, pinned: boolean): Promise<void> {
+    await request(libraryItemPath(kind, itemId), {
+      method: 'PATCH',
+      body: JSON.stringify({ pinned }),
+    })
+  },
+
+  /** Lista las conexiones del item ("aparece en"), con título del destino. */
+  async listLinks(kind: LibraryItemKind, itemId: string): Promise<LibraryItemLink[]> {
+    const res = await request<{ links: LibraryItemLink[] }>(
+      libraryLinksPath(kind, itemId),
+    )
+    return res.links
+  },
+
+  /** Crea (o revive) un vínculo del item a un destino (entidad/nota/momento). */
+  async addLink(
+    kind: LibraryItemKind,
+    itemId: string,
+    targetKind: LibraryLinkTargetKind,
+    targetId: string,
+  ): Promise<void> {
+    await request(libraryLinksPath(kind, itemId), {
+      method: 'POST',
+      body: JSON.stringify({ targetKind, targetId }),
+    })
+  },
+
+  /** Quita un vínculo del item (soft-delete; destino vía query params). */
+  async removeLink(
+    kind: LibraryItemKind,
+    itemId: string,
+    targetKind: LibraryLinkTargetKind,
+    targetId: string,
+  ): Promise<void> {
+    const qs = new URLSearchParams({ targetKind, targetId }).toString()
+    await request(`${libraryLinksPath(kind, itemId)}?${qs}`, { method: 'DELETE' })
   },
 
   /**

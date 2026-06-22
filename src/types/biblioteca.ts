@@ -60,6 +60,22 @@ export type LibraryItem = {
   updatedAt: string
 }
 
+/** Objeto de dominio al que se puede vincular un archivo (conexiones). */
+export type LibraryLinkTargetKind = 'entidad' | 'nota' | 'momento'
+
+/**
+ * Conexión de un archivo con un objeto de dominio ("aparece en"). `targetTitle`
+ * llega resuelto por el servidor (JOIN al origen) y puede ser null si el destino
+ * fue borrado.
+ */
+export type LibraryItemLink = {
+  id: string
+  targetKind: LibraryLinkTargetKind
+  targetId: string
+  targetTitle: string | null
+  createdAt: string
+}
+
 /**
  * Pestañas de la vista (filtra por familia de archivo). Fuente única del tipo:
  * lo consumen `BibliotecaListParams` (contrato de la API) y la UI
@@ -86,6 +102,8 @@ export type BibliotecaListParams = {
   tipo?: LibraryFileType | ''
   /** Filtro por fuente; '' o ausente = sin filtro. */
   fuente?: LibrarySource | ''
+  /** Filtro por etiqueta exacta; '' o ausente = sin filtro. */
+  tag?: string
   orden?: BibliotecaOrden
   /** Incluir items ocultos a nivel Biblioteca (papelera). */
   incluyeEliminados?: boolean

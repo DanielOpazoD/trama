@@ -1,9 +1,10 @@
 import type { KeyboardEvent } from 'react'
-import { ChevronDownIcon } from '../Icons'
+import { ChevronDownIcon, PinIcon } from '../Icons'
 import type { LibraryItem } from '../../types/biblioteca'
 import { Thumbnail } from './Thumbnail'
 import { BibliotecaItemActions } from './BibliotecaItemActions'
 import { SelectionCircle } from './SelectionCircle'
+import { TagChips } from './TagChips'
 import {
   fileExtensionLabel,
   formatByteSize,
@@ -86,6 +87,7 @@ export function BibliotecaListView({
   onToggleSelect,
   onRename,
   onOpen,
+  onTagClick,
 }: {
   items: LibraryItem[]
   orden: BibliotecaOrden
@@ -97,6 +99,8 @@ export function BibliotecaListView({
   onToggleSelect: (item: LibraryItem) => void
   onRename: (item: LibraryItem) => void
   onOpen: (item: LibraryItem) => void
+  /** Filtra por una etiqueta al clickearla (PR-C). Opcional. */
+  onTagClick?: (tag: string) => void
 }) {
   const { column: activeColumn, direction } = parseOrden(orden)
   const anySelected = selectedIds.size > 0
@@ -189,7 +193,25 @@ export function BibliotecaListView({
             {/* Miniatura real para imágenes con URL de servir; para el resto
                 (o si la imagen falla) cae al glifo de tipo internamente. */}
             <Thumbnail item={item} size="small" />
+            {item.pinned && (
+              // Indicador discreto de archivo fijado (acento salvia).
+              <span
+                aria-label="Fijado"
+                title="Fijado"
+                className="shrink-0 inline-flex"
+                style={{ color: 'var(--accent-sage)' }}
+              >
+                <PinIcon size={13} className="fill-current" />
+              </span>
+            )}
             <span className="font-medium text-ink-700 truncate">{item.title}</span>
+            {/* Etiquetas clickeables — ocultas en pantallas chicas para no
+                competir con el nombre. */}
+            <TagChips
+              tags={item.tags}
+              onTagClick={onTagClick}
+              className="hidden lg:flex shrink-0"
+            />
           </div>
           <div
             role="cell"

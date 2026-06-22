@@ -4,6 +4,8 @@ import { formatCardMeta } from './helpers'
 import { Thumbnail } from './Thumbnail'
 import { BibliotecaItemActions } from './BibliotecaItemActions'
 import { SelectionCircle } from './SelectionCircle'
+import { TagChips } from './TagChips'
+import { PinIcon } from '../Icons'
 
 /**
  * Card de un archivo en la vista cuadrícula. Composición editorial sobre papel
@@ -26,6 +28,7 @@ export function FileCard({
   onToggleSelect,
   onRename,
   onOpen,
+  onTagClick,
 }: {
   item: LibraryItem
   trash?: boolean
@@ -37,6 +40,8 @@ export function FileCard({
   onToggleSelect: (item: LibraryItem) => void
   onRename: (item: LibraryItem) => void
   onOpen: (item: LibraryItem) => void
+  /** Filtra por una etiqueta al clickearla (PR-C). Opcional. */
+  onTagClick?: (tag: string) => void
 }) {
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     // Enter/Espacio abren el visor; Espacio además evita el scroll de página.
@@ -93,10 +98,26 @@ export function FileCard({
         <Thumbnail item={item} size="large" />
       </div>
 
-      {/* Metadata — tipo + tamaño. */}
-      <p className="text-caption text-ink-400 tabular-nums truncate">
-        {formatCardMeta(item.fileType, item.byteSize)}
+      {/* Metadata — tipo + tamaño, con el indicador de fijado a la derecha. */}
+      <p className="flex items-center gap-1.5 text-caption text-ink-400 tabular-nums">
+        {item.pinned && (
+          // Indicador discreto de archivo fijado (acento salvia).
+          <span
+            aria-label="Fijado"
+            title="Fijado"
+            className="shrink-0 inline-flex"
+            style={{ color: 'var(--accent-sage)' }}
+          >
+            <PinIcon size={12} className="fill-current" />
+          </span>
+        )}
+        <span className="min-w-0 truncate">
+          {formatCardMeta(item.fileType, item.byteSize)}
+        </span>
       </p>
+
+      {/* Etiquetas clickeables (filtran la lista). */}
+      <TagChips tags={item.tags} onTagClick={onTagClick} />
     </div>
   )
 }
