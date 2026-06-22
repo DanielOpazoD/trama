@@ -250,4 +250,55 @@ describe('<BibliotecaView />', () => {
       expect(requestedUrls.some((u) => u.includes('fuente=subido'))).toBe(true)
     })
   })
+
+  // ---- Multi-select (PR-B) ----
+
+  it('seleccionar items muestra la barra con el conteo; deseleccionar todo la cierra', async () => {
+    stubFetch([
+      row({ item_id: 'a', title: 'Foto uno.png', file_type: 'image' }),
+      row({ item_id: 'b', title: 'Foto dos.png', file_type: 'image' }),
+    ])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Foto uno.png')
+    // Sin selección no hay barra.
+    expect(screen.queryByRole('toolbar', { name: /archivos seleccionados/i })).toBeNull()
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Foto uno.png' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Foto dos.png' }))
+
+    expect(
+      await screen.findByRole('toolbar', { name: /archivos seleccionados/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('2 seleccionados')).toBeInTheDocument()
+
+    // Toggle de vuelta: el primero deja de estar marcado.
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Foto uno.png' }))
+    expect(screen.getByText('1 seleccionado')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Deseleccionar todo/i }))
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('toolbar', { name: /archivos seleccionados/i }),
+      ).toBeNull()
+    })
+  })
+
+  it('cambiar de pestaña limpia la selección', async () => {
+    stubFetch([row({ item_id: 'a', title: 'Foto.png', file_type: 'image' })])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Foto.png')
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Seleccionar Foto.png' }))
+    expect(
+      await screen.findByRole('toolbar', { name: /archivos seleccionados/i }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Imágenes' }))
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('toolbar', { name: /archivos seleccionados/i }),
+      ).toBeNull()
+    })
+  })
 })

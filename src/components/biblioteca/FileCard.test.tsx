@@ -31,7 +31,9 @@ function item(partial: Partial<LibraryItem> = {}): LibraryItem {
 
 describe('<FileCard />', () => {
   it('muestra el nombre y la metadata (tipo · tamaño)', () => {
-    renderWithProviders(<FileCard item={item()} onRename={noop} onOpen={noop} />)
+    renderWithProviders(
+      <FileCard item={item()} onToggleSelect={noop} onRename={noop} onOpen={noop} />,
+    )
     expect(screen.getByText('Contrato de edición.pdf')).toBeInTheDocument()
     // 167936 B ≈ 164 KB.
     expect(screen.getByText('PDF · 164 KB')).toBeInTheDocument()
@@ -41,6 +43,7 @@ describe('<FileCard />', () => {
     renderWithProviders(
       <FileCard
         item={item({ byteSize: null, fileType: 'image' })}
+        onToggleSelect={noop}
         onRename={noop}
         onOpen={noop}
       />,
@@ -49,7 +52,9 @@ describe('<FileCard />', () => {
   })
 
   it('expone acciones de renombrar/descargar/eliminar', () => {
-    renderWithProviders(<FileCard item={item()} onRename={noop} onOpen={noop} />)
+    renderWithProviders(
+      <FileCard item={item()} onToggleSelect={noop} onRename={noop} onOpen={noop} />,
+    )
     expect(screen.getByRole('button', { name: 'Renombrar' })).toBeInTheDocument()
     // pdf-saved/pdf-stamp no son descargables; notas-attachment sí.
     expect(screen.getByRole('button', { name: 'Descargar' })).toBeInTheDocument()
@@ -57,7 +62,15 @@ describe('<FileCard />', () => {
   })
 
   it('en papelera solo muestra Restaurar', () => {
-    renderWithProviders(<FileCard item={item()} trash onRename={noop} onOpen={noop} />)
+    renderWithProviders(
+      <FileCard
+        item={item()}
+        trash
+        onToggleSelect={noop}
+        onRename={noop}
+        onOpen={noop}
+      />,
+    )
     expect(screen.getByRole('button', { name: 'Restaurar' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Eliminar' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Renombrar' })).toBeNull()
@@ -71,6 +84,7 @@ describe('<FileCard />', () => {
           storageDomain: 'pdf-stamp-assets',
           storageKey: null,
         })}
+        onToggleSelect={noop}
         onRename={noop}
         onOpen={noop}
       />,
@@ -80,7 +94,9 @@ describe('<FileCard />', () => {
 
   it('abre el visor al hacer clic en la card', async () => {
     const onOpen = vi.fn()
-    renderWithProviders(<FileCard item={item()} onRename={noop} onOpen={onOpen} />)
+    renderWithProviders(
+      <FileCard item={item()} onToggleSelect={noop} onRename={noop} onOpen={onOpen} />,
+    )
     await userEvent.click(
       screen.getByRole('button', { name: 'Abrir Contrato de edición.pdf' }),
     )
@@ -91,10 +107,52 @@ describe('<FileCard />', () => {
   it('NO abre el visor cuando se clickea un botón de acción (stopPropagation)', async () => {
     const onOpen = vi.fn()
     const onRename = vi.fn()
-    renderWithProviders(<FileCard item={item()} onRename={onRename} onOpen={onOpen} />)
+    renderWithProviders(
+      <FileCard
+        item={item()}
+        onToggleSelect={onRename}
+        onRename={onRename}
+        onOpen={onOpen}
+      />,
+    )
     await userEvent.click(screen.getByRole('button', { name: 'Renombrar' }))
     expect(onRename).toHaveBeenCalledTimes(1)
     expect(onOpen).not.toHaveBeenCalled()
+  })
+
+  it('el círculo de selección togglea sin abrir el visor (stopPropagation)', async () => {
+    const onOpen = vi.fn()
+    const onToggleSelect = vi.fn()
+    renderWithProviders(
+      <FileCard
+        item={item()}
+        onToggleSelect={onToggleSelect}
+        onRename={noop}
+        onOpen={onOpen}
+      />,
+    )
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Seleccionar Contrato de edición.pdf' }),
+    )
+    expect(onToggleSelect).toHaveBeenCalledTimes(1)
+    expect(onToggleSelect).toHaveBeenCalledWith(expect.objectContaining({ itemId: '1' }))
+    expect(onOpen).not.toHaveBeenCalled()
+  })
+
+  it('refleja el estado seleccionado (aria-checked)', () => {
+    renderWithProviders(
+      <FileCard
+        item={item()}
+        selected
+        anySelected
+        onToggleSelect={noop}
+        onRename={noop}
+        onOpen={noop}
+      />,
+    )
+    expect(
+      screen.getByRole('checkbox', { name: 'Seleccionar Contrato de edición.pdf' }),
+    ).toBeChecked()
   })
 })
 
@@ -106,6 +164,8 @@ describe('<BibliotecaGridView />', () => {
           item({ id: 'a', itemId: 'a', title: 'Uno.pdf' }),
           item({ id: 'b', itemId: 'b', title: 'Dos.pdf' }),
         ]}
+        selectedIds={new Set()}
+        onToggleSelect={noop}
         onRename={noop}
         onOpen={noop}
       />,
