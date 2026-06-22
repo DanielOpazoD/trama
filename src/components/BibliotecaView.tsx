@@ -20,6 +20,7 @@ import { BibliotecaGridSkeleton } from './biblioteca/BibliotecaGridSkeleton'
 import { BibliotecaEmptyState } from './biblioteca/BibliotecaEmptyState'
 import { RenameModal } from './biblioteca/RenameModal'
 import { BibliotecaViewer } from './biblioteca/BibliotecaViewer'
+import { BibliotecaSelectionBar } from './biblioteca/BibliotecaSelectionBar'
 import {
   DEFAULT_ORDEN,
   DEFAULT_VISTA,
@@ -96,7 +97,16 @@ function coerceFuente(raw: string | null): LibrarySource | '' {
     : ''
 }
 
-export function BibliotecaView() {
+export function BibliotecaView({
+  onSendToImprenta,
+}: {
+  /**
+   * Envía archivos seleccionados a Imprenta (estudio PDF). Lo provee el mundo
+   * Notas: setea los archivos pendientes y navega a la sección PDF. Opcional para
+   * que la vista siga renderizando aislada en tests.
+   */
+  onSendToImprenta?: (files: File[]) => void
+} = {}) {
   const [tabParam, setTabParam] = useSearchParamState('tab')
   const [qParam, setQParam] = useSearchParamState('q')
   const [ordenParam, setOrdenParam] = useSearchParamState('orden')
@@ -117,6 +127,27 @@ export function BibliotecaView() {
   const [renamingItem, setRenamingItem] = useState<LibraryItem | null>(null)
   // Item abierto en el visor (un único overlay sirve a lista y cuadrícula).
   const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null)
+
+  // Selección múltiple (PR-B): ids `${kind}:${itemId}` marcados. La barra de
+  // selección flota cuando hay ≥1, y permite "Enviar a Imprenta" + eliminar.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  function toggleSelect(item: LibraryItem) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(item.id)) next.delete(item.id)
+      else next.add(item.id)
+      return next
+    })
+  }
+  function clearSelection() {
+    setSelectedIds((prev) => (prev.size === 0 ? prev : new Set()))
+  }
+  // La selección se limpia al cambiar de pestaña/filtro/búsqueda/orden o al
+  // entrar/salir de la papelera: los items mostrados cambian y arrastrar una
+  // selección "fantasma" entre vistas confundiría.
+  useEffect(() => {
+    clearSelection()
+  }, [tabParam, qParam, ordenParam, tipoParam, fuenteParam, eliminadosParam])
 
   // Búsqueda con debounce: el input es estado local inmediato; el query param
   // (y por ende la query) se actualiza 250 ms después de dejar de teclear.
@@ -153,6 +184,12 @@ export function BibliotecaView() {
     incluyeEliminados,
   })
   const items = useMemo(() => flattenBibliotecaItems(query.data), [query.data])
+  // Items seleccionados, resueltos contra la lista cargada (la barra necesita el
+  // LibraryItem completo, no solo el id, para bajar blobs / soft-delete).
+  const selectedItems = useMemo(
+    () => items.filter((item) => selectedIds.has(item.id)),
+    [items, selectedIds],
+  )
 
   function handleSort(column: SortColumn) {
     const next = toggleOrden(orden, column)
@@ -252,6 +289,8 @@ export function BibliotecaView() {
             <BibliotecaGridView
               items={items}
               trash={incluyeEliminados}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
               onRename={setRenamingItem}
               onOpen={setViewingItem}
             />
@@ -261,6 +300,8 @@ export function BibliotecaView() {
               orden={orden}
               onSort={handleSort}
               trash={incluyeEliminados}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
               onRename={setRenamingItem}
               onOpen={setViewingItem}
             />
@@ -287,6 +328,12 @@ export function BibliotecaView() {
       {viewingItem && (
         <BibliotecaViewer item={viewingItem} onClose={() => setViewingItem(null)} />
       )}
+
+      <BibliotecaSelectionBar
+        selected={selectedItems}
+        onClear={clearSelection}
+        onSendToImprenta={onSendToImprenta}
+      />
     </>
   )
 }

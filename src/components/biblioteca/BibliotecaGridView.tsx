@@ -9,14 +9,20 @@ import { FileCard } from './FileCard'
 export function BibliotecaGridView({
   items,
   trash = false,
+  selectedIds,
+  onToggleSelect,
   onRename,
   onOpen,
 }: {
   items: LibraryItem[]
   trash?: boolean
+  /** Ids (`${kind}:${itemId}`) seleccionados (multi-select PR-B). */
+  selectedIds: ReadonlySet<string>
+  onToggleSelect: (item: LibraryItem) => void
   onRename: (item: LibraryItem) => void
   onOpen: (item: LibraryItem) => void
 }) {
+  const anySelected = selectedIds.size > 0
   return (
     <div
       role="list"
@@ -25,7 +31,15 @@ export function BibliotecaGridView({
     >
       {items.map((item) => (
         <div role="listitem" key={item.id}>
-          <FileCard item={item} trash={trash} onRename={onRename} onOpen={onOpen} />
+          <FileCard
+            item={item}
+            trash={trash}
+            selected={selectedIds.has(item.id)}
+            anySelected={anySelected}
+            onToggleSelect={onToggleSelect}
+            onRename={onRename}
+            onOpen={onOpen}
+          />
         </div>
       ))}
     </div>
