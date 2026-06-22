@@ -539,8 +539,8 @@ export const SettingsIcon = ({ size = 14, className }: Props) => (
 export const TramaMark = ({ size = 22, className }: Props & { animate?: boolean }) => (
   <img
     src="/favicon-48.png"
-    srcSet="/favicon-48.png 48w, /icon-192.png 192w, /trama-icon.png 1024w"
-    sizes="(max-width: 48px) 48px, (max-width: 192px) 192px, 1024px"
+    srcSet="/favicon-48.png 48w, /icon-192.png 192w"
+    sizes={`${size}px`}
     width={size}
     height={size}
     alt=""

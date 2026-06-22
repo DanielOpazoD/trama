@@ -10,17 +10,12 @@ describe('<TramaMark />', () => {
     expect(mark).toHaveAttribute('src', '/favicon-48.png')
   })
 
-  it('ofrece fuentes de mayor resolucion para tamaños grandes y pantallas retina', () => {
+  it('mantiene la marca de la shell en assets pequeños', () => {
     const { container } = render(<TramaMark size={72} />)
 
     const mark = container.querySelector('img')
-    expect(mark).toHaveAttribute(
-      'srcSet',
-      '/favicon-48.png 48w, /icon-192.png 192w, /trama-icon.png 1024w',
-    )
-    expect(mark).toHaveAttribute(
-      'sizes',
-      '(max-width: 48px) 48px, (max-width: 192px) 192px, 1024px',
-    )
+    expect(mark).toHaveAttribute('srcSet', '/favicon-48.png 48w, /icon-192.png 192w')
+    expect(mark).toHaveAttribute('sizes', '72px')
+    expect(mark?.getAttribute('srcSet')).not.toContain('/trama-icon.png')
   })
 })

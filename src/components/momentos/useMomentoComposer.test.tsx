@@ -260,6 +260,35 @@ describe('useMomentoComposer', () => {
     )
   })
 
+  it('espera la lectura EXIF pendiente antes de guardar una foto subida desde archivo', async () => {
+    let resolveExif: (value: string) => void = () => {}
+    const exifPending = new Promise<string>((resolve) => {
+      resolveExif = resolve
+    })
+    mocks.extractPhotoCapturedAtFromFile.mockReturnValueOnce(exifPending)
+    const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+    act(() => {
+      result.current.addPhotoFiles([new File(['a'], 'a.jpg', { type: 'image/jpeg' })])
+    })
+
+    const submitPromise = result.current.submit()
+    await Promise.resolve()
+    expect(mocks.addMomento.mutateAsync).not.toHaveBeenCalled()
+
+    resolveExif('2026-06-19T23:10:00.000')
+    await act(async () => {
+      await submitPromise
+    })
+
+    expect(mocks.addMomento.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'foto',
+        capturedAt: '2026-06-19T23:10:00.000',
+      }),
+    )
+  })
+
   it('permite descartar la fecha EXIF y mantener el comportamiento actual', async () => {
     mocks.extractPhotoCapturedAtFromFile.mockResolvedValueOnce('2026-06-19T23:10:00.000')
     const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
@@ -276,6 +305,31 @@ describe('useMomentoComposer', () => {
 
     expect(mocks.addMomento.mutateAsync).toHaveBeenCalledWith(
       expect.not.objectContaining({ capturedAt: expect.any(String) }),
+    )
+  })
+
+  it('envía fecha personalizada aunque la imagen no tenga EXIF', async () => {
+    mocks.extractPhotoCapturedAtFromFile.mockResolvedValueOnce(null)
+    const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+    await act(async () => {
+      result.current.addPhotoFiles([
+        new File(['a'], 'sin-exif.jpg', { type: 'image/jpeg' }),
+      ])
+    })
+    act(() => {
+      result.current.setPhotoDateMode('custom')
+      result.current.setCustomPhotoCapturedAt('2026-07-04T09:30')
+    })
+    await act(async () => {
+      await result.current.submit()
+    })
+
+    expect(mocks.addMomento.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'foto',
+        capturedAt: new Date('2026-07-04T09:30').toISOString(),
+      }),
     )
   })
 })

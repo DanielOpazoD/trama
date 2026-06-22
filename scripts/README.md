@@ -25,7 +25,7 @@ agregalo a `QUALITY_GATES`.
 | Cambios PDF/bundle      | `npm run build`, `bundle:check`, `check:pdf-runtime-boundaries`, `check:pdf-lazy-entrypoints`, `e2e:pdf-visual`                                                                                         | `check:pdf-lazy-entrypoints` requiere `dist/`.                                              |
 | Cutover o preview real  | `cutover:preflight`, `cutover:smoke`, `cutover:smoke:isolation`, `e2e:multiuser`                                                                                                                        | Requiere deploy URL y tokens/Clerk segun runner.                                            |
 | Produccion multiusuario | `smoke:production-report`, `smoke:multiuser:prod`, `cleanup:runtime-fixtures`                                                                                                                           | Usar solo con tokens frescos y dejar evidencia en PR/incidente.                             |
-| Debug local             | `bundle:report`, `client-api-contracts:inventory`, `bench:search-scale:portable`, `pr-stack:check`, `generate-pwa-icons.mjs`                                                                            | Herramientas de diagnostico; no todas bloquean merge.                                       |
+| Debug local             | `bundle:report`, `lighthouse:summary`, `client-api-contracts:inventory`, `bench:search-scale:portable`, `pr-stack:check`, `generate-pwa-icons.mjs`                                                      | Herramientas de diagnostico; no todas bloquean merge.                                       |
 
 ## Dominios
 

@@ -312,6 +312,15 @@ export const PRIVATE_TABLE_CONTRACTS = [
     reason: 'Phone bindings decide which account receives incoming captures.',
   },
   {
+    table: 'whatsapp_pending_media',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership: 'owner scoped pending WhatsApp media awaiting destination',
+    reason:
+      'Pending media stores private photo references before the user chooses a destination.',
+  },
+  {
     table: 'whatsapp_processed_messages',
     lifecycle: 'append-only',
     userId: 'required',

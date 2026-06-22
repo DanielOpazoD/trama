@@ -70,9 +70,14 @@ export function useMomentoComposer({
   } | null>(null)
   const photoDraftsRef = useRef(photoDrafts)
   const audioDraftRef = useRef(audioDraft)
+  const photoMetadataTasksRef = useRef<Promise<void>[]>([])
+  const photoDateModeRef = useRef(photoDateMode)
+  const customPhotoCapturedAtRef = useRef(customPhotoCapturedAt)
 
   photoDraftsRef.current = photoDrafts
   audioDraftRef.current = audioDraft
+  photoDateModeRef.current = photoDateMode
+  customPhotoCapturedAtRef.current = customPhotoCapturedAt
 
   useEffect(
     () => () => {
@@ -90,6 +95,16 @@ export function useMomentoComposer({
     })
   }
 
+  function updatePhotoDateMode(mode: PhotoDateMode) {
+    photoDateModeRef.current = mode
+    setPhotoDateMode(mode)
+  }
+
+  function updateCustomPhotoCapturedAt(value: string) {
+    customPhotoCapturedAtRef.current = value
+    setCustomPhotoCapturedAt(value)
+  }
+
   function clearAudio() {
     setAudioDraft((prev) => {
       if (prev) URL.revokeObjectURL(prev.previewUrl)
@@ -105,17 +120,28 @@ export function useMomentoComposer({
       previewUrl: URL.createObjectURL(file),
       capturedAt: null,
     }))
-    setPhotoDrafts((prev) => [...prev, ...drafts])
+    photoDraftsRef.current = [...photoDraftsRef.current, ...drafts]
+    setPhotoDrafts(photoDraftsRef.current)
     for (const draft of drafts) {
-      void extractPhotoCapturedAtFromFile(draft.file).then((capturedAt) => {
-        setPhotoDrafts((prev) =>
-          prev.map((item) =>
-            item.previewUrl === draft.previewUrl ? { ...item, capturedAt } : item,
-          ),
-        )
-        if (capturedAt) setPhotoDateMode((mode) => (mode === 'now' ? 'photo' : mode))
-      })
+      trackPhotoMetadata(draft)
     }
+  }
+
+  function trackPhotoMetadata(draft: PhotoDraft) {
+    const task = extractPhotoCapturedAtFromFile(draft.file)
+      .then((capturedAt) => {
+        photoDraftsRef.current = photoDraftsRef.current.map((item) =>
+          item.previewUrl === draft.previewUrl ? { ...item, capturedAt } : item,
+        )
+        setPhotoDrafts(photoDraftsRef.current)
+        if (capturedAt && photoDateModeRef.current === 'now') updatePhotoDateMode('photo')
+      })
+      .finally(() => {
+        photoMetadataTasksRef.current = photoMetadataTasksRef.current.filter(
+          (item) => item !== task,
+        )
+      })
+    photoMetadataTasksRef.current.push(task)
   }
 
   function removePhotoDraft(index: number) {
@@ -123,6 +149,7 @@ export function useMomentoComposer({
       const next = [...prev]
       const removed = next.splice(index, 1)[0]
       if (removed) URL.revokeObjectURL(removed.previewUrl)
+      photoDraftsRef.current = next
       return next
     })
   }
@@ -137,14 +164,8 @@ export function useMomentoComposer({
       const next = [...prev]
       const nextDraft = { file, previewUrl: URL.createObjectURL(file), capturedAt: null }
       next[index] = nextDraft
-      void extractPhotoCapturedAtFromFile(file).then((capturedAt) => {
-        setPhotoDrafts((items) =>
-          items.map((item) =>
-            item.previewUrl === nextDraft.previewUrl ? { ...item, capturedAt } : item,
-          ),
-        )
-        if (capturedAt) setPhotoDateMode((mode) => (mode === 'now' ? 'photo' : mode))
-      })
+      photoDraftsRef.current = next
+      trackPhotoMetadata(nextDraft)
       return next
     })
   }
@@ -163,6 +184,7 @@ export function useMomentoComposer({
       const [picked] = next.splice(index, 1)
       if (!picked) return prev
       next.unshift(picked)
+      photoDraftsRef.current = next
       return next
     })
   }
@@ -183,12 +205,14 @@ export function useMomentoComposer({
       if (tmp === undefined || swap === undefined) return prev
       next[index] = swap
       next[target] = tmp
+      photoDraftsRef.current = next
       return next
     })
   }
 
   function clearPhotoDrafts() {
     for (const d of photoDrafts) URL.revokeObjectURL(d.previewUrl)
+    photoDraftsRef.current = []
     setPhotoDrafts([])
   }
 
@@ -233,8 +257,8 @@ export function useMomentoComposer({
     clearAudio()
     setPhotoCaption('')
     setPhotoNote('')
-    setPhotoDateMode('now')
-    setCustomPhotoCapturedAt('')
+    updatePhotoDateMode('now')
+    updateCustomPhotoCapturedAt('')
     setPhotoUploadProgress(null)
   }
 
@@ -242,10 +266,11 @@ export function useMomentoComposer({
     photoDrafts.map((draft) => draft.capturedAt),
   )
 
-  function selectedPhotoCapturedAt(): string | undefined {
-    if (photoDateMode === 'photo') return photoCapturedAtSuggestion ?? undefined
-    if (photoDateMode === 'custom' && customPhotoCapturedAt) {
-      const date = new Date(customPhotoCapturedAt)
+  function selectedPhotoCapturedAt(drafts = photoDraftsRef.current): string | undefined {
+    const suggestion = pickOldestCapturedAt(drafts.map((draft) => draft.capturedAt))
+    if (photoDateModeRef.current === 'photo') return suggestion ?? undefined
+    if (photoDateModeRef.current === 'custom' && customPhotoCapturedAtRef.current) {
+      const date = new Date(customPhotoCapturedAtRef.current)
       return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
     }
     return undefined
@@ -313,11 +338,15 @@ export function useMomentoComposer({
       toast.show({ message: 'Elige al menos una imagen', tone: 'default' })
       return
     }
+    if (photoMetadataTasksRef.current.length > 0) {
+      await Promise.allSettled(photoMetadataTasksRef.current)
+    }
     setPhotoUploading(true)
-    setPhotoUploadProgress({ done: 0, total: photoDrafts.length })
+    const draftsForSubmit = photoDraftsRef.current
+    setPhotoUploadProgress({ done: 0, total: draftsForSubmit.length })
     try {
       const itemsRaw = await Promise.all(
-        photoDrafts.map(async (draft) => {
+        draftsForSubmit.map(async (draft) => {
           // 1. Comprimir client-side (resize a max 2400px + JPEG q0.85).
           //    Si la imagen ya es chica/eficiente, compressImage devuelve
           //    el File original.
@@ -413,9 +442,9 @@ export function useMomentoComposer({
     setPhotoNote,
     photoCapturedAtSuggestion,
     photoDateMode,
-    setPhotoDateMode,
+    setPhotoDateMode: updatePhotoDateMode,
     customPhotoCapturedAt,
-    setCustomPhotoCapturedAt,
+    setCustomPhotoCapturedAt: updateCustomPhotoCapturedAt,
     photoUploading,
     photoUploadProgress,
     // Nota de voz

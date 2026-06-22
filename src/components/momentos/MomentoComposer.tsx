@@ -411,23 +411,30 @@ function FotoFields({ composer }: { composer: Composer }) {
           {composer.photoUploadProgress.total}…
         </p>
       )}
-      {composer.photoCapturedAtSuggestion && (
+      {(composer.photoDrafts.length > 0 || composer.photoCapturedAtSuggestion) && (
         <div className="rounded-lg border border-ink-100/70 bg-paper-50/55 p-2.5 space-y-2">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-micro uppercase tracking-eyebrow text-ink-300">
-                fecha detectada
+                {composer.photoCapturedAtSuggestion
+                  ? 'fecha detectada'
+                  : 'fecha de la foto no disponible'}
               </p>
               <p className="text-caption text-ink-500">
-                {formatDetectedPhotoDate(composer.photoCapturedAtSuggestion)}
+                {composer.photoCapturedAtSuggestion
+                  ? formatDetectedPhotoDate(composer.photoCapturedAtSuggestion)
+                  : 'Puedes usar ahora o elegir una fecha personalizada antes de guardar.'}
               </p>
             </div>
             <div className="flex flex-wrap gap-1">
               <PhotoDateButton
                 active={composer.photoDateMode === 'photo'}
+                disabled={!composer.photoCapturedAtSuggestion}
                 onClick={() => composer.setPhotoDateMode('photo')}
               >
-                Usar fecha de la foto
+                {composer.photoCapturedAtSuggestion
+                  ? 'Usar fecha de la foto'
+                  : 'Fecha de la foto no disponible'}
               </PhotoDateButton>
               <PhotoDateButton
                 active={composer.photoDateMode === 'now'}
@@ -492,21 +499,26 @@ function FotoFields({ composer }: { composer: Composer }) {
 
 function PhotoDateButton({
   active,
+  disabled = false,
   onClick,
   children,
 }: {
   active: boolean
+  disabled?: boolean
   onClick: () => void
   children: ReactNode
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
       className={`rounded-md px-2 py-1 text-micro uppercase tracking-eyebrow transition-colors ${
-        active
-          ? 'bg-ink-800 text-paper-50'
-          : 'border border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200'
+        disabled
+          ? 'border border-ink-100 text-ink-300 cursor-not-allowed'
+          : active
+            ? 'bg-ink-800 text-paper-50'
+            : 'border border-ink-100 text-ink-400 hover:text-ink-700 hover:border-ink-200'
       }`}
     >
       {children}

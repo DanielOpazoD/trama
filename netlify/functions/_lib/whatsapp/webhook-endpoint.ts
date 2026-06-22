@@ -43,6 +43,12 @@ import {
   audioExtFromMime,
   MEDIA_TOO_LARGE,
 } from './media.js'
+import { parseWhatsAppMediaDirectives } from './media-directives.js'
+import {
+  maybeStorePendingMediaPrompt,
+  pendingMediaDestinationFromText,
+  resolvePendingMediaDestination,
+} from './pending-media.js'
 import { buildPhotoPrompt, validatePhotoExtraction } from './vision.js'
 import type { PhotoMode } from './vision.js'
 import { transcriptionToIntent } from './transcribe.js'
@@ -479,12 +485,6 @@ async function recategorizeLast(
 }
 
 /**
- * Procesa los adjuntos de un mensaje. Hoy solo imágenes: las baja de Twilio,
- * las sube al store y crea Recorte (default) o Momento foto (caption
- * `momento:`). Audio/video se reconocen y se avisan (próximo incremento).
- * Devuelve el texto de confirmación.
- */
-/**
  * Pasa una imagen por el LLM de visión y devuelve la `CaptureIntent` extraída
  * (cita o nota), o `null` si no se puede usar IA (off / sin presupuesto / falla
  * del modelo) para que el caller caiga a guardar la imagen como Recorte.
@@ -586,7 +586,8 @@ async function handleInboundMedia(
 }> {
   const accountSid = readWebhookEnv('TWILIO_ACCOUNT_SID')
   const authToken = readWebhookEnv('TWILIO_AUTH_TOKEN')
-  const { route, caption } = mediaRoute(params.Body ?? params.body ?? '')
+  const mediaDirectives = parseWhatsAppMediaDirectives(params.Body ?? params.body ?? '')
+  const { route, caption } = mediaRoute(mediaDirectives.body)
   let saved = 0
   let lastId: string | null = null
   let lastKind = ''
@@ -597,7 +598,7 @@ async function handleInboundMedia(
   const momentoCapturedAts: Array<string | null> = []
   // Imágenes del route 'recorte' (default): se acumulan y, si son 2+, se
   // guardan como UN recorte-evento (varias imágenes en una entrada).
-  const recorteKeys: Array<{ key: string; mime: string }> = []
+  const recorteKeys: Array<{ key: string; mime: string; capturedAt?: string | null }> = []
 
   for (const item of media) {
     const cat = mediaCategory(item.contentType)
@@ -723,10 +724,7 @@ async function handleInboundMedia(
         },
       )
 
-      // Rutas de visión (cita:/nota:/texto:/ocr:): la imagen pasa por el LLM
-      // de visión y se persiste lo EXTRAÍDO (cita o nota). Si la IA está off,
-      // sin presupuesto o falla, caemos a guardar la imagen como Recorte —
-      // nunca se pierde lo que mandó el usuario.
+      // Rutas de visión: si IA falla, caemos a guardar la imagen como Recorte.
       if (isVisionRoute(route)) {
         const mode: PhotoMode = route === 'quote' ? 'quote' : 'text'
         const intent = await extractPhotoIntent(
@@ -752,15 +750,18 @@ async function handleInboundMedia(
 
       if (route === 'momento') {
         // No persistimos aún: juntamos las keys y creamos un solo episodio.
-        const capturedAt = extractPhotoCapturedAt(buffer)
+        const capturedAt =
+          mediaDirectives.explicitCapturedAt ?? extractPhotoCapturedAt(buffer)
         const key = await storeMedia('momentos-media', userId, buffer, contentType)
         momentoKeys.push(key)
         momentoCapturedAts.push(capturedAt)
       } else {
         // Tampoco persistimos aún: juntamos las imágenes y, tras el loop,
         // creamos un recorte único (1 imagen) o un recorte-evento (2+).
+        const capturedAt =
+          mediaDirectives.explicitCapturedAt ?? extractPhotoCapturedAt(buffer)
         const key = await storeMedia('recortes-media', userId, buffer, contentType)
-        recorteKeys.push({ key, mime: contentType })
+        recorteKeys.push({ key, mime: contentType, capturedAt })
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -769,15 +770,27 @@ async function handleInboundMedia(
     }
   }
 
-  // --- Álbum partido: ¿esta foto continúa el álbum recién capturado? ----------
-  // Si llegó media "cruda" (route momento/recorte) y el número tuvo una captura
-  // de media hace pocos segundos, la anexamos a esa captura en vez de crear otra
-  // — así las fotos que WhatsApp parte en mensajes separados comparten destino.
-  // Las rutas de visión (cita:/nota:) NO continúan álbum (son intención por foto).
+  const pendingPrompt = await maybeStorePendingMediaPrompt(sql, userId, phone, {
+    route,
+    body: mediaDirectives.body,
+    grouping: mediaDirectives.grouping,
+    recorteImages: recorteKeys,
+    momentoImageCount: momentoKeys.length,
+  })
+  if (pendingPrompt) {
+    return {
+      message: pendingPrompt,
+      saved: 0,
+      offerDestino: false,
+      offerDescription: false,
+    }
+  }
+
   let appendedTotal: number | null = null
   const newImageCount = momentoKeys.length + recorteKeys.length
   const isRawMediaRoute = route === 'momento' || route === 'recorte'
-  if (newImageCount > 0 && isRawMediaRoute) {
+  const canAppendToRecent = mediaDirectives.grouping === 'append'
+  if (newImageCount > 0 && isRawMediaRoute && canAppendToRecent) {
     const recent = await readRecentMediaCapture(sql, userId, phone)
     if (recent) {
       try {
@@ -813,7 +826,6 @@ async function handleInboundMedia(
             }
           }
         } else {
-          // route 'recorte' (sin caption de destino). Fotos en recortes-media.
           if (recent.kind === 'recorte') {
             appendedTotal = await appendImagesToRecorteEvent(
               sql,
@@ -826,10 +838,7 @@ async function handleInboundMedia(
               lastKind = 'recorte'
             }
           } else {
-            // El lote reciente era un momento: una foto sin caption se une a él.
-            // La danza cross-store (copy→append→remove, con rollback si el
-            // anexado falla) vive en el helper: atómica de cara al usuario y
-            // testeable. Sin borrar originales antes de confirmar el anexado.
+            // La danza cross-store vive en el helper: copy → append → remove.
             appendedTotal = await joinRecortePhotosToMomento(
               sql,
               userId,
@@ -851,7 +860,6 @@ async function handleInboundMedia(
       }
       if (appendedTotal !== null) {
         saved += newImageCount
-        // Anexado: vaciamos las keys para que NO se cree además una captura nueva.
         momentoKeys.length = 0
         momentoCapturedAts.length = 0
         recorteKeys.length = 0
@@ -929,17 +937,14 @@ async function handleInboundMedia(
   if (saved > 0) {
     const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
     if (appendedTotal !== null) {
-      // Continuación de álbum: anexamos a la captura reciente (confirmación
-      // suave, sin "guardado" de nuevo — es el mismo evento que crece).
       const noun = lastKind === 'momento' ? 'tu momento' : 'tu evento en Recortes'
       lines.push(
         newImageCount === 1
           ? `📸 +1 foto · ${noun} ahora tiene ${appendedTotal}.`
           : `📸 +${newImageCount} fotos · ${noun} ahora tiene ${appendedTotal}.`,
       )
+      lines.push('Para separarla la próxima vez, escribe “nuevo” o “no juntar”.')
     } else {
-      // Eventos: varias fotos en un SOLO momento, o varias imágenes en un solo
-      // recorte — no N elementos sueltos.
       const isPhotoEpisode =
         lastKind === 'momento' && momentoKeys.length > 1 && saved === momentoKeys.length
       const isRecorteEvent =
@@ -954,14 +959,20 @@ async function handleInboundMedia(
               : `✅ ${saved} elementos guardados.`,
       )
     }
+    const explicitDateApplied =
+      mediaDirectives.explicitCapturedAt !== null &&
+      lastKind === 'momento' &&
+      appendedTotal === null
+
+    if (mediaDirectives.dateLabel && explicitDateApplied) {
+      lines.push(`📅 Fecha aplicada: ${mediaDirectives.dateLabel}.`)
+    }
     if (skipped.has('vision')) {
       lines.push('(No pude leer el texto; guardé la imagen igual.)')
     }
     if (wantsDescription) {
       lines.push('✍️ Responde con una descripción y se la agrego.')
     }
-    // El deep link (texto o botón [Abrir en Trama]) y el deshacer los agrega el
-    // caller (replyWithCapture) según haya plantillas/captura.
   }
   if (skipped.has('video_format')) {
     lines.push('🎬 Ese formato de video no lo soporto aún. Envía MP4, WEBM o MOV.')
@@ -1249,6 +1260,22 @@ export default withObservability(
       return commandReply('query', () =>
         handleQuery(req, sql, userId, requestId, text, new URL(req.url).origin),
       )
+    }
+
+    const pendingDestination = pendingMediaDestinationFromText(params.Body ?? '')
+    if (pendingDestination && media.length === 0) {
+      const origin = new URL(req.url).origin
+      const resolved = await resolvePendingMediaDestination(
+        sql,
+        userId,
+        phone,
+        pendingDestination,
+        origin,
+      )
+      if (resolved) {
+        await recordLastCapture(sql, phone, userId, resolved.kind, resolved.id)
+        return twimlResponse(`${resolved.message}\n↩️ ¿No era así? Responde «deshacer».`)
+      }
     }
 
     if (parsed.kind === 'recategorize' && media.length === 0) {
