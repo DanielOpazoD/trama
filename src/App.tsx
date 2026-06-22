@@ -489,6 +489,14 @@ function WorldShell() {
     }
   }, [initialWorldFromUrl])
 
+  // El mundo Notas es lazy (Trama no). Precargamos su bundle poco después del
+  // arranque para que cambiar de mundo NO muestre una pantalla en blanco
+  // esperando el chunk: cuando el usuario cambie, ya está en memoria.
+  useEffect(() => {
+    const t = window.setTimeout(() => preloadWorldBundle('notas'), 1200)
+    return () => window.clearTimeout(t)
+  }, [])
+
   // Multiusuario en navegador compartido: si cambia el usuario autenticado, no
   // hereda el último mundo / espejo de prefs del anterior — los descarta y
   // resetea al mundo default. Sin Clerk el id es null → nunca dispara.
@@ -551,7 +559,13 @@ function WorldShell() {
             onRevealNotasModule={revealNotasModule}
           />
         ) : (
-          <Suspense fallback={<div className="h-screen w-screen bg-paper-50" />}>
+          <Suspense
+            fallback={
+              <div className="flex h-screen w-screen items-center justify-center bg-paper-50">
+                <span className="text-caption text-ink-300 animate-pulse">cargando…</span>
+              </div>
+            }
+          >
             <NotasWorld
               world={world}
               onChangeWorld={changeWorld}
