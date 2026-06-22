@@ -3,6 +3,7 @@ import { ChevronDownIcon } from '../Icons'
 import type { LibraryItem } from '../../types/biblioteca'
 import { Thumbnail } from './Thumbnail'
 import { BibliotecaItemActions } from './BibliotecaItemActions'
+import { SelectionCircle } from './SelectionCircle'
 import {
   fileExtensionLabel,
   formatByteSize,
@@ -81,6 +82,8 @@ export function BibliotecaListView({
   orden,
   onSort,
   trash = false,
+  selectedIds,
+  onToggleSelect,
   onRename,
   onOpen,
 }: {
@@ -89,10 +92,14 @@ export function BibliotecaListView({
   onSort: (column: SortColumn) => void
   /** Vista papelera: las acciones de fila se reducen a Restaurar. */
   trash?: boolean
+  /** Ids (`${kind}:${itemId}`) seleccionados (multi-select PR-B). */
+  selectedIds: ReadonlySet<string>
+  onToggleSelect: (item: LibraryItem) => void
   onRename: (item: LibraryItem) => void
   onOpen: (item: LibraryItem) => void
 }) {
   const { column: activeColumn, direction } = parseOrden(orden)
+  const anySelected = selectedIds.size > 0
 
   function handleRowKeyDown(event: KeyboardEvent<HTMLDivElement>, item: LibraryItem) {
     // Enter/Espacio abren el visor; Espacio además evita el scroll de página.
@@ -109,6 +116,8 @@ export function BibliotecaListView({
         role="row"
         className="flex items-center gap-3 h-9 px-2 border-b border-ink-100/70"
       >
+        {/* Espaciador para alinear con el círculo de selección de cada fila. */}
+        <div role="columnheader" aria-hidden className="w-5 shrink-0" />
         {COLUMNS.map((col) => {
           const isSortable = col.sortable
           const sortKey = col.key as SortColumn
@@ -161,8 +170,21 @@ export function BibliotecaListView({
           aria-label={`Abrir ${item.title}`}
           onClick={() => onOpen(item)}
           onKeyDown={(e) => handleRowKeyDown(e, item)}
-          className="group flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 cursor-pointer hover:bg-ink-50/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink-300"
+          className={`group flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink-300 ${
+            selectedIds.has(item.id)
+              ? 'bg-[color:var(--accent-sage-soft)]'
+              : 'hover:bg-ink-50/60'
+          }`}
         >
+          {/* Círculo de selección — al inicio de la fila. No abre el visor. */}
+          <div role="cell" className="shrink-0">
+            <SelectionCircle
+              selected={selectedIds.has(item.id)}
+              anySelected={anySelected}
+              label={`Seleccionar ${item.title}`}
+              onToggle={() => onToggleSelect(item)}
+            />
+          </div>
           <div role="cell" className="flex items-center gap-3 flex-1 min-w-0">
             {/* Miniatura real para imágenes con URL de servir; para el resto
                 (o si la imagen falla) cae al glifo de tipo internamente. */}

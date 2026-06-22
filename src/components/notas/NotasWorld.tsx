@@ -222,7 +222,16 @@ export function NotasWorld({
                           </div>
                         }
                       >
-                        <BibliotecaView />
+                        <BibliotecaView
+                          onSendToImprenta={(files) => {
+                            // Mismo camino que `sendImagesToPdf` (capturas): los
+                            // File ya vienen armados por la barra de selección;
+                            // acá solo los enrutamos al estudio PDF.
+                            setPendingPdfFiles(files)
+                            preloadPdfStudioView()
+                            setSection('pdf')
+                          }}
+                        />
                       </Suspense>
                     )}
                   </div>

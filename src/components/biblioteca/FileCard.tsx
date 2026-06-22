@@ -3,6 +3,7 @@ import type { LibraryItem } from '../../types/biblioteca'
 import { formatCardMeta } from './helpers'
 import { Thumbnail } from './Thumbnail'
 import { BibliotecaItemActions } from './BibliotecaItemActions'
+import { SelectionCircle } from './SelectionCircle'
 
 /**
  * Card de un archivo en la vista cuadrícula. Composición editorial sobre papel
@@ -20,11 +21,20 @@ import { BibliotecaItemActions } from './BibliotecaItemActions'
 export function FileCard({
   item,
   trash = false,
+  selected = false,
+  anySelected = false,
+  onToggleSelect,
   onRename,
   onOpen,
 }: {
   item: LibraryItem
   trash?: boolean
+  /** ¿Este item está seleccionado? (multi-select PR-B). */
+  selected?: boolean
+  /** ¿Hay alguna selección activa? Mantiene el círculo visible. */
+  anySelected?: boolean
+  /** Toggle de selección del item. */
+  onToggleSelect: (item: LibraryItem) => void
   onRename: (item: LibraryItem) => void
   onOpen: (item: LibraryItem) => void
 }) {
@@ -43,8 +53,21 @@ export function FileCard({
       aria-label={`Abrir ${item.title}`}
       onClick={() => onOpen(item)}
       onKeyDown={handleKeyDown}
-      className="card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300"
+      className={`card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 ${
+        selected ? 'ring-2 ring-[color:var(--accent-sage)]' : ''
+      }`}
     >
+      {/* Círculo de selección — arriba a la izquierda. Visible al hover/focus o
+          cuando hay selección activa; no abre el visor (frena propagación). */}
+      <div className="absolute top-2.5 left-2.5 z-10">
+        <SelectionCircle
+          selected={selected}
+          anySelected={anySelected}
+          label={`Seleccionar ${item.title}`}
+          onToggle={() => onToggleSelect(item)}
+        />
+      </div>
+
       {/* Acciones — tira vertical en el borde derecho. En táctil siempre
           visible; con puntero aparece al hover/focus de la card. */}
       <div className="absolute top-2.5 right-2 z-10 rounded-lg bg-paper-50/85 backdrop-blur-sm opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 motion-reduce:transition-none">
@@ -56,9 +79,10 @@ export function FileCard({
         />
       </div>
 
-      {/* Nombre — 2 líneas con elipsis. `pr-8` deja aire para las acciones. */}
+      {/* Nombre — 2 líneas con elipsis. `pl-7` deja aire para el círculo de
+          selección y `pr-8` para las acciones. */}
       <h3
-        className="text-sm font-medium text-ink-700 leading-snug line-clamp-2 pr-8"
+        className="text-sm font-medium text-ink-700 leading-snug line-clamp-2 pl-7 pr-8"
         title={item.title}
       >
         {item.title}
