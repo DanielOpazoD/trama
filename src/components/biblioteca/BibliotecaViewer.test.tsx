@@ -159,6 +159,32 @@ describe('<BibliotecaViewer />', () => {
     expect(soltar).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('clickear "Fijar" dispara el PATCH con { pinned: true }', async () => {
+    // El visor es controlado (lee item.pinned de props), así que el toggle "en
+    // sesión" lo prueba BibliotecaView; acá cubrimos que el CLICK realmente
+    // dispara la mutación (el hueco que un test de solo-props no cubre).
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderWithProviders(<BibliotecaViewer item={item()} onClose={() => {}} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Fijar' }))
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes('/api/biblioteca-item/'),
+      )
+      expect(call).toBeTruthy()
+      expect(call?.[1]?.method).toBe('PATCH')
+      expect(String(call?.[1]?.body)).toContain('"pinned":true')
+    })
+  })
+
   it('el toggle "Detalles" abre el inspector con Etiquetas y Aparece en', async () => {
     // El inspector lista conexiones (fetch real): stub vacío para acallarlo.
     vi.stubGlobal(

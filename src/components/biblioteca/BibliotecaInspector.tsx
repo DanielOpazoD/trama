@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { LibraryItem } from '../../types/biblioteca'
 import { CloseIcon } from '../Icons'
 import { BibliotecaTagEditor } from './BibliotecaTagEditor'
@@ -26,8 +27,17 @@ export function BibliotecaInspector({
   open: boolean
   onClose: () => void
 }) {
+  // Cuando el cajón está cerrado (fuera de pantalla) lo marcamos `inert`: saca
+  // sus controles del orden de tabulación y del árbol de accesibilidad. Solo
+  // con `aria-hidden` los botones/inputs seguirían siendo focusables con Tab.
+  const ref = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (ref.current) ref.current.inert = !open
+  }, [open])
+
   return (
     <aside
+      ref={ref}
       aria-label="Detalles del archivo"
       aria-hidden={!open}
       className={`pointer-events-auto absolute inset-y-0 right-0 z-10 flex w-80 max-w-[85vw] flex-col border-l border-ink-100 bg-paper-50 shadow-2xl shadow-ink-900/30 transition-transform duration-200 ease-out motion-reduce:transition-none ${

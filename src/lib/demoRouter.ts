@@ -78,16 +78,18 @@ function noteTitle(n: Row): string {
  * con lo que ve el picker. Lo inyectamos en `routeDemoBibliotecaLinks`.
  */
 function makeTargetResolver(store: Store): DemoTargetResolver {
+  // `live(...)` descarta los soft-deleted: un destino borrado resuelve a null
+  // (título "(sin título)" en la UI), igual que el `deleted_at IS NULL` de prod.
   return (targetKind, targetId) => {
     if (targetKind === 'entidad') {
-      const e = store.entities.find((row) => row.id === targetId)
+      const e = live(store.entities).find((row) => row.id === targetId)
       return typeof e?.name === 'string' ? e.name : null
     }
     if (targetKind === 'nota') {
-      const n = store.notes.find((row) => row.id === targetId)
+      const n = live(store.notes).find((row) => row.id === targetId)
       return n ? noteTitle(n) : null
     }
-    const m = store.momentos.find((row) => row.id === targetId)
+    const m = live(store.momentos).find((row) => row.id === targetId)
     return m ? momentoTitle(m) : null
   }
 }

@@ -195,4 +195,48 @@ describe('demoBiblioteca — conexiones (PR-C)', () => {
       }),
     ).toEqual({ ok: true })
   })
+
+  it('resuelve targetTitle en cada lectura (no devuelve el guardado)', () => {
+    // Resolutor MUTABLE: simula que el destino se renombra (y luego se borra →
+    // null) entre dos lecturas. El GET debe reflejar el valor ACTUAL, igual que
+    // el JOIN de prod, no el título fijado al crear el vínculo.
+    let current: string | null = 'Borges'
+    const dyn = (
+      method: string,
+      kind: string,
+      itemId: string,
+      params: Record<string, string> = {},
+      body: Record<string, unknown> = {},
+    ) =>
+      routeDemoBibliotecaLinks(
+        method,
+        kind,
+        itemId,
+        new URLSearchParams(params),
+        body,
+        () => current,
+      )
+    const read = (kind: string, itemId: string) =>
+      (dyn('GET', kind, itemId) as { links: DemoLibraryLinkRow[] }).links
+
+    dyn(
+      'POST',
+      'pdf-saved',
+      'demo-recompute',
+      {},
+      { targetKind: 'entidad', targetId: 'e-z' },
+    )
+    expect(read('pdf-saved', 'demo-recompute')[0]?.targetTitle).toBe('Borges')
+
+    current = 'Jorge Luis Borges' // el destino se renombró
+    expect(read('pdf-saved', 'demo-recompute')[0]?.targetTitle).toBe('Jorge Luis Borges')
+
+    current = null // el destino se borró → null (la UI cae a "(sin título)")
+    expect(read('pdf-saved', 'demo-recompute')[0]?.targetTitle).toBeNull()
+
+    dyn('DELETE', 'pdf-saved', 'demo-recompute', {
+      targetKind: 'entidad',
+      targetId: 'e-z',
+    })
+  })
 })

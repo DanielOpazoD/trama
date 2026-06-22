@@ -44,16 +44,19 @@ const ItemKindParam = z.enum(LIBRARY_ITEM_KINDS)
  * o fijado (`pinned`). El handler discrimina por la clave presente.
  */
 const BibliotecaItemPatchBody = z.union([
-  z.object({
+  // `strictObject` rechaza payloads con claves extra: así `{ displayTitle,
+  // deleted }` (dos acciones a la vez) falla la validación en vez de ejecutar
+  // una en silencio — refuerza el contrato de "una sola acción por request".
+  z.strictObject({
     displayTitle: z.string().trim().min(1).max(DISPLAY_TITLE_MAX),
   }),
-  z.object({
+  z.strictObject({
     deleted: z.boolean(),
   }),
-  z.object({
+  z.strictObject({
     tags: z.array(z.string().trim().min(1).max(TAG_MAX)).max(TAGS_MAX),
   }),
-  z.object({
+  z.strictObject({
     pinned: z.boolean(),
   }),
 ])

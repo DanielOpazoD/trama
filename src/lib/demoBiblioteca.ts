@@ -522,7 +522,12 @@ export function routeDemoBibliotecaLinks(
   const links = demoLinks.get(key) ?? []
 
   if (method === 'GET') {
-    return { links }
+    // Resolvemos el título en cada lectura (no devolvemos el guardado): así un
+    // destino renombrado o borrado se refleja al instante, igual que el JOIN
+    // de prod (que resuelve `targetTitle` en cada list).
+    return {
+      links: links.map((l) => ({ ...l, targetTitle: resolve(l.targetKind, l.targetId) })),
+    }
   }
 
   if (method === 'POST') {

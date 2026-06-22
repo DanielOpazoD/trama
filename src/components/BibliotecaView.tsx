@@ -130,7 +130,11 @@ export function BibliotecaView({
   // Item en edición de nombre (un único modal sirve a lista y cuadrícula).
   const [renamingItem, setRenamingItem] = useState<LibraryItem | null>(null)
   // Item abierto en el visor (un único overlay sirve a lista y cuadrícula).
-  const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null)
+  // Guardamos el item al abrir, pero el visor lee el item VIVO de la cache
+  // (`viewingItem`, derivado más abajo): así fijar/etiquetar de forma optimista
+  // se refleja en la misma sesión y las ediciones sucesivas no pisan un
+  // snapshot viejo.
+  const [openedItem, setOpenedItem] = useState<LibraryItem | null>(null)
 
   // Selección múltiple (PR-B): ids `${kind}:${itemId}` marcados. La barra de
   // selección flota cuando hay ≥1, y permite "Enviar a Imprenta" + eliminar.
@@ -197,6 +201,13 @@ export function BibliotecaView({
     incluyeEliminados,
   })
   const items = useMemo(() => flattenBibliotecaItems(query.data), [query.data])
+  // Item del visor, re-derivado de la lista viva para reflejar los updates
+  // optimistas (tags / fijar). Cae al snapshot de apertura si la lista no lo
+  // tiene a mano (p. ej. durante un refetch) para que el overlay no parpadee.
+  const viewingItem = useMemo(
+    () => (openedItem ? (items.find((i) => i.id === openedItem.id) ?? openedItem) : null),
+    [openedItem, items],
+  )
   // Items seleccionados, resueltos contra la lista cargada (la barra necesita el
   // LibraryItem completo, no solo el id, para bajar blobs / soft-delete).
   const selectedItems = useMemo(
@@ -329,7 +340,7 @@ export function BibliotecaView({
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onRename={setRenamingItem}
-              onOpen={setViewingItem}
+              onOpen={setOpenedItem}
               onTagClick={handleTagClick}
             />
           ) : (
@@ -341,7 +352,7 @@ export function BibliotecaView({
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onRename={setRenamingItem}
-              onOpen={setViewingItem}
+              onOpen={setOpenedItem}
               onTagClick={handleTagClick}
             />
           )}
@@ -365,7 +376,7 @@ export function BibliotecaView({
       )}
 
       {viewingItem && (
-        <BibliotecaViewer item={viewingItem} onClose={() => setViewingItem(null)} />
+        <BibliotecaViewer item={viewingItem} onClose={() => setOpenedItem(null)} />
       )}
 
       <BibliotecaSelectionBar
