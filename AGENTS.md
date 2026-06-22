@@ -8,7 +8,7 @@ Este archivo lo lee Codex automáticamente al entrar al proyecto. Acá viven sol
 
 - **`origin` es JSONB, no string.** En SQL es `JSONB NOT NULL DEFAULT '{"kind":"manual"}'`. En TS es `Origin = { kind, provider?, model?, extractionLogId?, importedFrom? }`. Si ves `entity.origin === 'ai'` en algún lado, es código viejo — corrige a `entity.origin.kind === 'ai'`.
 
-- **Soft delete, no hard delete para tablas con `deleted_at`.** Las queries SIEMPRE incluyen `WHERE deleted_at IS NULL`. El endpoint DELETE hace `UPDATE SET deleted_at = NOW()`, nunca `DELETE FROM`. Si una entidad se borra, cascadea soft-delete a sus relaciones y citas (tres UPDATE en el handler). Las únicas tablas sin `deleted_at` que pueden usar hard delete son operacionales/catalogales y deben estar allowlisted en `scripts/check-hard-delete-allowlist.mjs`.
+- **Soft delete, no hard delete para tablas con `deleted_at`.** Las queries SIEMPRE incluyen `WHERE deleted_at IS NULL`. El endpoint DELETE hace `UPDATE SET deleted_at = NOW()`, nunca `DELETE FROM`. Si una entidad se borra, cascadea soft-delete a sus relaciones, citas y links a momentos (un único CTE atómico con `deleted_at` compartido, en `netlify/functions/_lib/entities-endpoint.ts`). Las únicas tablas sin `deleted_at` que pueden usar hard delete son operacionales/catalogales y deben estar allowlisted en `scripts/check-hard-delete-allowlist.mjs`.
 
 - **snake_case en SQL, camelCase en TS.** Los transforms están en `src/api/` (cliente) y en cada `*.mts` function (servidor). La frontera está marcada — no quotear identificadores en SQL ni nombrar variables raras en JS.
 
