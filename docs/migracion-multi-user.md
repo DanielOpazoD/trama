@@ -4,18 +4,22 @@
 > [runbook-multiusuario.md](runbook-multiusuario.md).** Este documento es el
 > contexto de fondo y la referencia histórica del plan.
 
-> **Estado (junio 2026): implementado en código, pendiente de validación operativa final.**
-> La autenticación con Clerk ya está en el repo (`netlify/functions/_lib/auth.ts` verifica el
-> Bearer token con `@clerk/backend`), `AuthGate`/`UserButton` cubren login y
-> logout en la UI, las tablas de dominio tienen `user_id`, el provisioning
-> lazy (`ensureUserRow`) existe en endpoints críticos, RLS fuerza
-> `app.current_user_id`, y Spotify/cost-cap ya operan por usuario. El dueño entra con Clerk y un alias
-> (`LEGACY_OWNER_CLERK_ID`) mapea su sub a `legacy-single-user` para ver toda
-> la data pre-Clerk sin migrar nada. **Pendiente antes de abrir a la
-> familia:** confirmar Clerk production en Netlify, correr el smoke E2E de
-> aislamiento con dos usuarios reales, y mantener `ALLOW_LEGACY_FALLBACK=false`
-> para que requests sin token den 401. Los "Commit 1–N" de abajo se conservan
-> como referencia histórica: varios ya están hechos. El resumen vivo está en
+> **Estado (2026-06-21): cutover multi-usuario RESUELTO y validado en producción.**
+> Producción corre en modo Clerk estricto: `ALLOW_LEGACY_FALLBACK` apagado
+> (requests sin token → 401, verificado), las llaves de producción
+> (`CLERK_SECRET_KEY` / `VITE_CLERK_PUBLISHABLE_KEY`) están puestas, y el alias
+> `LEGACY_OWNER_CLERK_ID` mapea al dueño sobre `legacy-single-user` para ver su
+> historia pre-Clerk sin migrar nada. El **aislamiento A/B (lectura, mutación y
+> blobs) está verificado con dos usuarios reales** — la evidencia productiva vive
+> en **"Estado productivo verificado"** de
+> [runbook-multiusuario.md](runbook-multiusuario.md). La auth con Clerk
+> (`netlify/functions/_lib/auth.ts` + `@clerk/backend`), `AuthGate`/`UserButton`,
+> el `user_id` en tablas privadas, RLS (`app.current_user_id`), el provisioning
+> lazy (`ensureUserRow`) y el cost-cap por usuario ya estaban en el código.
+> **Deuda OPCIONAL, no bloqueante:** reasignar la data histórica de
+> `legacy-single-user` al `sub` real del dueño (inventariada por
+> `legacy-data-reassignment:dry-run`). Los "Commit 1–N" de abajo son referencia
+> histórica. El resumen vivo está en
 > [`docs/conventions/roadmap.md`](conventions/roadmap.md).
 
 > **Estado RLS (junio 2026): implementado como segunda barrera.**
