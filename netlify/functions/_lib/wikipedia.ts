@@ -5,7 +5,33 @@
  * para evitar CORS.
  */
 
+import { z } from 'zod'
+
 export type WikiResult = { title: string; url: string; description: string | null }
+
+/**
+ * E5 — Schema de la respuesta de la MediaWiki REST API (`/search/page`).
+ * Sólo modelamos `pages[]` con los campos que consumimos. `.passthrough()`
+ * tolera los extras (thumbnail, id, etc.) que la API agrega. Si el contrato
+ * cambia (p.ej. `pages` deja de ser array), el `.parse()` tira y
+ * `withObservability` lo loguea en vez de devolver resultados vacíos en
+ * silencio.
+ */
+const WikipediaSearchResponse = z
+  .object({
+    pages: z
+      .array(
+        z
+          .object({
+            key: z.string().optional(),
+            title: z.string().optional(),
+            description: z.string().nullable().optional(),
+          })
+          .passthrough(),
+      )
+      .optional(),
+  })
+  .passthrough()
 
 // Wikipedia pide un User-Agent descriptivo (con forma de contacto).
 const USER_AGENT =
@@ -24,9 +50,7 @@ export async function searchWikipedia(q: string, lang = 'es'): Promise<WikiResul
     headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
   })
   if (!res.ok) throw new Error(`Wikipedia respondió ${res.status}`)
-  const data = (await res.json()) as {
-    pages?: Array<{ key?: string; title?: string; description?: string | null }>
-  }
+  const data = WikipediaSearchResponse.parse(await res.json())
   return (data.pages ?? [])
     .filter((p) => p.key && p.title)
     .map((p) => ({

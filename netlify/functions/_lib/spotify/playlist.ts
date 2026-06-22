@@ -4,6 +4,11 @@
  */
 
 import { API_BASE } from './client.js'
+import {
+  SpotifyPlaylistResponse,
+  SpotifyPlaylistTracksPage,
+  type SpotifyPlaylistResponseT,
+} from './schemas.js'
 
 export type SpotifyTrackLite = {
   trackId: string
@@ -70,40 +75,15 @@ export async function fetchPlaylist(
 ): Promise<PlaylistFetchResult> {
   const headers = { Authorization: `Bearer ${accessToken}` }
 
-  type PlaylistResp = {
-    name: string
-    description: string | null
-    owner: { display_name?: string; id: string }
-    tracks: {
-      total: number
-      next: string | null
-      items: PlaylistTrackItem[]
-    }
-  }
-  type PlaylistTrackItem = {
-    added_at: string | null
-    track: SpotifyTrackFull | null
-  }
-  type SpotifyTrackFull = {
-    id: string | null
-    name: string
-    duration_ms: number
-    external_urls: { spotify?: string }
-    artists: Array<{ id: string; name: string; external_urls: { spotify?: string } }>
-    album: {
-      id: string
-      name: string
-      release_date: string
-      external_urls: { spotify?: string }
-    }
-  }
+  // Shapes validados en runtime — ver `SpotifyPlaylist*` en schemas.ts.
+  type PlaylistTrackItem = SpotifyPlaylistResponseT['tracks']['items'][number]
 
   const initial = await fetch(`${API_BASE}/playlists/${playlistId}`, { headers })
   if (!initial.ok) {
     const text = await initial.text()
     throw new Error(`Spotify playlist fetch failed (${initial.status}): ${text}`)
   }
-  const playlist = (await initial.json()) as PlaylistResp
+  const playlist = SpotifyPlaylistResponse.parse(await initial.json())
 
   const countPlayableTracks = (items: PlaylistTrackItem[]): number =>
     items.filter((it) => it.track?.id).length
@@ -113,7 +93,7 @@ export async function fetchPlaylist(
   while (next && countPlayableTracks(items) < maxTracks) {
     const r = await fetch(next, { headers })
     if (!r.ok) break
-    const page = (await r.json()) as { items: PlaylistTrackItem[]; next: string | null }
+    const page = SpotifyPlaylistTracksPage.parse(await r.json())
     items.push(...page.items)
     next = page.next
   }

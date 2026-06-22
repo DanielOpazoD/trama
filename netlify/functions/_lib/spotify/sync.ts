@@ -5,19 +5,13 @@
  */
 
 import { API_BASE, type SqlClient } from './client.js'
+import {
+  SpotifyRecentlyPlayedResponse,
+  type SpotifyRecentlyPlayedResponseT,
+} from './schemas.js'
 
-type RecentlyPlayedResponse = {
-  items: Array<{
-    played_at: string
-    track: {
-      id: string
-      name: string
-      duration_ms: number
-      artists: Array<{ id: string; name: string }>
-      album: { id: string; name: string }
-    }
-  }>
-}
+// Shape validado en runtime — ver `SpotifyRecentlyPlayedResponse` en schemas.ts.
+type RecentlyPlayedResponse = SpotifyRecentlyPlayedResponseT
 
 /**
  * Fetch the 50 most-recently played tracks. Spotify only retains the last 50,
@@ -38,7 +32,7 @@ export async function fetchRecentlyPlayed(
     const text = await r.text()
     throw new Error(`Spotify recently-played failed (${r.status}): ${text}`)
   }
-  return (await r.json()) as RecentlyPlayedResponse
+  return SpotifyRecentlyPlayedResponse.parse(await r.json())
 }
 
 /**

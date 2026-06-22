@@ -10,6 +10,7 @@ import { logEvent, logErrorEvent } from './_lib/observability.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { runWithSystemRls } from './_lib/user-rls.js'
+import { parseCronTriggerBody } from './_lib/cron-schemas.js'
 
 /**
  * Netlify Scheduled Function — Netlify invokes this on its own clock.
@@ -30,13 +31,10 @@ export default withObservability(
       return ApiErrors.methodNotAllowed(requestId)
     }
 
-    let nextRun = 'unknown'
-    try {
-      const body = (await req.json().catch(() => ({}))) as { next_run?: string }
-      nextRun = body.next_run ?? 'unknown'
-    } catch {
-      // Ignore — body shape is documented but defensive parsing never hurts.
-    }
+    // El body del cron (`{ next_run }`) pasa por Zod: tolerante (body inválido
+    // → {}), pero un `next_run` con tipo equivocado ya no se filtra al log.
+    const body = await parseCronTriggerBody(req)
+    const nextRun = body.next_run ?? 'unknown'
 
     let sql: ReturnType<typeof getSql>
     try {

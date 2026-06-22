@@ -9,6 +9,11 @@
 
 import { ApiErrors } from '../api-error.js'
 import { API_BASE, AUTH_URL, TOKEN_URL, readEnv, type SqlClient } from './client.js'
+import {
+  SpotifyProfileResponse,
+  SpotifyTokenResponse,
+  type SpotifyTokenResponseT,
+} from './schemas.js'
 
 // Scopes needed to read play history + playlists the user has access to.
 // Public playlist tracks are accessible without playlist-read-private, but
@@ -55,13 +60,8 @@ export function buildAuthUrl(state: string): string {
   return `${AUTH_URL}?${params.toString()}`
 }
 
-type TokenResponse = {
-  access_token: string
-  refresh_token?: string
-  token_type: string
-  scope: string
-  expires_in: number
-}
+// Shape validado en runtime — ver `SpotifyTokenResponse` en schemas.ts.
+type TokenResponse = SpotifyTokenResponseT
 
 /**
  * Exchange an OAuth authorization code for access + refresh tokens.
@@ -91,7 +91,7 @@ export async function exchangeCodeForTokens(code: string): Promise<TokenResponse
     const text = await response.text()
     throw new Error(`Spotify token exchange failed (${response.status}): ${text}`)
   }
-  return (await response.json()) as TokenResponse
+  return SpotifyTokenResponse.parse(await response.json())
 }
 
 /**
@@ -118,7 +118,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResponse> 
     const text = await response.text()
     throw new Error(`Spotify token refresh failed (${response.status}): ${text}`)
   }
-  return (await response.json()) as TokenResponse
+  return SpotifyTokenResponse.parse(await response.json())
 }
 
 /**
@@ -266,5 +266,5 @@ export async function getSpotifyProfile(
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!r.ok) return null
-  return (await r.json()) as { id: string; display_name: string | null }
+  return SpotifyProfileResponse.parse(await r.json())
 }
