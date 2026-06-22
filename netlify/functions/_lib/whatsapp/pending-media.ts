@@ -61,6 +61,7 @@ export async function storePendingMedia(
   caption = '',
 ): Promise<number> {
   if (images.length === 0) return 0
+  await cleanupExpiredPendingMedia(sql, userId, phone)
   const groupId = crypto.randomUUID()
   const keys = images.map((image) => image.key)
   const mimes = images.map((image) => image.mime)
@@ -76,6 +77,26 @@ export async function storePendingMedia(
     RETURNING 1 AS n
   `)
   return rows.length
+}
+
+async function cleanupExpiredPendingMedia(
+  sql: SqlClient,
+  userId: string,
+  phone: string,
+): Promise<void> {
+  const rows = await sqlTyped<{ storage_key: string }>(sql`
+    UPDATE whatsapp_pending_media
+    SET deleted_at = NOW()
+    WHERE user_id = ${userId}
+      AND phone_e164 = ${phone}
+      AND consumed_at IS NULL
+      AND deleted_at IS NULL
+      AND created_at <= NOW() - interval '15 minutes'
+    RETURNING storage_key
+  `)
+  for (const row of rows) {
+    removeBlob('recortes-media', row.storage_key).catch(() => {})
+  }
 }
 
 export async function maybeStorePendingMediaPrompt(

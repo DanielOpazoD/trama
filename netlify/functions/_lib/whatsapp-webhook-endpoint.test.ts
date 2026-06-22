@@ -835,6 +835,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMpendingFoto' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // cleanupExpiredPendingMedia
     mockSqlResponses.push([{ n: 1 }]) // storePendingMedia
     mockSqlResponses.push([]) // persistWhatsAppEvent
 
@@ -867,6 +868,122 @@ describe('whatsapp-webhook', () => {
         /INSERT INTO whatsapp_pending_media/i.test(c.template),
       ),
     ).toBe(true)
+  })
+
+  it('dos fotos sin caption quedan pendientes como un solo grupo y no crean recorte por defecto', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMpendingFotoGrupo',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '2',
+      MediaUrl0: 'https://api.twilio.com/Media/pending-a',
+      MediaContentType0: 'image/jpeg',
+      MediaUrl1: 'https://api.twilio.com/Media/pending-b',
+      MediaContentType1: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMpendingFotoGrupo' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // cleanupExpiredPendingMedia
+    mockSqlResponses.push([{ n: 1 }, { n: 1 }]) // storePendingMedia
+    mockSqlResponses.push([]) // persistWhatsAppEvent
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Recibí 2 fotos sin mensaje')
+    expect(xml).toContain('¿Dónde la guardo?')
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO whatsapp_pending_media/i.test(c.template),
+      ),
+    ).toBe(true)
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO recortes\b/i.test(c.template)),
+    ).toBe(false)
+  })
+
+  it('descarta pendientes vencidos antes de guardar un nuevo lote sin caption', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMpendingFotoCleanup',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/pending-cleanup',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMpendingFotoCleanup' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ storage_key: 'u1/old-pending.jpg' }]) // cleanupExpiredPendingMedia
+    mockSqlResponses.push([{ n: 1 }]) // storePendingMedia
+    mockSqlResponses.push([]) // persistWhatsAppEvent
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    expect(
+      mockSqlResponses.calls.some(
+        (c) =>
+          /UPDATE whatsapp_pending_media/i.test(c.template) &&
+          /created_at <= NOW\(\) - interval '15 minutes'/i.test(c.template),
+      ),
+    ).toBe(true)
+    const xml = await res.text()
+    expect(xml).toContain('¿Dónde la guardo?')
   })
 
   it('responder "momento" consume media pendiente y crea un Momento foto', async () => {
@@ -920,6 +1037,63 @@ describe('whatsapp-webhook', () => {
       /INSERT INTO momentos/i.test(c.template),
     )
     expect(insert?.values).toContain('2026-06-19T23:10:00.000Z')
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /UPDATE whatsapp_pending_media/i.test(c.template),
+      ),
+    ).toBe(true)
+  })
+
+  it('responder "recorte" consume media pendiente y crea un Recorte de imagen', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    const fields = {
+      MessageSid: 'SMpendingRecorte',
+      From: 'whatsapp:+56912345678',
+      Body: 'recorte',
+      NumMedia: '0',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMpendingRecorte' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([
+      {
+        id: 'p1',
+        storage_key: 'u1/pending.jpg',
+        mime: 'image/jpeg',
+        captured_at: '2026-06-19T23:10:00.000Z',
+        caption: '',
+      },
+    ]) // readPendingMedia
+    mockSqlResponses.push([{ id: 'r-pending' }]) // persistImageRecorte
+    mockSqlResponses.push([{ n: 1 }]) // consumePendingMedia
+    mockSqlResponses.push([]) // recordLastCapture
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    expect(xml).toContain('Guardado en Recortes')
+    expect(xml).toContain('view=recortes')
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO recortes\b/i.test(c.template)),
+    ).toBe(true)
     expect(
       mockSqlResponses.calls.some((c) =>
         /UPDATE whatsapp_pending_media/i.test(c.template),

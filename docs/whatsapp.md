@@ -69,7 +69,9 @@ texto. Hoy: **imágenes**.
   destino: responder `momento` la guarda como Momento foto; responder `recorte`
   la guarda como Recorte. No hay default silencioso para imágenes enviadas como
   archivo, porque WhatsApp puede impedir agregar caption y sería fácil guardar
-  en el lugar equivocado.
+  en el lugar equivocado. Los pendientes no consumidos viven como grupo por
+  hasta 15 minutos; al recibir un nuevo lote sin caption se marcan como borrados
+  los pendientes vencidos del mismo número y se limpian sus blobs en best-effort.
 - Caption libre sin prefijo → **Recorte** (`image_key` en store `recortes-media`,
   `capture_mode` 'image'); el caption es el texto del recorte.
 - Con caption `momento:` → **Momento foto** (`payload.storageKey` en
