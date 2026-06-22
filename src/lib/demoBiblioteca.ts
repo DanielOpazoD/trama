@@ -497,6 +497,10 @@ export type DemoUploadFile = {
   mime: string
   size: number
   takenAt?: string | null
+  /** Key ya presignada (camino directo a R2). Si llega, se preserva en vez de
+   *  generar una nueva — espeja al endpoint real, que materializa el manifest con
+   *  la key del body. El camino multipart no la manda (se genera). */
+  storageKey?: string
 }
 
 /** Item subido, en la forma camelCase de `GET /api/biblioteca` (lo que el
@@ -539,7 +543,9 @@ export function routeDemoLibraryUpload(files: DemoUploadFile[]): {
     // La key lleva una extensión derivada del nombre para que `demoMedia` pueda
     // servir un placeholder coherente (imágenes → miniatura).
     const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
-    const storageKey = `legacy-single-user/${itemId}${ext}`
+    // Si el caller ya trae una key presignada (camino directo a R2), la
+    // preservamos —como el endpoint real—; si no, generamos una (multipart).
+    const storageKey = file.storageKey ?? `legacy-single-user/${itemId}${ext}`
 
     const row: LibraryItemRow = {
       item_kind: 'library-upload',
@@ -611,6 +617,9 @@ export function routeDemoLibraryUploadComplete(body: Record<string, unknown>): {
     mime: typeof body.mimeType === 'string' ? body.mimeType : 'application/octet-stream',
     size: typeof body.byteSize === 'number' ? body.byteSize : 0,
     takenAt: typeof body.takenAt === 'string' ? body.takenAt : null,
+    // Preservamos la key presignada (igual que el endpoint real); si no llega un
+    // string válido, `routeDemoLibraryUpload` genera una.
+    storageKey: typeof body.storageKey === 'string' ? body.storageKey : undefined,
   }
   const { items } = routeDemoLibraryUpload([file])
   return { item: items[0]! }

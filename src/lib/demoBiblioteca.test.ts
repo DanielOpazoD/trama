@@ -13,6 +13,8 @@ import {
   routeDemoBibliotecaLinks,
   routeDemoBibliotecaMutation,
   routeDemoLibraryUpload,
+  routeDemoLibraryUploadPresign,
+  routeDemoLibraryUploadComplete,
   type DemoLibraryLinkRow,
   type DemoTargetResolver,
 } from './demoBiblioteca'
@@ -281,5 +283,30 @@ describe('demoBiblioteca — subida (modo prueba)', () => {
       },
     ])
     expect(res.items.map((i) => i.fileType)).toEqual(['image', 'document'])
+  })
+
+  it('directo a R2: complete preserva la storageKey presignada (round-trip)', () => {
+    const { storageKey } = routeDemoLibraryUploadPresign({ fileName: 'video.mp4' })
+    expect(storageKey).toBeTruthy()
+    // El endpoint real materializa el manifest con la key del body; el demo
+    // debe espejarlo en vez de inventar una nueva.
+    const { item } = routeDemoLibraryUploadComplete({
+      storageKey,
+      fileName: 'video.mp4',
+      mimeType: 'video/mp4',
+      byteSize: 12_000_000,
+    })
+    expect(item.storageKey).toBe(storageKey)
+    expect(item.kind).toBe('library-upload')
+    expect(item.byteSize).toBe(12_000_000)
+  })
+
+  it('directo a R2: complete sin storageKey válida genera una (no rompe)', () => {
+    const { item } = routeDemoLibraryUploadComplete({
+      fileName: 'suelto.pdf',
+      mimeType: 'application/pdf',
+      byteSize: 50,
+    })
+    expect(item.storageKey).toMatch(/^legacy-single-user\//)
   })
 })
