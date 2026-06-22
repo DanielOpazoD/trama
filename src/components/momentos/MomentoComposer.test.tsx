@@ -227,7 +227,36 @@ describe('<MomentoComposer />', () => {
       />,
     )
 
-    expect(screen.getByText(/fecha de la foto no disponible/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/fecha de la foto no disponible/i)).toHaveLength(2)
     expect(screen.getByLabelText(/fecha personalizada/i)).toHaveValue('2026-07-04T09:30')
+  })
+
+  it('muestra el modo foto como no disponible si quedó seleccionado sin sugerencia EXIF', () => {
+    const setPhotoDateMode = vi.fn()
+    render(
+      <MomentoComposer
+        composer={makeComposer({
+          kind: 'foto',
+          photoDrafts: [
+            {
+              file: new File(['foto'], 'sin-exif.jpg', { type: 'image/jpeg' }),
+              previewUrl: 'blob:sin-exif',
+              capturedAt: null,
+            },
+          ],
+          photoCapturedAtSuggestion: null,
+          photoDateMode: 'photo',
+          setPhotoDateMode,
+        } as Partial<Composer>)}
+        defaultExpanded
+      />,
+    )
+
+    const unavailable = screen.getByRole('button', {
+      name: /fecha de la foto no disponible/i,
+    })
+    expect(unavailable).toBeInTheDocument()
+    expect(unavailable).toBeDisabled()
+    expect(screen.getByRole('button', { name: /usar ahora/i })).toBeInTheDocument()
   })
 })

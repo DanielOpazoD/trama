@@ -1099,6 +1099,14 @@ describe('whatsapp-webhook', () => {
         /UPDATE whatsapp_pending_media/i.test(c.template),
       ),
     ).toBe(true)
+    const claimIndex = mockSqlResponses.calls.findIndex((c) =>
+      /UPDATE whatsapp_pending_media/i.test(c.template),
+    )
+    const recorteIndex = mockSqlResponses.calls.findIndex((c) =>
+      /INSERT INTO recortes\b/i.test(c.template),
+    )
+    expect(claimIndex).toBeGreaterThanOrEqual(0)
+    expect(recorteIndex).toBeGreaterThan(claimIndex)
   })
 
   it('dos fotos con prefijo "momento:" → un solo Momento foto episódico (items[])', async () => {

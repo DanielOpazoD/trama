@@ -128,7 +128,7 @@ export async function maybeStorePendingMediaPrompt(
   return pendingMediaPrompt(pendingCount || options.recorteImages.length)
 }
 
-async function readPendingMedia(
+async function claimPendingMedia(
   sql: SqlClient,
   userId: string,
   phone: string,
@@ -144,28 +144,33 @@ async function readPendingMedia(
         AND created_at > NOW() - interval '15 minutes'
       ORDER BY created_at DESC
       LIMIT 1
+    ),
+    claimed AS (
+      UPDATE whatsapp_pending_media
+      SET consumed_at = NOW()
+      WHERE user_id = ${userId}
+        AND group_id = (SELECT group_id FROM latest)
+        AND consumed_at IS NULL
+        AND deleted_at IS NULL
+      RETURNING id, storage_key, mime, captured_at, caption, created_at
     )
     SELECT id, storage_key, mime, captured_at, caption
-    FROM whatsapp_pending_media
-    WHERE user_id = ${userId}
-      AND group_id = (SELECT group_id FROM latest)
-      AND consumed_at IS NULL
-      AND deleted_at IS NULL
+    FROM claimed
     ORDER BY created_at ASC, id ASC
   `)
 }
 
-async function consumePendingMedia(
+async function releasePendingMedia(
   sql: SqlClient,
   userId: string,
   ids: string[],
 ): Promise<void> {
   if (ids.length === 0) return
-  await sqlTyped<{ n: number }>(sql`
+  await sqlTyped<{ id: string }>(sql`
     UPDATE whatsapp_pending_media
-    SET consumed_at = NOW()
+    SET consumed_at = NULL
     WHERE user_id = ${userId} AND id = ANY(${ids}::uuid[])
-    RETURNING 1 AS n
+    RETURNING id
   `)
 }
 
@@ -176,28 +181,33 @@ export async function resolvePendingMediaDestination(
   destination: PendingMediaDestination,
   origin: string,
 ): Promise<PendingMediaResolution> {
-  const rows = await readPendingMedia(sql, userId, phone)
+  const rows = await claimPendingMedia(sql, userId, phone)
   if (rows.length === 0) return null
 
   const caption = rows.find((row) => row.caption.trim())?.caption ?? ''
   const ids = rows.map((row) => row.id)
 
   if (destination === 'recorte') {
-    const images = rows.map((row) => ({ key: row.storage_key, mime: row.mime }))
-    const result =
-      images.length === 1
-        ? await persistImageRecorte(sql, userId, images[0]!.key, caption)
-        : await persistImageRecorteEvent(sql, userId, images, caption)
-    if (!result.id) throw new Error('pending_media_recorte_missing_id')
-    await consumePendingMedia(sql, userId, ids)
-    return {
-      kind: 'recorte',
-      id: result.id,
-      message: `✅ Guardado en Recortes.\n🔗 Ábrelo en Trama: ${captureDeepLink(origin, 'recorte')}`,
+    try {
+      const images = rows.map((row) => ({ key: row.storage_key, mime: row.mime }))
+      const result =
+        images.length === 1
+          ? await persistImageRecorte(sql, userId, images[0]!.key, caption)
+          : await persistImageRecorteEvent(sql, userId, images, caption)
+      if (!result.id) throw new Error('pending_media_recorte_missing_id')
+      return {
+        kind: 'recorte',
+        id: result.id,
+        message: `✅ Guardado en Recortes.\n🔗 Ábrelo en Trama: ${captureDeepLink(origin, 'recorte')}`,
+      }
+    } catch (err) {
+      await releasePendingMedia(sql, userId, ids)
+      throw err
     }
   }
 
   const copied: string[] = []
+  let destinationPersisted = false
   try {
     for (const row of rows) {
       const copy = await copyRecorteImageToStore(
@@ -216,7 +226,7 @@ export async function resolvePendingMediaDestination(
       pickOldestCapturedAt(rows.map((row) => row.captured_at)),
     )
     if (!result.id) throw new Error('pending_media_momento_missing_id')
-    await consumePendingMedia(sql, userId, ids)
+    destinationPersisted = true
     for (const row of rows) {
       removeBlob('recortes-media', row.storage_key).catch(() => {})
     }
@@ -226,8 +236,11 @@ export async function resolvePendingMediaDestination(
       message: `✅ Guardado en Momentos.\n🔗 Ábrelo en Trama: ${captureDeepLink(origin, 'momento')}`,
     }
   } catch (err) {
-    for (const key of copied) {
-      await removeBlob('momentos-media', key)
+    if (!destinationPersisted) {
+      for (const key of copied) {
+        await removeBlob('momentos-media', key)
+      }
+      await releasePendingMedia(sql, userId, ids)
     }
     throw err
   }
