@@ -4,7 +4,9 @@ import {
   routeDemoBiblioteca,
   routeDemoBibliotecaLinks,
   routeDemoBibliotecaMutation,
+  routeDemoLibraryUpload,
   type DemoTargetResolver,
+  type DemoUploadFile,
 } from './demoBiblioteca'
 import { extractPromptVariables, parseTags, weekStartAgo } from './demoUtils'
 
@@ -116,6 +118,15 @@ export function routeDemoRequest(
       decodeURIComponent(action),
       body,
     )
+  }
+
+  // Biblioteca — subida (PR1 de subida): POST /api/library-uploads. Los archivos
+  // vienen bajo la clave reservada `__uploadFiles` (multi-archivo; ver demo.ts).
+  if (resource === 'library-uploads' && method === 'POST') {
+    const files = Array.isArray(body.__uploadFiles)
+      ? (body.__uploadFiles as DemoUploadFile[])
+      : []
+    return routeDemoLibraryUpload(files)
   }
 
   // Biblioteca — conexiones (PR-C): /api/biblioteca-links/:kind/:id (GET/POST/DELETE).

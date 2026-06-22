@@ -80,6 +80,7 @@ function buildQuery(params: BibliotecaListParams): string {
  * placeholder para cualquier key de estos tres endpoints.
  */
 const SERVE_ENDPOINT: Partial<Record<LibraryStorageDomain, string>> = {
+  'library-uploads': '/api/library-uploads-file',
   'notas-attachments': '/api/notas-attachments-file',
   'momentos-media': '/api/momentos-file',
   'recortes-media': '/api/recortes-image',
@@ -151,6 +152,35 @@ export const bibliotecaApi = {
       items: response.items.map(libraryItemFromRow),
       nextCursor: response.nextCursor,
     }
+  },
+
+  /**
+   * Sube uno o varios archivos directo a la Biblioteca (multipart). Cada entrada
+   * lleva el `File` y, opcional, su `takenAt` (ISO de la fecha de captura —
+   * EXIF/lastModified, resuelta en el cliente) que el servidor ancla en
+   * `created_at`. Devuelve los items creados (ya en forma camelCase, listos para
+   * insertar en la lista). `POST /api/library-uploads`.
+   */
+  async upload(
+    files: { file: File; takenAt?: string }[],
+  ): Promise<{ items: LibraryItem[]; failed: { name: string; message: string }[] }> {
+    const form = new FormData()
+    for (const { file, takenAt } of files) {
+      form.append('file', file)
+      // `takenAt` viaja en paralelo a `file`, alineado por índice (siempre se
+      // agrega aunque esté vacío, así los índices no se desfasan).
+      form.append('takenAt', takenAt ?? '')
+    }
+    // El endpoint sube con éxito parcial: devuelve los que entraron y los que
+    // fallaron, para que el cliente reintente solo esos (sin duplicar).
+    const response = await request<{
+      items: LibraryItem[]
+      failed?: { name: string; message: string }[]
+    }>('/api/library-uploads', {
+      method: 'POST',
+      body: form,
+    })
+    return { items: response.items, failed: response.failed ?? [] }
   },
 
   /** Renombra un item (upsert de display_title en el override). */

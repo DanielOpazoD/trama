@@ -38,7 +38,21 @@ export async function demoRequest<T>(url: string, init?: RequestInit): Promise<T
   if (init?.body && typeof init.body === 'string') {
     body = JSON.parse(init.body) as Record<string, unknown>
   } else if (typeof FormData !== 'undefined' && init?.body instanceof FormData) {
-    body = Object.fromEntries(init.body.entries())
+    const form = init.body
+    body = Object.fromEntries(form.entries())
+    // Subida multi-archivo: `Object.fromEntries` colapsa los `file`/`takenAt`
+    // repetidos a uno solo. Extraemos TODOS bajo una clave reservada (alineados
+    // por índice) para que el router pueda recorrerlos sin perder ninguno.
+    const files = form.getAll('file').filter((f): f is File => f instanceof File)
+    if (files.length > 0) {
+      const takenAt = form.getAll('takenAt')
+      body.__uploadFiles = files.map((file, i) => ({
+        name: file.name,
+        mime: file.type,
+        size: file.size,
+        takenAt: typeof takenAt[i] === 'string' ? (takenAt[i] as string) : null,
+      }))
+    }
   }
   const [rawPath, qs] = url.split('?')
   const params = new URLSearchParams(qs ?? '')

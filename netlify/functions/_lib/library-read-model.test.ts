@@ -245,7 +245,7 @@ describe('sortAndPaginate', () => {
 describe('fetchLibraryRows SQL', () => {
   const sql = setupMockSql().getSql()
 
-  test('la query une las 6 fuentes, decora con overrides y filtra por usuario', async () => {
+  test('la query une las 7 fuentes, decora con overrides y filtra por usuario', async () => {
     mockSqlResponses.reset()
     mockSqlResponses.push([])
 
@@ -262,7 +262,8 @@ describe('fetchLibraryRows SQL', () => {
     expect(call).toBeDefined()
     const template = call!.template
 
-    // Las 6 fuentes nativas + la tabla decoradora.
+    // Las 7 fuentes nativas (incl. storage_assets para las subidas directas) +
+    // la tabla decoradora.
     for (const table of [
       'notas_attachments',
       'recorte_images',
@@ -270,6 +271,7 @@ describe('fetchLibraryRows SQL', () => {
       'momentos',
       'pdf_studio_saved_pdfs',
       'pdf_stamp_assets',
+      'storage_assets',
       'library_item_overrides',
     ]) {
       expect(template, `query debe referenciar ${table}`).toMatch(
