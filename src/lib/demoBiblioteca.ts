@@ -259,10 +259,15 @@ const SEED: LibraryItemRow[] = [
 /**
  * Capa de overrides en memoria (espejo de `library_item_overrides`). Clave
  * lógica `kind:itemId`. Vive en el módulo: persiste durante la sesión y se
- * pierde al recargar (modo prueba, sin DB). Solo modelamos lo que PR4 usa:
- * título renombrado y la marca de papelera.
+ * pierde al recargar (modo prueba, sin DB). Modelamos lo que PR4/PR-C usan:
+ * título renombrado, la marca de papelera, las etiquetas y el estado fijado.
  */
-type DemoOverride = { title?: string; deleted?: boolean }
+type DemoOverride = {
+  title?: string
+  deleted?: boolean
+  tags?: string[]
+  pinned?: boolean
+}
 const demoOverrides = new Map<string, DemoOverride>()
 
 function overrideKey(kind: string, itemId: string): string {
@@ -275,6 +280,8 @@ function applyOverride(row: LibraryItemRow): LibraryItemRow & { deleted: boolean
   return {
     ...row,
     title: ov?.title ?? row.title,
+    tags: ov?.tags ?? row.tags,
+    pinned: ov?.pinned ?? row.pinned,
     deleted: ov?.deleted ?? false,
   }
 }
@@ -360,8 +367,11 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
   if (tipo) rows = rows.filter((row) => row.file_type === tipo)
   if (fuente) rows = rows.filter((row) => row.source === fuente)
 
-  // Orden + desempate estable por item_id (igual que el backend).
+  // Orden + desempate estable por item_id (igual que el backend). Los items
+  // fijados van SIEMPRE primero, sin importar el orden elegido (espejo del
+  // `ORDER BY pinned DESC, …` del read-model).
   const sorted = [...rows].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
     let primary = 0
     switch (orden) {
       case 'modificado-asc':
@@ -408,8 +418,9 @@ export function routeDemoBiblioteca(params: URLSearchParams): {
 /**
  * Maneja un PATCH /api/biblioteca-item/:kind/:id contra la capa de overrides en
  * memoria. `{ displayTitle }` renombra; `{ deleted }` manda a / saca de la
- * papelera. Devuelve `{ ok: true }` (forma del endpoint real). kind/itemId
- * vienen del path ya decodificados.
+ * papelera; `{ tags }` reemplaza las etiquetas; `{ pinned }` fija / suelta.
+ * Devuelve `{ ok: true }` (forma del endpoint real). kind/itemId vienen del
+ * path ya decodificados.
  */
 export function routeDemoBibliotecaMutation(
   kind: string,
@@ -424,6 +435,128 @@ export function routeDemoBibliotecaMutation(
   if (typeof body.deleted === 'boolean') {
     current.deleted = body.deleted
   }
+  if (Array.isArray(body.tags)) {
+    // Solo strings, recortadas; espejo del saneo del backend.
+    current.tags = (body.tags as unknown[])
+      .filter((t): t is string => typeof t === 'string')
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0)
+  }
+  if (typeof body.pinned === 'boolean') {
+    current.pinned = body.pinned
+  }
   demoOverrides.set(key, current)
+  return { ok: true }
+}
+
+// ---------------------------------------------------------------------------
+// Conexiones (PR-C) — "aparece en". Store en memoria de vínculos por item con
+// objetos de dominio (entidad / nota / momento). Espejo conceptual de
+// `library_item_links`: clave lógica `kind:itemId`, cada vínculo lleva su
+// `targetKind`/`targetId` y resolvemos `targetTitle` contra los seeds de la
+// demo (entidades, notas, momentos). Persiste durante la sesión.
+// ---------------------------------------------------------------------------
+
+/** Forma del vínculo tal cual lo emite el endpoint real (camelCase). */
+export type DemoLibraryLinkRow = {
+  id: string
+  targetKind: 'entidad' | 'nota' | 'momento'
+  targetId: string
+  targetTitle: string | null
+  createdAt: string
+}
+
+/** Vínculos por item. Clave `kind:itemId`. */
+const demoLinks = new Map<string, DemoLibraryLinkRow[]>()
+
+/**
+ * Resolutor de títulos de destino: lo inyecta el router (que sí ve el store de
+ * la demo) para que `targetTitle` salga del MISMO seed que alimenta al picker
+ * (entidades / notas / momentos). Así `demoBiblioteca` no importa el store y se
+ * mantiene autocontenido, pero los títulos quedan coherentes.
+ */
+export type DemoTargetResolver = (
+  targetKind: 'entidad' | 'nota' | 'momento',
+  targetId: string,
+) => string | null
+
+let linksSeeded = false
+/**
+ * Siembra una conexión pre-existente (idempotente). Necesita el resolutor para
+ * fijar `targetTitle` desde el seed real; lo llamamos al primer GET de links.
+ */
+function ensureLinksSeed(resolve: DemoTargetResolver): void {
+  if (linksSeeded) return
+  linksSeeded = true
+  // El PDF fijado "Ficciones (anotado)" ya aparece en la primera entidad
+  // sembrada (Borges, id `e-borges`).
+  demoLinks.set('pdf-saved:demo-pdf-1', [
+    {
+      id: 'demo-link-1',
+      targetKind: 'entidad',
+      targetId: 'e-borges',
+      targetTitle: resolve('entidad', 'e-borges'),
+      createdAt: daysAgo(1),
+    },
+  ])
+}
+
+/**
+ * Maneja /api/biblioteca-links/:kind/:id (GET / POST / DELETE) contra el store
+ * de vínculos en memoria. Devuelve las formas del endpoint real:
+ *   - GET    → `{ links: DemoLibraryLinkRow[] }`
+ *   - POST   → `{ ok: true }` (crea / revive un vínculo; idempotente)
+ *   - DELETE → `{ ok: true }` (quita el vínculo por targetKind+targetId)
+ * kind/itemId vienen del path ya decodificados; `resolve` mapea destino→título.
+ */
+export function routeDemoBibliotecaLinks(
+  method: string,
+  kind: string,
+  itemId: string,
+  params: URLSearchParams,
+  body: Record<string, unknown>,
+  resolve: DemoTargetResolver,
+): { links: DemoLibraryLinkRow[] } | { ok: true } {
+  ensureLinksSeed(resolve)
+  const key = overrideKey(kind, itemId)
+  const links = demoLinks.get(key) ?? []
+
+  if (method === 'GET') {
+    return { links }
+  }
+
+  if (method === 'POST') {
+    const targetKind = String(body.targetKind ?? '') as DemoLibraryLinkRow['targetKind']
+    const targetId = String(body.targetId ?? '')
+    if (!targetKind || !targetId) return { ok: true }
+    // Idempotente: no duplicar un vínculo ya existente al mismo destino.
+    const already = links.some(
+      (l) => l.targetKind === targetKind && l.targetId === targetId,
+    )
+    if (!already) {
+      demoLinks.set(key, [
+        ...links,
+        {
+          id: `demo-link-${crypto.randomUUID()}`,
+          targetKind,
+          targetId,
+          targetTitle: resolve(targetKind, targetId),
+          createdAt: new Date().toISOString(),
+        },
+      ])
+    }
+    return { ok: true }
+  }
+
+  if (method === 'DELETE') {
+    const targetKind = params.get('targetKind')
+    const targetId = params.get('targetId')
+    demoLinks.set(
+      key,
+      links.filter((l) => !(l.targetKind === targetKind && l.targetId === targetId)),
+    )
+    return { ok: true }
+  }
+
   return { ok: true }
 }

@@ -13,6 +13,7 @@ export function BibliotecaGridView({
   onToggleSelect,
   onRename,
   onOpen,
+  onTagClick,
 }: {
   items: LibraryItem[]
   trash?: boolean
@@ -21,6 +22,8 @@ export function BibliotecaGridView({
   onToggleSelect: (item: LibraryItem) => void
   onRename: (item: LibraryItem) => void
   onOpen: (item: LibraryItem) => void
+  /** Filtra por una etiqueta al clickearla (PR-C). Opcional. */
+  onTagClick?: (tag: string) => void
 }) {
   const anySelected = selectedIds.size > 0
   return (
@@ -39,6 +42,7 @@ export function BibliotecaGridView({
             onToggleSelect={onToggleSelect}
             onRename={onRename}
             onOpen={onOpen}
+            onTagClick={onTagClick}
           />
         </div>
       ))}

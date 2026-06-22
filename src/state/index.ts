@@ -41,6 +41,11 @@ export {
   flattenBibliotecaItems,
   useRenameLibraryItem,
   useSetLibraryItemDeleted,
+  useSetLibraryItemTags,
+  useSetLibraryItemPinned,
+  useLibraryItemLinks,
+  useAddLibraryItemLink,
+  useRemoveLibraryItemLink,
   type BibliotecaListInput,
 } from './useBiblioteca'
 export {

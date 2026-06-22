@@ -1,6 +1,11 @@
 import type { Row, Store } from './demoTypes'
 import { saveDemoStore as save } from './demoStore'
-import { routeDemoBiblioteca, routeDemoBibliotecaMutation } from './demoBiblioteca'
+import {
+  routeDemoBiblioteca,
+  routeDemoBibliotecaLinks,
+  routeDemoBibliotecaMutation,
+  type DemoTargetResolver,
+} from './demoBiblioteca'
 import { extractPromptVariables, parseTags, weekStartAgo } from './demoUtils'
 
 function uid(): string {
@@ -43,6 +48,50 @@ function aiOff(): never {
   throw new Error('La IA está desactivada en el modo prueba.')
 }
 
+/** Título legible de un momento desde su payload (espejo de la UI). */
+function momentoTitle(m: Row): string {
+  const payload = (m.payload ?? {}) as Record<string, unknown>
+  const candidate =
+    (typeof payload.title === 'string' && payload.title) ||
+    (typeof payload.caption === 'string' && payload.caption) ||
+    (typeof payload.bodyText === 'string' && payload.bodyText) ||
+    (typeof m.note === 'string' && m.note) ||
+    ''
+  const trimmed = candidate.trim()
+  if (!trimmed) return 'Momento'
+  return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed
+}
+
+/** Título legible de una nota desde su contenido (primera línea acotada). */
+function noteTitle(n: Row): string {
+  const title = typeof n.title === 'string' ? n.title.trim() : ''
+  if (title) return title
+  const content = (typeof n.content === 'string' ? n.content : '').trim()
+  if (!content) return '(sin título)'
+  const firstLine = content.split('\n', 1)[0] ?? content
+  return firstLine.length > 80 ? `${firstLine.slice(0, 80)}…` : firstLine
+}
+
+/**
+ * Resuelve el título de un destino de conexión (entidad / nota / momento)
+ * contra el store de la demo, para que `targetTitle` de los vínculos coincida
+ * con lo que ve el picker. Lo inyectamos en `routeDemoBibliotecaLinks`.
+ */
+function makeTargetResolver(store: Store): DemoTargetResolver {
+  return (targetKind, targetId) => {
+    if (targetKind === 'entidad') {
+      const e = store.entities.find((row) => row.id === targetId)
+      return typeof e?.name === 'string' ? e.name : null
+    }
+    if (targetKind === 'nota') {
+      const n = store.notes.find((row) => row.id === targetId)
+      return n ? noteTitle(n) : null
+    }
+    const m = store.momentos.find((row) => row.id === targetId)
+    return m ? momentoTitle(m) : null
+  }
+}
+
 /** Maneja una "request" contra el store. Devuelve el shape del servidor. */
 export function routeDemoRequest(
   method: string,
@@ -56,14 +105,56 @@ export function routeDemoRequest(
   const id = seg[1]
   const action = seg[2]
 
-  // Biblioteca — acciones por item (PR4): PATCH /api/biblioteca-item/:kind/:id.
-  // `:kind` y `:id` llegan codificados en la URL; los decodificamos.
+  // Biblioteca — acciones por item (PR4/PR-C): PATCH /api/biblioteca-item/:kind/:id
+  // (renombrar / papelera / etiquetas / fijar). `:kind` y `:id` llegan
+  // codificados en la URL; los decodificamos.
   if (resource === 'biblioteca-item' && method === 'PATCH' && id && action) {
     return routeDemoBibliotecaMutation(
       decodeURIComponent(id),
       decodeURIComponent(action),
       body,
     )
+  }
+
+  // Biblioteca — conexiones (PR-C): /api/biblioteca-links/:kind/:id (GET/POST/DELETE).
+  // `:kind` y `:id` llegan codificados. El resolutor de títulos lee el store
+  // para que `targetTitle` coincida con los candidatos del picker.
+  if (resource === 'biblioteca-links' && id && action) {
+    return routeDemoBibliotecaLinks(
+      method,
+      decodeURIComponent(id),
+      decodeURIComponent(action),
+      params,
+      body,
+      makeTargetResolver(store),
+    )
+  }
+
+  // Lookup de entidades (picker de conexiones): /api/entities-lookup?prefix=…
+  // El backend real soporta name/prefix/ids; en demo basta filtrar el seed por
+  // prefijo (case-insensitive) y devolver las filas de entidad tal cual.
+  if (resource === 'entities-lookup' && method === 'GET') {
+    const prefix = (params.get('prefix') ?? '').trim().toLowerCase()
+    const name = (params.get('name') ?? '').trim().toLowerCase()
+    const idsRaw = params.get('ids')
+    const all = live(store.entities)
+    if (idsRaw) {
+      const ids = new Set(idsRaw.split(',').map((s) => decodeURIComponent(s)))
+      return all.filter((e) => ids.has(String(e.id)))
+    }
+    if (name) {
+      return all.filter((e) => String(e.name ?? '').toLowerCase() === name)
+    }
+    if (prefix) {
+      return all
+        .filter((e) =>
+          String(e.name ?? '')
+            .toLowerCase()
+            .includes(prefix),
+        )
+        .slice(0, 10)
+    }
+    return []
   }
 
   if (resource === 'notas-attachments-upload' && method === 'POST') {

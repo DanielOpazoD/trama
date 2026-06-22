@@ -88,6 +88,40 @@ describe('biblioteca-item endpoint — integration (mock SQL)', () => {
     expect((await res.json()) as { deleted: boolean }).toMatchObject({ deleted: false })
   })
 
+  it('PATCH { tags } reemplaza etiquetas y devuelve la lista', async () => {
+    mockSqlResponses.push([overrideRow({ tags: ['factura', '2026'] })])
+
+    const res = await handler(
+      buildApiRequest('/api/biblioteca-item/notas-attachment/a1', {
+        method: 'PATCH',
+        json: { tags: ['factura', '2026'] },
+      }),
+      mockContext({ kind: 'notas-attachment', id: 'a1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { ok: boolean; tags: string[] }
+    expect(body).toMatchObject({ ok: true, tags: ['factura', '2026'] })
+    expect(mockSqlState.calls.at(-1)?.template).toMatch(/tags = EXCLUDED\.tags/i)
+  })
+
+  it('PATCH { pinned: true } fija el item', async () => {
+    mockSqlResponses.push([overrideRow({ pinned: true })])
+
+    const res = await handler(
+      buildApiRequest('/api/biblioteca-item/pdf-saved/p1', {
+        method: 'PATCH',
+        json: { pinned: true },
+      }),
+      mockContext({ kind: 'pdf-saved', id: 'p1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { ok: boolean; pinned: boolean }
+    expect(body).toMatchObject({ ok: true, pinned: true })
+    expect(mockSqlState.calls.at(-1)?.template).toMatch(/pinned = EXCLUDED\.pinned/i)
+  })
+
   it('rechaza kind no permitido con error canónico de validación', async () => {
     const res = await handler(
       buildApiRequest('/api/biblioteca-item/nope/a1', {

@@ -301,4 +301,47 @@ describe('<BibliotecaView />', () => {
       ).toBeNull()
     })
   })
+
+  // ---- Filtro por etiqueta (PR-C) ----
+
+  it('clickear una etiqueta setea ?etiqueta=, muestra el indicador y refetchea', async () => {
+    stubFetch([
+      row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf', tags: ['lectura'] }),
+    ])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+    fireEvent.click(screen.getByRole('button', { name: 'Filtrar por etiqueta lectura' }))
+
+    await waitFor(() => {
+      expect(window.location.search).toContain('etiqueta=lectura')
+    })
+    // Indicador removible junto a la barra de controles.
+    expect(screen.getByText('Etiqueta:')).toBeInTheDocument()
+    // La query refetcheó con la etiqueta.
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('tag=lectura'))).toBe(true)
+    })
+  })
+
+  it('el indicador de etiqueta se puede quitar (limpia el param)', async () => {
+    stubFetch([
+      row({ item_id: 'a', title: 'Contrato.pdf', file_type: 'pdf', tags: ['lectura'] }),
+    ])
+    renderWithProviders(<BibliotecaView />)
+
+    await screen.findByText('Contrato.pdf')
+    fireEvent.click(screen.getByRole('button', { name: 'Filtrar por etiqueta lectura' }))
+    await waitFor(() => {
+      expect(window.location.search).toContain('etiqueta=lectura')
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar filtro de etiqueta lectura' }),
+    )
+    await waitFor(() => {
+      expect(window.location.search).not.toContain('etiqueta=lectura')
+    })
+    expect(screen.queryByText('Etiqueta:')).toBeNull()
+  })
 })

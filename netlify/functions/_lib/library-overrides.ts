@@ -36,6 +36,9 @@ export type LibraryItemKind = (typeof LIBRARY_ITEM_KINDS)[number]
 /** Límites de longitud (espejo de los CHECK de la migración). */
 export const ITEM_ID_MAX = 300
 export const DISPLAY_TITLE_MAX = 400
+/** Tope por tag y cantidad de tags (la columna es text[], sin CHECK en DB). */
+export const TAG_MAX = 50
+export const TAGS_MAX = 30
 
 /** Fila del override que devuelven los upserts (snake_case, frontera con PG). */
 export type LibraryOverrideRow = {
@@ -43,6 +46,8 @@ export type LibraryOverrideRow = {
   item_kind: LibraryItemKind
   item_id: string
   display_title: string | null
+  tags: string[]
+  pinned: boolean
   deleted_at: string | null
   updated_at: string
 }
@@ -127,7 +132,7 @@ export async function renameLibraryItem(
     DO UPDATE SET
       display_title = EXCLUDED.display_title,
       updated_at = NOW()
-    RETURNING id, item_kind, item_id, display_title, deleted_at, updated_at
+    RETURNING id, item_kind, item_id, display_title, tags, pinned, deleted_at, updated_at
   `)
   return rows[0] ?? null
 }
@@ -158,7 +163,100 @@ export async function setLibraryItemDeleted(
     DO UPDATE SET
       deleted_at = ${deletedAt}::timestamptz,
       updated_at = NOW()
-    RETURNING id, item_kind, item_id, display_title, deleted_at, updated_at
+    RETURNING id, item_kind, item_id, display_title, tags, pinned, deleted_at, updated_at
+  `)
+  return rows[0] ?? null
+}
+
+/**
+ * Valida y normaliza la lista de tags: exige un array de strings, recorta cada
+ * uno, descarta vacíos, deduplica sin distinguir mayúsculas (conserva la primera
+ * forma) y aplica los topes `TAG_MAX` (por tag) y `TAGS_MAX` (cantidad). Devuelve
+ * la lista lista para persistir como `text[]`.
+ */
+export function normalizeTags(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new LibraryOverrideValidationError('tags debe ser una lista')
+  }
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const raw of value) {
+    if (typeof raw !== 'string') {
+      throw new LibraryOverrideValidationError('cada tag debe ser texto')
+    }
+    const trimmed = raw.trim()
+    if (trimmed.length === 0) continue
+    if (trimmed.length > TAG_MAX) {
+      throw new LibraryOverrideValidationError(
+        `un tag no puede exceder ${TAG_MAX} caracteres`,
+      )
+    }
+    const key = trimmed.toLocaleLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(trimmed)
+  }
+  if (out.length > TAGS_MAX) {
+    throw new LibraryOverrideValidationError(`máximo ${TAGS_MAX} tags`)
+  }
+  return out
+}
+
+/**
+ * Reemplaza las etiquetas de un item (upsert de `tags`). El INSERT lista
+ * `user_id` explícito (contrato `check:user-id-writes`); en conflicto solo toca
+ * `tags` + `updated_at` (no resucita `deleted_at` ni pisa título/pinned).
+ */
+export async function setLibraryItemTags(
+  sql: SqlClient,
+  input: { userId: string; itemKind: unknown; itemId: unknown; tags: unknown },
+): Promise<LibraryOverrideRow | null> {
+  const { itemKind, itemId } = normalizeItemKey(input)
+  const tags = normalizeTags(input.tags)
+
+  const rows = await sqlTyped<LibraryOverrideRow>(sql`
+    INSERT INTO library_item_overrides (
+      user_id, item_kind, item_id, tags
+    )
+    VALUES (
+      ${input.userId}, ${itemKind}, ${itemId}, ${tags}::text[]
+    )
+    ON CONFLICT (user_id, item_kind, item_id)
+    DO UPDATE SET
+      tags = EXCLUDED.tags,
+      updated_at = NOW()
+    RETURNING id, item_kind, item_id, display_title, tags, pinned, deleted_at, updated_at
+  `)
+  return rows[0] ?? null
+}
+
+/**
+ * Fija (`pinned` = true) o suelta (`pinned` = false) un item — upsert de
+ * `pinned`. El INSERT lista `user_id` explícito; en conflicto solo toca `pinned`
+ * + `updated_at` (preserva título/tags/deleted_at).
+ */
+export async function setLibraryItemPinned(
+  sql: SqlClient,
+  input: { userId: string; itemKind: unknown; itemId: unknown; pinned: unknown },
+): Promise<LibraryOverrideRow | null> {
+  const { itemKind, itemId } = normalizeItemKey(input)
+  if (typeof input.pinned !== 'boolean') {
+    throw new LibraryOverrideValidationError('pinned debe ser booleano')
+  }
+  const pinned = input.pinned
+
+  const rows = await sqlTyped<LibraryOverrideRow>(sql`
+    INSERT INTO library_item_overrides (
+      user_id, item_kind, item_id, pinned
+    )
+    VALUES (
+      ${input.userId}, ${itemKind}, ${itemId}, ${pinned}
+    )
+    ON CONFLICT (user_id, item_kind, item_id)
+    DO UPDATE SET
+      pinned = EXCLUDED.pinned,
+      updated_at = NOW()
+    RETURNING id, item_kind, item_id, display_title, tags, pinned, deleted_at, updated_at
   `)
   return rows[0] ?? null
 }

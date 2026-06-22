@@ -36,6 +36,7 @@ describe('BibliotecaListQuery', () => {
       tab: 'todo',
       tipo: '',
       fuente: '',
+      tag: '',
       orden: 'modificado-desc',
       incluyeEliminados: false,
       limit: 30,
@@ -60,6 +61,7 @@ describe('BibliotecaListQuery', () => {
       tab: 'todo',
       tipo: '',
       fuente: '',
+      tag: '',
       orden: 'modificado-desc',
       incluyeEliminados: true,
       limit: 100,
@@ -116,6 +118,7 @@ describe('buildLibraryListParams', () => {
         tab: 'archivos',
         tipo: 'pdf',
         fuente: 'generado',
+        tag: '',
         incluyeEliminados: true,
       },
       page: { orden: 'nombre-asc', limit: 15, offset: 45 },
@@ -226,6 +229,17 @@ describe('sortAndPaginate', () => {
     })
     expect(result.items.map((r) => r.item_id)).toEqual(['a', 'b', 'c'])
   })
+
+  test('los items fijados van primero, sea cual sea el orden', () => {
+    const rows = [
+      row({ item_id: 'a', title: 'Apple', pinned: false }),
+      row({ item_id: 'z', title: 'Zeta', pinned: true }),
+      row({ item_id: 'b', title: 'Bravo', pinned: false }),
+    ]
+    // 'Zeta' está fijado → va primero aunque alfabéticamente iría último.
+    const asc = sortAndPaginate(rows, { orden: 'nombre-asc', limit: 10, offset: 0 })
+    expect(asc.items.map((r) => r.item_id)).toEqual(['z', 'a', 'b'])
+  })
 })
 
 describe('fetchLibraryRows SQL', () => {
@@ -240,6 +254,7 @@ describe('fetchLibraryRows SQL', () => {
       tab: 'imagenes',
       tipo: 'image',
       fuente: 'whatsapp',
+      tag: 'factura',
       incluyeEliminados: false,
     })
 
@@ -271,9 +286,10 @@ describe('fetchLibraryRows SQL', () => {
     // Soft-delete nativo en las ramas con deleted_at.
     expect(template).toMatch(/deleted_at IS NULL/i)
 
-    // Filtros centinela parametrizados (q, tab, tipo, fuente, incluyeEliminados).
+    // Filtros centinela parametrizados (q, tab, tipo, fuente, tag, incluyeEliminados).
     expect(template).toMatch(/file_type = /i)
     expect(template).toMatch(/source = /i)
+    expect(template).toMatch(/= ANY\(COALESCE\(tags/i)
     expect(template).toMatch(/title ILIKE/i)
     expect(template).toMatch(/lib_deleted_at IS (NOT )?NULL/i)
 
@@ -282,6 +298,7 @@ describe('fetchLibraryRows SQL', () => {
     expect(call!.values).toContain('mar')
     expect(call!.values).toContain('image')
     expect(call!.values).toContain('whatsapp')
+    expect(call!.values).toContain('factura')
     expect(call!.values).toContain(false)
     expect(call!.values).toContain('imagenes')
   })
@@ -296,6 +313,7 @@ describe('fetchLibraryRows SQL', () => {
       tab: 'todo',
       tipo: '',
       fuente: '',
+      tag: '',
       incluyeEliminados: false,
     })
     expect(rows).toEqual([fixture])
