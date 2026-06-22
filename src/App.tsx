@@ -37,6 +37,7 @@ import { MomentoNotificationsCenter } from './components/momentos/MomentoNotific
 import { ShellTopChrome } from './components/appShell/ShellTopChrome'
 import { ShellAttentionLayer } from './components/appShell/ShellAttentionLayer'
 import { buildShellVisibility, type EntityTab } from './components/appShell/appShellModel'
+import { WorldLoadingFallback } from './components/appShell/WorldLoadingFallback'
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
@@ -488,10 +489,7 @@ function WorldShell() {
       /* storage deshabilitado */
     }
   }, [initialWorldFromUrl])
-
-  // El mundo Notas es lazy (Trama no). Precargamos su bundle poco después del
-  // arranque para que cambiar de mundo NO muestre una pantalla en blanco
-  // esperando el chunk: cuando el usuario cambie, ya está en memoria.
+  // Precarga el bundle (lazy) de Notas tras el arranque: cambiar de mundo no espera el chunk.
   useEffect(() => {
     const t = window.setTimeout(() => preloadWorldBundle('notas'), 1200)
     return () => window.clearTimeout(t)
@@ -559,13 +557,7 @@ function WorldShell() {
             onRevealNotasModule={revealNotasModule}
           />
         ) : (
-          <Suspense
-            fallback={
-              <div className="flex h-screen w-screen items-center justify-center bg-paper-50">
-                <span className="text-caption text-ink-300 animate-pulse">cargando…</span>
-              </div>
-            }
-          >
+          <Suspense fallback={<WorldLoadingFallback />}>
             <NotasWorld
               world={world}
               onChangeWorld={changeWorld}
