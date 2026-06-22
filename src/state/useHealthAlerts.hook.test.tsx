@@ -42,6 +42,11 @@ function health(alerts: HealthAlert[]): HealthResponse {
     },
     byProvider: [],
     recentErrors: [],
+    status: alerts.some((a) => a.severity === 'error')
+      ? 'critical'
+      : alerts.length > 0
+        ? 'degraded'
+        : 'ok',
     alerts,
     embeddings: { pendingEntities: 0, pendingQuotes: 0 },
     dailyCost: [],

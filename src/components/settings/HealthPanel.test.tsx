@@ -39,6 +39,7 @@ const HEALTH_FIXTURE: HealthResponse = {
       createdAt: '2026-05-31T10:05:00Z',
     },
   ],
+  status: 'degraded',
   alerts: [
     {
       severity: 'warn',

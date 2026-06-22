@@ -5,6 +5,7 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { getEnv } from './_lib/env.js'
 import { runWithUserRls } from './_lib/user-rls.js'
+import { buildHealthAlerts, deriveHealthStatus } from './_lib/health-alerts.js'
 
 export type HealthAuthStatus = {
   clerkConfigured: boolean
@@ -188,78 +189,25 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
   const auth = resolveHealthAuthStatus(env)
 
   // ── Alertas calculadas en runtime ──────────────────────────────
-  // Cada alerta es algo que el usuario debería mirar. Tres severidades:
-  //   info  — útil saber, no urgente (gradient azul muy sutil)
-  //   warn  — vale la pena revisar (ámbar)
-  //   error — algo está fallando ahora (rojo)
-  // La UI consume `alerts[]` para decidir si pinta un dot en el sidebar
-  // y de qué color. Si el array está vacío, todo silencioso.
-  type Alert = {
-    severity: 'info' | 'warn' | 'error'
-    code: string
-    label: string
-    hint: string
-  }
-  const alerts: Alert[] = []
-
-  // Budget — alerta antes de tocar el cap, para que el usuario pueda
-  // decidir si subir el cap o pausar antes de que se corten las llamadas.
-  if (budgetPct >= 0.9) {
-    alerts.push({
-      severity: 'error',
-      code: 'budget_critical',
-      label: 'Gasto IA al 90% del cap',
-      hint: 'Próximamente las llamadas LLM van a bloquearse hasta el próximo mes. Sube AI_MONTHLY_BUDGET_CENTS o pausa flujos.',
-    })
-  } else if (budgetPct >= 0.7) {
-    alerts.push({
-      severity: 'warn',
-      code: 'budget_high',
-      label: `Gasto IA al ${Math.round(budgetPct * 100)}% del cap`,
-      hint: 'Vas por encima del 70% del presupuesto mensual. Mira el breakdown por provider abajo.',
-    })
-  }
-
-  if (auth.clerkConfigured && auth.legacyFallbackAllowed) {
-    alerts.push({
-      severity: 'warn',
-      code: 'auth_legacy_fallback',
-      label: 'Fallback legacy activo',
-      hint: 'Clerk está configurado, pero requests sin token aún caen a legacy-single-user. Producción debería ir con ALLOW_LEGACY_FALLBACK=false antes de abrir multi-user.',
-    })
-  }
-
-  // Errores recientes — el "hubo algo raro en las últimas 24h".
-  const errors24h = Number(errors24hRows[0]?.c ?? 0)
-  if (errors24h >= 10) {
-    alerts.push({
-      severity: 'error',
-      code: 'errors_burst',
-      label: `${errors24h} errores en 24h`,
-      hint: 'Algo está fallando recurrente. Mira la lista de abajo y los stacks.',
-    })
-  } else if (errors24h >= 3) {
-    alerts.push({
-      severity: 'warn',
-      code: 'errors_recent',
-      label: `${errors24h} errores en 24h`,
-      hint: 'Hay más errores de los habituales. Vale la pena una mirada.',
-    })
-  }
-
-  // Embeddings sin indexar — info, no urgente. Aparece solo si hay un
-  // backlog significativo (>50). Por debajo no vale interrumpir.
+  // La clasificación (umbrales + severidad + copy) vive en una función
+  // PURA y testeable: `buildHealthAlerts` en `_lib/health-alerts.ts`.
+  // Acá solo armamos las señales a partir de lecturas baratas que el
+  // handler ya hizo y delegamos la decisión. La UI consume `alerts[]`
+  // para decidir si pinta un dot en el sidebar y de qué color; si el
+  // array está vacío, todo silencioso. NUNCA metemos datos sensibles en
+  // las señales: son conteos/fracciones, nunca contenido de error.
   const pendingEntities = Number(embeddingPendingRows[0]?.entities ?? 0)
   const pendingQuotes = Number(embeddingPendingRows[0]?.quotes ?? 0)
-  const pendingTotal = pendingEntities + pendingQuotes
-  if (pendingTotal >= 50) {
-    alerts.push({
-      severity: 'info',
-      code: 'embeddings_pending',
-      label: `${pendingTotal} sin indexar`,
-      hint: 'Búsqueda semántica no las cubre todavía. Reindexa desde la sección Búsqueda.',
-    })
-  }
+  const errors24h = Number(errors24hRows[0]?.c ?? 0)
+  const alerts = buildHealthAlerts({
+    budgetPct,
+    errors24h,
+    pendingEmbeddings: pendingEntities + pendingQuotes,
+    clerkConfigured: auth.clerkConfigured,
+    legacyFallbackAllowed: auth.legacyFallbackAllowed,
+  })
+  // Estado global derivado (additive): ok / degraded / critical.
+  const status = deriveHealthStatus(alerts)
 
   // Serie diaria de los últimos 30 días — rellenamos días sin
   // actividad con 0 para que el sparkline se vea como una línea
@@ -312,6 +260,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       productionSmokeCommand: 'npm run smoke:production-report',
       logRedaction: 'structured-redaction',
     },
+    status,
     alerts,
     embeddings: {
       pendingEntities,

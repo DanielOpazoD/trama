@@ -53,6 +53,8 @@ export type HealthResponse = {
     message: string
     createdAt: string
   }>
+  /** Estado global derivado del peor severity de `alerts`. */
+  status: 'ok' | 'degraded' | 'critical'
   alerts: HealthAlert[]
   embeddings: {
     pendingEntities: number
