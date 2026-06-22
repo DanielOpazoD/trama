@@ -106,7 +106,7 @@ describe('r2 helper', () => {
     expect((signMock.mock.calls[0]![0] as Request).method).toBe('HEAD')
   })
 
-  it('r2ObjectExists devuelve exists:false si el HEAD no es ok', async () => {
+  it('r2ObjectExists devuelve exists:false solo ante un 404 (objeto no existe)', async () => {
     stubR2Env()
     vi.stubGlobal(
       'fetch',
@@ -116,5 +116,20 @@ describe('r2 helper', () => {
       exists: false,
       size: null,
     })
+  })
+
+  it('r2ObjectExists LANZA ante un HEAD no-404 (403/5xx no es "no existe")', async () => {
+    stubR2Env()
+    // 403 (firma/credenciales mal) y 503 (caída de R2) NO deben colapsar a
+    // "archivo faltante": se propagan para que el wrapper devuelva un 500 claro.
+    for (const status of [403, 503]) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(null, { status })),
+      )
+      await expect(r2ObjectExists('user-1/file.pdf')).rejects.toThrow(
+        `R2 HEAD falló con status ${status}`,
+      )
+    }
   })
 })

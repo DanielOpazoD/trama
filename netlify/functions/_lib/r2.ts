@@ -143,7 +143,14 @@ export async function r2ObjectExists(
     new Request(r2ObjectUrl(key), { method: 'HEAD' }),
   )
   const response = await fetch(signed)
-  if (!response.ok) return { exists: false, size: null }
+  // Solo un 404 significa "el objeto no existe". Otros no-2xx (403 por
+  // credenciales/firma mal, 5xx por caída de R2) NO son "archivo faltante":
+  // los propagamos para que `withObservability` los registre y devuelva un 500
+  // honesto, en vez de un 404 engañoso que oculta un problema de servicio/config.
+  if (response.status === 404) return { exists: false, size: null }
+  if (!response.ok) {
+    throw new Error(`R2 HEAD falló con status ${response.status}`)
+  }
   const lengthHeader = response.headers.get('content-length')
   const size = lengthHeader != null ? Number.parseInt(lengthHeader, 10) : NaN
   return { exists: true, size: Number.isFinite(size) ? size : null }

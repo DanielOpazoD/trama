@@ -73,6 +73,24 @@ describe('library-uploads-complete endpoint', () => {
     expect(res.status).toBe(404)
   })
 
+  it('rechaza (413) si el tamaño REAL del HEAD supera el cap, aunque el hint sea chico', async () => {
+    // El cliente declara 1 KB pero el objeto en R2 pesa 250 MB (> 200 MB).
+    r2ObjectExistsMock.mockResolvedValueOnce({ exists: true, size: 250 * 1024 * 1024 })
+    const res = await postComplete(validBody({ byteSize: 1024 }))
+    expect(res.status).toBe(413)
+    // No se registra manifest de un archivo que supera el cap.
+    const insert = mockSqlState.calls.find((c) =>
+      /INSERT INTO storage_assets/i.test(c.template),
+    )
+    expect(insert).toBeUndefined()
+  })
+
+  it('rechaza (422) si R2 no reporta el tamaño del objeto', async () => {
+    r2ObjectExistsMock.mockResolvedValueOnce({ exists: true, size: null })
+    const res = await postComplete(validBody())
+    expect(res.status).toBe(422)
+  })
+
   it('devuelve error claro si R2 no está configurado', async () => {
     isR2ConfiguredMock.mockReturnValue(false)
     const res = await postComplete(validBody())

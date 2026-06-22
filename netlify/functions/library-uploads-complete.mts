@@ -84,7 +84,7 @@ export default withObservability(
 
     const parsed = await parseJsonBody(req, CompleteBody, requestId)
     if (!parsed.ok) return parsed.response
-    const { storageKey, fileName, mimeType, byteSize, takenAt } = parsed.data
+    const { storageKey, fileName, mimeType, takenAt } = parsed.data
 
     if (!isAllowedLibraryMime(mimeType)) {
       return ApiErrors.unsupportedMediaType(
@@ -123,7 +123,23 @@ export default withObservability(
     if (!head.exists) {
       return ApiErrors.notFound(requestId, 'El archivo no se encontró en el almacenamiento')
     }
-    const realByteSize = head.size ?? byteSize
+    // El cap se enforcea contra el tamaño REAL del objeto (HEAD), NO contra el
+    // `byteSize` del cliente (un hint manipulable): si no, un cliente podría
+    // presignar declarando "1 KB", PUTear 500 MB y completar igual. Si R2 no
+    // reporta el tamaño, no podemos verificarlo → rechazamos en vez de confiar.
+    if (head.size == null) {
+      return ApiErrors.unprocessable(
+        requestId,
+        'No se pudo verificar el tamaño del archivo subido',
+      )
+    }
+    if (head.size > MAX_BYTES) {
+      return ApiErrors.payloadTooLarge(
+        requestId,
+        `El archivo supera el límite de ${MAX_BYTES / (1024 * 1024)} MB`,
+      )
+    }
+    const realByteSize = head.size
 
     const name = cleanFileName(fileName)
     if (!name) return ApiErrors.validation(requestId, 'Nombre de archivo requerido')
