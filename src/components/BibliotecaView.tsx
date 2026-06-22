@@ -5,6 +5,7 @@ import {
   useUploadLibraryFiles,
 } from '../state'
 import { resolveCaptureDate } from '../lib/exifDate'
+import { compressImageForUpload } from '../lib/compressImage'
 import { useSearchParamState } from '../hooks/useSearchParamState'
 import { ViewHeader } from './ViewHeader'
 import { ErrorState } from './ErrorState'
@@ -186,7 +187,11 @@ export function BibliotecaView({
     // mandamos takenAt siempre (el servidor decide si lo usa).
     const withDates: { file: File; takenAt: string }[] = []
     for (const file of files) {
-      withDates.push({ file, takenAt: await resolveCaptureDate(file) })
+      // La fecha se lee del ORIGINAL (comprimir borra el EXIF). Luego, si la
+      // imagen es grande, se comprime para entrar bajo el límite de la función.
+      const takenAt = await resolveCaptureDate(file)
+      const prepared = await compressImageForUpload(file)
+      withDates.push({ file: prepared, takenAt })
     }
     uploadFiles.mutate(withDates)
   }
