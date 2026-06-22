@@ -112,7 +112,9 @@ export function FilterPopover({
   onChangeFuente: (next: LibrarySource | '') => void
   onToggleEliminados: (next: boolean) => void
 }) {
-  const popover = useAnchoredPopover()
+  // offset chico: el panel queda pegado al botón de filtros (antes se sentía
+  // "demasiado abajo" con el gap por defecto).
+  const popover = useAnchoredPopover({ offset: 2 })
   const activeCount = (tipo ? 1 : 0) + (fuente ? 1 : 0) + (incluyeEliminados ? 1 : 0)
 
   return (

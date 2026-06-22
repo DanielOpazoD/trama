@@ -8,6 +8,7 @@ import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
 import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
 import { renameLibraryItem } from './_lib/library-overrides.js'
 import { readFormData, requireMethod } from './_lib/request-contracts.js'
+import { logOperationalEvent } from './_lib/operational-events.js'
 
 /**
  * POST /api/library-uploads
@@ -250,17 +251,26 @@ export default withObservability(
           updatedAt: override?.updated_at ?? createdAt,
         })
       } catch (err) {
-        failed.push({
-          name,
-          message: err instanceof Error ? err.message : 'No se pudo subir',
+        const message = err instanceof Error ? err.message : 'No se pudo subir'
+        // Log server-side para diagnosticar (la causa real del fallo del blob /
+        // manifest no debe perderse en el `failed[]` que ve el cliente).
+        logOperationalEvent({
+          event: 'storage.manifest.failed',
+          severity: 'warn',
+          requestId,
+          operation: 'library-upload',
+          userId,
+          reason: message,
         })
+        failed.push({ name, message })
       }
     }
 
-    // Si no entró ninguno pese a pasar la validación, es un fallo del servidor
-    // (no un parcial): respondemos error para que el cliente lo trate como tal.
+    // Si no entró ninguno pese a pasar la validación, es un fallo del servidor:
+    // devolvemos el motivo REAL del primer fallo (no un genérico) para que el
+    // cliente lo muestre y podamos diagnosticar.
     if (items.length === 0 && failed.length > 0) {
-      return ApiErrors.internal(requestId, 'No se pudo subir ningún archivo')
+      return ApiErrors.internal(requestId, failed[0]!.message)
     }
     return Response.json({ items, failed }, { status: 201 })
   },

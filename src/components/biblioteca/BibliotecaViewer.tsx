@@ -237,6 +237,8 @@ function ViewerBody({
 
   if (mode === 'image') return <ImageBody serveUrl={serveUrl} alt={item.title} />
 
+  if (mode === 'video') return <VideoBody serveUrl={serveUrl} />
+
   if (mode === 'pdf') {
     return (
       <Suspense fallback={<CenteredHint dark>cargando visor…</CenteredHint>}>
@@ -275,6 +277,28 @@ function ImageBody({ serveUrl, alt }: { serveUrl: string; alt: string }) {
   return (
     <CenteredHint dark>
       {status === 'error' ? 'No se pudo cargar la imagen' : 'cargando…'}
+    </CenteredHint>
+  )
+}
+
+/** Reproductor de video contenido sobre el fondo oscuro (blob autenticado). */
+function VideoBody({ serveUrl }: { serveUrl: string }) {
+  const { src, status } = useAuthenticatedMediaState(serveUrl)
+  if (status === 'ready' && src) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <video
+          src={src}
+          controls
+          playsInline
+          className="max-h-full max-w-full rounded-lg shadow-2xl shadow-black/60"
+        />
+      </div>
+    )
+  }
+  return (
+    <CenteredHint dark>
+      {status === 'error' ? 'No se pudo cargar el video' : 'cargando…'}
     </CenteredHint>
   )
 }

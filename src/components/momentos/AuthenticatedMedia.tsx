@@ -10,7 +10,8 @@ function shouldFetchWithApiClient(src: string): boolean {
   return (
     src.startsWith('/api/momentos-file/') ||
     src.startsWith('/api/notas-attachments-file/') ||
-    src.startsWith('/api/recortes-image/')
+    src.startsWith('/api/recortes-image/') ||
+    src.startsWith('/api/library-uploads-file/')
   )
 }
 

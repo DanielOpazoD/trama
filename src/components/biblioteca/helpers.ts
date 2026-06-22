@@ -184,7 +184,7 @@ export function fileExtensionLabel(item: {
  * y la extensión, porque algunos archivos de texto/JSON llegan con `fileType`
  * 'document' u 'other'. Puro y testeable: la UI solo enruta.
  */
-export type ViewerMode = 'image' | 'pdf' | 'text' | 'none'
+export type ViewerMode = 'image' | 'pdf' | 'text' | 'video' | 'none'
 
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'markdown', 'json', 'csv', 'log'])
 
@@ -195,6 +195,7 @@ export function viewerModeFor(item: {
 }): ViewerMode {
   if (item.fileType === 'image') return 'image'
   if (item.fileType === 'pdf') return 'pdf'
+  if (item.fileType === 'video') return 'video'
 
   // Normaliza el mime (sin parámetros tipo `; charset=utf-8`).
   const baseMime = item.mimeType?.toLowerCase().split(';', 1)[0]?.trim() ?? ''
