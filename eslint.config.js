@@ -136,6 +136,25 @@ export default tseslint.config(
       'jsx-a11y/no-redundant-roles': 'warn',
       'jsx-a11y/click-events-have-key-events': 'off', // demasiados FP en componentes de grafo con drag
       'jsx-a11y/no-static-element-interactions': 'off', // idem
+      // Endurecimiento a11y: reglas de alto valor que el codebase ya cumple
+      // (0 violaciones) — las fijamos en `error` como anti-regresión.
+      'jsx-a11y/tabindex-no-positive': 'error',
+      'jsx-a11y/anchor-has-content': 'error',
+      'jsx-a11y/heading-has-content': 'error',
+      'jsx-a11y/img-redundant-alt': 'error',
+      'jsx-a11y/aria-activedescendant-has-tabindex': 'error',
+      'jsx-a11y/mouse-events-have-key-events': 'error',
+      // Labels asociados programáticamente a su control (no solo visualmente).
+      // controlComponents incluye los controles custom que envuelven su propio
+      // input (EntityCombobox), que la regla no puede inspeccionar.
+      'jsx-a11y/label-has-associated-control': [
+        'error',
+        { controlComponents: ['EntityCombobox'] },
+      ],
+      // no-noninteractive-tabindex / interactive-supports-focus quedan OFF a
+      // propósito: esta app tiene contenedores legítimamente enfocables
+      // (regiones scrolleables, role=application del grafo, ítems DnD) que la
+      // regla marca como falsos positivos — mismo criterio que click-events.
 
       // TypeScript: lo que recommended ya trae es razonable. Customizamos:
       '@typescript-eslint/no-unused-vars': [

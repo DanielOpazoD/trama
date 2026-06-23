@@ -103,8 +103,11 @@ export function QuoteEditModal({
 
           <div className="px-5 py-4 space-y-3">
             <div>
-              <label className="block section-eyebrow mb-1">Cita</label>
+              <label htmlFor="quote-edit-text" className="block section-eyebrow mb-1">
+                Cita
+              </label>
               <textarea
+                id="quote-edit-text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={4}
@@ -114,10 +117,11 @@ export function QuoteEditModal({
               />
             </div>
             <div>
-              <label className="block section-eyebrow mb-1">
+              <label htmlFor="quote-edit-source" className="block section-eyebrow mb-1">
                 Fuente (libro, artículo, álbum…)
               </label>
               <input
+                id="quote-edit-source"
                 type="text"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
@@ -127,8 +131,11 @@ export function QuoteEditModal({
               />
             </div>
             <div>
-              <label className="block section-eyebrow mb-1">Hipervínculo</label>
+              <label htmlFor="quote-edit-link" className="block section-eyebrow mb-1">
+                Hipervínculo
+              </label>
               <input
+                id="quote-edit-link"
                 type="url"
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
@@ -138,8 +145,14 @@ export function QuoteEditModal({
               />
             </div>
             <div>
-              <label className="block section-eyebrow mb-1">Tu reflexión</label>
+              <label
+                htmlFor="quote-edit-reflection"
+                className="block section-eyebrow mb-1"
+              >
+                Tu reflexión
+              </label>
               <textarea
+                id="quote-edit-reflection"
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
                 rows={3}
