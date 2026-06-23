@@ -16,6 +16,7 @@ import {
   useOffline,
 } from '../state'
 import { CloseIcon, EndMark, SparkleIcon } from './Icons'
+import { IconButton } from './IconButton'
 import { EmptyMessage } from './EmptyMessage'
 import { ErrorState } from './ErrorState'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
@@ -199,25 +200,25 @@ export function RelationshipsView({
       {suggest.error && (
         <div className="alert-error mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 text-xs">
           <span className="flex-1">{suggest.error.message}</span>
-          <button
+          <IconButton
             onClick={() => suggest.reset()}
-            aria-label="Cerrar aviso"
+            label="Cerrar aviso"
             className="shrink-0 p-1 -m-0.5 opacity-70 hover:opacity-100 rounded transition-opacity"
           >
             <CloseIcon size={12} />
-          </button>
+          </IconButton>
         </div>
       )}
       {emptyHint && !suggest.isPending && (
         <div className="mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 bg-paper-100/60 border border-ink-100/60 rounded-lg text-caption text-ink-500 leading-snug">
           <span className="flex-1">{emptyHint}</span>
-          <button
+          <IconButton
             onClick={() => setEmptyHint(null)}
-            aria-label="Cerrar aviso"
+            label="Cerrar aviso"
             className="shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors"
           >
             <CloseIcon size={12} />
-          </button>
+          </IconButton>
         </div>
       )}
 

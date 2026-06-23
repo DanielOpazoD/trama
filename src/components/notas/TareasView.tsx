@@ -11,6 +11,7 @@ import { LoadingHint } from '../LoadingHint'
 import { ErrorState } from '../ErrorState'
 import { ViewHeader } from '../ViewHeader'
 import { PlusIcon, CameraIcon, SortIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { TaskItem } from './TaskItem'
 import { PriorityDots } from './PriorityDots'
@@ -222,16 +223,15 @@ export function TareasView() {
                 </>
               )}
             </OverflowMenu>
-            <button
-              type="button"
+            <IconButton
               onClick={() => togglePhotos(week)}
-              aria-label="Fotos de la semana"
+              label="Fotos de la semana"
               aria-expanded={showPhotos}
               title="Fotos de la semana"
               className="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
             >
               <CameraIcon size={14} />
-            </button>
+            </IconButton>
           </div>
         </div>
 

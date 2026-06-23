@@ -1,4 +1,5 @@
 import { CheckIcon, CloseIcon } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
@@ -28,17 +29,16 @@ export function WorkspaceSaveCreationRow({
         placeholder="Nombre de la creación"
         className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
       />
-      <button
-        type="button"
+      <IconButton
         onClick={onConfirm}
-        aria-label="Guardar"
+        label="Guardar"
         className={`${rowBtn} text-[color:var(--accent-sage)]`}
       >
         <CheckIcon size={14} />
-      </button>
-      <button type="button" onClick={onCancel} aria-label="Cancelar" className={rowBtn}>
+      </IconButton>
+      <IconButton onClick={onCancel} label="Cancelar" className={rowBtn}>
         <CloseIcon size={14} />
-      </button>
+      </IconButton>
     </div>
   )
 }

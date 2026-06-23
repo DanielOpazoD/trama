@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSectionPin } from '../hooks/useSectionPin'
 import { LockIcon } from './Icons'
+import { IconButton } from './IconButton'
 import { PinPad } from './PinPad'
 
 /**
@@ -50,14 +51,14 @@ function PinPromptOrContent({ children }: { children: React.ReactNode }) {
       <div className="relative h-full w-full flex flex-col">
         {children}
         {/* Botón flotante para volver a bloquear manualmente la sección */}
-        <button
+        <IconButton
           onClick={() => setUnlocked(false)}
           className="fixed bottom-6 right-6 z-50 p-2.5 bg-paper-50 hover:bg-paper-100 text-ink-400 hover:text-ink-700 border border-ink-200/60 rounded-full shadow-md transition-all active:scale-95 flex items-center justify-center"
           title="Bloquear sección (volver a pedir PIN)"
-          aria-label="Bloquear sección"
+          label="Bloquear sección"
         >
           <LockIcon size={14} />
-        </button>
+        </IconButton>
       </div>
     )
   }

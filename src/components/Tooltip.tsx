@@ -21,7 +21,7 @@ import {
  *
  * Uso típico:
  *   <Tooltip content="Eliminar">
- *     <button aria-label="Eliminar"><TrashIcon /></button>
+ *     <IconButton label="Eliminar"><TrashIcon /></IconButton>
  *   </Tooltip>
  *
  * El componente clona el child y le añade event handlers, así no necesita

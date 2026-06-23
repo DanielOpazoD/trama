@@ -5,6 +5,7 @@ import { useToast } from '../../state/toast'
 import { downloadBlob } from '../../lib/downloadBlob'
 import { libroImprintSummary } from '../../lib/libro/libroModel'
 import { CloseIcon, ReadingIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { WaitingVoice } from '../WaitingVoice'
 
 /**
@@ -146,14 +147,14 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
               colofón, un capítulo por voz e índice onomástico, en A5 listo para imprimir.
             </p>
           </div>
-          <button
+          <IconButton
             onClick={onClose}
             disabled={busy}
-            aria-label="Cerrar"
+            label="Cerrar"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
           >
             <CloseIcon />
-          </button>
+          </IconButton>
         </header>
 
         <div className="max-h-[min(72vh,620px)] overflow-y-auto p-5 space-y-4">

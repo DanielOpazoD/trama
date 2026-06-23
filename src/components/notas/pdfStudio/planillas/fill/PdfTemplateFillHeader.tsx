@@ -1,4 +1,5 @@
 import { ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from '../../../../Icons'
+import { IconButton } from '../../../../IconButton'
 import { stepBtn } from '../../editor/editorStyle'
 import { ZoomPercentInput } from '../../editor/ZoomPercentInput'
 
@@ -53,32 +54,30 @@ export function PdfTemplateFillHeader({
       className="flex shrink-0 items-center justify-between gap-3 border-b border-ink-100/70 bg-paper-50/95 px-3 py-2 shadow-sm shadow-ink-900/5"
     >
       <div className="flex min-w-0 items-center gap-1">
-        <button
-          type="button"
+        <IconButton
           onClick={onPrevPage}
           disabled={currentPage === 0}
-          aria-label="Página anterior"
+          label="Página anterior"
           title="Página anterior"
           className={stepBtn}
         >
           <ChevronLeftIcon size={14} />
-        </button>
+        </IconButton>
         <div className="min-w-0 px-1">
           <p className="truncate text-sm font-semibold text-ink-800">Rellenar planilla</p>
           <p className="truncate text-micro text-ink-400">
             Solo relleno · Página {currentPage + 1} de {totalPages} · {status}
           </p>
         </div>
-        <button
-          type="button"
+        <IconButton
           onClick={onNextPage}
           disabled={currentPage === totalPages - 1}
-          aria-label="Página siguiente"
+          label="Página siguiente"
           title="Página siguiente"
           className={stepBtn}
         >
           <ChevronRightIcon size={14} />
-        </button>
+        </IconButton>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <div

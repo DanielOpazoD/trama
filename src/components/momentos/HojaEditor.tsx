@@ -5,6 +5,7 @@ import type { SearchQuoteHit } from '../../api'
 import { useAddMomento, useToast } from '../../state'
 import type { Entity, MomentoPayload } from '../../types'
 import { CloseIcon, QuoteIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { getCaretCoordinates } from './caretCoordinates'
 import { detectTrigger, formatQuote, replaceRange, type HojaTrigger } from './hojaText'
 
@@ -248,15 +249,14 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
             Escribe enlazando tu archivo
           </h3>
         </div>
-        <button
-          type="button"
+        <IconButton
           onClick={onClose}
           className="text-ink-300 hover:text-ink-600 transition-colors shrink-0"
-          aria-label="Cerrar la hoja"
+          label="Cerrar la hoja"
           title="Cerrar"
         >
           <CloseIcon size={14} />
-        </button>
+        </IconButton>
       </header>
 
       <div className="relative">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery, useRelationshipsQuery } from '../state'
 import type { Entity, Quote, Relationship } from '../types'
 import { CloseIcon, EndMark } from './Icons'
+import { IconButton } from './IconButton'
 import { generateCareoLaminaBlob } from '../lib/lamina'
 import { downloadBlob } from '../lib/downloadBlob'
 import { useToast } from '../state/toast'
@@ -154,13 +155,13 @@ export function Careo({ open, onClose }: { open: boolean; onClose: () => void })
       aria-label="Careo"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up"
     >
-      <button
+      <IconButton
         onClick={onClose}
-        aria-label="Cerrar"
+        label="Cerrar"
         className="absolute top-5 right-5 p-2 text-ink-300 hover:text-ink-700 transition-colors"
       >
         <CloseIcon />
-      </button>
+      </IconButton>
 
       <header className="pt-12 pb-6 px-6 text-center">
         <p className="text-micro uppercase tracking-shout text-ink-300">careo</p>

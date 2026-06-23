@@ -5,6 +5,7 @@ import { ENTITY_TYPES } from '../../types'
 import type { Entity } from '../../types'
 import type { Recorte, RecorteTarget } from '../../api'
 import { CloseIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { EntityCombobox } from '../EntityCombobox'
 
@@ -200,14 +201,14 @@ export function PromoteModal({
                 (isImageCaptura ? 'Como foto del día' : 'Como momento del día')}
             </h2>
           </div>
-          <button
+          <IconButton
             onClick={onClose}
             disabled={busy}
-            aria-label="Cerrar"
+            label="Cerrar"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
           >
             <CloseIcon />
-          </button>
+          </IconButton>
         </header>
 
         <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">

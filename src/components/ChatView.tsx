@@ -16,6 +16,7 @@ import {
   useSendChatMessage,
 } from '../state'
 import { ArrowRightIcon } from './Icons'
+import { IconButton } from './IconButton'
 import { SkeletonList, ThreadRowSkeleton } from './Skeleton'
 import { LoadingHint } from './LoadingHint'
 import { MessageBubble } from './chat/MessageBubble'
@@ -368,15 +369,15 @@ export function ChatView({
             disabled={sendPending}
             className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-xl px-3 py-2 text-body text-ink-700 placeholder:text-ink-300 focus:border-ink-200 leading-relaxed transition-colors"
           />
-          <button
+          <IconButton
             type="submit"
             disabled={!draft.trim() || sendPending}
             className="self-end mb-0.5 size-9 rounded-full bg-ink-700 text-paper-50 hover:bg-ink-600 active:scale-90 disabled:bg-ink-100 disabled:text-ink-300 disabled:active:scale-100 transition-all duration-150 ease-out flex items-center justify-center"
-            aria-label="Enviar"
+            label="Enviar"
             title="Enter para enviar · Shift+Enter para nueva línea"
           >
             <ArrowRightIcon size={14} />
-          </button>
+          </IconButton>
         </form>
       </section>
     </div>

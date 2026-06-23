@@ -7,6 +7,7 @@ import {
   RotateIcon,
   TrashIcon,
 } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 
 const barBtn =
   'touch-target inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption text-ink-600 hover:text-ink-800 hover:bg-paper-50/80 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-ink-600 disabled:cursor-default transition-colors'
@@ -121,16 +122,15 @@ export function BulkBar({
       >
         <CheckIcon size={14} /> Todo
       </button>
-      <button
-        type="button"
+      <IconButton
         onClick={onClear}
         disabled={none}
-        aria-label="Desmarcar todo"
+        label="Desmarcar todo"
         title="Desmarcar (Esc)"
         className={`${barBtn} !px-1.5`}
       >
         <CloseIcon size={14} />
-      </button>
+      </IconButton>
     </div>
   )
 }

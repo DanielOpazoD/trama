@@ -12,6 +12,7 @@ import {
   TextIcon,
   TrashIcon,
 } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 import { type ReactNode } from 'react'
 import { type TextStyle, type Tool } from './editorStyle'
 import {
@@ -113,51 +114,47 @@ export function EditorToolbar({
     >
       <ToolbarGroup label="Herramientas">
         <Hint content={primaryInsertHint}>
-          <button
-            type="button"
+          <IconButton
             onClick={handlePrimaryInsert}
-            aria-label={primaryInsertLabel}
+            label={primaryInsertLabel}
             className={primaryAction}
           >
             <TextIcon size={14} />
-          </button>
+          </IconButton>
         </Hint>
         <div className={segGroup}>
           <Hint content="Seleccionar y mover">
-            <button
-              type="button"
+            <IconButton
               onClick={() => onToolChange('select')}
               className={segBtnTool(tool === 'select')}
-              aria-label="Herramienta seleccionar"
+              label="Herramienta seleccionar"
               aria-pressed={tool === 'select'}
             >
               <CursorIcon size={14} />
-            </button>
+            </IconButton>
           </Hint>
           {!isTemplateDesign ? (
             <Hint content="Marcar redacción segura">
-              <button
-                type="button"
+              <IconButton
                 onClick={() => onToolChange('redact')}
                 className={segBtnTool(tool === 'redact')}
-                aria-label="Herramienta redactar"
+                label="Herramienta redactar"
                 aria-pressed={tool === 'redact'}
               >
                 <ShieldIcon size={14} />
-              </button>
+              </IconButton>
             </Hint>
           ) : null}
           {!isTemplateDesign ? (
             <Hint content="Resaltar texto">
-              <button
-                type="button"
+              <IconButton
                 onClick={() => onToolChange('highlight')}
                 className={segBtnTool(tool === 'highlight')}
-                aria-label="Herramienta Resaltar"
+                label="Herramienta Resaltar"
                 aria-pressed={tool === 'highlight'}
               >
                 <HighlighterIcon size={14} />
-              </button>
+              </IconButton>
             </Hint>
           ) : null}
         </div>
@@ -165,11 +162,10 @@ export function EditorToolbar({
           <EditorToolbarShapesMenu tool={tool} onToolChange={onToolChange} />
         ) : null}
         <Hint content="Marcar casilleros con una X · clic en la X la activa o desactiva">
-          <button
-            type="button"
+          <IconButton
             onClick={() => onToolChange('x')}
             className={segBtnTool(tool === 'x')}
-            aria-label="Herramienta marca X para casilleros"
+            label="Herramienta marca X para casilleros"
             aria-pressed={tool === 'x'}
           >
             <svg
@@ -195,7 +191,7 @@ export function EditorToolbar({
                 strokeLinecap="round"
               />
             </svg>
-          </button>
+          </IconButton>
         </Hint>
         {tool === 'x' ? (
           <EditorToolbarXMenu
@@ -211,14 +207,13 @@ export function EditorToolbar({
         {!isTemplateDesign ? stampAssetMenu : null}
         {!isTemplateDesign ? (
           <Hint content="Estampar una imagen sobre la página">
-            <button
-              type="button"
+            <IconButton
               onClick={onAddImage}
-              aria-label="Estampar imagen"
+              label="Estampar imagen"
               className={primaryAction}
             >
               <CameraIcon size={14} />
-            </button>
+            </IconButton>
           </Hint>
         ) : null}
         <EditorToolbarFormMenu
@@ -248,15 +243,14 @@ export function EditorToolbar({
               : 'Selecciona una anotación para duplicarla'
           }
         >
-          <button
-            type="button"
+          <IconButton
             onClick={onDuplicate}
-            aria-label={duplicateLabel}
+            label={duplicateLabel}
             disabled={!hasDuplicableSelection}
             className={objectAction}
           >
             <DuplicateIcon size={14} />
-          </button>
+          </IconButton>
         </Hint>
         <Hint
           content={
@@ -265,15 +259,14 @@ export function EditorToolbar({
               : 'Selecciona una anotación para eliminarla'
           }
         >
-          <button
-            type="button"
+          <IconButton
             onClick={onDelete}
-            aria-label="Eliminar"
+            label="Eliminar"
             disabled={!hasSelection}
             className={`${objectAction} hover:text-[color:var(--accent-clay)]`}
           >
             <TrashIcon size={14} />
-          </button>
+          </IconButton>
         </Hint>
       </ToolbarGroup>
       <ToolbarGroup label="Vista" grow>

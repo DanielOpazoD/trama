@@ -13,6 +13,7 @@ import {
 } from '../state'
 import type { ExtractionProposal } from '../types'
 import { CloseIcon } from './Icons'
+import { IconButton } from './IconButton'
 import { AISourceTag } from './AISourceTag'
 import { initialChecked, type CheckedState } from './proposals/utils'
 import { ExtractionProposalView } from './proposals/ExtractionProposalView'
@@ -242,13 +243,13 @@ export function ProposalPanel({
             {sourceText.length > 60 ? `${sourceText.slice(0, 60)}…` : sourceText}
           </h2>
         </div>
-        <button
+        <IconButton
           onClick={onClose}
           className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
-          aria-label="Cerrar"
+          label="Cerrar"
         >
           <CloseIcon />
-        </button>
+        </IconButton>
       </header>
 
       {/* θ6: padding alineado con el resto del RightPanel (px-6).

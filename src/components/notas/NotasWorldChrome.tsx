@@ -1,4 +1,5 @@
 import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, SettingsIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { AIModeToggle } from '../AIModeToggle'
 import { TopBar } from '../TopBar'
 import { WorldSwitcher } from '../WorldSwitcher'
@@ -60,24 +61,22 @@ export function NotasSidebar({
             onWorldIntent={onWorldIntent}
             collapsed
           />
-          <button
-            type="button"
+          <IconButton
             onClick={onToggleCollapsed}
-            aria-label="Expandir barra de Notas"
+            label="Expandir barra de Notas"
             title="Expandir barra de Notas"
             className="touch-target flex size-9 items-center justify-center rounded-md border border-ink-100/70 bg-paper-50 text-ink-400 hover:border-ink-200 hover:text-ink-700 transition-colors"
           >
             <ChevronRightIcon size={14} />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
             onClick={onOpenSearch}
-            aria-label="Buscar en Notas"
+            label="Buscar en Notas"
             title="Buscar en Notas"
             className="touch-target flex size-9 items-center justify-center rounded-md border border-ink-100/70 bg-paper-50 text-ink-400 hover:border-ink-200 hover:text-ink-700 transition-colors"
           >
             <SearchIcon size={14} />
-          </button>
+          </IconButton>
         </header>
         <nav className="flex flex-col items-center gap-1 px-2">
           {sections.map((s) => {
@@ -115,15 +114,14 @@ export function NotasSidebar({
         </nav>
         <div className="flex-1" />
         <div className="px-2 pb-2 pt-2 border-t border-ink-100">
-          <button
-            type="button"
+          <IconButton
             onClick={onOpenSettings}
-            aria-label="Configuración"
+            label="Configuración"
             title="Configuración"
             className="touch-target flex size-9 items-center justify-center rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
           >
             <SettingsIcon size={15} />
-          </button>
+          </IconButton>
         </div>
       </aside>
     )
@@ -140,15 +138,14 @@ export function NotasSidebar({
               onWorldIntent={onWorldIntent}
             />
           </div>
-          <button
-            type="button"
+          <IconButton
             onClick={onToggleCollapsed}
-            aria-label="Colapsar barra de Notas"
+            label="Colapsar barra de Notas"
             title="Colapsar barra de Notas"
             className="touch-target flex size-8 shrink-0 items-center justify-center rounded-md border border-ink-100/70 bg-paper-50 text-ink-400 hover:border-ink-200 hover:text-ink-700 transition-colors"
           >
             <ChevronLeftIcon size={14} />
-          </button>
+          </IconButton>
         </div>
         <button
           onClick={onOpenSearch}
@@ -264,20 +261,20 @@ export function NotasMobileTabs({
           )
         })}
       </div>
-      <button
+      <IconButton
         onClick={onOpenSearch}
-        aria-label="Buscar"
+        label="Buscar"
         className="touch-target shrink-0 p-1.5 rounded-md text-ink-400 hover:text-ink-700 transition-colors"
       >
         <SearchIcon size={14} />
-      </button>
-      <button
+      </IconButton>
+      <IconButton
         onClick={onOpenSettings}
-        aria-label="Configuración"
+        label="Configuración"
         className="touch-target shrink-0 p-1.5 rounded-md text-ink-400 hover:text-ink-700 transition-colors"
       >
         <SettingsIcon size={14} />
-      </button>
+      </IconButton>
     </div>
   )
 }

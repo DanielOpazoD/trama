@@ -1,5 +1,6 @@
 import { RELATIONSHIP_TYPES, type Entity, type Relationship } from '../../types'
 import { CloseIcon, SparkleIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 /**
  * Una fila de "conexiones" en el panel de detalle.
@@ -37,14 +38,14 @@ export function RelationshipLine({
           </span>
         )}
       </span>
-      <button
+      <IconButton
         onClick={onDelete}
-        aria-label="Eliminar relación"
+        label="Eliminar relación"
         title="Eliminar relación"
         className="shrink-0 opacity-0 group-hover:opacity-100 text-ink-300 hover:text-[color:var(--accent-clay)] transition-opacity"
       >
         <CloseIcon size={12} />
-      </button>
+      </IconButton>
     </li>
   )
 }

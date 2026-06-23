@@ -8,6 +8,7 @@ import {
   SearchIcon,
   ThumbSizeIcon,
 } from '../Icons'
+import { IconButton } from '../IconButton'
 import { OverflowMenu } from '../OverflowMenu'
 import { ActivityCalendar } from './ActivityCalendar'
 import {
@@ -112,10 +113,9 @@ export function NotasFeedControls({
 
         {segment !== 'favoritos' && (
           <div className="flex items-center gap-1">
-            <button
-              type="button"
+            <IconButton
               onClick={() => (searchOpen ? onCloseSearch() : onOpenSearch())}
-              aria-label="Buscar en notas y capturas"
+              label="Buscar en notas y capturas"
               aria-expanded={searchOpen}
               title="Buscar"
               className={`touch-target rounded-md p-1.5 transition-colors ${
@@ -125,11 +125,10 @@ export function NotasFeedControls({
               }`}
             >
               <SearchIcon size={14} />
-            </button>
-            <button
-              type="button"
+            </IconButton>
+            <IconButton
               onClick={onToggleCalendar}
-              aria-label={
+              label={
                 calendarOpen
                   ? 'Ocultar calendario de actividad'
                   : 'Mostrar calendario de actividad'
@@ -143,7 +142,7 @@ export function NotasFeedControls({
               }`}
             >
               <CalendarIcon size={14} />
-            </button>
+            </IconButton>
             {hasCapturesInScope && (
               <OverflowMenu
                 label="Tamaño de las miniaturas"
@@ -225,13 +224,13 @@ export function NotasFeedControls({
               aria-label="Buscar en notas y capturas"
               className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
             />
-            <button
+            <IconButton
               onClick={onCloseSearch}
-              aria-label="Cerrar búsqueda"
+              label="Cerrar búsqueda"
               className="text-ink-300 hover:text-ink-700 transition-colors"
             >
               <CloseIcon size={12} />
-            </button>
+            </IconButton>
           </div>
           {showTags && tagCounts.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

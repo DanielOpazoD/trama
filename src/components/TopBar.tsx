@@ -2,6 +2,7 @@ import { useGlobalStatus, type GlobalStatus } from '../state'
 import type { ViewMode } from '../types/view'
 import type { World } from '../types/world'
 import { ReadingIcon } from './Icons'
+import { IconButton } from './IconButton'
 import { UserMenu } from './UserMenu'
 import { WorldSwitcher } from './WorldSwitcher'
 
@@ -128,14 +129,14 @@ export function TopBar({
       <div className="shrink-0 flex items-center gap-3">
         <StatusPill status={status} />
         {onSortes && (
-          <button
+          <IconButton
             onClick={onSortes}
-            aria-label="Atril — releer el archivo: la cita del día"
+            label="Atril — releer el archivo: la cita del día"
             title="Atril — releer el archivo: la cita del día"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
           >
             <ReadingIcon size={14} />
-          </button>
+          </IconButton>
         )}
         {actions && <div className="flex items-center gap-2">{actions}</div>}
         <UserMenu />

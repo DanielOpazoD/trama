@@ -1,5 +1,6 @@
 import { GalleryIcon, ListIcon } from '../Icons'
 import { Tooltip } from '../Tooltip'
+import { IconButton } from '../IconButton'
 import type { LibraryFileType, LibrarySource } from '../../types/biblioteca'
 import { FilterPopover } from './FilterPopover'
 import type { BibliotecaVista } from './helpers'
@@ -47,9 +48,8 @@ export function BibliotecaToolbar({
 
       <div className="flex items-center gap-0.5" role="group" aria-label="Modo de vista">
         <Tooltip content="Lista">
-          <button
-            type="button"
-            aria-label="Lista"
+          <IconButton
+            label="Lista"
             aria-pressed={vista === 'lista'}
             onClick={() => onChangeVista('lista')}
             className={`inline-flex items-center justify-center size-8 rounded-md transition-colors ${
@@ -59,12 +59,11 @@ export function BibliotecaToolbar({
             }`}
           >
             <ListIcon size={16} />
-          </button>
+          </IconButton>
         </Tooltip>
         <Tooltip content="Cuadrícula">
-          <button
-            type="button"
-            aria-label="Cuadrícula"
+          <IconButton
+            label="Cuadrícula"
             aria-pressed={vista === 'cuadricula'}
             onClick={() => onChangeVista('cuadricula')}
             className={`inline-flex items-center justify-center size-8 rounded-md transition-colors ${
@@ -74,7 +73,7 @@ export function BibliotecaToolbar({
             }`}
           >
             <GalleryIcon size={16} />
-          </button>
+          </IconButton>
         </Tooltip>
       </div>
     </div>

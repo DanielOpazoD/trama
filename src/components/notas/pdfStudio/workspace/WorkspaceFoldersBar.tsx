@@ -11,6 +11,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 import { WorkspaceFolderIcon, workspaceFolderColorOptions } from './WorkspaceFolderIcon'
 
@@ -143,15 +144,14 @@ export function WorkspaceFoldersBar({
                       placeholder="Nombre de la carpeta"
                       className="input-paper min-w-0 flex-1 rounded border border-ink-200 px-1.5 py-0.5 text-caption"
                     />
-                    <button
-                      type="button"
+                    <IconButton
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={commitRename}
-                      aria-label="Guardar nombre de carpeta"
+                      label="Guardar nombre de carpeta"
                       className={rowBtn}
                     >
                       <CheckIcon size={13} />
-                    </button>
+                    </IconButton>
                   </div>
                 ) : (
                   <>
@@ -251,10 +251,9 @@ export function WorkspaceFoldersBar({
           <div className="mt-1.5 flex items-center justify-between gap-1">
             <div className="flex gap-1" aria-label="Colores de carpeta">
               {workspaceFolderColorOptions.map((option) => (
-                <button
+                <IconButton
                   key={option.value}
-                  type="button"
-                  aria-label={`Color ${option.label}`}
+                  label={`Color ${option.label}`}
                   onClick={() => onChangeDraft({ ...draft, color: option.value })}
                   className={`grid h-6 w-6 place-items-center rounded border transition-colors ${
                     draft.color === option.value
@@ -263,26 +262,24 @@ export function WorkspaceFoldersBar({
                   }`}
                 >
                   <WorkspaceFolderIcon color={option.value} size={18} />
-                </button>
+                </IconButton>
               ))}
             </div>
             <div className="flex gap-1">
-              <button
-                type="button"
+              <IconButton
                 onClick={onCreateFolder}
-                aria-label="Crear carpeta"
+                label="Crear carpeta"
                 className={rowBtn}
               >
                 <CheckIcon size={14} />
-              </button>
-              <button
-                type="button"
+              </IconButton>
+              <IconButton
                 onClick={onCancelDraft}
-                aria-label="Cancelar carpeta"
+                label="Cancelar carpeta"
                 className={rowBtn}
               >
                 <CloseIcon size={14} />
-              </button>
+              </IconButton>
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ function grokipediaHref(entity: Entity): string {
   )
 }
 import { Tooltip } from '../Tooltip'
+import { IconButton } from '../IconButton'
 import { EntitySigil } from '../EntitySigil'
 import { EntityActionsMenu } from './EntityActionsMenu'
 
@@ -152,13 +153,13 @@ export function EntityHeader({
           onClose={onClose}
         />
         <Tooltip content="Cerrar panel">
-          <button
+          <IconButton
             onClick={onClose}
             className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
-            aria-label="Cerrar"
+            label="Cerrar"
           >
             <CloseIcon size={14} />
-          </button>
+          </IconButton>
         </Tooltip>
       </div>
     </header>

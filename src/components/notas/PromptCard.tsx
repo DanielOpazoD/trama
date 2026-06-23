@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Prompt } from '../../api'
 import { ClipboardIcon, PencilIcon, TrashIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { AttachmentsPanel } from './AttachmentsPanel'
 
 // Tono único del mundo Notas: el primario (--accent-primary), remapeado a
@@ -115,16 +116,16 @@ export function PromptCard({
           <footer className="mt-3 flex items-center gap-3 text-micro text-ink-300">
             <span className="tabular-nums">{prompt.useCount} usos</span>
             <span className="flex-1" />
-            <button
+            <IconButton
               onClick={onCopy}
               disabled={busy}
               className="p-1 hover:text-ink-700 transition-colors"
               title="Copiar"
-              aria-label="Copiar prompt"
+              label="Copiar prompt"
             >
               <ClipboardIcon size={13} />
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               onClick={() => {
                 setTitle(prompt.title)
                 setCollection(prompt.collection ?? '')
@@ -134,10 +135,10 @@ export function PromptCard({
               disabled={busy}
               className="p-1 hover:text-ink-700 transition-colors"
               title="Editar"
-              aria-label="Editar prompt"
+              label="Editar prompt"
             >
               <PencilIcon size={13} />
-            </button>
+            </IconButton>
             <button
               onClick={onFavorite}
               disabled={busy}
@@ -152,15 +153,15 @@ export function PromptCard({
             >
               duplicar
             </button>
-            <button
+            <IconButton
               onClick={onDelete}
               disabled={busy}
               className="p-1 hover:text-[color:var(--accent-clay)] transition-colors"
               title="Borrar"
-              aria-label="Borrar prompt"
+              label="Borrar prompt"
             >
               <TrashIcon size={13} />
-            </button>
+            </IconButton>
           </footer>
           <AttachmentsPanel ownerType="prompt" ownerId={prompt.id} />
         </div>

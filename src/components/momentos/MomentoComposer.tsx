@@ -5,6 +5,7 @@ import { AudioPicker } from './AudioPicker'
 import { MomentoKindTabs } from './MomentoKindTabs'
 import { editImage } from '../../lib/imageEditor'
 import { PencilIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { InlineLoadingLabel } from '../InlineLoadingLabel'
 
 type Composer = ReturnType<typeof useMomentoComposer>
@@ -292,8 +293,7 @@ function FotoFields({ composer }: { composer: Composer }) {
                       ×
                     </button>
                     {/* Editar con el editor de imágenes (recortar/girar/texto). */}
-                    <button
-                      type="button"
+                    <IconButton
                       onClick={async (e) => {
                         e.preventDefault()
                         e.stopPropagation()
@@ -306,12 +306,12 @@ function FotoFields({ composer }: { composer: Composer }) {
                         }
                       }}
                       className="absolute top-1 right-7 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 hover:bg-ink-900 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                      aria-label={`Editar foto ${idx + 1}`}
+                      label={`Editar foto ${idx + 1}`}
                       title="Editar foto"
                       disabled={composer.isPending}
                     >
                       <PencilIcon size={11} />
-                    </button>
+                    </IconButton>
                     {/* φ-photo-polish: badge "portada" cuando es la
                         primera; en las otras, botón "★ portada" que
                         la mueve al inicio. */}

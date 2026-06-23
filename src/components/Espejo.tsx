@@ -4,6 +4,7 @@ import { useModalOverlay } from '../hooks/useModalOverlay'
 import { ENTITY_TYPES } from '../types'
 import type { Entity, Quote, Relationship } from '../types'
 import { CloseIcon, EndMark } from './Icons'
+import { IconButton } from './IconButton'
 
 /**
  * Espejo — la composición de la trama, devuelta como un retrato y no como
@@ -225,13 +226,13 @@ export function Espejo({ open, onClose }: { open: boolean; onClose: () => void }
       aria-label="Espejo"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up overflow-y-auto"
     >
-      <button
+      <IconButton
         onClick={onClose}
-        aria-label="Cerrar"
+        label="Cerrar"
         className="fixed top-5 right-5 p-2 text-ink-300 hover:text-ink-700 transition-colors"
       >
         <CloseIcon />
-      </button>
+      </IconButton>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
         <p className="text-micro uppercase tracking-shout text-ink-300 mb-10">espejo</p>

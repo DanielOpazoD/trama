@@ -1,4 +1,5 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 const MONTHS_ABBR = [
   'ene',
@@ -38,23 +39,23 @@ export function MonthNavigator({
   return (
     <div className="card-paper-soft rounded-xl border border-ink-100/70 p-2.5 mb-4">
       <div className="flex items-center justify-between mb-2">
-        <button
+        <IconButton
           onClick={() => onChange(year - 1, month0)}
-          aria-label="Año anterior"
+          label="Año anterior"
           className="p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
         >
           <ChevronLeftIcon size={14} />
-        </button>
+        </IconButton>
         <span className="font-serif text-lg text-ink-700 tabular-nums tracking-tight">
           {year}
         </span>
-        <button
+        <IconButton
           onClick={() => onChange(year + 1, month0)}
-          aria-label="Año siguiente"
+          label="Año siguiente"
           className="p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
         >
           <ChevronRightIcon size={14} />
-        </button>
+        </IconButton>
       </div>
       {/* Una sola fila en desktop (slim); dos filas de 6 en mobile. */}
       <div className="grid grid-cols-6 md:grid-cols-12 gap-1">

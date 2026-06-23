@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuotesQuery } from '../../state'
 import type { Entity } from '../../types'
 import { PlusIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { QuoteCard } from '../QuoteCard'
 import { QuickNoteForm } from './QuickNoteForm'
 
@@ -35,15 +36,14 @@ export function QuotesList({ entity }: { entity: Entity }) {
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="section-eyebrow-serif">{title}</h3>
         {!adding && (
-          <button
-            type="button"
+          <IconButton
             onClick={() => setAdding(true)}
-            aria-label="Añadir cita"
+            label="Añadir cita"
             title="Añadir cita"
             className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-ink-100 text-ink-400 hover:border-ink-200 hover:bg-ink-50 hover:text-ink-700 transition-colors"
           >
             <PlusIcon size={12} />
-          </button>
+          </IconButton>
         )}
       </div>
 

@@ -12,6 +12,7 @@ import { downloadAllImages, exportImagesToPdf } from '../../lib/photoExport'
 import { requestBlob } from '../../api/request'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { CameraIcon, TrashIcon, DownloadIcon, FilePdfIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { AttachmentLightbox } from './AttachmentLightbox'
 
 /**
@@ -251,36 +252,36 @@ export function AttachmentPhotos({
         />
       ))}
 
-      <button
+      <IconButton
         onClick={pickFiles}
         disabled={upload.isPending}
         className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
         title="Adjuntar fotos"
-        aria-label="Adjuntar fotos"
+        label="Adjuntar fotos"
       >
         <CameraIcon size={14} />
-      </button>
+      </IconButton>
 
       {photos.length > 0 && (
         <>
-          <button
+          <IconButton
             onClick={onDownloadAll}
             disabled={exporting !== null}
             className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
             title={`Descargar ${photos.length === 1 ? 'la foto' : 'todas las fotos'}`}
-            aria-label="Descargar todas las fotos"
+            label="Descargar todas las fotos"
           >
             <DownloadIcon size={14} />
-          </button>
-          <button
+          </IconButton>
+          <IconButton
             onClick={onExportPdf}
             disabled={exporting !== null}
             className="touch-target p-1.5 rounded-md text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
             title="Exportar a PDF (2 por hoja)"
-            aria-label="Exportar fotos a PDF"
+            label="Exportar fotos a PDF"
           >
             <FilePdfIcon size={14} />
-          </button>
+          </IconButton>
           {exporting && (
             <span className="text-micro text-ink-300">
               {exporting === 'pdf' ? 'generando PDF…' : 'descargando…'}
@@ -358,14 +359,14 @@ function PhotoThumb({
           />
         )}
       </button>
-      <button
+      <IconButton
         onClick={onRemove}
-        aria-label={`Quitar foto ${photo.fileName}`}
+        label={`Quitar foto ${photo.fileName}`}
         title="Quitar"
         className="absolute -top-1.5 -right-1.5 size-5 inline-flex items-center justify-center rounded-full bg-paper-50 border border-ink-100 text-ink-300 hover:text-[color:var(--accent-clay)] opacity-0 group-hover/photo:opacity-100 focus:opacity-100 transition-opacity"
       >
         <TrashIcon size={11} />
-      </button>
+      </IconButton>
     </span>
   )
 }

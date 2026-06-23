@@ -1,4 +1,5 @@
 import { CheckIcon, CloseIcon, PlusIcon } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 
 const ACCENT = 'var(--accent-sage)'
 const rowBtn =
@@ -61,25 +62,23 @@ export function WorkspaceTemplateCreateBox({
             placeholder="Nombre de la planilla"
             className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
           />
-          <button
-            type="button"
+          <IconButton
             onClick={onConfirm}
-            aria-label="Guardar planilla"
+            label="Guardar planilla"
             title="Guardar planilla"
             className={rowBtn}
             style={{ color: ACCENT }}
           >
             <CheckIcon size={14} />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
             onClick={onCancel}
-            aria-label="Cancelar"
+            label="Cancelar"
             title="Cancelar"
             className={rowBtn}
           >
             <CloseIcon size={14} />
-          </button>
+          </IconButton>
         </div>
       )}
     </div>

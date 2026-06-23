@@ -14,6 +14,7 @@ import {
   UndoIcon,
   UploadIcon,
 } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 
 const IMAGE_LAYOUT_OPTIONS = [1, 2, 4, 6] as const
 
@@ -139,26 +140,24 @@ export function PdfStudioDocumentToolbar({
         </button>
         {(undoable || redoable) && (
           <div className="inline-flex items-center overflow-hidden rounded-md bg-ink-100/40">
-            <button
-              type="button"
+            <IconButton
               onClick={onUndo}
               disabled={!undoable}
-              aria-label="Deshacer"
+              label="Deshacer"
               title={pdfCommandTooltip('undo', isMac)}
               className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
             >
               <UndoIcon size={14} />
-            </button>
-            <button
-              type="button"
+            </IconButton>
+            <IconButton
               onClick={onRedo}
               disabled={!redoable}
-              aria-label="Rehacer"
+              label="Rehacer"
               title={pdfCommandTooltip('redo', isMac)}
               className="touch-target inline-flex h-7 w-8 items-center justify-center text-ink-500 hover:text-ink-800 hover:bg-ink-100/50 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-ink-500 transition-colors"
             >
               <RedoIcon size={14} />
-            </button>
+            </IconButton>
           </div>
         )}
         {!isTemplates && (
@@ -362,14 +361,13 @@ export function PdfStudioDocumentToolbar({
               />{' '}
               · {exportStatus}
             </span>
-            <button
-              type="button"
+            <IconButton
               onClick={onCancelExport}
-              aria-label="Cancelar exportación"
+              label="Cancelar exportación"
               className="inline-flex h-6 w-6 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-800"
             >
               <CloseIcon size={12} />
-            </button>
+            </IconButton>
           </div>
         )}
         <OverflowMenu

@@ -5,6 +5,7 @@ import { useSetLibraryItemDeleted, useToast } from '../../state'
 import { api } from '../../api'
 import { canDownloadLibraryItem } from '../../api/biblioteca'
 import { Tooltip } from '../Tooltip'
+import { IconButton } from '../IconButton'
 import { DownloadIcon, PencilIcon, RotateIcon, TrashIcon } from '../Icons'
 
 /**
@@ -81,15 +82,14 @@ export function BibliotecaItemActions({
     return (
       <div className={wrapClass}>
         <Tooltip content="Restaurar">
-          <button
-            type="button"
-            aria-label="Restaurar"
+          <IconButton
+            label="Restaurar"
             onClick={handleRestore}
             disabled={setDeleted.isPending}
             className={BTN_BASE}
           >
             <RotateIcon size={15} />
-          </button>
+          </IconButton>
         </Tooltip>
       </div>
     )
@@ -100,9 +100,8 @@ export function BibliotecaItemActions({
   return (
     <div className={wrapClass}>
       <Tooltip content="Renombrar">
-        <button
-          type="button"
-          aria-label="Renombrar"
+        <IconButton
+          label="Renombrar"
           onClick={(e) => {
             stop(e)
             onRename(item)
@@ -110,33 +109,31 @@ export function BibliotecaItemActions({
           className={BTN_BASE}
         >
           <PencilIcon size={14} />
-        </button>
+        </IconButton>
       </Tooltip>
 
       {downloadable && (
         <Tooltip content="Descargar">
-          <button
-            type="button"
-            aria-label="Descargar"
+          <IconButton
+            label="Descargar"
             onClick={handleDownload}
             disabled={downloading}
             className={BTN_BASE}
           >
             <DownloadIcon size={15} />
-          </button>
+          </IconButton>
         </Tooltip>
       )}
 
       <Tooltip content="Eliminar">
-        <button
-          type="button"
-          aria-label="Eliminar"
+        <IconButton
+          label="Eliminar"
           onClick={handleDelete}
           disabled={setDeleted.isPending}
           className={`${BTN_BASE} hover:text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay)]/10`}
         >
           <TrashIcon size={15} />
-        </button>
+        </IconButton>
       </Tooltip>
     </div>
   )

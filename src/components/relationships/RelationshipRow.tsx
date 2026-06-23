@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { RELATIONSHIP_TYPES, type Entity, type Relationship } from '../../types'
 import { SparkleIcon, TrashIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 /**
  * Fila de una relación en RelationshipsView. Muestra "from → type → to"
@@ -79,14 +80,14 @@ function RelationshipRowInternal({
             </span>
           )}
         </div>
-        <button
+        <IconButton
           onClick={onDelete}
           className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] hover:bg-ink-100 rounded"
-          aria-label="Eliminar"
+          label="Eliminar"
           title="Eliminar"
         >
           <TrashIcon size={12} />
-        </button>
+        </IconButton>
       </div>
       {rel.notes && (
         <p className="mt-1 text-body text-ink-400 leading-relaxed">{rel.notes}</p>

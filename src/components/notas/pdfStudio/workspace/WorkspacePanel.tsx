@@ -1,5 +1,6 @@
 import { isSavedTemplate } from '../../../../lib/pdfStudio/render/persistence'
 import { ChevronLeftIcon, ChevronRightIcon, FilePdfIcon } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 import type { WorkspacePanelProps } from './WorkspacePanelProps'
 import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'
 import { WorkspaceTemplatesSection } from './WorkspaceTemplatesSection'
@@ -58,15 +59,14 @@ export function WorkspacePanel({
         <span className="section-eyebrow-serif" style={{ color: ACCENT }}>
           mesa de trabajo
         </span>
-        <button
-          type="button"
+        <IconButton
           onClick={onToggleCollapsed}
-          aria-label="Ocultar el panel"
+          label="Ocultar el panel"
           title="Ocultar"
           className="touch-target p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
         >
           <ChevronLeftIcon size={14} />
-        </button>
+        </IconButton>
       </header>
 
       <div className="flex-1 min-h-0 overflow-auto">

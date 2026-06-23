@@ -3,6 +3,7 @@ import { useAsk, useExtractFromImage, useOffline } from '../state'
 import type { ExtractionProposal } from '../types'
 import { useThreadIdForView } from '../hooks/useThreadIdForView'
 import { ArrowRightIcon, CameraIcon, ReadingIcon } from './Icons'
+import { IconButton } from './IconButton'
 import { Tooltip } from './Tooltip'
 import { AISourceTag } from './AISourceTag'
 import { Spinner } from './Spinner'
@@ -248,15 +249,14 @@ export function AskBar({
           </Tooltip>
           {onOpenReading && (
             <Tooltip content="Modo lectura — pega un texto largo y se procesa por trozos">
-              <button
-                type="button"
+              <IconButton
                 onClick={onOpenReading}
                 disabled={offline || busy}
-                aria-label="Modo lectura"
+                label="Modo lectura"
                 className="self-end mb-1 size-9 rounded-full text-ink-400 hover:text-ink-700 hover:bg-ink-50 disabled:text-ink-200 disabled:cursor-not-allowed transition-all duration-150 ease-out flex items-center justify-center"
               >
                 <ReadingIcon size={14} />
-              </button>
+              </IconButton>
             </Tooltip>
           )}
           <input

@@ -1,5 +1,6 @@
 import { pdfCommandTooltip } from '../../../../../lib/pdfStudio/model/commands'
 import { ChevronLeftIcon, ChevronRightIcon, RedoIcon, UndoIcon } from '../../../../Icons'
+import { IconButton } from '../../../../IconButton'
 import { stepBtn } from '../../editor/editorStyle'
 import { ZoomPercentInput } from '../../editor/ZoomPercentInput'
 
@@ -64,32 +65,30 @@ export function PdfTemplateDesignHeader({
       className="flex shrink-0 items-center justify-between gap-3 border-b border-ink-100/70 bg-paper-50/95 px-3 py-2 shadow-sm shadow-ink-900/5"
     >
       <div className="flex min-w-0 items-center gap-1">
-        <button
-          type="button"
+        <IconButton
           onClick={onPrevPage}
           disabled={currentPage === 0}
-          aria-label="Página anterior"
+          label="Página anterior"
           title="Página anterior"
           className={stepBtn}
         >
           <ChevronLeftIcon size={14} />
-        </button>
+        </IconButton>
         <div className="min-w-0 px-1">
           <p className="truncate text-sm font-semibold text-ink-800">Crear plantilla</p>
           <p className="truncate text-micro text-ink-400">
             Página {currentPage + 1} de {totalPages} · {fieldLabel}
           </p>
         </div>
-        <button
-          type="button"
+        <IconButton
           onClick={onNextPage}
           disabled={currentPage === totalPages - 1}
-          aria-label="Página siguiente"
+          label="Página siguiente"
           title="Página siguiente"
           className={stepBtn}
         >
           <ChevronRightIcon size={14} />
-        </button>
+        </IconButton>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <div
@@ -127,26 +126,24 @@ export function PdfTemplateDesignHeader({
           </button>
         </div>
         <div className="inline-flex items-center overflow-hidden rounded-md border border-ink-100 bg-paper-50 divide-x divide-ink-100">
-          <button
-            type="button"
+          <IconButton
             onClick={onUndo}
             disabled={!undoable}
-            aria-label="Deshacer"
+            label="Deshacer"
             title={pdfCommandTooltip('undo', isMac)}
             className={stepBtn}
           >
             <UndoIcon size={14} />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
             onClick={onRedo}
             disabled={!redoable}
-            aria-label="Rehacer"
+            label="Rehacer"
             title={pdfCommandTooltip('redo', isMac)}
             className={stepBtn}
           >
             <RedoIcon size={14} />
-          </button>
+          </IconButton>
         </div>
         <button
           type="button"

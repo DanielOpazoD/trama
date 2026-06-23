@@ -18,7 +18,7 @@ import { pathToFileURL } from 'node:url'
 // texto" fallaría porque el texto dinámico vive en `{…}`. Sub-contar es seguro
 // para un ratchet: solo institucionaliza los casos inequívocos.
 
-export const ICON_BUTTON_BASELINE = 146
+export const ICON_BUTTON_BASELINE = 0
 
 // <button> de solo-ícono legítimos que NO deben migrar (raro; p. ej. un caso con
 // render muy condicional). Allowlist file:line con razón, como hard-delete.

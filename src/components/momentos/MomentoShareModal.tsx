@@ -8,6 +8,7 @@ import {
   useUpdateMomentoShareAccessRole,
 } from '../../state'
 import { CloseIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { personInitial, personLabel, shareRoleLabel } from './sharePresentation'
 
 export function MomentoShareModal({ onClose }: { onClose: () => void }) {
@@ -91,14 +92,13 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
               Compartir todos mis Momentos con este correo.
             </p>
           </div>
-          <button
-            type="button"
+          <IconButton
             onClick={onClose}
             className="p-1.5 text-ink-400 hover:text-ink-700 rounded transition-colors"
-            aria-label="Cerrar"
+            label="Cerrar"
           >
             <CloseIcon size={14} />
-          </button>
+          </IconButton>
         </div>
 
         <div className="mb-4 grid gap-2 sm:grid-cols-2">

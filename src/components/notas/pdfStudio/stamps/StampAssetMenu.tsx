@@ -5,6 +5,7 @@ import {
   type PdfStudioStampKind,
 } from '../../../../lib/pdfStudio/stamps/stampAssets'
 import { ChevronDownIcon, PencilIcon, TrashIcon, UploadIcon } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 import { OverflowMenu } from '../../../OverflowMenu'
 import {
   editorMenuLayer,
@@ -256,22 +257,20 @@ function StampAssetTile({
           {asset.kind === 'signature' ? 'Firma' : 'Timbre'}
         </span>
         <div className="flex items-center gap-0.5">
-          <button
-            type="button"
-            aria-label={`Renombrar ${asset.name}`}
+          <IconButton
+            label={`Renombrar ${asset.name}`}
             onClick={onRename}
             className={`${focusRing} inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:bg-ink-100/60 hover:text-ink-700`}
           >
             <PencilIcon size={12} />
-          </button>
-          <button
-            type="button"
-            aria-label={`Eliminar ${asset.name}`}
+          </IconButton>
+          <IconButton
+            label={`Eliminar ${asset.name}`}
             onClick={onDelete}
             className={`${focusRing} inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:bg-[color:var(--accent-clay-soft)] hover:text-[color:var(--accent-clay)]`}
           >
             <TrashIcon size={12} />
-          </button>
+          </IconButton>
         </div>
       </div>
     </div>

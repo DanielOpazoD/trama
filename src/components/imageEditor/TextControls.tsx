@@ -6,6 +6,7 @@ import type {
 } from '../../lib/imageEditor/types'
 import { fontFamilyFor } from '../../lib/imageEditor/transforms'
 import { BoldIcon, TrashIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 const FONTS: { key: TextFont; label: string }[] = [
   { key: 'sans', label: 'Sans' },
@@ -79,10 +80,9 @@ export function TextControls({
           ))}
         </div>
 
-        <button
-          type="button"
+        <IconButton
           onClick={() => onChange({ bold: !layer.bold })}
-          aria-label="Negrita"
+          label="Negrita"
           aria-pressed={layer.bold}
           title="Negrita"
           className={`touch-target p-1.5 rounded-md border transition-colors ${
@@ -92,7 +92,7 @@ export function TextControls({
           }`}
         >
           <BoldIcon size={12} />
-        </button>
+        </IconButton>
 
         <div
           role="radiogroup"
@@ -121,15 +121,14 @@ export function TextControls({
           ))}
         </div>
 
-        <button
-          type="button"
+        <IconButton
           onClick={onRemove}
-          aria-label="Quitar texto"
+          label="Quitar texto"
           title="Quitar texto"
           className="touch-target ml-auto p-1.5 rounded-md text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors"
         >
           <TrashIcon size={12} />
-        </button>
+        </IconButton>
       </div>
     </div>
   )

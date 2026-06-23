@@ -9,6 +9,7 @@ import {
   vaultRequiresPhysicalKey,
 } from '../../lib/vaultCrypto'
 import { ClipboardIcon, KeyIcon, PencilIcon, ShieldIcon, TrashIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { formatShortDate, secretHealth } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
@@ -362,33 +363,33 @@ export function SecretCard({
               >
                 revelar
               </button>
-              <button
+              <IconButton
                 onClick={onCopy}
                 disabled={busy}
                 title="Copiar"
-                aria-label="Copiar clave"
+                label="Copiar clave"
                 className="p-1 text-ink-300 hover:text-ink-700"
               >
                 <ClipboardIcon size={12} />
-              </button>
-              <button
+              </IconButton>
+              <IconButton
                 onClick={beginEdit}
                 disabled={busy || !metadataReady}
                 title="Editar"
-                aria-label="Editar clave"
+                label="Editar clave"
                 className="p-1 text-ink-300 hover:text-ink-700"
               >
                 <PencilIcon size={12} />
-              </button>
-              <button
+              </IconButton>
+              <IconButton
                 onClick={onDelete}
                 disabled={busy}
                 title="Borrar"
-                aria-label="Borrar clave"
+                label="Borrar clave"
                 className="p-1 text-ink-300 hover:text-[color:var(--accent-clay)]"
               >
                 <TrashIcon size={12} />
-              </button>
+              </IconButton>
             </div>
           </div>
           <footer className="mt-3 flex items-center gap-3 flex-wrap text-micro text-ink-300">

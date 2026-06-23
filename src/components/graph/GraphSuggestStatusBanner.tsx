@@ -1,4 +1,5 @@
 import { CloseIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 /**
  * Banner flotante sobre el grafo que comunica el resultado de
@@ -36,9 +37,9 @@ export function GraphSuggestStatusBanner({
             ? error.message
             : 'Sin relaciones nuevas obvias. Añade citas o descripciones para darle más contexto.'}
         </span>
-        <button
+        <IconButton
           onClick={onClose}
-          aria-label="Cerrar aviso"
+          label="Cerrar aviso"
           className={
             isError
               ? 'shrink-0 p-1 -m-0.5 text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] rounded transition-colors'
@@ -46,7 +47,7 @@ export function GraphSuggestStatusBanner({
           }
         >
           <CloseIcon size={12} />
-        </button>
+        </IconButton>
       </div>
     </div>
   )

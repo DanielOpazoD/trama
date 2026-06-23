@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useToast } from '../state/toast'
 import { CloseIcon } from './Icons'
+import { IconButton } from './IconButton'
 
 /**
  * Renderiza el toast actual (si lo hay) en una zona fija abajo-centro.
@@ -92,14 +93,14 @@ export function ToastHost() {
             {current.action.label}
           </button>
         )}
-        <button
+        <IconButton
           onClick={dismiss}
-          aria-label="Cerrar aviso"
+          label="Cerrar aviso"
           title="Cerrar"
           className="p-1 rounded-md transition-colors hover:bg-paper-50/15 opacity-70 hover:opacity-100"
         >
           <CloseIcon size={12} />
-        </button>
+        </IconButton>
       </div>
       {/* Barra de progreso — solo si hay duración finita. */}
       {(current.durationMs ?? 5000) > 0 && (

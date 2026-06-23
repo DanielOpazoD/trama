@@ -1,4 +1,5 @@
 import { FileIcon, TrashIcon, UploadIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -59,16 +60,15 @@ export function PendingAttachmentsInput({
               <span className="shrink-0 text-micro tabular-nums text-ink-300">
                 {formatBytes(file.size)}
               </span>
-              <button
-                type="button"
+              <IconButton
                 onClick={() => removeAt(index)}
                 disabled={busy}
-                aria-label="Quitar anexo pendiente"
+                label="Quitar anexo pendiente"
                 title="Quitar"
                 className="shrink-0 p-1 text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
               >
                 <TrashIcon size={12} />
-              </button>
+              </IconButton>
             </div>
           ))}
         </div>

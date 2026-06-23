@@ -11,6 +11,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from '../Icons'
+import { IconButton } from '../IconButton'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { AttachmentPhotos } from './AttachmentPhotos'
@@ -179,25 +180,23 @@ export function TaskItem({
             {/* Mover de semana */}
             <span className="flex items-center gap-1 text-micro uppercase tracking-eyebrow text-ink-400">
               semana
-              <button
-                type="button"
+              <IconButton
                 onClick={() => setWeek(shiftWeeks(week, -1))}
-                aria-label="Semana anterior"
+                label="Semana anterior"
                 className="touch-target p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
               >
                 <ChevronLeftIcon size={12} />
-              </button>
+              </IconButton>
               <span className="normal-case tracking-normal text-ink-600 tabular-nums text-center min-w-[5.5rem]">
                 {relativeWeekLabel(week) || formatWeekRange(week)}
               </span>
-              <button
-                type="button"
+              <IconButton
                 onClick={() => setWeek(shiftWeeks(week, 1))}
-                aria-label="Semana siguiente"
+                label="Semana siguiente"
                 className="touch-target p-0.5 rounded text-ink-300 hover:text-ink-700 transition-colors"
               >
                 <ChevronRightIcon size={12} />
-              </button>
+              </IconButton>
             </span>
             {showDue ? (
               <span className="flex items-center gap-2">
@@ -257,12 +256,12 @@ export function TaskItem({
   return (
     <li className="group flex items-start gap-2.5 py-1.5">
       {/* Estado — el signo de hecho/pendiente. */}
-      <button
+      <IconButton
         onClick={onToggle}
         disabled={busy}
         role="checkbox"
         aria-checked={task.done}
-        aria-label={task.done ? 'Marcar como pendiente' : 'Marcar como hecha'}
+        label={task.done ? 'Marcar como pendiente' : 'Marcar como hecha'}
         className={`touch-target mt-px shrink-0 inline-flex items-center justify-center size-[17px] rounded-md border transition-colors disabled:opacity-50 ${
           task.done
             ? 'border-transparent text-paper-50'
@@ -271,7 +270,7 @@ export function TaskItem({
         style={task.done ? { backgroundColor: ACCENT } : undefined}
       >
         <CheckIcon size={11} className={task.done ? 'animate-check-pop' : undefined} />
-      </button>
+      </IconButton>
 
       {/* Prioridad — el color es la marca; menú para elegir alta/media/baja. */}
       <span className="mt-[3px] shrink-0">
@@ -311,16 +310,15 @@ export function TaskItem({
       {/* Detalle — icono sutil; ventana flotante al pasar el mouse o tocar. */}
       {task.detail && (
         <span className="relative shrink-0 mt-px group/detail">
-          <button
-            type="button"
+          <IconButton
             onClick={() => setDetailOpen((v) => !v)}
-            aria-label="Ver detalle"
+            label="Ver detalle"
             aria-expanded={detailOpen}
             title="Detalle"
             className="touch-target p-1 rounded text-ink-400 hover:text-ink-700 transition-colors"
           >
             <FileIcon size={12} />
-          </button>
+          </IconButton>
           <span
             role="tooltip"
             className={`pointer-events-none absolute right-0 top-full mt-1 z-20 w-60 max-w-[15rem] rounded-lg border border-ink-100 bg-paper-50 p-2.5 text-body text-ink-600 whitespace-pre-wrap break-words leading-snug text-left normal-case tracking-normal transition-opacity group-hover/detail:opacity-100 ${

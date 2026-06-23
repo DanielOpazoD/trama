@@ -7,6 +7,7 @@ import { entitiesApi } from '../../api/entities'
 import { notesApi } from '../../api/notes'
 import { momentosApi } from '../../api/momentos'
 import { CloseIcon, SearchIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { LinkTargetIcon } from './LinkTargetIcon'
 
 /**
@@ -167,14 +168,13 @@ export function BibliotecaLinkPicker({
         >
           <div className="flex items-center justify-between gap-3 px-4 pt-3.5 pb-2">
             <h2 className="section-eyebrow text-ink-500">Conectar con…</h2>
-            <button
-              type="button"
+            <IconButton
               onClick={onClose}
-              aria-label="Cerrar"
+              label="Cerrar"
               className="touch-target -mr-1.5 inline-flex size-7 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
             >
               <CloseIcon size={16} />
-            </button>
+            </IconButton>
           </div>
 
           {/* Control segmentado de tipo de destino. */}

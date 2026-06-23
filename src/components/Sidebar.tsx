@@ -8,6 +8,7 @@ import {
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useSectionVisibility } from '../hooks/useSectionVisibility'
 import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, SettingsIcon } from './Icons'
+import { IconButton } from './IconButton'
 import { AIModeToggle } from './AIModeToggle'
 import { NavButton } from './sidebar/NavButton'
 import { NAV_GROUPS } from '../lib/navigation'
@@ -158,22 +159,22 @@ export function Sidebar({
           />
         </div>
 
-        <button
+        <IconButton
           onClick={onToggleCollapsed}
-          aria-label="Expandir sidebar"
+          label="Expandir sidebar"
           className="touch-target p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
         >
           <ChevronRightIcon size={14} />
-        </button>
+        </IconButton>
 
         <Tooltip content={`Buscar (${SHORTCUT_KEY} K)`} side="bottom">
-          <button
+          <IconButton
             onClick={onOpenPalette}
-            aria-label={`Buscar (${SHORTCUT_KEY} K)`}
+            label={`Buscar (${SHORTCUT_KEY} K)`}
             className="touch-target p-2 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
           >
             <SearchIcon size={14} />
-          </button>
+          </IconButton>
         </Tooltip>
 
         <div className="w-7 h-px bg-ink-100/70 my-2" />
@@ -282,13 +283,13 @@ export function Sidebar({
               </span>
             )}
           </div>
-          <button
+          <IconButton
             onClick={onToggleCollapsed}
-            aria-label="Contraer sidebar"
+            label="Contraer sidebar"
             className="touch-target p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
           >
             <ChevronLeftIcon size={14} />
-          </button>
+          </IconButton>
         </header>
 
         {/* σ-followup: buscador del sidebar con fondo blanco (paper-50)
