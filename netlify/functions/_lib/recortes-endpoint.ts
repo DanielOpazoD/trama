@@ -25,6 +25,7 @@ import {
 import { z } from 'zod'
 import { logOperationalEvent } from './operational-events.js'
 import {
+  buildPromoteRecorteCte,
   recorteImageSourceKeys,
   RecorteRowSchema,
   type RecorteRow,
@@ -120,14 +121,12 @@ export default withObservability(
         )
         const quoteEmbVector = quoteEmb ? toPgVector(quoteEmb.vector) : null
         const quoteEmbAt = quoteEmb ? new Date().toISOString() : null
-        rows = parseRows(
-          await sqlTyped<RecorteRow>(sql`
-          WITH current_recorte AS (
-            SELECT id, status
-            FROM recortes
-            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-          ),
-          inserted AS (
+        rows = await buildPromoteRecorteCte(sql, {
+          id,
+          userId,
+          target: 'quote',
+          context: 'recortes.promote.quote',
+          inserted: sql`
             INSERT INTO quotes (
               entity_id, text, source, context, link, user_reflection,
               linked_quote_ids, origin, embedding, embedding_model, embedding_at, user_id
@@ -152,36 +151,8 @@ export default withObservability(
              AND e.user_id = ${userId}
             WHERE cr.status <> 'promoted'
             RETURNING id
-          ),
-          marked AS (
-            UPDATE recortes r
-            SET status = 'promoted',
-                promoted_target = 'quote',
-                promoted_id = (SELECT id FROM inserted),
-                updated_at = NOW()
-            WHERE r.id = (SELECT id FROM current_recorte)
-              AND r.status <> 'promoted'
-              AND EXISTS (SELECT 1 FROM inserted)
-            RETURNING r.id, r.text, r.source_url, r.source_title, r.source_author,
-              r.note, r.image_url, r.image_key, r.capture_mode, r.status,
-              r.promoted_target, r.promoted_id, r.captured_at, r.created_at, r.updated_at
-          )
-          SELECT id, text, source_url, source_title, source_author, note,
-            image_url, image_key, capture_mode, status, promoted_target,
-            promoted_id, captured_at, created_at, updated_at
-          FROM marked
-          UNION ALL
-          SELECT r.id, r.text, r.source_url, r.source_title, r.source_author, r.note,
-            r.image_url, r.image_key, r.capture_mode, r.status, r.promoted_target,
-            r.promoted_id, r.captured_at, r.created_at, r.updated_at
-          FROM recortes r
-          JOIN current_recorte cr ON cr.id = r.id
-          WHERE cr.status = 'promoted'
-          LIMIT 1
-        `),
-          RecorteRowSchema,
-          'recortes.promote.quote',
-        )
+          `,
+        })
       } else if (parsed.data.target === 'entity') {
         const entity = parsed.data.entity
         const entityEmb = await embedSafe(
@@ -194,14 +165,12 @@ export default withObservability(
         )
         const entityEmbVector = entityEmb ? toPgVector(entityEmb.vector) : null
         const entityEmbAt = entityEmb ? new Date().toISOString() : null
-        rows = parseRows(
-          await sqlTyped<RecorteRow>(sql`
-          WITH current_recorte AS (
-            SELECT id, status
-            FROM recortes
-            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-          ),
-          inserted AS (
+        rows = await buildPromoteRecorteCte(sql, {
+          id,
+          userId,
+          target: 'entity',
+          context: 'recortes.promote.entity',
+          inserted: sql`
             INSERT INTO entities (
               type, name, description, origin, embedding, embedding_model, embedding_at, user_id
             )
@@ -217,36 +186,8 @@ export default withObservability(
             FROM current_recorte cr
             WHERE cr.status <> 'promoted'
             RETURNING id
-          ),
-          marked AS (
-            UPDATE recortes r
-            SET status = 'promoted',
-                promoted_target = 'entity',
-                promoted_id = (SELECT id FROM inserted),
-                updated_at = NOW()
-            WHERE r.id = (SELECT id FROM current_recorte)
-              AND r.status <> 'promoted'
-              AND EXISTS (SELECT 1 FROM inserted)
-            RETURNING r.id, r.text, r.source_url, r.source_title, r.source_author,
-              r.note, r.image_url, r.image_key, r.capture_mode, r.status,
-              r.promoted_target, r.promoted_id, r.captured_at, r.created_at, r.updated_at
-          )
-          SELECT id, text, source_url, source_title, source_author, note,
-            image_url, image_key, capture_mode, status, promoted_target,
-            promoted_id, captured_at, created_at, updated_at
-          FROM marked
-          UNION ALL
-          SELECT r.id, r.text, r.source_url, r.source_title, r.source_author, r.note,
-            r.image_url, r.image_key, r.capture_mode, r.status, r.promoted_target,
-            r.promoted_id, r.captured_at, r.created_at, r.updated_at
-          FROM recortes r
-          JOIN current_recorte cr ON cr.id = r.id
-          WHERE cr.status = 'promoted'
-          LIMIT 1
-        `),
-          RecorteRowSchema,
-          'recortes.promote.entity',
-        )
+          `,
+        })
       } else {
         const momento = parsed.data.momento
         const kind = momento.kind
@@ -336,13 +277,12 @@ export default withObservability(
           momentoEmbSource.length > 0 ? await embedSafe(momentoEmbSource) : null
         const momentoEmbVector = momentoEmb ? toPgVector(momentoEmb.vector) : null
         const momentoEmbAt = momentoEmb ? new Date().toISOString() : null
-        rows = await sqlTyped<RecorteRow>(sql`
-          WITH current_recorte AS (
-            SELECT id, status
-            FROM recortes
-            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-          ),
-          inserted AS (
+        rows = await buildPromoteRecorteCte(sql, {
+          id,
+          userId,
+          target: 'momento',
+          context: 'recortes.promote.momento',
+          inserted: sql`
             INSERT INTO momentos (
               kind, captured_at, payload, note, origin,
               embedding, embedding_model, embedding_at, user_id
@@ -360,33 +300,8 @@ export default withObservability(
             FROM current_recorte cr
             WHERE cr.status <> 'promoted'
             RETURNING id
-          ),
-          marked AS (
-            UPDATE recortes r
-            SET status = 'promoted',
-                promoted_target = 'momento',
-                promoted_id = (SELECT id FROM inserted),
-                updated_at = NOW()
-            WHERE r.id = (SELECT id FROM current_recorte)
-              AND r.status <> 'promoted'
-              AND EXISTS (SELECT 1 FROM inserted)
-            RETURNING r.id, r.text, r.source_url, r.source_title, r.source_author,
-              r.note, r.image_url, r.image_key, r.capture_mode, r.status,
-              r.promoted_target, r.promoted_id, r.captured_at, r.created_at, r.updated_at
-          )
-          SELECT id, text, source_url, source_title, source_author, note,
-            image_url, image_key, capture_mode, status, promoted_target,
-            promoted_id, captured_at, created_at, updated_at
-          FROM marked
-          UNION ALL
-          SELECT r.id, r.text, r.source_url, r.source_title, r.source_author, r.note,
-            r.image_url, r.image_key, r.capture_mode, r.status, r.promoted_target,
-            r.promoted_id, r.captured_at, r.created_at, r.updated_at
-          FROM recortes r
-          JOIN current_recorte cr ON cr.id = r.id
-          WHERE cr.status = 'promoted'
-          LIMIT 1
-        `)
+          `,
+        })
       }
 
       if (rows.length === 0) {
