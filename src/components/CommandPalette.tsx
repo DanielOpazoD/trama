@@ -1,10 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import type { ViewMode } from '../types/view'
 import {
   useCommandSearch,
   type CommandAction,
   type Item,
 } from '../hooks/useCommandSearch'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import { useAskQuery, useRunQuery, useSaveQuery } from '../state/useSavedQueries'
 import { useToast } from '../state/toast'
 import type { QueryHit, QueryInput } from '../api/query'
@@ -69,7 +70,6 @@ export function CommandPalette({
     actionsEnabled: Boolean(onAction),
   })
   const [focusIdx, setFocusIdx] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   // δ-unificado: segundo modo del palette. 'search' es el comportamiento
   // clásico (find/navigate). 'results' muestra los hits del motor de consultas
@@ -98,14 +98,13 @@ export function CommandPalette({
     }
   }, [open])
 
-  // Foco del input + reset del índice resaltado al abrir. La query y los
-  // resultados de servidor los resetea useCommandSearch.
+  // Reset del índice resaltado al abrir. El foco inicial del input lo maneja
+  // el focus trap de useModalOverlay (el input es el primer focuseable del
+  // diálogo). La query y los resultados de servidor los resetea
+  // useCommandSearch.
   useEffect(() => {
     if (open) {
       setFocusIdx(0)
-      // Focus the input on the next tick so it lands after the dialog mounts.
-      const t = window.setTimeout(() => inputRef.current?.focus(), 0)
-      return () => window.clearTimeout(t)
     }
   }, [open])
 
@@ -115,6 +114,22 @@ export function CommandPalette({
     setMode('search')
     setResults(null)
   }, [query])
+
+  // Escape: delegado a useModalOverlay (respeta el stack de overlays + focus
+  // trap + scroll-lock). En modo resultados NO cierra el palette: vuelve a
+  // búsqueda. En modo búsqueda cierra. Esta lógica mode-aware corre como el
+  // onClose del overlay.
+  const handleEscape = useCallback(() => {
+    if (mode === 'results') {
+      setMode('search')
+      setResults(null)
+      setFocusIdx(0)
+    } else {
+      onClose()
+    }
+  }, [mode, onClose])
+
+  const overlay = useModalOverlay({ open, onClose: handleEscape })
 
   const runAst = useCallback(
     (queryInput: QueryInput, heading: string) => {
@@ -241,18 +256,10 @@ export function CommandPalette({
       itemCount: items.length,
       hitCount: results?.hits.length ?? 0,
     })
+    // Escape lo maneja useModalOverlay (ver handleEscape). Acá solo navegación
+    // por teclado: flechas para mover el resaltado y Enter para seleccionar.
     function handler(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        if (mode === 'results') {
-          // Escape en resultados vuelve a búsqueda; no cierra el palette.
-          setMode('search')
-          setResults(null)
-          setFocusIdx(0)
-        } else {
-          onClose()
-        }
-      } else if (e.key === 'ArrowDown') {
+      if (e.key === 'ArrowDown') {
         e.preventDefault()
         setFocusIdx((i) => Math.min(activeLen - 1, i + 1))
       } else if (e.key === 'ArrowUp') {
@@ -271,7 +278,7 @@ export function CommandPalette({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [open, items, focusIdx, onClose, selectItem, mode, results, selectHit])
+  }, [open, items, focusIdx, selectItem, mode, results, selectHit])
 
   if (!open) return null
 
@@ -292,8 +299,10 @@ export function CommandPalette({
           pointer-events-auto. */}
       <div className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
         <div
+          ref={overlay.dialogRef}
           role="dialog"
           aria-label="Buscar"
+          aria-modal="true"
           className="w-full max-w-xl md:max-w-3xl pointer-events-auto animate-fade-up"
         >
           <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
@@ -303,7 +312,6 @@ export function CommandPalette({
               contexto donde aporta. */}
             <div className="relative">
               <input
-                ref={inputRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
