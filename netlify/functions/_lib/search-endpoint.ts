@@ -6,19 +6,33 @@ import { withObservability } from './handler-wrap.js'
 import { getAuthedUser } from './auth.js'
 import { parseSearchParams, QueryParam, requireMethod } from './request-contracts.js'
 import { z } from 'zod'
+import { parseRows } from './row-parse.js'
 import {
   buildEmptySearchPayload,
   buildSearchModePlan,
   buildSearchResponse,
   fuseSearchBranches,
   fuseSingleSearchBranch,
-  type ChatSearchItem,
-  type CronicaSearchItem,
-  type EntitySearchItem,
-  type MomentoSearchItem,
-  type QuoteSearchItem,
   type SearchMode,
 } from './search-service.js'
+import {
+  SearchChatRowSchema,
+  SearchCronicaRowSchema,
+  SearchEntityRowSchema,
+  SearchMomentoRowSchema,
+  SearchQuoteRowSchema,
+  SearchSemanticEntityRowSchema,
+  SearchSemanticMomentoRowSchema,
+  SearchSemanticQuoteRowSchema,
+  type SearchChatRow,
+  type SearchCronicaRow,
+  type SearchEntityRow,
+  type SearchMomentoRow,
+  type SearchQuoteRow,
+  type SearchSemanticEntityRow,
+  type SearchSemanticMomentoRow,
+  type SearchSemanticQuoteRow,
+} from './backend-row-schemas.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -83,11 +97,11 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   )
 
   // Lexical: tsvector match + trigram-similarity boost on name.
-  type EntityLex = EntitySearchItem & { rank: number }
-  type QuoteLex = QuoteSearchItem & { rank: number }
-  type MomentoLex = MomentoSearchItem & { rank: number }
-  type CronicaLex = CronicaSearchItem & { rank: number }
-  type ChatLex = ChatSearchItem & { rank: number }
+  type EntityLex = SearchEntityRow
+  type QuoteLex = SearchQuoteRow
+  type MomentoLex = SearchMomentoRow
+  type CronicaLex = SearchCronicaRow
+  type ChatLex = SearchChatRow
 
   // Texto representativo de un momento: el cuerpo si lo hay, si no el
   // caption/título/fuente, si no la nota. NULLIF descarta strings vacías del
@@ -96,7 +110,8 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   // tagged template de Neon HTTP no compone fragmentos anidados.
 
   const lexicalEntities = wantsLexical
-    ? await sqlTyped<EntityLex>(sql`
+    ? parseRows(
+        await sqlTyped<EntityLex>(sql`
         SELECT e.id, e.name, e.type, e.description, e.year,
                ts_rank(e.search_vector, websearch_to_tsquery('simple', ${q}))
                  + similarity(e.name, ${q}) * 0.5 AS rank
@@ -107,11 +122,15 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
                OR e.name % ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
-      `)
+      `),
+        SearchEntityRowSchema,
+        'search.lexical.entities',
+      )
     : ([] as EntityLex[])
 
   const lexicalQuotes = wantsLexical
-    ? await sqlTyped<QuoteLex>(sql`
+    ? parseRows(
+        await sqlTyped<QuoteLex>(sql`
         SELECT q.id, q.entity_id, e.name AS entity_name, q.text, q.source,
                ts_rank(q.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
         FROM quotes q
@@ -123,11 +142,15 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           AND q.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
-      `)
+      `),
+        SearchQuoteRowSchema,
+        'search.lexical.quotes',
+      )
     : ([] as QuoteLex[])
 
   const lexicalMomentos = wantsLexical
-    ? await sqlTyped<MomentoLex>(sql`
+    ? parseRows(
+        await sqlTyped<MomentoLex>(sql`
         SELECT m.id, m.kind, m.captured_at,
                COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
                         NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
@@ -139,13 +162,17 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           AND m.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
-      `)
+      `),
+        SearchMomentoRowSchema,
+        'search.lexical.momentos',
+      )
     : ([] as MomentoLex[])
 
   // Crónicas y chat: lexical-only (no tienen embedding). En modo 'semantic'
   // puro no aparecen; en 'hybrid' fluyen por la rama léxica.
   const lexicalCronicas = wantsLexical
-    ? await sqlTyped<CronicaLex>(sql`
+    ? parseRows(
+        await sqlTyped<CronicaLex>(sql`
         SELECT c.id, c.year, c.month, left(c.text, 220) AS text,
                ts_rank(c.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
         FROM cronicas c
@@ -153,11 +180,15 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           AND c.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
-      `)
+      `),
+        SearchCronicaRowSchema,
+        'search.lexical.cronicas',
+      )
     : ([] as CronicaLex[])
 
   const lexicalChat = wantsLexical
-    ? await sqlTyped<ChatLex>(sql`
+    ? parseRows(
+        await sqlTyped<ChatLex>(sql`
         SELECT cm.id, cm.thread_id, t.title AS thread_title, cm.role,
                left(cm.content, 200) AS text,
                ts_rank(cm.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
@@ -170,14 +201,17 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           AND cm.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${limit * 2}
-      `)
+      `),
+        SearchChatRowSchema,
+        'search.lexical.chat',
+      )
     : ([] as ChatLex[])
 
   // Semantic: embed the query, rank by cosine distance. embedSafe returns
   // null on any failure so we degrade to lexical instead of erroring.
-  type SemanticEntity = EntityLex & { distance: number }
-  type SemanticQuote = QuoteLex & { distance: number }
-  type SemanticMomento = MomentoLex & { distance: number }
+  type SemanticEntity = SearchSemanticEntityRow
+  type SemanticQuote = SearchSemanticQuoteRow
+  type SemanticMomento = SearchSemanticMomentoRow
 
   let semanticEntities: SemanticEntity[] = []
   let semanticQuotes: SemanticQuote[] = []
@@ -225,9 +259,21 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           LIMIT ${limit * 2}
         `),
       ])
-      semanticEntities = er
-      semanticQuotes = qr
-      semanticMomentos = mr
+      semanticEntities = parseRows(
+        er,
+        SearchSemanticEntityRowSchema,
+        'search.semantic.entities',
+      )
+      semanticQuotes = parseRows(
+        qr,
+        SearchSemanticQuoteRowSchema,
+        'search.semantic.quotes',
+      )
+      semanticMomentos = parseRows(
+        mr,
+        SearchSemanticMomentoRowSchema,
+        'search.semantic.momentos',
+      )
     }
   }
 

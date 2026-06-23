@@ -8,6 +8,8 @@ import { parseJsonBody } from './zod-body.js'
 import { logErrorEvent, logEvent } from './observability.js'
 import { EntityCreateBody, EntityPatchBody, EntityRestoreBody } from './entity-schemas.js'
 import { embedSafe, toPgVector } from './embeddings.js'
+import { parseRows } from './row-parse.js'
+import { EntityRowSchema, type EntityRow } from './backend-row-schemas.js'
 import {
   buildDuplicateSuggestions,
   buildEntityCreateDraft,
@@ -18,25 +20,6 @@ import {
   shouldReembedEntity,
   type DupRow,
 } from './entities-service.js'
-
-// Shape devuelto por los SELECT/RETURNING de entidades (snake_case, raw).
-// El cliente lo transforma vía entityFromRow.
-type EntityRow = {
-  id: string
-  type: string
-  name: string
-  year: number | null
-  description: string | null
-  essay: string | null
-  position_x: number | null
-  position_y: number | null
-  origin: unknown
-  spotify_url: string | null
-  wikipedia_url: string | null
-  grokipedia_url: string | null
-  created_at: string | Date
-  updated_at: string | Date
-}
 
 export default withObservability(
   'entities',
@@ -55,13 +38,17 @@ export default withObservability(
       // Con ?limit pasamos a paginación por cursor, igual que /api/quotes.
       if (!limitParam) {
         const ENTITY_HARD_CAP = 5000
-        const rows = await sqlTyped<EntityRow>(sql`
+        const rows = parseRows(
+          await sqlTyped<EntityRow>(sql`
         SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
         FROM entities
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
         LIMIT ${ENTITY_HARD_CAP}
-      `)
+      `),
+          EntityRowSchema,
+          'entities.list.wholesale',
+        )
         if (rows.length >= ENTITY_HARD_CAP) {
           // Q2: canónico vía logEvent en lugar de console.warn — queda
           // en los Netlify Functions logs estructurado y queryable.
@@ -83,7 +70,8 @@ export default withObservability(
       const cursor = parseEntityCursor(url.searchParams.get('cursor'))
 
       const rows = cursor
-        ? await sqlTyped<EntityRow>(sql`
+        ? parseRows(
+            await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
                  position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
                  created_at, updated_at
@@ -92,8 +80,12 @@ export default withObservability(
             AND (created_at, id) < (${cursor.ts}::timestamptz, ${cursor.id}::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `)
-        : await sqlTyped<EntityRow>(sql`
+        `),
+            EntityRowSchema,
+            'entities.list.paginated.cursor',
+          )
+        : parseRows(
+            await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
                  position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
                  created_at, updated_at
@@ -101,7 +93,10 @@ export default withObservability(
           WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `)
+        `),
+            EntityRowSchema,
+            'entities.list.paginated.first',
+          )
 
       // OJO con el tipo de created_at: el driver Neon HTTP lo deserializa como
       // Date, no como string ISO. Si lo dejamos pasar a una template literal
@@ -163,7 +158,8 @@ export default withObservability(
         }
       }
 
-      const rows = await sqlTyped<EntityRow>(sql`
+      const rows = parseRows(
+        await sqlTyped<EntityRow>(sql`
       INSERT INTO entities (
         type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
         embedding, embedding_model, embedding_at, user_id
@@ -186,7 +182,10 @@ export default withObservability(
         ${userId}
       )
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
-    `)
+    `),
+        EntityRowSchema,
+        'entities.create.returning',
+      )
       return Response.json(rows[0], { status: 201 })
     }
 
@@ -212,7 +211,8 @@ export default withObservability(
         embeddingDirty = shouldReembedEntity({ patch: body, current: currentRows[0] })
       }
       // Only update fields that were actually sent. Postgres COALESCE pattern.
-      const rows = await sqlTyped<EntityRow>(sql`
+      const rows = parseRows(
+        await sqlTyped<EntityRow>(sql`
       UPDATE entities
       SET
         name        = COALESCE(${body.name ?? null}, name),
@@ -227,7 +227,10 @@ export default withObservability(
         grokipedia_url = CASE WHEN ${body.grokipedia_url !== undefined} THEN ${body.grokipedia_url ?? null} ELSE grokipedia_url END
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
-    `)
+    `),
+        EntityRowSchema,
+        'entities.patch.returning',
+      )
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Entidad no encontrada')
       }
