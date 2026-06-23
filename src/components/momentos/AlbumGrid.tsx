@@ -264,7 +264,7 @@ function AlbumTile({
             aria-expanded={actionsOpen}
             title="Opciones"
           >
-            <span aria-hidden className="text-base leading-none">
+            <span aria-hidden className="text-lead leading-none">
               ⋯
             </span>
           </button>

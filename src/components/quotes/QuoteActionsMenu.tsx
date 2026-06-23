@@ -49,7 +49,7 @@ export function QuoteActionsMenu({
         title="Más acciones"
         className="p-1.5 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
       >
-        <span aria-hidden className="block text-base leading-none -mt-1">
+        <span aria-hidden className="block text-lead leading-none -mt-1">
           ⋯
         </span>
       </button>

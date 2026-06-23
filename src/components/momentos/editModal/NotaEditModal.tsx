@@ -61,7 +61,7 @@ export function NotaEditModal({
           onChange={(e) => setBodyText(e.target.value)}
           placeholder="Una observación, una idea, un recuerdo del día…"
           rows={6}
-          className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+          className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={updateMomento.isPending}
         />
         <CapturedAtField

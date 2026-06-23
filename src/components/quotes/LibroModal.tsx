@@ -141,7 +141,7 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
             <h2 className="font-serif text-lg text-ink-700 mt-0.5">
               El florilegio como edición
             </h2>
-            <p className="mt-1 text-xs text-ink-400 leading-relaxed">
+            <p className="mt-1 text-caption text-ink-400 leading-relaxed">
               {quotes.length} citas · {voices} {voices === 1 ? 'voz' : 'voces'} — portada,
               colofón, un capítulo por voz e índice onomástico, en A5 listo para imprimir.
             </p>

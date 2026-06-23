@@ -71,7 +71,7 @@ export function SelectableMomento({
         aria-hidden
       >
         {selected && (
-          <span className="text-paper-50 text-xs leading-none font-bold">✓</span>
+          <span className="text-paper-50 text-caption leading-none font-bold">✓</span>
         )}
       </div>
       <div className="pointer-events-none opacity-90">

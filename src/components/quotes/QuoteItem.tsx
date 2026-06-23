@@ -238,7 +238,7 @@ function QuoteItemInternal({
             title={quote.pinnedAt ? 'Quitar de favoritas' : 'Marcar como favorita'}
             aria-pressed={!!quote.pinnedAt}
           >
-            <span className="text-sm leading-none" aria-hidden>
+            <span className="text-body leading-none" aria-hidden>
               {quote.pinnedAt ? '★' : '☆'}
             </span>
           </button>
@@ -298,7 +298,7 @@ function QuoteItemInternal({
             />
           </div>
           {reflectionOpen && (
-            <p className="mt-1.5 text-ink-500 text-sm leading-relaxed whitespace-pre-wrap animate-fade-up">
+            <p className="mt-1.5 text-ink-500 text-body leading-relaxed whitespace-pre-wrap animate-fade-up">
               {quote.aiReflection}
             </p>
           )}
@@ -321,7 +321,7 @@ function QuoteItemInternal({
               className="ml-auto"
             />
           </div>
-          <p className="text-ink-500 text-sm leading-relaxed whitespace-pre-wrap border-l-2 border-[color:var(--accent-primary-ring)] pl-3">
+          <p className="text-ink-500 text-body leading-relaxed whitespace-pre-wrap border-l-2 border-[color:var(--accent-primary-ring)] pl-3">
             {draftReflection.text}
           </p>
           <div className="mt-2 flex items-center gap-3">

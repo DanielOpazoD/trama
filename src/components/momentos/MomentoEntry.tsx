@@ -83,7 +83,7 @@ function MomentoEntryInternal({
               aria-label="Opciones del momento"
               aria-expanded={actionsOpen}
             >
-              <span aria-hidden className="block text-base leading-none -mt-1">
+              <span aria-hidden className="block text-lead leading-none -mt-1">
                 ⋯
               </span>
             </button>
@@ -148,7 +148,7 @@ export const MomentoEntry = memo(MomentoEntryInternal, (prev, next) => {
 function NotaBody({ momento }: { momento: Momento }) {
   if (!momento.payload.bodyText) return null
   return (
-    <p className="font-serif text-base text-ink-700 leading-relaxed whitespace-pre-wrap">
+    <p className="font-serif text-lead text-ink-700 leading-relaxed whitespace-pre-wrap">
       {momento.payload.bodyText}
     </p>
   )
@@ -193,7 +193,7 @@ function RecorteBody({ momento }: { momento: Momento }) {
         </a>
       )}
       {bodyText && (
-        <p className="font-serif text-base text-ink-600 leading-relaxed whitespace-pre-wrap border-l-2 border-ink-200/60 pl-3 italic">
+        <p className="font-serif text-lead text-ink-600 leading-relaxed whitespace-pre-wrap border-l-2 border-ink-200/60 pl-3 italic">
           {bodyText}
         </p>
       )}
@@ -201,7 +201,7 @@ function RecorteBody({ momento }: { momento: Momento }) {
         // Mismo estilo que las notas de texto (NotaBody) — coherencia
         // tipográfica entre los 3 kinds. La cursiva manuscrita queda
         // reservada para userReflection en QuoteItem.
-        <p className="font-serif text-base text-ink-700 leading-relaxed whitespace-pre-wrap mt-2">
+        <p className="font-serif text-lead text-ink-700 leading-relaxed whitespace-pre-wrap mt-2">
           {momento.note}
         </p>
       )}
@@ -268,7 +268,7 @@ function FotoBody({ momento }: { momento: Momento }) {
       )}
       {momento.note && (
         // Mismo estilo que las notas de texto — coherencia con NotaBody.
-        <p className="font-serif text-base text-ink-700 leading-relaxed whitespace-pre-wrap max-w-md">
+        <p className="font-serif text-lead text-ink-700 leading-relaxed whitespace-pre-wrap max-w-md">
           {momento.note}
         </p>
       )}

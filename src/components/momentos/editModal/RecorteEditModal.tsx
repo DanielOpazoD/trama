@@ -93,7 +93,7 @@ export function RecorteEditModal({
           onChange={(e) => setBodyText(e.target.value)}
           placeholder="Texto del recorte (el tweet, el párrafo, lo que pegues)"
           rows={4}
-          className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+          className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={updateMomento.isPending}
         />
         <div className="flex gap-2">
@@ -119,7 +119,7 @@ export function RecorteEditModal({
           onChange={(e) => setNote(e.target.value)}
           placeholder="Tu nota: por qué te llamó la atención"
           rows={2}
-          className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+          className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={updateMomento.isPending}
         />
         <CapturedAtField

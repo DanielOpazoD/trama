@@ -133,7 +133,7 @@ function NotaFields({ composer }: { composer: Composer }) {
       onChange={(e) => composer.setNoteDraft(e.target.value)}
       placeholder="Una observación, una idea, un recuerdo del día…"
       rows={3}
-      className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+      className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
       disabled={composer.isPending}
     />
   )
@@ -175,7 +175,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setRecorteBody(e.target.value)}
         placeholder="Texto del recorte (el tweet, el párrafo, lo que pegues)"
         rows={3}
-        className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+        className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
       <div className="flex gap-2">
@@ -204,7 +204,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
         // Mismo tipo de fuente que usa la nota — coherencia tipográfica
         // entre los 3 kinds de entrada. La marginalia decorativa vive en
         // el RENDER del momento, no en el input crudo.
-        className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+        className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
     </div>
@@ -352,7 +352,7 @@ function FotoFields({ composer }: { composer: Composer }) {
                               e.stopPropagation()
                               composer.movePhoto(idx, -1)
                             }}
-                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-caption hover:bg-ink-900/85 transition-colors leading-none"
                             aria-label={`Mover foto ${idx + 1} hacia atrás`}
                             title="Mover atrás"
                             disabled={composer.isPending}
@@ -368,7 +368,7 @@ function FotoFields({ composer }: { composer: Composer }) {
                               e.stopPropagation()
                               composer.movePhoto(idx, 1)
                             }}
-                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+                            className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-caption hover:bg-ink-900/85 transition-colors leading-none"
                             aria-label={`Mover foto ${idx + 1} hacia adelante`}
                             title="Mover adelante"
                             disabled={composer.isPending}
@@ -476,7 +476,7 @@ function FotoFields({ composer }: { composer: Composer }) {
         value={composer.photoCaption}
         onChange={(e) => composer.setPhotoCaption(e.target.value)}
         placeholder="Título del episodio (opcional)"
-        className="input-paper w-full font-serif text-base leading-relaxed placeholder:italic"
+        className="input-paper w-full font-serif text-lead leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
       <textarea
@@ -484,7 +484,7 @@ function FotoFields({ composer }: { composer: Composer }) {
         onChange={(e) => composer.setPhotoNote(e.target.value)}
         placeholder="Tu nota sobre el momento (opcional)"
         rows={2}
-        className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+        className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
       <AudioPicker

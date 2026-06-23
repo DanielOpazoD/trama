@@ -356,7 +356,7 @@ export function FotoEditModal({
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           placeholder="Título del episodio (opcional)"
-          className="input-paper w-full font-serif text-base leading-relaxed placeholder:italic"
+          className="input-paper w-full font-serif text-lead leading-relaxed placeholder:italic"
           disabled={uploading || updateMomento.isPending}
         />
         <textarea
@@ -364,7 +364,7 @@ export function FotoEditModal({
           onChange={(e) => setNote(e.target.value)}
           placeholder="Tu nota sobre el momento (opcional)"
           rows={3}
-          className="input-paper w-full resize-none font-serif text-base leading-relaxed placeholder:italic"
+          className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={uploading || updateMomento.isPending}
         />
         <AudioPicker

@@ -109,7 +109,7 @@ export function RescueOrphansPanel() {
   return (
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-sm text-ink-500 leading-relaxed">
+        <p className="text-body text-ink-500 leading-relaxed">
           Estas fotos viven en el storage pero ningún Momento las referencia
           (probablemente subidas desde un deploy preview que tenía su propia BD).
           Recupéralas para que vuelvan a aparecer en tu timeline.

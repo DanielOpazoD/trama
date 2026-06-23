@@ -117,7 +117,7 @@ export function FotoPhotoTile({
             <button
               type="button"
               onClick={() => onMove(-1)}
-              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-caption hover:bg-ink-900/85 transition-colors leading-none"
               aria-label={`Mover foto ${idx + 1} hacia atrás`}
               title="Mover atrás"
               disabled={disabled}
@@ -129,7 +129,7 @@ export function FotoPhotoTile({
             <button
               type="button"
               onClick={() => onMove(1)}
-              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-xs hover:bg-ink-900/85 transition-colors leading-none"
+              className="size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 text-caption hover:bg-ink-900/85 transition-colors leading-none"
               aria-label={`Mover foto ${idx + 1} hacia adelante`}
               title="Mover adelante"
               disabled={disabled}
