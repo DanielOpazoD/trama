@@ -281,6 +281,7 @@ describe('recortes endpoint', () => {
     const promoteCte = mockSqlResponses.calls.find((c) =>
       /INSERT INTO quotes/i.test(c.template),
     )
+    expect(promoteCte?.template).toMatch(/FOR UPDATE/i)
     expect(promoteCte?.template).toMatch(/UPDATE recortes/i)
     expect(promoteCte?.template).toMatch(/embedding, embedding_model, embedding_at/i)
     expect(promoteCte?.values).toContain(ROW.text)

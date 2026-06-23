@@ -75,23 +75,86 @@ export function setupMockSql() {
     return (next as unknown[] | undefined) ?? []
   }
 
-  function sql(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]> {
-    mockSqlState.calls.push({
-      template: strings.join('?'),
-      values,
-    })
-    try {
-      return Promise.resolve(nextResponse())
-    } catch (err) {
-      return Promise.reject(err)
-    }
+  // Mirror fiel del driver Neon HTTP: un tagged template anidado o un
+  // `sql.unsafe(...)` interpolado como valor NO es un parámetro, se aplana
+  // dentro de la query padre (ver toParameterizedQuery del bundle). Sin esto,
+  // el builder de los CTE de recortes (que compone `inserted AS (${fragment})`)
+  // dejaría el INSERT fuera del `.template` que inspeccionan los tests.
+  // El aplanado es aditivo: ninguna query existente interpola fragmentos.
+  type MockFragment = {
+    __mockSqlFragment: true
+    strings: TemplateStringsArray
+    values: unknown[]
   }
+  type MockUnsafe = { __mockSqlUnsafe: true; sql: string }
+  const isFragment = (v: unknown): v is MockFragment =>
+    typeof v === 'object' && v !== null && (v as MockFragment).__mockSqlFragment === true
+  const isUnsafe = (v: unknown): v is MockUnsafe =>
+    typeof v === 'object' &&
+    v !== null &&
+    (v as MockUnsafe).__mockSqlUnsafe === true &&
+    typeof (v as MockUnsafe).sql === 'string' &&
+    !isFragment(v)
+
+  // Aplana strings/values de un template (con sub-fragmentos y unsafe) a un
+  // único `{ template, values }`, replicando el placeholder '?' del mock previo.
+  function flatten(
+    strings: ArrayLike<string>,
+    values: unknown[],
+  ): { template: string; values: unknown[] } {
+    let template = strings[0] ?? ''
+    const flatValues: unknown[] = []
+    for (let i = 0; i < values.length; i++) {
+      const value = values[i]
+      if (isUnsafe(value)) {
+        template += value.sql
+      } else if (isFragment(value)) {
+        const nested = flatten(value.strings, value.values)
+        template += nested.template
+        flatValues.push(...nested.values)
+      } else {
+        template += '?'
+        flatValues.push(value)
+      }
+      template += strings[i + 1] ?? ''
+    }
+    return { template, values: flatValues }
+  }
+
+  function record(strings: TemplateStringsArray, values: unknown[]): void {
+    mockSqlState.calls.push(flatten(strings, values))
+  }
+
+  // El template es un thenable perezoso: registra la call y consume una
+  // respuesta SOLO al await-earse (top-level), no al construirse. Así un
+  // fragmento interpolado (que nunca se awaitea) no consume respuesta ni
+  // ensucia el historial; al await-earse el padre, el fragmento se aplana.
+  function sql(strings: TemplateStringsArray, ...values: unknown[]): Promise<unknown[]> {
+    const fragment: MockFragment = { __mockSqlFragment: true, strings, values }
+    const run = (): Promise<unknown[]> => {
+      record(strings, values)
+      try {
+        return Promise.resolve(nextResponse())
+      } catch (err) {
+        return Promise.reject(err)
+      }
+    }
+    const thenable = {
+      ...fragment,
+      then: (
+        onfulfilled?: ((value: unknown[]) => unknown) | null,
+        onrejected?: ((reason: unknown) => unknown) | null,
+      ) => run().then(onfulfilled, onrejected),
+      catch: (onrejected?: ((reason: unknown) => unknown) | null) =>
+        run().catch(onrejected),
+      finally: (onfinally?: (() => void) | null) => run().finally(onfinally),
+    }
+    return thenable as unknown as Promise<unknown[]>
+  }
+  sql.unsafe = (rawSql: string): MockUnsafe => ({ __mockSqlUnsafe: true, sql: rawSql })
   sql.transaction = async (fn: (tx: typeof sql) => unknown[]) => {
     const tx = ((strings: TemplateStringsArray, ...values: unknown[]) => {
-      mockSqlState.calls.push({
-        template: strings.join('?'),
-        values,
-      })
+      record(strings, values)
       return {}
     }) as typeof sql
     const queries = fn(tx)

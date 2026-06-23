@@ -2,6 +2,16 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { mockSqlResponses, setupMockSql } from '../test-utils'
 
 vi.mock('../db.js', () => setupMockSql())
+// Blobs mockeado: reclassifyRecorteToMomento (rama recorte→momento) copia blobs.
+vi.mock('@netlify/blobs', () => ({
+  getStore: () => ({
+    set: vi.fn().mockResolvedValue(undefined),
+    getWithMetadata: vi.fn().mockResolvedValue({
+      data: new ArrayBuffer(8),
+      metadata: { mime: 'image/jpeg', size: '8' },
+    }),
+  }),
+}))
 
 import { getSql } from '../db.js'
 import {
@@ -10,6 +20,7 @@ import {
   appendImagesToMomento,
   appendImagesToRecorteEvent,
   joinRecortePhotosToMomento,
+  appendSplitAlbum,
 } from './album'
 
 beforeEach(() => mockSqlResponses.reset())
@@ -180,5 +191,192 @@ describe('joinRecortePhotosToMomento (orden copy→append→remove)', () => {
     expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
       false,
     )
+  })
+
+  it('copia parcial → revierte copias hechas y no anexa ni borra originales', async () => {
+    const ops = {
+      copy: vi
+        .fn()
+        .mockResolvedValueOnce({ storageKey: 'm-a' })
+        .mockResolvedValueOnce(null),
+      remove: vi.fn(async () => {}),
+    }
+    const total = await joinRecortePhotosToMomento(
+      getSql(),
+      'u1',
+      'm1',
+      [{ key: 'a' }, { key: 'b' }],
+      ops,
+    )
+    expect(total).toBeNull()
+    expect(ops.remove).toHaveBeenCalledWith('momentos-media', 'm-a')
+    expect(ops.remove).not.toHaveBeenCalledWith('recortes-media', expect.anything())
+    expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
+      false,
+    )
+  })
+})
+
+describe('appendSplitAlbum (enrutamiento de las 4 ramas route × kind reciente)', () => {
+  const noDelete = vi.fn(async () => true)
+
+  it('route momento + reciente momento → anexa al episodio y vacía las keys', async () => {
+    mockSqlResponses.push([{ total: 3 }]) // appendImagesToMomento
+    const momentoKeys = ['k1']
+    const momentoCapturedAts = [null]
+    const res = await appendSplitAlbum(
+      getSql(),
+      'u1',
+      { kind: 'momento', id: 'm1' },
+      {
+        route: 'momento',
+        newImageCount: 1,
+        momentoKeys,
+        momentoCapturedAts,
+        recorteKeys: [],
+        softDeleteCapture: noDelete,
+      },
+    )
+    expect(res).toEqual({ appendedTotal: 3, lastId: 'm1', lastKind: 'momento' })
+    // Las keys se vacían in-place cuando confirma (no se persisten por separado).
+    expect(momentoKeys).toHaveLength(0)
+    expect(momentoCapturedAts).toHaveLength(0)
+  })
+
+  it('route recorte + reciente recorte → anexa al recorte-evento', async () => {
+    mockSqlResponses.push([{ found: true, existing_n: 1, had_cover: true }])
+    const recorteKeys = [{ key: 'a', mime: 'image/jpeg' }]
+    const res = await appendSplitAlbum(
+      getSql(),
+      'u1',
+      { kind: 'recorte', id: 'r1' },
+      {
+        route: 'recorte',
+        newImageCount: 1,
+        momentoKeys: [],
+        momentoCapturedAts: [],
+        recorteKeys,
+        softDeleteCapture: noDelete,
+      },
+    )
+    expect(res.appendedTotal).toBe(2)
+    expect(res.lastKind).toBe('recorte')
+    expect(recorteKeys).toHaveLength(0)
+  })
+
+  it('route momento + reciente recorte → sube el recorte a Momento (reclasifica + soft-borra) y anexa', async () => {
+    const softDelete = vi.fn(async () => true)
+    mockSqlResponses.push([{ storage_key: 'u1/old.jpg' }]) // reclassify → readRecorteImageKeys
+    mockSqlResponses.push([{ id: 'm9' }]) // reclassify → persistImageMomentoEpisode
+    mockSqlResponses.push([{ total: 2 }]) // appendImagesToMomento
+    const res = await appendSplitAlbum(
+      getSql(),
+      'u1',
+      { kind: 'recorte', id: 'r1' },
+      {
+        route: 'momento',
+        newImageCount: 1,
+        momentoKeys: ['k1'],
+        momentoCapturedAts: [null],
+        recorteKeys: [],
+        softDeleteCapture: softDelete,
+      },
+    )
+    expect(res).toEqual({ appendedTotal: 2, lastId: 'm9', lastKind: 'momento' })
+    expect(softDelete).toHaveBeenCalledWith(expect.anything(), 'u1', 'recorte', 'r1')
+  })
+
+  it('route momento + reciente recorte no anexa si falla el soft-delete del recorte viejo', async () => {
+    const softDelete = vi.fn(async () => false)
+    mockSqlResponses.push([{ storage_key: 'u1/old.jpg' }]) // reclassify → readRecorteImageKeys
+    mockSqlResponses.push([{ id: 'm9' }]) // reclassify → persistImageMomentoEpisode
+    const momentoKeys = ['k1']
+    const momentoCapturedAts = [null]
+    const res = await appendSplitAlbum(
+      getSql(),
+      'u1',
+      { kind: 'recorte', id: 'r1' },
+      {
+        route: 'momento',
+        newImageCount: 1,
+        momentoKeys,
+        momentoCapturedAts,
+        recorteKeys: [],
+        softDeleteCapture: softDelete,
+      },
+    )
+    expect(res.appendedTotal).toBeNull()
+    expect(softDelete).toHaveBeenCalledWith(expect.anything(), 'u1', 'recorte', 'r1')
+    expect(momentoKeys).toEqual(['k1'])
+    expect(momentoCapturedAts).toEqual([null])
+    expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
+      false,
+    )
+  })
+
+  it('route recorte + reciente momento → copia cross-store y anexa al episodio', async () => {
+    // joinRecortePhotosToMomento usa los blobs reales (mockeados arriba) → copia
+    // ok; luego appendImagesToMomento confirma con el total.
+    mockSqlResponses.push([{ total: 4 }]) // appendImagesToMomento dentro del join
+    const recorteKeys = [{ key: 'a', mime: 'image/jpeg' }]
+    const res = await appendSplitAlbum(
+      getSql(),
+      'u1',
+      { kind: 'momento', id: 'm1' },
+      {
+        route: 'recorte',
+        newImageCount: 1,
+        momentoKeys: [],
+        momentoCapturedAts: [],
+        recorteKeys,
+        softDeleteCapture: noDelete,
+      },
+    )
+    expect(res.appendedTotal).toBe(4)
+    expect(res.lastKind).toBe('momento')
+    expect(res.lastId).toBe('m1')
+  })
+
+  it('si el destino ya no existe (append → null) devuelve null y NO vacía las keys', async () => {
+    mockSqlResponses.push([]) // appendImagesToMomento → null
+    const momentoKeys = ['k1']
+    const momentoCapturedAts = [null]
+    const recorteKeys: Array<{ key: string; mime: string }> = []
+    const res = await appendSplitAlbum(
+      getSql(),
+      'u1',
+      { kind: 'momento', id: 'm1' },
+      {
+        route: 'momento',
+        newImageCount: 1,
+        momentoKeys,
+        momentoCapturedAts,
+        recorteKeys,
+        softDeleteCapture: noDelete,
+      },
+    )
+    expect(res.appendedTotal).toBeNull()
+    // El caller cae a crear una captura nueva con estas mismas fotos.
+    expect(momentoKeys).toHaveLength(1)
+    expect(momentoCapturedAts).toEqual([null])
+    expect(recorteKeys).toEqual([])
+  })
+
+  it('un error inesperado se traga (best-effort) y devuelve null', async () => {
+    mockSqlResponses.pushError(new Error('boom'))
+    const res = await appendSplitAlbum(
+      getSql(),
+      'u1',
+      { kind: 'momento', id: 'm1' },
+      {
+        route: 'momento',
+        newImageCount: 1,
+        momentoKeys: ['k1'],
+        momentoCapturedAts: [null],
+        recorteKeys: [],
+        softDeleteCapture: noDelete,
+      },
+    )
+    expect(res.appendedTotal).toBeNull()
   })
 })
