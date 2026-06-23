@@ -63,7 +63,7 @@ Usar SOLO para spacing vertical en headers de vista, padding de cards, separaci�
 - `role="alert"` en ErrorBoundary fallback y banners de error
 - `role="status"` en ToastHost (`aria-live="polite"`)
 - `role="tooltip"` en `<Tooltip>` con id linkeado al trigger
-- `:focus-visible` global con outline azul (no se recorta por overflow:hidden)
+- `:focus-visible` global con outline azul (salvia en `.pdf-studio`); es la ÚNICA convención de foco: los componentes no hornean un anillo propio (lo duplicaría) ni lo suprimen con `focus:outline-none` sin reemplazo (lo borraría). Lo congela `check:focus-ring`. Los recuadros `.input-paper` muestran el foco vía `:focus-within`, así que un input envuelto en `<label class="input-paper">` sí puede llevar `focus:outline-none` (el recuadro es el indicador)
 - `prefers-reduced-motion` respetado en shimmer del skeleton
 
 **Texto vs contraste**: `text-ink-300` (#63636b) es el muted más claro permitido para texto legible — pasa AA con ~5.1:1 sobre `paper-50` blanco, incluso en `text-micro` (10px) que requiere 4.5:1 por ser texto pequeño. Era #71717a hasta ε5 (axe lo cazó en 4.43, justo bajo el umbral). `text-ink-200` (#d4d4d8) NO se usa para texto, solo para iconos decorativos, separators (·), o disabled states.
@@ -146,13 +146,14 @@ Componentes pequeños que centralizan un CONTRATO (a11y, comportamiento), no una
 
 ### Gates que gobiernan el design system
 
-Cuatro ratchets (en `scripts/`, corren en el job `lint` de CI) congelan el estado actual y solo permiten MEJORARLO; nunca suben el baseline:
+Cinco ratchets (en `scripts/`, corren en el job `lint` de CI) congelan el estado actual y solo permiten MEJORARLO; nunca suben el baseline:
 
-| Gate                        | Congela                                                                       |
-| --------------------------- | ----------------------------------------------------------------------------- |
-| `check:design-tokens`       | arbitrary values tipográficos + aliases legacy de la type scale (usar tokens) |
-| `check:modal-overlay`       | adopción de `useModalOverlay` en `role="dialog"`                              |
-| `check:form-control-labels` | nombres accesibles en `input/textarea/select` (reconoce `htmlFor`/`useId`)    |
-| `check:icon-button`         | adopción de `IconButton` en botones de solo-ícono                             |
+| Gate                        | Congela                                                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `check:design-tokens`       | arbitrary values tipográficos + aliases legacy de la type scale (usar tokens)                         |
+| `check:modal-overlay`       | adopción de `useModalOverlay` en `role="dialog"`                                                      |
+| `check:form-control-labels` | nombres accesibles en `input/textarea/select` (reconoce `htmlFor`/`useId`)                            |
+| `check:icon-button`         | adopción de `IconButton` en botones de solo-ícono                                                     |
+| `check:focus-ring`          | foco horneado que duplica (`focus:ring`) o suprime (`focus:outline-none`) el `*:focus-visible` global |
 
 Cada uno baja su baseline cuando alguien migra; el gate avisa para actualizar el piso. Para migrar un caso nuevo, seguí el primitivo/token correspondiente en vez de reintroducir el patrón hand-rolled.

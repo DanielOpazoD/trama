@@ -147,6 +147,9 @@ jobs:
       - name: IconButton adoption check
         run: npm run check:icon-button
 
+      - name: Focus-ring convention check
+        run: npm run check:focus-ring
+
       - name: PDF runtime boundaries check
         run: npm run check:pdf-runtime-boundaries
 

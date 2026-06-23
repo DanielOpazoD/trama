@@ -1053,9 +1053,12 @@ html.dark .paper-grain::before {
       0 1px 0 rgb(var(--paper-50) / 0.68) inset,
       0 1px 2px rgb(var(--ink-900) / 0.035);
     /* Focus ring uses the editorial primary accent — prussian on cream,
-       lights up to ~3px without shifting layout. */
+       lights up to ~3px without shifting layout. Uses :focus-within so it
+       works whether .input-paper sits on the field itself or on a <label>
+       wrapping it (search boxes); the wrapped <input> sets focus:outline-none
+       so the box ring is the sole indicator (no double indicator). */
   }
-  .input-paper:focus {
+  .input-paper:focus-within {
     outline: none;
     border-color: var(--accent-primary);
     background:

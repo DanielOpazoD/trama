@@ -36,6 +36,7 @@
     "check:modal-overlay": "node scripts/check-modal-overlay.mjs",
     "check:form-control-labels": "node scripts/check-form-control-labels.mjs",
     "check:icon-button": "node scripts/check-icon-button.mjs",
+    "check:focus-ring": "node scripts/check-focus-ring.mjs",
     "check:pdf-runtime-boundaries": "node scripts/pdf-runtime-boundaries.mjs",
     "check:pdf-lazy-entrypoints": "node scripts/pdf-lazy-entrypoints.mjs",
     "check:client-api-contracts": "node scripts/client-api-contracts.mjs",

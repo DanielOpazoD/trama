@@ -188,6 +188,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Ratchet de adopción del primitivo IconButton en botones de solo-ícono.',
   },
   {
+    file: 'scripts/check-focus-ring.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:focus-ring'],
+    summary:
+      'Ratchet de la convención de foco: prohíbe duplicar (focus:ring) o suprimir (focus:outline-none) el *:focus-visible global.',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',
@@ -739,6 +748,14 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Ratchet de adopción de IconButton en botones de solo-ícono.',
+  },
+  {
+    command: 'npm run check:focus-ring',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary:
+      'Ratchet de la convención de foco (no duplicar ni suprimir el :focus-visible global).',
   },
   {
     command: 'npm run check:pdf-runtime-boundaries',
