@@ -180,6 +180,14 @@ const SCRIPT_ENTRIES = [
       'Ratchet de nombres accesibles en controles de formulario (input/textarea/select), reconociendo la asociación htmlFor/id.',
   },
   {
+    file: 'scripts/check-icon-button.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:icon-button'],
+    summary: 'Ratchet de adopción del primitivo IconButton en botones de solo-ícono.',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',
@@ -707,6 +715,13 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Ratchet de nombres accesibles en controles de formulario.',
+  },
+  {
+    command: 'npm run check:icon-button',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary: 'Ratchet de adopción de IconButton en botones de solo-ícono.',
   },
   {
     command: 'npm run check:pdf-runtime-boundaries',
