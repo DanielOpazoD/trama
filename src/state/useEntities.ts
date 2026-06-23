@@ -15,6 +15,7 @@ import { canUseLocalFallback } from './localFallback'
 import {
   invalidateEntityCreateSurface,
   invalidateEntityDeleteSurface,
+  invalidateEntityMergeSurface,
   invalidateEntityRestoreSurface,
   invalidateEntityUpdateSurface,
 } from './cacheInvalidation'
@@ -349,6 +350,18 @@ export function useDeleteEntity() {
           },
         })
       }
+    },
+  })
+}
+
+export function useMergeEntities() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ keepId, mergeIds }: { keepId: string; mergeIds: string[] }) =>
+      api.mergeEntities(keepId, mergeIds),
+    onSuccess: () => {
+      invalidateEntityMergeSurface(queryClient)
     },
   })
 }

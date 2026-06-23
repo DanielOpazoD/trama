@@ -21,6 +21,7 @@ import {
   useUpdateEntity,
   useUpdateEntityType,
   useDeleteEntity,
+  useMergeEntities,
   useVoiceOfEntity,
 } from './useEntities'
 import * as apiModule from '../api'
@@ -297,6 +298,36 @@ describe('invalidación de queries', () => {
       queryKeys.entitiesInfinite,
       queryKeys.quotesInfinite,
       queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.momentosInfinite,
+    ])
+  })
+
+  it('useMergeEntities invalida entidades, citas, relaciones, momentos y agregados', async () => {
+    vi.spyOn(apiModule.api, 'mergeEntities').mockResolvedValue(REAL_ENTITY)
+    const qc = makeQueryClient()
+    const invalidateSpy = vi
+      .spyOn(qc, 'invalidateQueries')
+      .mockImplementation(() => Promise.resolve(undefined))
+
+    const { result } = renderHook(() => useMergeEntities(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ keepId: 'ent-real', mergeIds: ['ent-dupe'] })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiModule.api.mergeEntities).toHaveBeenCalledWith('ent-real', ['ent-dupe'])
+    expect(invalidatedKeys(invalidateSpy)).toEqual([
+      queryKeys.entities,
+      queryKeys.relationships,
+      queryKeys.quotes,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.relationshipsInfinite,
+      queryKeys.quotesInfinite,
       queryKeys.home,
       queryKeys.atlas,
       queryKeys.cronologiaInfinite,

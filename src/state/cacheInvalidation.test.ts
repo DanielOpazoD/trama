@@ -4,6 +4,7 @@ import { queryKeys } from './queryClient'
 import {
   invalidateEntityCreateSurface,
   invalidateEntityDeleteSurface,
+  invalidateEntityMergeSurface,
   invalidateEntityRestoreSurface,
   invalidateEntityUpdateSurface,
   invalidateMomentoShareAccessSurface,
@@ -153,6 +154,7 @@ describe('cacheInvalidation', () => {
     invalidateEntityCreateSurface(qc)
     invalidateEntityUpdateSurface(qc)
     invalidateEntityDeleteSurface(qc)
+    invalidateEntityMergeSurface(qc)
     invalidateEntityRestoreSurface(qc)
     invalidateQuoteCreateSurface(qc)
     invalidateQuoteUpdateSurface(qc)
@@ -180,6 +182,18 @@ describe('cacheInvalidation', () => {
       queryKeys.entitiesInfinite,
       queryKeys.quotesInfinite,
       queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.momentosInfinite,
+      queryKeys.entities,
+      queryKeys.relationships,
+      queryKeys.quotes,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.relationshipsInfinite,
+      queryKeys.quotesInfinite,
       queryKeys.home,
       queryKeys.atlas,
       queryKeys.cronologiaInfinite,
