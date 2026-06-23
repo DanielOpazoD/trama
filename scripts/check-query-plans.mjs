@@ -266,7 +266,7 @@ export async function runQueryPlanCheck({ dbUrl = DB_URL } = {}) {
       await explain(client, label, text, values)
       console.log(`query-plan OK: ${label}`)
     }
-    await client.query('COMMIT')
+    await client.query('ROLLBACK')
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {})
     throw error

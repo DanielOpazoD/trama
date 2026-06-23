@@ -1,8 +1,71 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const pgMock = vi.hoisted(() => {
+  const state = {
+    queryCalls: [],
+    end: vi.fn(),
+    release: vi.fn(),
+  }
+  const client = {
+    query: vi.fn(async (text, values) => {
+      state.queryCalls.push([text, values])
+      if (String(text).startsWith('EXPLAIN')) {
+        return {
+          rows: [
+            {
+              'QUERY PLAN': [
+                {
+                  Plan: {
+                    'Node Type': 'Index Scan',
+                    'Relation Name': 'entities',
+                    'Plan Rows': 1,
+                  },
+                },
+              ],
+            },
+          ],
+        }
+      }
+      return { rows: [] }
+    }),
+    release: state.release,
+  }
+  const pool = {
+    connect: vi.fn(async () => client),
+    end: state.end,
+  }
+  const Pool = vi.fn(function Pool() {
+    return pool
+  })
+  return {
+    client,
+    pool,
+    Pool,
+    reset() {
+      state.queryCalls.length = 0
+      state.end.mockClear()
+      state.release.mockClear()
+      client.query.mockClear()
+      pool.connect.mockClear()
+      this.Pool.mockClear()
+    },
+    get queryTexts() {
+      return state.queryCalls.map(([text]) => text)
+    },
+  }
+})
+
+vi.mock('pg', () => ({
+  default: {
+    Pool: pgMock.Pool,
+  },
+}))
+
 import {
   assertNoLargeSeqScans,
   collectPlanNodes,
   formatQueryPlanCheckFailure,
+  runQueryPlanCheck,
   sanitizeDbUrlForLog,
   setQueryPlanRlsContext,
 } from './check-query-plans.mjs'
@@ -12,6 +75,10 @@ function plan(node) {
 }
 
 describe('check-query-plans', () => {
+  beforeEach(() => {
+    pgMock.reset()
+  })
+
   it('recorre nodos anidados de un EXPLAIN JSON', () => {
     const nodes = collectPlanNodes(
       plan({
@@ -139,5 +206,15 @@ describe('check-query-plans', () => {
     expect(queryCalls).toEqual([
       ["SELECT set_config('app.current_user_id', $1, true)", ['query-plan-test-user']],
     ])
+  })
+
+  it('hace rollback en una corrida exitosa para no persistir fixtures de query plans', async () => {
+    await runQueryPlanCheck({ dbUrl: 'postgresql://trama:secret@localhost:5433/trama' })
+
+    expect(pgMock.queryTexts).toContain('BEGIN')
+    expect(pgMock.queryTexts).toContain('ROLLBACK')
+    expect(pgMock.queryTexts).not.toContain('COMMIT')
+    expect(pgMock.client.release).toHaveBeenCalledTimes(1)
+    expect(pgMock.pool.end).toHaveBeenCalledTimes(1)
   })
 })
