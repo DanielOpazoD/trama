@@ -11,7 +11,9 @@ describe('<CloseButton />', () => {
 
   it('acepta un label más específico', () => {
     render(<CloseButton label="Cerrar vista previa" onClick={() => {}} />)
-    expect(screen.getByRole('button', { name: 'Cerrar vista previa' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Cerrar vista previa' }),
+    ).toBeInTheDocument()
   })
 
   it('reenvía onClick y className, sin imponer foco propio', () => {
