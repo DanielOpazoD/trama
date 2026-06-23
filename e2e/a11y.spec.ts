@@ -345,3 +345,56 @@ test('a11y: palette ⌘K abierto sin violaciones', async ({ page }) => {
   }
   expect(results.violations).toEqual([])
 })
+
+// Vistas con formularios: validan, end-to-end, el barrido de nombres accesibles
+// en controles (check:form-control-labels). Si un <input>/<textarea> queda sin
+// nombre, axe lo marca acá además del gate estático.
+test('a11y: Notas · Prompts (formularios) sin violaciones', async ({ page }) => {
+  await skipSplash(page)
+  await mockBackend(page, emptyState())
+  await page.goto('/?world=notas&section=prompts')
+  await page
+    .getByRole('heading', { name: 'Prompts', level: 2 })
+    .waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(400)
+
+  const results = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en Notas · Prompts:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+      for (const node of v.nodes.slice(0, 3)) {
+        console.log(`      → ${node.html.slice(0, 120)}`)
+      }
+    }
+  }
+  expect(results.violations).toEqual([])
+})
+
+test('a11y: Notas · Tareas (formularios) sin violaciones', async ({ page }) => {
+  await skipSplash(page)
+  await mockBackend(page, emptyState())
+  await page.goto('/?world=notas&section=tareas')
+  await page
+    .getByRole('heading', { name: 'Tareas', level: 2 })
+    .waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(400)
+
+  const results = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en Notas · Tareas:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+      for (const node of v.nodes.slice(0, 3)) {
+        console.log(`      → ${node.html.slice(0, 120)}`)
+      }
+    }
+  }
+  expect(results.violations).toEqual([])
+})
