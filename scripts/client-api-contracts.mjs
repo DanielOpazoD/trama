@@ -78,7 +78,7 @@ const RAW_RESPONSE_USAGE_ALLOWLIST = [
     requires: [
       'const response = await apiFetch(`/api/chat/threads/${threadId}/messages`',
       'response.body.getReader()',
-      'handlers.onError?.(text || `HTTP ${response.status}`)',
+      'messageFromErrorText(text) || `HTTP ${response.status}`',
     ],
   },
   {

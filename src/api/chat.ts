@@ -85,6 +85,19 @@ export type AskResponse = {
   threadId: string | null
 }
 
+function messageFromErrorText(text: string): string {
+  if (!text) return ''
+  try {
+    const parsed = JSON.parse(text) as {
+      error?: { message?: unknown }
+    }
+    if (typeof parsed.error?.message === 'string') return parsed.error.message
+  } catch {
+    /* plain text fallback */
+  }
+  return text
+}
+
 export const chatApi = {
   async listChatThreads(): Promise<ChatThread[]> {
     return request<ChatThread[]>('/api/chat/threads')
@@ -123,7 +136,7 @@ export const chatApi = {
     })
     if (!response.ok || !response.body) {
       const text = await response.text().catch(() => '')
-      handlers.onError?.(text || `HTTP ${response.status}`)
+      handlers.onError?.(messageFromErrorText(text) || `HTTP ${response.status}`)
       return
     }
     const reader = response.body.getReader()

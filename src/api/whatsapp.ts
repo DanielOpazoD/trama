@@ -72,7 +72,9 @@ export const whatsappApi = {
     })
   },
   async removeWhatsAppLink(id: string): Promise<void> {
-    await request<{ ok: boolean }>(`/api/whatsapp-link/${id}`, { method: 'DELETE' })
+    await request<{ ok: boolean }>(`/api/whatsapp-link/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
   },
   async getWhatsAppMetrics(days = 30): Promise<WhatsAppMetrics> {
     return request<WhatsAppMetrics>(`/api/whatsapp-metrics?days=${days}`)

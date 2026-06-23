@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const requestMock = vi.hoisted(() => vi.fn())
+const requestBlobMock = vi.hoisted(() => vi.fn())
 const isDemoModeMock = vi.hoisted(() => vi.fn(() => false))
 
 vi.mock('./request', () => ({
   request: requestMock,
-  requestBlob: vi.fn(),
+  requestBlob: requestBlobMock,
 }))
 vi.mock('../lib/demo', () => ({
   isDemoMode: isDemoModeMock,
@@ -48,8 +49,99 @@ const LARGE = 10 * 1024 * 1024 // 10 MB → R2
 
 beforeEach(() => {
   requestMock.mockReset()
+  requestBlobMock.mockReset()
   isDemoModeMock.mockReturnValue(false)
   vi.unstubAllGlobals()
+})
+
+describe('bibliotecaApi list/download contracts', () => {
+  it('lista biblioteca con query estable y transforma filas snake_case a LibraryItem', async () => {
+    requestMock.mockResolvedValueOnce({
+      items: [
+        {
+          item_kind: 'library-upload',
+          item_id: 'lib-1',
+          title: 'Cuaderno.pdf',
+          file_type: 'pdf',
+          source: 'subido',
+          mime_type: 'application/pdf',
+          byte_size: 2048,
+          storage_key: 'user a/cuaderno final.pdf',
+          storage_domain: 'library-uploads',
+          tags: ['lectura'],
+          pinned: true,
+          ai_status: 'pending',
+          created_at: '2026-06-22T00:00:00.000Z',
+          updated_at: '2026-06-22T00:01:00.000Z',
+        },
+      ],
+      nextCursor: 'cursor-2',
+    })
+
+    await expect(
+      bibliotecaApi.list({
+        q: 'borges',
+        tab: 'documentos',
+        tag: 'lectura',
+        limit: 25,
+        cursor: 'cursor-1',
+      }),
+    ).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          id: 'library-upload:lib-1',
+          kind: 'library-upload',
+          itemId: 'lib-1',
+          mimeType: 'application/pdf',
+          byteSize: 2048,
+          storageKey: 'user a/cuaderno final.pdf',
+          storageDomain: 'library-uploads',
+          aiStatus: 'pending',
+          createdAt: '2026-06-22T00:00:00.000Z',
+          updatedAt: '2026-06-22T00:01:00.000Z',
+        }),
+      ],
+      nextCursor: 'cursor-2',
+    })
+    expect(requestMock).toHaveBeenCalledWith(
+      '/api/biblioteca?q=borges&tab=documentos&tag=lectura&limit=25&cursor=cursor-1',
+    )
+  })
+
+  it('descarga blobs privados con requestBlob y nombre del item', async () => {
+    const objectUrl = 'blob:library-download'
+    requestBlobMock.mockResolvedValueOnce(new Blob(['pdf'], { type: 'application/pdf' }))
+    const createObjectURL = vi.fn(() => objectUrl)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+
+    const clicked: string[] = []
+    const originalCreateElement = document.createElement.bind(document)
+    vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
+      const element = originalCreateElement(tagName)
+      if (tagName === 'a') {
+        Object.defineProperty(element, 'click', {
+          configurable: true,
+          value: () => clicked.push((element as HTMLAnchorElement).download),
+        })
+      }
+      return element
+    })
+
+    await bibliotecaApi.download(
+      item({
+        title: 'Cuaderno.pdf',
+        storageKey: 'user a/cuaderno final.pdf',
+        storageDomain: 'library-uploads',
+      }),
+    )
+
+    expect(requestBlobMock).toHaveBeenCalledWith(
+      '/api/library-uploads-file/user%20a/cuaderno%20final.pdf',
+    )
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+    expect(clicked).toEqual(['Cuaderno.pdf'])
+  })
 })
 
 describe('bibliotecaApi.upload — enrutamiento por tamaño', () => {

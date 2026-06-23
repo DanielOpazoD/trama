@@ -48,7 +48,7 @@ function createFixture() {
   write(
     root,
     'src/api/chat.ts',
-    "import { apiFetch } from './request'\nexport async function f(threadId, handlers) { const response = await apiFetch(`/api/chat/threads/${threadId}/messages`); if (!response.ok || !response.body) { const text = await response.text(); handlers.onError?.(text || `HTTP ${response.status}`); return } return response.body.getReader() }\n",
+    "import { apiFetch } from './request'\nfunction messageFromErrorText(text) { return text }\nexport async function f(threadId, handlers) { const response = await apiFetch(`/api/chat/threads/${threadId}/messages`); if (!response.ok || !response.body) { const text = await response.text(); handlers.onError?.(messageFromErrorText(text) || `HTTP ${response.status}`); return } return response.body.getReader() }\n",
   )
   write(
     root,
