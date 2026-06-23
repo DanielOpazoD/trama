@@ -2,7 +2,9 @@ import { useEffect } from 'react'
 import type { NotasAttachment } from '../../api'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, PencilIcon } from '../Icons'
+import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
+import { IconButton } from '../IconButton'
 
 /**
  * Visor continuo de las fotos de un anexo (semana/tarea): lightbox de "sala
@@ -102,13 +104,11 @@ export function AttachmentLightbox({
               >
                 <PencilIcon size={14} /> {editing ? 'editando…' : 'editar'}
               </button>
-              <button
+              <CloseButton
                 onClick={onClose}
-                aria-label="Cerrar"
+                size={18}
                 className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <CloseIcon size={18} />
-              </button>
+              />
             </div>
           </div>
         </div>
@@ -134,20 +134,20 @@ export function AttachmentLightbox({
         {/* Flechas laterales (wrap). */}
         {multi && (
           <>
-            <button
+            <IconButton
               onClick={() => onIndexChange((index - 1 + total) % total)}
-              aria-label="Foto anterior"
+              label="Foto anterior"
               className="pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               <ChevronLeftIcon size={22} />
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               onClick={() => onIndexChange((index + 1) % total)}
-              aria-label="Foto siguiente"
+              label="Foto siguiente"
               className="pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               <ChevronRightIcon size={22} />
-            </button>
+            </IconButton>
           </>
         )}
       </div>

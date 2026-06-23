@@ -10,7 +10,7 @@ import {
 } from '../../lib/lamina'
 import { downloadBlob } from '../../lib/downloadBlob'
 import { useToast } from '../../state/toast'
-import { CloseIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
 
 /**
  * Modal de la Lámina: vista previa real (el mismo canvas que se exporta),
@@ -126,13 +126,10 @@ export function LaminaModal({
               La cita como objeto
             </h2>
           </div>
-          <button
+          <CloseButton
             onClick={onClose}
-            aria-label="Cerrar"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
-          >
-            <CloseIcon />
-          </button>
+          />
         </header>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">

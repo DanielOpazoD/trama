@@ -5,6 +5,7 @@ import { EmptyMessage } from '../EmptyMessage'
 import { ErrorState } from '../ErrorState'
 import { LoadingHint } from '../LoadingHint'
 import { PencilIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
 import { youtubeThumb } from '../../lib/youtubeThumb'
 
@@ -87,15 +88,14 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
           className="mt-2 w-full bg-transparent font-serif text-sm text-ink-600 focus:outline-none"
         />
       ) : (
-        <button
-          type="button"
+        <IconButton
           onClick={() => setEditingNote(true)}
-          aria-label="Añadir nota al favorito"
+          label="Añadir nota al favorito"
           title="Nota"
           className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100/50 hover:text-ink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink-300/40"
         >
           <PencilIcon size={12} />
-        </button>
+        </IconButton>
       )}
 
       <div className="mt-1.5 flex items-center justify-end">

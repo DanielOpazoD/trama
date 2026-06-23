@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../Icons'
+import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
+import { IconButton } from '../IconButton'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 
 /**
@@ -111,13 +113,11 @@ export function PhotoLightbox({
               </span>
             )}
             <div className="flex-1 flex justify-end">
-              <button
+              <CloseButton
                 onClick={onClose}
-                aria-label="Cerrar"
+                size={18}
                 className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <CloseIcon size={18} />
-              </button>
+              />
             </div>
           </div>
         </div>
@@ -151,20 +151,20 @@ export function PhotoLightbox({
         {/* Flechas laterales. */}
         {multi && (
           <>
-            <button
+            <IconButton
               onClick={prev}
-              aria-label="Foto anterior"
+              label="Foto anterior"
               className="pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               <ChevronLeftIcon size={22} />
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               onClick={next}
-              aria-label="Foto siguiente"
+              label="Foto siguiente"
               className="pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               <ChevronRightIcon size={22} />
-            </button>
+            </IconButton>
           </>
         )}
 

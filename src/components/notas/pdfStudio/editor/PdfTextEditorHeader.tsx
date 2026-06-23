@@ -6,6 +6,7 @@ import {
   RedoIcon,
   UndoIcon,
 } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 import { stepBtn } from './editorStyle'
 import { ZoomPercentInput } from './ZoomPercentInput'
 
@@ -67,16 +68,15 @@ export function PdfTextEditorHeader({
   return (
     <header className="flex items-center justify-between gap-3 border-b border-ink-100/70 bg-paper-50/95 px-3 py-2 shadow-sm shadow-ink-900/5 shrink-0">
       <div className="flex items-center gap-1 min-w-0">
-        <button
-          type="button"
+        <IconButton
           onClick={onPrevPage}
           disabled={currentPage === 0}
-          aria-label="Página anterior"
+          label="Página anterior"
           title="Página anterior"
           className={stepBtn}
         >
           <ChevronLeftIcon size={14} />
-        </button>
+        </IconButton>
         <p className="text-sm font-medium text-ink-700 whitespace-nowrap">
           {title ? `${title} · ` : null}
           <span className="tabular-nums">
@@ -84,16 +84,15 @@ export function PdfTextEditorHeader({
             <span className="font-normal text-ink-400">de {total}</span>
           </span>
         </p>
-        <button
-          type="button"
+        <IconButton
           onClick={onNextPage}
           disabled={currentPage === total - 1}
-          aria-label="Página siguiente"
+          label="Página siguiente"
           title="Página siguiente"
           className={stepBtn}
         >
           <ChevronRightIcon size={14} />
-        </button>
+        </IconButton>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {onZoomIn && onZoomOut && onZoomChange && typeof zoom === 'number' ? (
@@ -134,26 +133,24 @@ export function PdfTextEditorHeader({
         ) : null}
         {showHistory ? (
           <div className="inline-flex items-center rounded-md border border-ink-100 bg-paper-50 overflow-hidden divide-x divide-ink-100">
-            <button
-              type="button"
+            <IconButton
               onClick={onUndo}
               disabled={!undoable}
-              aria-label="Deshacer"
+              label="Deshacer"
               title={pdfCommandTooltip('undo', isMac)}
               className={stepBtn}
             >
               <UndoIcon size={14} />
-            </button>
-            <button
-              type="button"
+            </IconButton>
+            <IconButton
               onClick={onRedo}
               disabled={!redoable}
-              aria-label="Rehacer"
+              label="Rehacer"
               title={pdfCommandTooltip('redo', isMac)}
               className={stepBtn}
             >
               <RedoIcon size={14} />
-            </button>
+            </IconButton>
           </div>
         ) : null}
         <button onClick={onCancel} className="btn-ghost text-xs">

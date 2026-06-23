@@ -9,6 +9,7 @@ import {
 import { renderPageThumb } from '../../../../lib/pdfStudio/render/pdfRender'
 import { useInViewport } from '../editor/useInViewport'
 import { CheckIcon, FileIcon, FilePdfIcon, TextIcon } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 import { Spinner } from '../../../Spinner'
 import type { PageInteractionMode } from '../shell/pdfStudioPageInteractionMode'
 
@@ -189,8 +190,7 @@ export function PageCard({
           )}
         </span>
         {/* Tick: incluir/quitar esta hoja del PDF a guardar. */}
-        <button
-          type="button"
+        <IconButton
           draggable={false}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
@@ -198,7 +198,7 @@ export function PageCard({
             onToggleSelect(e.shiftKey)
           }}
           aria-pressed={selected}
-          aria-label={
+          label={
             selected ? `Desmarcar la hoja ${index + 1}` : `Marcar la hoja ${index + 1}`
           }
           title={selected ? 'Desmarcar (Shift: rango)' : 'Marcar (Shift: rango)'}
@@ -210,7 +210,7 @@ export function PageCard({
           style={selected ? { backgroundColor: ACCENT, borderColor: ACCENT } : undefined}
         >
           <CheckIcon size={12} />
-        </button>
+        </IconButton>
       </div>
     </li>
   )

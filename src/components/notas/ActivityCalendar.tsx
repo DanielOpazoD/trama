@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
 import { CountBadge } from '../CountBadge'
+import { IconButton } from '../IconButton'
 
 const ACCENT = 'var(--accent-sage)'
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
@@ -120,24 +121,24 @@ export function ActivityCalendar({
       {/* Calendario */}
       <div className="sm:w-[19rem] shrink-0">
         <div className="flex items-center justify-between mb-2">
-          <button
+          <IconButton
             onClick={prev}
-            aria-label="Mes anterior"
+            label="Mes anterior"
             className="p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
           >
             <ChevronLeftIcon size={14} />
-          </button>
+          </IconButton>
           <span className="text-caption text-ink-600 tabular-nums">
             {MONTHS[view.m]} {view.y}
           </span>
-          <button
+          <IconButton
             onClick={next}
             disabled={!canNext}
-            aria-label="Mes siguiente"
+            label="Mes siguiente"
             className="p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
           >
             <ChevronRightIcon size={14} />
-          </button>
+          </IconButton>
         </div>
         <div className="grid grid-cols-7 gap-1 mb-1">
           {WEEKDAYS.map((w, i) => (

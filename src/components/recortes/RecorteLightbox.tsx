@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 
 export type RecorteImageEntry = { url: string; caption?: string | null }
@@ -82,13 +83,13 @@ export function RecorteLightbox({
                 {index + 1} / {total}
               </span>
             )}
-            <button
+            <IconButton
               onClick={onClose}
-              aria-label="Cerrar"
+              label="Cerrar"
               className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
             >
               <CloseIcon size={18} />
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -126,20 +127,20 @@ export function RecorteLightbox({
         {/* Flechas laterales (wrap), solo con varias imágenes. */}
         {multi && (
           <>
-            <button
+            <IconButton
               onClick={() => onIndexChange((index - 1 + total) % total)}
-              aria-label="Imagen anterior"
+              label="Imagen anterior"
               className="pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               <ChevronLeftIcon size={22} />
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               onClick={() => onIndexChange((index + 1) % total)}
-              aria-label="Imagen siguiente"
+              label="Imagen siguiente"
               className="pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 z-10 size-12 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               <ChevronRightIcon size={22} />
-            </button>
+            </IconButton>
           </>
         )}
       </div>

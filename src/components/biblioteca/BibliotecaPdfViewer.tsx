@@ -5,6 +5,7 @@ import {
   type PdfjsDocumentInit,
 } from '../../lib/pdfStudio/pdfRuntime/pdfjsLoader'
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 /**
  * Visor de PDF de solo lectura para la Biblioteca, paginado (una página a la
@@ -158,27 +159,25 @@ function BibliotecaPdfViewer({ serveUrl }: { serveUrl: string }) {
 
       {multi && status === 'ready' && (
         <div className="shrink-0 flex items-center justify-center gap-4 py-3">
-          <button
-            type="button"
+          <IconButton
             onClick={goPrev}
             disabled={page <= 1}
-            aria-label="Página anterior"
+            label="Página anterior"
             className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <ChevronLeftIcon size={20} />
-          </button>
+          </IconButton>
           <span className="text-caption tabular-nums text-white/70">
             {page} / {numPages}
           </span>
-          <button
-            type="button"
+          <IconButton
             onClick={goNext}
             disabled={page >= numPages}
-            aria-label="Página siguiente"
+            label="Página siguiente"
             className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <ChevronRightIcon size={20} />
-          </button>
+          </IconButton>
         </div>
       )}
     </div>

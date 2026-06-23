@@ -1,6 +1,7 @@
 import { getPdfShortcutGroups } from '../lib/pdfStudio/model/commands'
 import { useModalOverlay } from '../hooks/useModalOverlay'
-import { CloseIcon, OrnamentBreak } from './Icons'
+import { OrnamentBreak } from './Icons'
+import { CloseButton } from './CloseButton'
 
 /**
  * Modal con todos los keyboard shortcuts disponibles. Se abre con `?`
@@ -110,13 +111,10 @@ export function ShortcutsModal({
               cheat sheet
             </p>
           </div>
-          <button
+          <CloseButton
             onClick={onClose}
-            aria-label="Cerrar"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
-          >
-            <CloseIcon size={14} />
-          </button>
+          />
         </header>
 
         {/* ι1: cada grupo separado con más aire (space-y-8 era space-y-6),

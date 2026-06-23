@@ -10,7 +10,8 @@ import { useToast } from '../state/toast'
 import { useSearchParamState } from '../hooks/useSearchParamState'
 import { ViewHeader } from './ViewHeader'
 import { ErrorState } from './ErrorState'
-import { CloseIcon, PlusIcon, SearchIcon } from './Icons'
+import { PlusIcon, SearchIcon } from './Icons'
+import { CloseButton } from './CloseButton'
 import { BibliotecaTabs } from './biblioteca/BibliotecaTabs'
 import { BibliotecaToolbar } from './biblioteca/BibliotecaToolbar'
 import type {
@@ -393,14 +394,12 @@ export function BibliotecaView({
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--accent-sage-soft)] pl-3 pr-1.5 py-1 text-caption text-ink-700">
             <span className="text-ink-400">Etiqueta:</span>
             <span className="font-medium">{tag}</span>
-            <button
-              type="button"
+            <CloseButton
               onClick={() => setEtiquetaParam(null)}
-              aria-label={`Quitar filtro de etiqueta ${tag}`}
+              label={`Quitar filtro de etiqueta ${tag}`}
+              size={11}
               className="touch-target inline-flex size-4 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-200/70 hover:text-ink-700"
-            >
-              <CloseIcon size={11} />
-            </button>
+            />
           </span>
         </div>
       )}

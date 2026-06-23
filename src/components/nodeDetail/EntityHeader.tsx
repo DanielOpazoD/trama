@@ -1,5 +1,5 @@
 import { ENTITY_TYPES, type Entity } from '../../types'
-import { CloseIcon, SparkleIcon } from '../Icons'
+import { SparkleIcon } from '../Icons'
 
 /** Link a Grokipedia por defecto: el artículo fijado (si lo hay) o el buscador
  *  de Grokipedia con el nombre de la entidad. Grokipedia no tiene API pública,
@@ -11,6 +11,7 @@ function grokipediaHref(entity: Entity): string {
   )
 }
 import { Tooltip } from '../Tooltip'
+import { CloseButton } from '../CloseButton'
 import { EntitySigil } from '../EntitySigil'
 import { EntityActionsMenu } from './EntityActionsMenu'
 
@@ -152,13 +153,10 @@ export function EntityHeader({
           onClose={onClose}
         />
         <Tooltip content="Cerrar panel">
-          <button
+          <CloseButton
             onClick={onClose}
             className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
-            aria-label="Cerrar"
-          >
-            <CloseIcon size={14} />
-          </button>
+          />
         </Tooltip>
       </div>
     </header>

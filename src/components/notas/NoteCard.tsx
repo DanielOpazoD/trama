@@ -11,6 +11,7 @@ import {
   PinIcon,
   TrashIcon,
 } from '../Icons'
+import { IconButton } from '../IconButton'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { AttachmentsPanel } from './AttachmentsPanel'
@@ -226,11 +227,10 @@ export function NoteCard({
 
       {overflowing && (
         <div className="mt-1.5 flex justify-center">
-          <button
-            type="button"
+          <IconButton
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            aria-label={expanded ? 'Mostrar menos' : 'Leer la nota completa'}
+            label={expanded ? 'Mostrar menos' : 'Leer la nota completa'}
             title={expanded ? 'Mostrar menos' : 'Leer completa'}
             className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
           >
@@ -238,7 +238,7 @@ export function NoteCard({
               size={16}
               className={`transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
             />
-          </button>
+          </IconButton>
         </div>
       )}
 
@@ -265,26 +265,24 @@ export function NoteCard({
         {/* Acciones rápidas: aparecen al hover/focus. En touch (sin hover) quedan
             igualmente accesibles dentro del menú de 3 puntos. */}
         <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-          <button
-            type="button"
+          <IconButton
             onClick={onTogglePin}
             disabled={busy}
-            aria-label={note.pinned ? 'Soltar nota' : 'Fijar nota'}
+            label={note.pinned ? 'Soltar nota' : 'Fijar nota'}
             title={note.pinned ? 'Soltar' : 'Fijar'}
             className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
           >
             <PinIcon size={13} />
-          </button>
-          <button
-            type="button"
+          </IconButton>
+          <IconButton
             onClick={openEdit}
             disabled={busy}
-            aria-label="Editar nota"
+            label="Editar nota"
             title="Editar"
             className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
           >
             <PencilIcon size={13} />
-          </button>
+          </IconButton>
         </div>
 
         <OverflowMenu

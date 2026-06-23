@@ -1,4 +1,5 @@
 import { SparkleIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { AIThinkingLabel } from '../AIThinkingLabel'
 import type { LayoutMode } from '../../hooks/layouts/types'
 
@@ -178,39 +179,39 @@ export function GraphToolbar({
       <div className="pointer-events-none absolute bottom-3 right-3 z-10 flex items-center gap-2">
         {onZoomOut && onZoomIn && (
           <div className="pointer-events-auto flex items-center bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm overflow-hidden">
-            <button
+            <IconButton
               onClick={onZoomOut}
-              aria-label="Alejar zoom"
+              label="Alejar zoom"
               title="Alejar (− / scroll abajo)"
               className="w-7 h-7 flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-ink-100/40 transition-colors"
             >
               <ZoomOutIcon size={12} />
-            </button>
+            </IconButton>
             <span
               className="px-2 section-eyebrow tabular-nums select-none min-w-[3rem] text-center"
               title="Zoom actual"
             >
               {zoomPercent}%
             </span>
-            <button
+            <IconButton
               onClick={onZoomIn}
-              aria-label="Acercar zoom"
+              label="Acercar zoom"
               title="Acercar (+ / scroll arriba)"
               className="w-7 h-7 flex items-center justify-center text-ink-400 hover:text-ink-700 hover:bg-ink-100/40 transition-colors"
             >
               <ZoomInIcon size={12} />
-            </button>
+            </IconButton>
           </div>
         )}
         {onResetView && (
-          <button
+          <IconButton
             onClick={onResetView}
-            aria-label="Centrar vista"
+            label="Centrar vista"
             title="Centrar vista (100% + pan al origen)"
             className="pointer-events-auto w-7 h-7 flex items-center justify-center text-ink-400 hover:text-ink-700 bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm transition-colors"
           >
             <HandIcon size={12} />
-          </button>
+          </IconButton>
         )}
       </div>
 

@@ -1,14 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ViewHeader } from './ViewHeader'
-import {
-  CloseIcon,
-  EndMark,
-  SparkleIcon,
-  TwitterIcon,
-  ChevronDownIcon,
-  TrashIcon,
-} from './Icons'
+import { EndMark, SparkleIcon, TwitterIcon, ChevronDownIcon, TrashIcon } from './Icons'
+import { IconButton } from './IconButton'
+import { CloseButton } from './CloseButton'
 import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
 import { LoadingHint } from './LoadingHint'
@@ -302,15 +297,15 @@ export function TwitterView({
                           : 'Generar'}
                     </button>
                     {c && (
-                      <button
+                      <IconButton
                         onClick={handleDeleteCronica}
                         disabled={deleteCronica.isPending}
-                        aria-label="Eliminar crónica"
+                        label="Eliminar crónica"
                         title="Eliminar la crónica (podés generar otra cuando quieras)"
                         className="rounded p-1 text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
                       >
                         <TrashIcon size={12} />
-                      </button>
+                      </IconButton>
                     )}
                   </div>
                 </div>
@@ -478,15 +473,14 @@ export function TwitterView({
                   <div className="border-t-2 border-ink-700/60" />
                   <div className="mt-0.5 border-t border-ink-200" />
                 </div>
-                <button
+                <CloseButton
                   onClick={() => handleDelete(b)}
                   disabled={del.isPending}
-                  aria-label="Quitar bookmark"
+                  label="Quitar bookmark"
+                  size={12}
                   title="Quitar de Trama (no borra de X)"
                   className="absolute right-2 top-2 rounded p-1 text-ink-300 opacity-0 transition-opacity hover:bg-ink-50 hover:text-[color:var(--accent-clay)] group-hover:opacity-100 disabled:opacity-50"
-                >
-                  <CloseIcon size={12} />
-                </button>
+                />
                 <div className="flex items-baseline justify-between gap-3 pr-6">
                   <span className="min-w-0 truncate font-serif text-sm font-medium text-ink-700">
                     {b.authorName ?? 'desconocido'}

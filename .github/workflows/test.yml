@@ -144,6 +144,9 @@ jobs:
       - name: Form control labels check
         run: npm run check:form-control-labels
 
+      - name: IconButton adoption check
+        run: npm run check:icon-button
+
       - name: PDF runtime boundaries check
         run: npm run check:pdf-runtime-boundaries
 

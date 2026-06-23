@@ -35,6 +35,7 @@
     "check:design-tokens": "node scripts/check-design-tokens.mjs",
     "check:modal-overlay": "node scripts/check-modal-overlay.mjs",
     "check:form-control-labels": "node scripts/check-form-control-labels.mjs",
+    "check:icon-button": "node scripts/check-icon-button.mjs",
     "check:pdf-runtime-boundaries": "node scripts/pdf-runtime-boundaries.mjs",
     "check:pdf-lazy-entrypoints": "node scripts/pdf-lazy-entrypoints.mjs",
     "check:client-api-contracts": "node scripts/client-api-contracts.mjs",

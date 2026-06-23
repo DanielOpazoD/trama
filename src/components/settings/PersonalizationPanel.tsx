@@ -23,6 +23,7 @@ import {
   SparkleIcon,
   TwitterIcon,
 } from '../Icons'
+import { IconButton } from '../IconButton'
 
 const ACCENT_TRAMA = 'var(--accent-primary)'
 const ACCENT_NOTAS = 'var(--accent-sage)'
@@ -246,17 +247,16 @@ function SectionRow({
 
         {/* PIN toggle — solo si el PIN global está habilitado */}
         {pinEnabled && (
-          <button
-            type="button"
+          <IconButton
             onClick={onTogglePin}
-            aria-label={`${pinned ? 'Quitar' : 'Poner'} PIN a ${label}`}
+            label={`${pinned ? 'Quitar' : 'Poner'} PIN a ${label}`}
             className={`p-1 rounded transition-colors ${
               pinned ? 'text-ink-600 bg-ink-100' : 'text-ink-200 hover:text-ink-400'
             }`}
             title={pinned ? 'Protegida con PIN' : 'Sin PIN'}
           >
             <LockIcon size={12} />
-          </button>
+          </IconButton>
         )}
 
         {/* Visibility badge */}

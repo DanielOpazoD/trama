@@ -1,5 +1,6 @@
 import { useModalOverlay } from '../../hooks/useModalOverlay'
-import { CloseIcon, ReadingIcon } from '../Icons'
+import { ReadingIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
 
 /**
  * "Abrir como ensayo": una respuesta larga del assistant, servida como
@@ -39,13 +40,10 @@ export function EssayOverlay({
       aria-label="Ensayo"
       className="fixed inset-0 z-50 overflow-y-auto bg-paper-50 animate-fade-up"
     >
-      <button
+      <CloseButton
         onClick={onClose}
-        aria-label="Cerrar"
         className="fixed top-5 right-5 p-2 text-ink-300 hover:text-ink-700 transition-colors"
-      >
-        <CloseIcon />
-      </button>
+      />
 
       <article className="mx-auto max-w-2xl px-6 py-16 md:py-24">
         <p className="text-micro uppercase tracking-shout text-ink-300 flex items-center gap-2">

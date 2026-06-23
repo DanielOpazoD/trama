@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { LibraryItem } from '../../types/biblioteca'
-import { CloseIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
 import { BibliotecaTagEditor } from './BibliotecaTagEditor'
 import { BibliotecaConnections } from './BibliotecaConnections'
 
@@ -46,14 +46,12 @@ export function BibliotecaInspector({
     >
       <div className="flex items-center justify-between gap-3 border-b border-ink-100/70 px-4 py-3">
         <h2 className="section-eyebrow text-ink-500">Detalles</h2>
-        <button
-          type="button"
+        <CloseButton
           onClick={onClose}
-          aria-label="Cerrar detalles"
+          label="Cerrar detalles"
+          size={16}
           className="touch-target -mr-1.5 inline-flex size-7 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
-        >
-          <CloseIcon size={16} />
-        </button>
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">

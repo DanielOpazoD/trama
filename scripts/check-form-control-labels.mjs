@@ -35,11 +35,11 @@ export const FORM_CONTROL_LABEL_BASELINE = 0
 // (Label in Name). Allowlist con razón verificada, como hard-delete.
 export const FORM_CONTROL_LABEL_EXEMPT = new Map([
   [
-    'src/components/notas/ClavesVaultParts.tsx:124',
+    'src/components/notas/ClavesVaultParts.tsx:125',
     'Checkbox envuelto por <label> con <span>Llave física</span>.',
   ],
   [
-    'src/components/notas/ClavesVaultParts.tsx:284',
+    'src/components/notas/ClavesVaultParts.tsx:285',
     'Checkbox envuelto por <label> con el texto "crítica".',
   ],
   [
@@ -47,7 +47,7 @@ export const FORM_CONTROL_LABEL_EXEMPT = new Map([
     'Checkbox envuelto por <label> con el texto "crítica".',
   ],
   [
-    'src/components/notas/TaskItem.tsx:206',
+    'src/components/notas/TaskItem.tsx:205',
     'Input date envuelto por <label> con el texto "vence".',
   ],
 ])

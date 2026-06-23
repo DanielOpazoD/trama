@@ -7,7 +7,9 @@ import { api } from '../../api'
 import { useSetLibraryItemPinned, useToast } from '../../state'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { CloseIcon, DownloadIcon, InfoIcon, PinIcon } from '../Icons'
+import { DownloadIcon, InfoIcon, PinIcon } from '../Icons'
+import { IconButton } from '../IconButton'
+import { CloseButton } from '../CloseButton'
 import { FileTypeIcon } from './FileTypeIcon'
 import { BibliotecaInspector } from './BibliotecaInspector'
 import {
@@ -128,10 +130,9 @@ function ViewerHeader({
           </h2>
           <div className="flex items-center gap-1.5 shrink-0">
             <PinButton item={item} />
-            <button
-              type="button"
+            <IconButton
               onClick={onToggleInspector}
-              aria-label="Detalles"
+              label="Detalles"
               aria-pressed={inspectorOpen}
               className={`size-9 flex items-center justify-center rounded-full transition-colors ${
                 inspectorOpen
@@ -140,15 +141,13 @@ function ViewerHeader({
               }`}
             >
               <InfoIcon size={18} />
-            </button>
+            </IconButton>
             {downloadable && <DownloadButton item={item} />}
-            <button
+            <CloseButton
               onClick={onClose}
-              aria-label="Cerrar"
+              size={18}
               className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <CloseIcon size={18} />
-            </button>
+            />
           </div>
         </div>
         <MetadataStrip item={item} />
@@ -164,20 +163,19 @@ function ViewerHeader({
 function PinButton({ item }: { item: LibraryItem }) {
   const setPinned = useSetLibraryItemPinned()
   return (
-    <button
-      type="button"
+    <IconButton
       onClick={() =>
         setPinned.mutate({ kind: item.kind, itemId: item.itemId, pinned: !item.pinned })
       }
       disabled={setPinned.isPending}
-      aria-label={item.pinned ? 'Soltar' : 'Fijar'}
+      label={item.pinned ? 'Soltar' : 'Fijar'}
       aria-pressed={item.pinned}
       title={item.pinned ? 'Soltar' : 'Fijar'}
       className="size-9 flex items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-50"
       style={item.pinned ? { color: 'var(--accent-sage)' } : undefined}
     >
       <PinIcon size={17} className={item.pinned ? 'fill-current' : 'text-white/80'} />
-    </button>
+    </IconButton>
   )
 }
 
@@ -395,15 +393,14 @@ function DownloadButton({
   }
 
   return (
-    <button
-      type="button"
+    <IconButton
       onClick={handleDownload}
       disabled={downloading}
-      aria-label="Descargar"
+      label="Descargar"
       className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
     >
       <DownloadIcon size={17} />
-    </button>
+    </IconButton>
   )
 }
 

@@ -10,6 +10,7 @@ import {
   RotateIcon,
   TextSizeIcon,
 } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 import { OverflowMenu } from '../../../OverflowMenu'
 import { clamp, type TextStyle } from './editorStyle'
 import {
@@ -116,11 +117,10 @@ export function EditorToolbarStyleMenu({
           <div className="flex items-center justify-between px-1">
             <span className="text-caption text-ink-700">Estilo</span>
             <div className="inline-flex rounded-md bg-ink-100/45 p-0.5">
-              <button
-                type="button"
+              <IconButton
                 onClick={() => onApplyStyle({ bold: !activeBold })}
                 aria-pressed={activeBold}
-                aria-label="Negrita"
+                label="Negrita"
                 className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
                   activeBold
                     ? 'bg-ink-100/80 text-ink-800'
@@ -128,12 +128,11 @@ export function EditorToolbarStyleMenu({
                 }`}
               >
                 <BoldIcon size={14} />
-              </button>
-              <button
-                type="button"
+              </IconButton>
+              <IconButton
                 onClick={() => onApplyStyle({ italic: !activeItalic })}
                 aria-pressed={activeItalic}
-                aria-label="Cursiva"
+                label="Cursiva"
                 className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md transition-colors ${focusRing} ${
                   activeItalic
                     ? 'bg-ink-100/80 text-ink-800'
@@ -141,7 +140,7 @@ export function EditorToolbarStyleMenu({
                 }`}
               >
                 <ItalicIcon size={14} />
-              </button>
+              </IconButton>
             </div>
           </div>
 

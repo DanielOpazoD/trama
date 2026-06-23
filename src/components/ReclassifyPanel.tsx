@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Reclassification } from '../api'
 import { ENTITY_TYPES } from '../types'
-import { CloseIcon, SparkleIcon } from './Icons'
+import { SparkleIcon } from './Icons'
+import { CloseButton } from './CloseButton'
 import { AISourceTag } from './AISourceTag'
 
 /**
@@ -75,14 +76,11 @@ export function ReclassifyPanel({
           </span>
           <AISourceTag provider={provider} model={model} size={11} />
         </div>
-        <button
+        <CloseButton
           onClick={onClose}
           disabled={submitting}
           className="p-1 text-ink-300 hover:text-ink-700 rounded transition-colors"
-          aria-label="Cerrar"
-        >
-          <CloseIcon />
-        </button>
+        />
       </header>
 
       <ul className="px-4 py-3 space-y-2">

@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 import { CheckIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 /**
  * Círculo de selección de un archivo de la Biblioteca — compartido por las cards
@@ -42,11 +43,10 @@ export function SelectionCircle({
       : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100'
 
   return (
-    <button
-      type="button"
+    <IconButton
       role="checkbox"
       aria-checked={selected}
-      aria-label={label}
+      label={label}
       onClick={handleClick}
       className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 motion-reduce:transition-none ${visibility} ${
         selected
@@ -55,6 +55,6 @@ export function SelectionCircle({
       } ${className}`}
     >
       <CheckIcon size={12} strokeOverride={2.4} />
-    </button>
+    </IconButton>
   )
 }

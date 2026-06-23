@@ -2,7 +2,8 @@ import { useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import type { LibraryItem } from '../../types/biblioteca'
 import { useSetLibraryItemTags } from '../../state'
-import { CloseIcon, PlusIcon } from '../Icons'
+import { PlusIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
 
 /**
  * Editor de etiquetas del inspector de la Biblioteca (PR-C).
@@ -61,14 +62,12 @@ export function BibliotecaTagEditor({ item }: { item: LibraryItem }) {
           className="inline-flex items-center gap-1 rounded-full bg-[color:var(--accent-sage-soft)] pl-2.5 pr-1 py-0.5 text-caption text-ink-700"
         >
           {tag}
-          <button
-            type="button"
+          <CloseButton
             onClick={() => removeTag(tag)}
-            aria-label={`Quitar etiqueta ${tag}`}
+            label={`Quitar etiqueta ${tag}`}
+            size={11}
             className="touch-target inline-flex size-4 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-ink-200/70 hover:text-ink-700"
-          >
-            <CloseIcon size={11} />
-          </button>
+          />
         </span>
       ))}
 

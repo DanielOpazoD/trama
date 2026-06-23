@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { LibraryItem } from '../../types/biblioteca'
 import { useLibraryItemLinks, useRemoveLibraryItemLink } from '../../state'
-import { CloseIcon, PlusIcon } from '../Icons'
+import { PlusIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
 import { LinkTargetIcon } from './LinkTargetIcon'
 import { BibliotecaLinkPicker } from './BibliotecaLinkPicker'
 
@@ -58,8 +59,7 @@ export function BibliotecaConnections({
               <span className="min-w-0 flex-1 truncate text-sm text-ink-700">
                 {link.targetTitle ?? '(sin título)'}
               </span>
-              <button
-                type="button"
+              <CloseButton
                 onClick={() =>
                   removeLink.mutate({
                     kind: item.kind,
@@ -69,11 +69,10 @@ export function BibliotecaConnections({
                   })
                 }
                 disabled={removeLink.isPending}
-                aria-label={`Quitar conexión con ${link.targetTitle ?? 'destino sin título'}`}
+                label={`Quitar conexión con ${link.targetTitle ?? 'destino sin título'}`}
+                size={12}
                 className="touch-target inline-flex size-5 shrink-0 items-center justify-center rounded-full text-ink-300 opacity-100 transition-colors hover:bg-ink-200/70 hover:text-ink-700 disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-              >
-                <CloseIcon size={12} />
-              </button>
+              />
             </li>
           ))}
         </ul>

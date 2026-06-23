@@ -9,6 +9,7 @@ import {
   useToast,
 } from '../../state'
 import { DownloadIcon, FileIcon, TrashIcon, UploadIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -113,17 +114,16 @@ export function AttachmentsPanel({
               <span className="shrink-0 text-micro tabular-nums text-ink-300">
                 {formatBytes(attachment.byteSize)}
               </span>
-              <button
-                type="button"
+              <IconButton
                 onClick={() => void downloadAttachment(attachment)}
                 disabled={downloadingId === attachment.id}
-                aria-label="Descargar anexo"
+                label="Descargar anexo"
                 title="Descargar"
                 className="shrink-0 p-1 text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
               >
                 <DownloadIcon size={12} />
-              </button>
-              <button
+              </IconButton>
+              <IconButton
                 onClick={() =>
                   remove.mutate({
                     id: attachment.id,
@@ -132,12 +132,12 @@ export function AttachmentsPanel({
                   })
                 }
                 disabled={remove.isPending}
-                aria-label="Quitar anexo"
+                label="Quitar anexo"
                 title="Quitar"
                 className="shrink-0 p-1 text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
               >
                 <TrashIcon size={12} />
-              </button>
+              </IconButton>
             </div>
           ))}
         </div>

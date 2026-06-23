@@ -1,6 +1,7 @@
 import type { Ref } from 'react'
 import type { Recorte } from '../../api'
 import { ChevronDownIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import { markdownToPreview } from './recorteMarkdownPreview'
 
 export function RecorteCardBody({
@@ -41,26 +42,24 @@ export function RecorteCardBody({
           data-testid="recorte-collapse-control"
           className="absolute inset-x-0 bottom-1 flex justify-center"
         >
-          <button
-            type="button"
+          <IconButton
             onClick={() => onExpandedChange(true)}
             aria-expanded={false}
-            aria-label="Leer la captura completa"
+            label="Leer la captura completa"
             title="Leer completa"
             className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full border border-ink-100/70 bg-paper-50/90 text-ink-300 shadow-sm shadow-ink-900/5 backdrop-blur transition-colors hover:bg-paper-50 hover:text-ink-700"
           >
             <ChevronDownIcon size={16} className="transition-transform duration-300" />
-          </button>
+          </IconButton>
         </div>
       )}
 
       {overflowing && expanded && (
         <div className="mt-1 flex justify-center">
-          <button
-            type="button"
+          <IconButton
             onClick={() => onExpandedChange(false)}
             aria-expanded={true}
-            aria-label="Mostrar menos"
+            label="Mostrar menos"
             title="Mostrar menos"
             className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
           >
@@ -68,7 +67,7 @@ export function RecorteCardBody({
               size={16}
               className="rotate-180 transition-transform duration-300"
             />
-          </button>
+          </IconButton>
         </div>
       )}
     </div>

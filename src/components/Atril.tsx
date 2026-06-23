@@ -2,13 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../state'
 import { useModalOverlay } from '../hooks/useModalOverlay'
 import type { Quote } from '../types'
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CloseIcon,
-  DiceIcon,
-  ReadingIcon,
-} from './Icons'
+import { ChevronLeftIcon, ChevronRightIcon, DiceIcon, ReadingIcon } from './Icons'
+import { IconButton } from './IconButton'
+import { CloseButton } from './CloseButton'
 import { LaminaModal } from './quotes/LaminaModal'
 
 /**
@@ -158,33 +154,30 @@ export function Atril({ open, onClose }: { open: boolean; onClose: () => void })
       aria-label="Atril"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up"
     >
-      <button
+      <CloseButton
         onClick={onClose}
-        aria-label="Cerrar"
         className="absolute top-5 right-5 p-2 text-ink-300 hover:text-ink-700 transition-colors"
-      >
-        <CloseIcon />
-      </button>
+      />
 
       {/* Flechas laterales — hojear el archivo sin salir del atril. */}
       {quote && (
         <>
-          <button
+          <IconButton
             onClick={goPrev}
             disabled={!hasPrev}
-            aria-label="Cita anterior"
+            label="Cita anterior"
             className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 p-3 text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-0 disabled:pointer-events-none"
           >
             <ChevronLeftIcon size={22} />
-          </button>
-          <button
+          </IconButton>
+          <IconButton
             onClick={goNext}
             disabled={!hasNext}
-            aria-label="Cita siguiente"
+            label="Cita siguiente"
             className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 p-3 text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-0 disabled:pointer-events-none"
           >
             <ChevronRightIcon size={22} />
-          </button>
+          </IconButton>
         </>
       )}
 

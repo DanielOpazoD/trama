@@ -1,6 +1,7 @@
 import { useCallback, useId, useRef, useState, type RefObject } from 'react'
 import { bold, italic, link, quote, type FormatResult } from '../../lib/markdownFormat'
 import { BoldIcon, ItalicIcon, LinkIcon, QuoteIcon, ExpandIcon } from '../Icons'
+import { IconButton } from '../IconButton'
 import {
   applyTag,
   findActiveTag,
@@ -280,16 +281,15 @@ export function MarkdownField({
       {/* Disparador de escritura enfocada — botón sin palabras, mismo idioma que
           el chevron de NoteCard. Discreto, abajo a la derecha del campo. */}
       {onRequestFocusMode && (
-        <button
-          type="button"
+        <IconButton
           onClick={onRequestFocusMode}
-          aria-label="Abrir escritura enfocada"
+          label="Abrir escritura enfocada"
           title="Escritura enfocada"
           className="absolute bottom-0 right-0 inline-flex h-7 w-7 items-center justify-center
                      rounded-md text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
         >
           <ExpandIcon size={14} />
-        </button>
+        </IconButton>
       )}
     </div>
   )
