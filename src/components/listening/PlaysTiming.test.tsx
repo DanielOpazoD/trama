@@ -54,6 +54,22 @@ describe('<PlaysTiming />', () => {
     expect(screen.getByTitle(/L 22h.*2 plays/i)).toBeInTheDocument()
   })
 
+  it('muestra ErrorState (no el vacío) cuando la query falla', async () => {
+    vi.spyOn(api, 'spotifyTiming').mockRejectedValue(new Error('boom'))
+
+    renderWithProviders(<PlaysTiming since="2026-05-01T00:00:00.000Z" enabled />)
+
+    // El fallo de fetch se nombra como error, con reintento.
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(/no se pudo cargar el patrón temporal/i)
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument()
+
+    // Y NO se confunde con el vacío real ni con el happy-path.
+    expect(
+      screen.queryByRole('region', { name: /patrón temporal de escuchas/i }),
+    ).not.toBeInTheDocument()
+  })
+
   it('no renderiza chrome si la API devuelve lista vacía', async () => {
     vi.spyOn(api, 'spotifyTiming').mockResolvedValue({
       since: '2026-05-01T00:00:00.000Z',

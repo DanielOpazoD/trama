@@ -144,6 +144,35 @@ describe('<TareasView />', () => {
     expect(screen.queryByText('Revisar contrato')).not.toBeInTheDocument()
   })
 
+  it('muestra ErrorState (no las hojas semanales vacías) cuando falla la carga', async () => {
+    // El listado de tareas se rompe (500): las demás llamadas (month-notes,
+    // attachments) siguen sanas. Sin la rama de error, las hojas semanales se
+    // dibujarían sin recordatorios y el fallo se confundiría con un mes vacío.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.startsWith('/api/tasks')) return jsonResponse({ error: 'boom' }, 500)
+        if (url.startsWith('/api/month-notes?')) {
+          return jsonResponse({ monthKey: '2026-06', category: 'trabajo', content: '' })
+        }
+        if (url.startsWith('/api/notas-attachments?')) return jsonResponse([])
+        return jsonResponse([])
+      }),
+    )
+
+    renderWithProviders(<TareasView />)
+
+    // Aparece el estado de error (ErrorState usa role="alert") con reintentar.
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('No se pudieron cargar los recordatorios')
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument()
+
+    // Y NO se montan las hojas semanales vacías (sus composers) que harían pasar
+    // el fallo por "no hay recordatorios todavía".
+    expect(screen.queryByPlaceholderText(/Agregar recordatorio/)).not.toBeInTheDocument()
+  })
+
   it('crea recordatorios con prioridad y categoría de la semana', async () => {
     const fetchMock = stubTasksFetch()
     const user = userEvent.setup()

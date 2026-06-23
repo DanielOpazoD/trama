@@ -6,6 +6,7 @@ import {
   useMomentoFeedbackQuery,
   useSetMomentoReaction,
 } from '../../state'
+import { ErrorState } from '../ErrorState'
 import { personInitial } from './sharePresentation'
 
 export function MomentoFeedback({
@@ -56,6 +57,22 @@ export function MomentoFeedback({
         {comments.length > 0 && (
           <span aria-label={`${comments.length} comentarios`}>“ ” {comments.length}</span>
         )}
+      </div>
+    )
+  }
+
+  // Un fetch fallido no es "sin actividad todavía": sin esta rama el feedback
+  // caía silenciosamente a los contadores en cero (el "vacío" de esta vista),
+  // ocultando el fallo. Solo lo mostramos si no hay actividad en caché de la
+  // que tirar, para no borrar comentarios ya cargados en un refetch transitorio.
+  if (feedback.isError && !hasActivity) {
+    return (
+      <div className="mt-2 max-w-md">
+        <ErrorState
+          title="No se pudo cargar el feedback"
+          onRetry={() => feedback.refetch()}
+          retrying={feedback.isFetching}
+        />
       </div>
     )
   }

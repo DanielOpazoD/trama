@@ -1,5 +1,6 @@
 import { useXCronicaQuery } from '../../state'
 import { AISourceTag } from '../AISourceTag'
+import { ErrorState } from '../ErrorState'
 
 /**
  * Crónica de bookmarks en Inicio. Solo aparece si ya se generó una (desde la
@@ -7,8 +8,39 @@ import { AISourceTag } from '../AISourceTag'
  * crónica que se ve en Twitter; acá se lee junto a la crónica del mes.
  */
 export function XCronicaSection() {
-  const { data, isLoading } = useXCronicaQuery()
+  const { data, isLoading, isError, isFetching, refetch } = useXCronicaQuery()
   if (isLoading) return null
+
+  // Un fetch fallido NO es "todavía no hay crónica": antes el error caía al
+  // mismo `return null` que el caso vacío y la sección desaparecía en silencio.
+  // El usuario podía creer que su crónica se perdió y pedir una regeneración
+  // (IA cara) por un problema quizá temporal. Lo nombramos como error y
+  // ofrecemos reintentar, en vez de colapsarlo con el vacío.
+  if (isError) {
+    return (
+      <section className="mt-16" aria-labelledby="x-cronica-heading">
+        <header className="mb-6">
+          <p
+            className="section-eyebrow-serif mb-1"
+            style={{ color: 'var(--accent-primary)' }}
+          >
+            crónica de tus bookmarks
+          </p>
+          <h3 id="x-cronica-heading" className="font-serif text-h2 text-ink-700">
+            lo que guardas en X
+          </h3>
+          <div className="accent-rule mt-2" />
+        </header>
+        <ErrorState
+          title="No se pudo cargar tu crónica"
+          body="Hubo un problema al traer la crónica de tus bookmarks. Puede ser temporal; tu crónica sigue guardada."
+          onRetry={() => refetch()}
+          retrying={isFetching}
+        />
+      </section>
+    )
+  }
+
   const c = data?.cronica
   if (!c) return null
 

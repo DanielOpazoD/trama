@@ -1,4 +1,5 @@
 import { useQuoteEchoes } from '../../state'
+import { ErrorState } from '../ErrorState'
 
 /**
  * U-2: Eco. Marginalia post-creación de una cita: el sistema sugiere
@@ -15,6 +16,10 @@ import { useQuoteEchoes } from '../../state'
  *     similares), no se renderiza nada.
  *   - Mientras carga, render null — no skeleton porque es una
  *     sugerencia opcional, no contenido principal.
+ *   - Si el fetch FALLA, sí se nombra como error (ErrorState con
+ *     reintentar): un fallo de carga no es lo mismo que "no hay ecos".
+ *     Colapsarlo en el render-null silencioso ocultaría que algo se
+ *     rompió y degradaría la confianza en la marginalia.
  *
  * Props:
  *   - quoteId  ID de la cita base. Si null, no se hace fetch.
@@ -27,11 +32,32 @@ export function QuoteEchoesPanel({
   quoteId: string | null
   onDismiss?: () => void
 }) {
-  const { data: echoes, isLoading } = useQuoteEchoes(quoteId)
+  const {
+    data: echoes,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuoteEchoes(quoteId)
 
   // Render nada mientras carga o si no hay ecos. La marginalia debe
   // ser una sorpresa amable, no un placeholder ansioso.
   if (!quoteId || isLoading) return null
+
+  // Un fetch fallido NO es "no hay ecos": nombrarlo como error (antes
+  // de la rama vacía) evita que el fallo se confunda con silencio.
+  if (isError) {
+    return (
+      <aside className="my-6" aria-label="Ecos: citas similares en tu trama">
+        <ErrorState
+          title="No se pudieron cargar los ecos"
+          onRetry={() => refetch()}
+          retrying={isFetching}
+        />
+      </aside>
+    )
+  }
+
   if (!echoes || echoes.length === 0) return null
 
   return (

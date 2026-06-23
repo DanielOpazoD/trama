@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useHomeQuery, useProactiveQuery } from '../state'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { EndMark, OrnamentBreak } from './Icons'
 import { QuoteSkeleton, SkeletonList, TimelineRowSkeleton } from './Skeleton'
 import { WeeklyActivity } from './WeeklyActivity'
@@ -44,7 +45,13 @@ export function HomeView({
   onNavigate: (view: 'grafo' | 'entidades' | 'citas' | 'momentos' | 'sugerencias') => void
   onSelectEntity: (id: string) => void
 }) {
-  const { data: home, isLoading: entitiesLoading } = useHomeQuery()
+  const {
+    data: home,
+    isLoading: entitiesLoading,
+    isError: homeError,
+    isFetching: homeFetching,
+    refetch: refetchHome,
+  } = useHomeQuery()
   const entities = useMemo(() => home?.entities ?? [], [home?.entities])
   const quotes = useMemo(() => home?.quotes ?? [], [home?.quotes])
   const relationships = useMemo(() => home?.relationships ?? [], [home?.relationships])
@@ -75,6 +82,22 @@ export function HomeView({
   )
 
   const totalEntities = entities.length
+
+  // Ruta de ERROR (F2): un fetch fallido de la portada NO es lo mismo que
+  // "una trama recién empieza". Antes, si `useHomeQuery` fallaba, `home`
+  // quedaba undefined → `totalEntities === 0` → caía al EmptyMessage, y el
+  // usuario veía la guía de bienvenida creyendo que su trama estaba vacía.
+  // Ahora lo nombramos como error y ofrecemos reintentar (mismo patrón que
+  // EntitiesView/QuotesView). Solo cuando no hay datos en cache para pintar.
+  if (homeError && totalEntities === 0) {
+    return (
+      <ErrorState
+        title="No se pudo cargar tu portada"
+        onRetry={() => refetchHome()}
+        retrying={homeFetching}
+      />
+    )
+  }
 
   if (entitiesLoading) {
     // Skeleton de Home — header placeholder + featured quote silueta +

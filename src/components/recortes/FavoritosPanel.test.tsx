@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { FavoritosPanel } from './FavoritosPanel'
@@ -21,6 +21,28 @@ function setup(favoritos: Favorito[]) {
   qc.setQueryData(queryKeys.favoritos, favoritos)
   return renderWithProviders(<FavoritosPanel />, { queryClient: qc })
 }
+
+// Para el estado de error necesitamos que la query falle de verdad: no
+// pre-cargamos datos y dejamos que GET /api/favoritos devuelva 500.
+function setupFailing() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string | Request | URL) => {
+      if (String(input).includes('/api/favoritos')) {
+        return new Response('boom', { status: 500 })
+      }
+      return new Response('{}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }),
+  )
+  return renderWithProviders(<FavoritosPanel />)
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe('favoritoFromRow', () => {
   it('transforma snake_case → camelCase', () => {
@@ -72,6 +94,19 @@ describe('<FavoritosPanel />', () => {
     setup([])
     expect(screen.getByText(/Todavía no marcaste/)).toBeInTheDocument()
     expect(screen.getByText(/Guardar como/)).toBeInTheDocument()
+  })
+
+  it('muestra estado de error (no el empty) cuando la carga falla', async () => {
+    setupFailing()
+
+    // El estado de error se anuncia como alert y ofrece reintentar.
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /no se pudieron cargar los favoritos/i,
+    )
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument()
+
+    // No debe caer al empty («Todavía no marcaste…»): roto ≠ vacío.
+    expect(screen.queryByText(/Todavía no marcaste/)).not.toBeInTheDocument()
   })
 
   it('muestra la miniatura de YouTube cuando el favorito es un video', () => {

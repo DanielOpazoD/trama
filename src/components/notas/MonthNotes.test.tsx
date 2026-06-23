@@ -33,4 +33,29 @@ describe('<MonthNotes />', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Personal' }))
     expect(await screen.findByDisplayValue('nota personal')).toBeInTheDocument()
   })
+
+  it('muestra ErrorState (no el textarea vacío) cuando falla la carga inicial', async () => {
+    // El fetch se rompe: NO debe colapsar en un textarea vacío (que parecería
+    // "sin notas todavía") sino nombrar el error y ofrecer reintentar.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: 'boom' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    )
+
+    renderWithProviders(<MonthNotes monthKey="2026-06" label="junio 2026" />)
+
+    // Aparece el estado de error (ErrorState usa role="alert").
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('No se pudieron cargar las notas')
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument()
+
+    // Y NO se monta el editor vacío que confundiría "roto" con "vacío".
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
 })
