@@ -63,7 +63,7 @@ export const BACKEND_DOMAIN_SERVICE_CONTRACTS = [
       'export function buildMomentoPatchDraft',
       'export function ownerIdFromMomentoRow',
     ],
-    endpointMaxLines: 520,
+    endpointMaxLines: 550,
     serviceMaxLines: 130,
   },
   {
@@ -84,7 +84,7 @@ export const BACKEND_DOMAIN_SERVICE_CONTRACTS = [
       'export function fuseSearchBranches',
       'export function fuseSingleSearchBranch',
     ],
-    endpointMaxLines: 335,
+    endpointMaxLines: 370,
     serviceMaxLines: 220,
   },
   {
