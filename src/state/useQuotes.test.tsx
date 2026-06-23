@@ -37,6 +37,16 @@ function wrapWith(qc: QueryClient, offline = false) {
   }
 }
 
+function invalidatedKeys(qc: QueryClient) {
+  const spy = vi
+    .spyOn(qc, 'invalidateQueries')
+    .mockImplementation(() => Promise.resolve(undefined))
+  return {
+    spy,
+    keys: () => spy.mock.calls.map(([filters]) => filters?.queryKey),
+  }
+}
+
 const REAL_QUOTE: Quote = {
   id: 'q-real',
   entityId: 'ent-A',
@@ -252,5 +262,67 @@ describe('useUpdateQuote — optimistic patch', () => {
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.error?.message).toMatch(/conexión/i)
     expect(updateSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('invalidación de queries', () => {
+  it('useAddQuote invalida quotes infinite, counts, refs y home', async () => {
+    vi.spyOn(apiModule.api, 'createQuote').mockResolvedValue(REAL_QUOTE)
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [])
+    const invalidations = invalidatedKeys(qc)
+
+    const { result } = renderHook(() => useAddQuote(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ entityId: 'ent-A', text: 'una cita' })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidations.keys()).toEqual([
+      queryKeys.quotesInfinite,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.home,
+    ])
+  })
+
+  it('useUpdateQuote invalida quotes infinite y home', async () => {
+    vi.spyOn(apiModule.api, 'updateQuote').mockResolvedValue({
+      ...REAL_QUOTE,
+      text: 'cita editada',
+    } as Quote)
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [REAL_QUOTE])
+    const invalidations = invalidatedKeys(qc)
+
+    const { result } = renderHook(() => useUpdateQuote(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ id: 'q-real', patch: { text: 'cita editada' } })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidations.keys()).toEqual([queryKeys.quotesInfinite, queryKeys.home])
+  })
+
+  it('useDeleteQuote invalida quotes infinite, counts, refs y home', async () => {
+    vi.spyOn(apiModule.api, 'deleteQuote').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteQuote>>)
+    const qc = makeQueryClient()
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [REAL_QUOTE])
+    const invalidations = invalidatedKeys(qc)
+
+    const { result } = renderHook(() => useDeleteQuote(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ id: 'q-real', silent: true })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidations.keys()).toEqual([
+      queryKeys.quotesInfinite,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.home,
+    ])
   })
 })

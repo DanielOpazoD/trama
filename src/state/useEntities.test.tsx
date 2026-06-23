@@ -222,11 +222,17 @@ describe('useDeleteEntity — cascade', () => {
 })
 
 describe('invalidación de queries', () => {
-  it('useAddEntity invalida counts, entityRefsCount y entitiesInfinite en éxito', async () => {
+  function invalidatedKeys(spy: ReturnType<typeof vi.spyOn>) {
+    return spy.mock.calls.map(([filters]) => filters?.queryKey)
+  }
+
+  it('useAddEntity invalida la superficie completa de creación', async () => {
     vi.spyOn(apiModule.api, 'createEntity').mockResolvedValue(REAL_ENTITY)
     const qc = makeQueryClient()
     qc.setQueryData<Entity[]>(queryKeys.entities, [])
-    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+    const invalidateSpy = vi
+      .spyOn(qc, 'invalidateQueries')
+      .mockImplementation(() => Promise.resolve(undefined))
 
     const { result } = renderHook(() => useAddEntity(), { wrapper: wrapWith(qc) })
     act(() => {
@@ -234,18 +240,50 @@ describe('invalidación de queries', () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.counts })
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entityRefsCount })
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entitiesInfinite })
+    expect(invalidatedKeys(invalidateSpy)).toEqual([
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+    ])
   })
 
-  it('useDeleteEntity invalida los counts + las queries infinitas cascadeadas', async () => {
+  it('useUpdateEntity invalida lista infinita, home, atlas y cronología', async () => {
+    vi.spyOn(apiModule.api, 'updateEntity').mockResolvedValue({
+      ...REAL_ENTITY,
+      name: 'Jorge Luis Borges',
+    } as Entity)
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
+    const invalidateSpy = vi
+      .spyOn(qc, 'invalidateQueries')
+      .mockImplementation(() => Promise.resolve(undefined))
+
+    const { result } = renderHook(() => useUpdateEntity(), { wrapper: wrapWith(qc) })
+    act(() => {
+      result.current.mutate({ id: 'ent-real', patch: { name: 'Jorge Luis Borges' } })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidatedKeys(invalidateSpy)).toEqual([
+      queryKeys.entitiesInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+    ])
+  })
+
+  it('useDeleteEntity invalida la superficie cascadeada completa', async () => {
     vi.spyOn(apiModule.api, 'deleteEntity').mockResolvedValue({
       deletedAt: '2026-05-28T00:00:00Z',
     } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteEntity>>)
     const qc = makeQueryClient()
     qc.setQueryData<Entity[]>(queryKeys.entities, [REAL_ENTITY])
-    const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
+    const invalidateSpy = vi
+      .spyOn(qc, 'invalidateQueries')
+      .mockImplementation(() => Promise.resolve(undefined))
 
     const { result } = renderHook(() => useDeleteEntity(), { wrapper: wrapWith(qc) })
     act(() => {
@@ -253,13 +291,17 @@ describe('invalidación de queries', () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.counts })
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entityRefsCount })
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entitiesInfinite })
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.quotesInfinite })
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.relationshipsInfinite,
-    })
+    expect(invalidatedKeys(invalidateSpy)).toEqual([
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.quotesInfinite,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.momentosInfinite,
+    ])
   })
 })
 
