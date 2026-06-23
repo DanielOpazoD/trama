@@ -4,11 +4,22 @@ import { fileURLToPath } from 'node:url'
 const DEFAULT_DB_URL = 'postgresql://trama:trama_local_dev@localhost:5433/trama'
 const DB_URL = process.env.DATABASE_URL || process.env.NETLIFY_DB_URL || DEFAULT_DB_URL
 const FIXTURE_USER_ID = 'query-plan-it-user'
-const FIXTURE_SIZE = Number.parseInt(process.env.QUERY_PLAN_FIXTURE_SIZE ?? '1500', 10)
-const MAX_SEQ_SCAN_ROWS = Number.parseInt(
-  process.env.QUERY_PLAN_MAX_SEQ_SCAN_ROWS ?? '100',
-  10,
-)
+const FIXTURE_SIZE = readEnvInteger('QUERY_PLAN_FIXTURE_SIZE', 1500, { min: 1 })
+const MAX_SEQ_SCAN_ROWS = readEnvInteger('QUERY_PLAN_MAX_SEQ_SCAN_ROWS', 100, {
+  min: 0,
+})
+
+function readEnvInteger(name, fallback, { min }) {
+  const raw = process.env[name]
+  if (raw === undefined || raw === '') return fallback
+  const value = Number.parseInt(raw, 10)
+  if (!Number.isInteger(value) || value < min || String(value) !== raw.trim()) {
+    throw new Error(
+      `${name} must be an integer >= ${min}; received ${JSON.stringify(raw)}`,
+    )
+  }
+  return value
+}
 
 export function collectPlanNodes(explainJson) {
   const root = Array.isArray(explainJson) ? explainJson[0]?.Plan : explainJson?.Plan
@@ -26,7 +37,8 @@ export function assertNoLargeSeqScans(label, explainJson, opts = {}) {
   const allowed = new Set(opts.allowedRelations ?? [])
   const maxRows = opts.maxSeqScanRows ?? MAX_SEQ_SCAN_ROWS
   const offenders = collectPlanNodes(explainJson).filter((node) => {
-    if (node['Node Type'] !== 'Seq Scan') return false
+    const nodeType = node['Node Type']
+    if (nodeType !== 'Seq Scan' && nodeType !== 'Parallel Seq Scan') return false
     const relation = node['Relation Name'] ?? '(unknown)'
     if (allowed.has(relation)) return false
     return Number(node['Plan Rows'] ?? 0) > maxRows
@@ -37,7 +49,7 @@ export function assertNoLargeSeqScans(label, explainJson, opts = {}) {
       .map((node) => {
         const relation = node['Relation Name'] ?? '(unknown)'
         const rows = node['Plan Rows'] ?? '?'
-        return `Seq Scan on ${relation} (plan rows: ${rows})`
+        return `${node['Node Type']} on ${relation} (plan rows: ${rows})`
       })
       .join('; ')
     throw new Error(`${label}: ${details}`)

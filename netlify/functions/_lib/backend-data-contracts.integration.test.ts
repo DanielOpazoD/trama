@@ -151,12 +151,30 @@ describe.skipIf(!DB_URL)('backend/data executable contracts (Postgres real)', ()
     return result.rows as T[]
   }
 
-  async function cleanupUsers() {
-    for (const table of ['notas_attachments', 'momento_entities']) {
+  function isMissingRelationError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === '42P01'
+    )
+  }
+
+  async function cleanupTable(table: string) {
+    try {
       await admin(
         `UPDATE ${table} SET deleted_at = NOW() WHERE user_id = ANY($1) AND deleted_at IS NULL`,
         [[USER_A, USER_B]],
-      ).catch(() => {})
+      )
+    } catch (error) {
+      if (isMissingRelationError(error)) return
+      throw error
+    }
+  }
+
+  async function cleanupUsers() {
+    for (const table of ['notas_attachments', 'momento_entities']) {
+      await cleanupTable(table)
     }
     for (const table of [
       'notes',
@@ -166,10 +184,7 @@ describe.skipIf(!DB_URL)('backend/data executable contracts (Postgres real)', ()
       'relationships',
       'entities',
     ]) {
-      await admin(
-        `UPDATE ${table} SET deleted_at = NOW() WHERE user_id = ANY($1) AND deleted_at IS NULL`,
-        [[USER_A, USER_B]],
-      ).catch(() => {})
+      await cleanupTable(table)
     }
   }
 
@@ -213,9 +228,12 @@ describe.skipIf(!DB_URL)('backend/data executable contracts (Postgres real)', ()
   })
 
   afterAll(async () => {
-    await cleanupUsers().catch(() => {})
-    dbState.pool = null
-    await pool?.end()
+    try {
+      await cleanupUsers()
+    } finally {
+      dbState.pool = null
+      await pool?.end()
+    }
   })
 
   it('crea entidad, crea cita y encuentra la cita por search lexical', async () => {

@@ -3,6 +3,7 @@ import {
   DEFAULT_QUERY_IT_DB_URL,
   buildQueryIntegrationEnv,
   runQueryIntegrationLocal,
+  sanitizeDbUrlForLog,
 } from './run-query-integration-local.mjs'
 
 describe('run-query-integration-local', () => {
@@ -36,12 +37,19 @@ describe('run-query-integration-local', () => {
     ).toBe('postgresql://from/netlify')
   })
 
+  it('no imprime credenciales de la URL de Postgres', () => {
+    expect(sanitizeDbUrlForLog('postgresql://user:secret@localhost:5433/trama')).toBe(
+      'postgresql://localhost:5433/trama',
+    )
+  })
+
   it('ejecuta el test de integración con QUERY_IT_DB_URL presente', () => {
     const spawnSyncImpl = vi.fn(() => ({ status: 0 }))
+    const stdout = vi.fn()
     const status = runQueryIntegrationLocal({
       env: {},
       spawnSyncImpl,
-      stdout: vi.fn(),
+      stdout,
       stderr: vi.fn(),
     })
 
@@ -54,5 +62,6 @@ describe('run-query-integration-local', () => {
       'netlify/functions/_lib/query.integration.test.ts',
     ])
     expect(options.env.QUERY_IT_DB_URL).toBe(DEFAULT_QUERY_IT_DB_URL)
+    expect(stdout.mock.calls[0][0]).not.toContain('trama_local_dev')
   })
 })

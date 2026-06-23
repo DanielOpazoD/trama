@@ -2,6 +2,16 @@ import { z } from 'zod'
 
 export const DbTimestampSchema = z.union([z.string(), z.date()])
 
+export const OriginRowSchema = z
+  .object({
+    kind: z.string(),
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    extractionLogId: z.string().optional(),
+    importedFrom: z.string().optional(),
+  })
+  .passthrough()
+
 export const EntityRowSchema = z.object({
   id: z.string(),
   type: z.string(),
@@ -11,7 +21,7 @@ export const EntityRowSchema = z.object({
   essay: z.string().nullable(),
   position_x: z.number().nullable(),
   position_y: z.number().nullable(),
-  origin: z.unknown(),
+  origin: OriginRowSchema,
   spotify_url: z.string().nullable(),
   wikipedia_url: z.string().nullable(),
   grokipedia_url: z.string().nullable(),
@@ -41,7 +51,7 @@ export const MomentoListRowSchema = z.object({
   captured_at: DbTimestampSchema,
   payload: z.unknown(),
   note: z.string().nullable(),
-  origin: z.unknown(),
+  origin: OriginRowSchema,
   created_at: DbTimestampSchema,
   updated_at: DbTimestampSchema,
   owner_user_id: z.string(),

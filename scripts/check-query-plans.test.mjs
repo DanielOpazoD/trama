@@ -41,6 +41,19 @@ describe('check-query-plans', () => {
     ).toThrow(/entities\.hot-list.*Seq Scan.*entities/s)
   })
 
+  it('falla ante parallel seq scans grandes no allowlisteados', () => {
+    expect(() =>
+      assertNoLargeSeqScans(
+        'entities.parallel',
+        plan({
+          'Node Type': 'Parallel Seq Scan',
+          'Relation Name': 'entities',
+          'Plan Rows': 5000,
+        }),
+      ),
+    ).toThrow(/entities\.parallel.*Parallel Seq Scan.*entities/s)
+  })
+
   it('permite seq scans chicos o allowlisteados', () => {
     expect(() =>
       assertNoLargeSeqScans(

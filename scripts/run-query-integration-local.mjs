@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, URL } from 'node:url'
 
 export const DEFAULT_QUERY_IT_DB_URL =
   'postgresql://trama:trama_local_dev@localhost:5433/trama'
@@ -23,6 +23,17 @@ export function buildQueryIntegrationEnv(env = process.env) {
   }
 }
 
+export function sanitizeDbUrlForLog(dbUrl) {
+  try {
+    const parsed = new URL(dbUrl)
+    parsed.username = ''
+    parsed.password = ''
+    return parsed.toString()
+  } catch {
+    return '[unparseable database URL]'
+  }
+}
+
 function describeDbSource(env) {
   if (env.QUERY_IT_DB_URL) return 'QUERY_IT_DB_URL'
   if (env.DATABASE_URL) return 'DATABASE_URL'
@@ -38,7 +49,7 @@ export function runQueryIntegrationLocal({
 } = {}) {
   const childEnv = buildQueryIntegrationEnv(env)
   stdout(
-    `Query integration DB: ${describeDbSource(env)} -> QUERY_IT_DB_URL=${childEnv.QUERY_IT_DB_URL}`,
+    `Query integration DB: ${describeDbSource(env)} -> QUERY_IT_DB_URL=${sanitizeDbUrlForLog(childEnv.QUERY_IT_DB_URL)}`,
   )
   if (!env.QUERY_IT_DB_URL && !env.DATABASE_URL && !env.NETLIFY_DB_URL) {
     stdout(
