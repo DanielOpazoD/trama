@@ -12,6 +12,13 @@ import { useOffline } from './offline'
 import { useToast } from './toast'
 import { type DeleteInput } from './useEntities'
 import { canUseLocalFallback } from './localFallback'
+import {
+  invalidateRelationshipCreateSurface,
+  invalidateRelationshipDeleteSurface,
+  invalidateRelationshipRestoreSurface,
+  invalidateRelationshipUpdateSurface,
+} from './cacheInvalidation'
+import { restoreQuerySnapshot, snapshotQuery } from './cacheOptimistic'
 
 function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean } {
   if (typeof input === 'string') return { id: input, silent: false }
@@ -98,10 +105,13 @@ export function useAddRelationship() {
       return api.createRelationship(payload)
     },
     onMutate: async (data) => {
-      if (offline) return { previous: null, tempId: null }
+      if (offline) return { relationshipsSnap: null, tempId: null }
       await queryClient.cancelQueries({ queryKey: queryKeys.relationships })
-      const previous =
-        queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
+      const relationshipsSnap = snapshotQuery<Relationship[]>(
+        queryClient,
+        queryKeys.relationships,
+      )
+      const previous = relationshipsSnap.data ?? []
       const tempId = `__optimistic_${newId()}`
       const optimistic: Relationship = {
         ...data,
@@ -114,11 +124,11 @@ export function useAddRelationship() {
         optimistic,
         ...previous,
       ])
-      return { previous, tempId }
+      return { relationshipsSnap, tempId }
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.relationships, context.previous)
+      if (context?.relationshipsSnap) {
+        restoreQuerySnapshot(queryClient, context.relationshipsSnap)
       }
     },
     onSuccess: (created, _vars, context) => {
@@ -128,10 +138,7 @@ export function useAddRelationship() {
         const withoutTemp = tempId ? prev.filter((r) => r.id !== tempId) : prev
         return [created, ...withoutTemp]
       })
-      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateRelationshipCreateSurface(queryClient)
     },
   })
 }
@@ -153,8 +160,10 @@ export function useUpdateRelationship() {
     },
     onMutate: async ({ id, patch }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.relationships })
-      const previous =
-        queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
+      const relationshipsSnap = snapshotQuery<Relationship[]>(
+        queryClient,
+        queryKeys.relationships,
+      )
       queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
         (prev ?? []).map((r) =>
           r.id === id
@@ -167,19 +176,18 @@ export function useUpdateRelationship() {
             : r,
         ),
       )
-      return { previous }
+      return { relationshipsSnap }
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.relationships, context.previous)
+      if (context?.relationshipsSnap) {
+        restoreQuerySnapshot(queryClient, context.relationshipsSnap)
       }
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
         (prev ?? []).map((r) => (r.id === updated.id ? updated : r)),
       )
-      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateRelationshipUpdateSurface(queryClient)
     },
   })
 }
@@ -200,10 +208,7 @@ export function useDeleteRelationship() {
       queryClient.setQueryData<Relationship[]>(queryKeys.relationships, (prev) =>
         (prev ?? []).filter((r) => r.id !== id),
       )
-      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateRelationshipDeleteSurface(queryClient)
       if (offline) {
         const current =
           queryClient.getQueryData<Relationship[]>(queryKeys.relationships) ?? []
@@ -217,11 +222,7 @@ export function useDeleteRelationship() {
             label: 'Deshacer',
             onAction: async () => {
               await api.restoreRelationship(id, deletedAt)
-              queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
-              queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-              queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-              queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
-              queryClient.invalidateQueries({ queryKey: queryKeys.home })
+              invalidateRelationshipRestoreSurface(queryClient)
             },
           },
         })

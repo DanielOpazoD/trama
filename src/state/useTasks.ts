@@ -16,12 +16,13 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
-  type QueryClient,
 } from '@tanstack/react-query'
 import { api } from '../api'
 import type { Task, TaskCreate, TaskPatch } from '../api'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
+import { invalidateTasksSurface } from './cacheInvalidation'
+import { restoreQueriesSnapshot, snapshotQueries } from './cacheOptimistic'
 
 const TASKS_KEY = queryKeys.tasks
 
@@ -72,17 +73,11 @@ function applyPatch(task: Task, patch: TaskPatch): Task {
   }
 }
 
-function invalidateTasks(qc: QueryClient) {
-  qc.invalidateQueries({ queryKey: TASKS_KEY })
-  qc.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-  qc.invalidateQueries({ queryKey: queryKeys.home })
-}
-
 export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: TaskCreate) => api.tasks.create(input),
-    onSuccess: () => invalidateTasks(qc),
+    onSuccess: () => invalidateTasksSurface(qc),
   })
 }
 
@@ -94,16 +89,16 @@ export function useUpdateTask() {
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: TASKS_KEY })
       // Snapshot de todas las variantes de tareas en cache, para revertir.
-      const previous = qc.getQueriesData<Task[]>({ queryKey: TASKS_KEY })
+      const tasksSnap = snapshotQueries<Task[]>(qc, { queryKey: TASKS_KEY })
       qc.setQueriesData<Task[]>({ queryKey: TASKS_KEY }, (prev) =>
         (prev ?? []).map((t) => (t.id === id ? applyPatch(t, patch) : t)),
       )
-      return { previous }
+      return { tasksSnap }
     },
     onError: (_err, _vars, context) => {
-      for (const [key, data] of context?.previous ?? []) qc.setQueryData(key, data)
+      if (context?.tasksSnap) restoreQueriesSnapshot(qc, context.tasksSnap)
     },
-    onSettled: () => invalidateTasks(qc),
+    onSettled: () => invalidateTasksSurface(qc),
   })
 }
 
@@ -114,14 +109,14 @@ export function useDeleteTask() {
     mutationFn: (id: string) => api.tasks.remove(id),
     onMutate: async (id: string) => {
       await qc.cancelQueries({ queryKey: TASKS_KEY })
-      const previous = qc.getQueriesData<Task[]>({ queryKey: TASKS_KEY })
+      const tasksSnap = snapshotQueries<Task[]>(qc, { queryKey: TASKS_KEY })
       qc.setQueriesData<Task[]>({ queryKey: TASKS_KEY }, (prev) =>
         (prev ?? []).filter((t) => t.id !== id),
       )
-      return { previous }
+      return { tasksSnap }
     },
     onError: (_err, _id, context) => {
-      for (const [key, data] of context?.previous ?? []) qc.setQueryData(key, data)
+      if (context?.tasksSnap) restoreQueriesSnapshot(qc, context.tasksSnap)
     },
     onSuccess: ({ deletedAt }, id) => {
       // Deshacer: revive tarea + fotos con ese deleted_at exacto.
@@ -133,12 +128,12 @@ export function useDeleteTask() {
             label: 'Deshacer',
             onAction: async () => {
               await api.tasks.restore(id, deletedAt)
-              invalidateTasks(qc)
+              invalidateTasksSurface(qc)
             },
           },
         })
       }
     },
-    onSettled: () => invalidateTasks(qc),
+    onSettled: () => invalidateTasksSurface(qc),
   })
 }

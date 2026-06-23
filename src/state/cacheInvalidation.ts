@@ -10,6 +10,129 @@ export function invalidateSearchSurface(queryClient: QueryClient): void {
   invalidateMany(queryClient, [queryKeys.search])
 }
 
+export function invalidateEntityCreateSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.entitiesInfinite,
+    queryKeys.home,
+    queryKeys.atlas,
+    queryKeys.cronologiaInfinite,
+  ])
+}
+
+export function invalidateEntityUpdateSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.entitiesInfinite,
+    queryKeys.home,
+    queryKeys.atlas,
+    queryKeys.cronologiaInfinite,
+  ])
+}
+
+export function invalidateEntityDeleteSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.entitiesInfinite,
+    queryKeys.quotesInfinite,
+    queryKeys.relationshipsInfinite,
+    queryKeys.home,
+    queryKeys.atlas,
+    queryKeys.cronologiaInfinite,
+    queryKeys.momentosInfinite,
+  ])
+}
+
+export function invalidateEntityRestoreSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.entities,
+    queryKeys.relationships,
+    queryKeys.quotes,
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.entitiesInfinite,
+    queryKeys.relationshipsInfinite,
+    queryKeys.quotesInfinite,
+    queryKeys.home,
+    queryKeys.atlas,
+    queryKeys.cronologiaInfinite,
+    queryKeys.momentosInfinite,
+  ])
+}
+
+export function invalidateQuoteCreateSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.quotesInfinite,
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateQuoteUpdateSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.quotesInfinite, queryKeys.home])
+}
+
+export function invalidateQuoteDeleteSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.quotesInfinite,
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateQuoteRestoreSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.quotes,
+    queryKeys.quotesInfinite,
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateRelationshipCreateSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.relationshipsInfinite,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateRelationshipUpdateSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [queryKeys.relationshipsInfinite, queryKeys.home])
+}
+
+export function invalidateRelationshipDeleteSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.relationshipsInfinite,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateRelationshipRestoreSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.relationships,
+    queryKeys.counts,
+    queryKeys.entityRefsCount,
+    queryKeys.relationshipsInfinite,
+    queryKeys.home,
+  ])
+}
+
+export function invalidateTasksSurface(queryClient: QueryClient): void {
+  invalidateMany(queryClient, [
+    queryKeys.tasks,
+    queryKeys.cronologiaInfinite,
+    queryKeys.home,
+  ])
+}
+
 export function invalidateNoteMutationSurface(queryClient: QueryClient): void {
   invalidateMany(queryClient, [queryKeys.notes, queryKeys.notasFeed, queryKeys.search])
 }

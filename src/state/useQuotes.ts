@@ -12,6 +12,13 @@ import { useOffline } from './offline'
 import { useToast } from './toast'
 import { type DeleteInput } from './useEntities'
 import { canUseLocalFallback } from './localFallback'
+import {
+  invalidateQuoteCreateSurface,
+  invalidateQuoteDeleteSurface,
+  invalidateQuoteRestoreSurface,
+  invalidateQuoteUpdateSurface,
+} from './cacheInvalidation'
+import { restoreQuerySnapshot, snapshotQuery } from './cacheOptimistic'
 
 function normalizeDeleteInput(input: DeleteInput): { id: string; silent: boolean } {
   if (typeof input === 'string') return { id: input, silent: false }
@@ -131,9 +138,10 @@ export function useAddQuote() {
       return api.createQuote(payload)
     },
     onMutate: async (data) => {
-      if (offline) return { previous: null, tempId: null }
+      if (offline) return { quotesSnap: null, tempId: null }
       await queryClient.cancelQueries({ queryKey: queryKeys.quotes })
-      const previous = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
+      const quotesSnap = snapshotQuery<Quote[]>(queryClient, queryKeys.quotes)
+      const previous = quotesSnap.data ?? []
       const tempId = `__optimistic_${newId()}`
       const optimistic: Quote = {
         ...data,
@@ -144,11 +152,11 @@ export function useAddQuote() {
         updatedAt: nowIso(),
       }
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, [optimistic, ...previous])
-      return { previous, tempId }
+      return { quotesSnap, tempId }
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.quotes, context.previous)
+      if (context?.quotesSnap) {
+        restoreQuerySnapshot(queryClient, context.quotesSnap)
       }
     },
     onSuccess: (created, _vars, context) => {
@@ -160,10 +168,7 @@ export function useAddQuote() {
       })
       // Reset the infinite list so QuotesView re-fetches from the top and
       // the new quote appears in page 1 without dedupe gymnastics.
-      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateQuoteCreateSurface(queryClient)
     },
   })
 }
@@ -197,7 +202,7 @@ export function useUpdateQuote() {
       // BB4: aplicar el patch en cache al instante. La estrella ω-E (pinned)
       // y la edición inline de texto se sienten instantáneas.
       await queryClient.cancelQueries({ queryKey: queryKeys.quotes })
-      const previous = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
+      const quotesSnap = snapshotQuery<Quote[]>(queryClient, queryKeys.quotes)
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
         (prev ?? []).map((q) =>
           q.id === id
@@ -232,19 +237,18 @@ export function useUpdateQuote() {
             : q,
         ),
       )
-      return { previous }
+      return { quotesSnap }
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.quotes, context.previous)
+      if (context?.quotesSnap) {
+        restoreQuerySnapshot(queryClient, context.quotesSnap)
       }
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
         (prev ?? []).map((q) => (q.id === updated.id ? updated : q)),
       )
-      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateQuoteUpdateSurface(queryClient)
     },
   })
 }
@@ -286,10 +290,7 @@ export function useDeleteQuote() {
       queryClient.setQueryData<Quote[]>(queryKeys.quotes, (prev) =>
         (prev ?? []).filter((q) => q.id !== id),
       )
-      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
+      invalidateQuoteDeleteSurface(queryClient)
       if (offline) {
         const current = queryClient.getQueryData<Quote[]>(queryKeys.quotes) ?? []
         storage.saveQuotes(current)
@@ -302,11 +303,7 @@ export function useDeleteQuote() {
             label: 'Deshacer',
             onAction: async () => {
               await api.restoreQuote(id, deletedAt)
-              queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
-              queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-              queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-              queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-              queryClient.invalidateQueries({ queryKey: queryKeys.home })
+              invalidateQuoteRestoreSurface(queryClient)
             },
           },
         })

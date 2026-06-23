@@ -12,6 +12,13 @@ import { queryKeys } from './queryClient'
 import { useOffline } from './offline'
 import { useToast } from './toast'
 import { canUseLocalFallback } from './localFallback'
+import {
+  invalidateEntityCreateSurface,
+  invalidateEntityDeleteSurface,
+  invalidateEntityRestoreSurface,
+  invalidateEntityUpdateSurface,
+} from './cacheInvalidation'
+import { restoreQuerySnapshot, snapshotQuery } from './cacheOptimistic'
 
 const DEFAULT_ORIGIN: Origin = { kind: 'manual' }
 
@@ -129,9 +136,10 @@ export function useAddEntity() {
     },
     onMutate: async (data) => {
       // Online-only: en offline el mutationFn ya hace el insert y devuelve.
-      if (offline) return { previous: null, tempId: null }
+      if (offline) return { entitiesSnap: null, tempId: null }
       await queryClient.cancelQueries({ queryKey: queryKeys.entities })
-      const previous = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
+      const entitiesSnap = snapshotQuery<Entity[]>(queryClient, queryKeys.entities)
+      const previous = entitiesSnap.data ?? []
       const tempId = `__optimistic_${newId()}`
       const optimistic: Entity = {
         ...data,
@@ -141,14 +149,14 @@ export function useAddEntity() {
         updatedAt: nowIso(),
       }
       queryClient.setQueryData<Entity[]>(queryKeys.entities, [optimistic, ...previous])
-      return { previous, tempId }
+      return { entitiesSnap, tempId }
     },
     onError: (_err, _vars, context) => {
       // Reponer el snapshot. Si el server respondió 409 (DuplicateEntityError),
       // la UI muestra el dropdown "¿quisiste decir…?" — el rollback acá deja
       // la lista exactamente como estaba antes del intento.
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.entities, context.previous)
+      if (context?.entitiesSnap) {
+        restoreQuerySnapshot(queryClient, context.entitiesSnap)
       }
     },
     onSuccess: (created, _vars, context) => {
@@ -160,12 +168,7 @@ export function useAddEntity() {
         const withoutTemp = tempId ? prev.filter((e) => e.id !== tempId) : prev
         return [created, ...withoutTemp]
       })
-      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      invalidateEntityCreateSurface(queryClient)
     },
   })
 }
@@ -210,9 +213,7 @@ export function useUpdateEntityType() {
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
         (prev ?? []).map((entity) => (entity.id === id ? { ...entity, type } : entity)),
       )
-      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
+      invalidateEntityUpdateSurface(queryClient)
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)
@@ -245,7 +246,7 @@ export function useUpdateEntity() {
     onMutate: async ({ id, patch }) => {
       // BB4: aplicar el patch en memoria al instante.
       await queryClient.cancelQueries({ queryKey: queryKeys.entities })
-      const previous = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
+      const entitiesSnap = snapshotQuery<Entity[]>(queryClient, queryKeys.entities)
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
         (prev ?? []).map((e) =>
           e.id === id
@@ -271,21 +272,18 @@ export function useUpdateEntity() {
             : e,
         ),
       )
-      return { previous }
+      return { entitiesSnap }
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.entities, context.previous)
+      if (context?.entitiesSnap) {
+        restoreQuerySnapshot(queryClient, context.entitiesSnap)
       }
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<Entity[]>(queryKeys.entities, (prev) =>
         (prev ?? []).map((e) => (e.id === updated.id ? updated : e)),
       )
-      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
+      invalidateEntityUpdateSurface(queryClient)
     },
   })
 }
@@ -331,15 +329,7 @@ export function useDeleteEntity() {
         return list.filter((q) => q.entityId !== id)
       })
       // Counts moved for entities + cascaded soft-deletes on quotes/rels.
-      queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-      queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.home })
-      queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-      queryClient.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
+      invalidateEntityDeleteSurface(queryClient)
       if (offline) {
         const e = queryClient.getQueryData<Entity[]>(queryKeys.entities) ?? []
         storage.saveEntities(e)
@@ -354,18 +344,7 @@ export function useDeleteEntity() {
             label: 'Deshacer',
             onAction: async () => {
               await api.restoreEntity(id, deletedAt)
-              queryClient.invalidateQueries({ queryKey: queryKeys.entities })
-              queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
-              queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
-              queryClient.invalidateQueries({ queryKey: queryKeys.counts })
-              queryClient.invalidateQueries({ queryKey: queryKeys.entityRefsCount })
-              queryClient.invalidateQueries({ queryKey: queryKeys.entitiesInfinite })
-              queryClient.invalidateQueries({ queryKey: queryKeys.relationshipsInfinite })
-              queryClient.invalidateQueries({ queryKey: queryKeys.quotesInfinite })
-              queryClient.invalidateQueries({ queryKey: queryKeys.home })
-              queryClient.invalidateQueries({ queryKey: queryKeys.atlas })
-              queryClient.invalidateQueries({ queryKey: queryKeys.cronologiaInfinite })
-              queryClient.invalidateQueries({ queryKey: queryKeys.momentosInfinite })
+              invalidateEntityRestoreSurface(queryClient)
             },
           },
         })

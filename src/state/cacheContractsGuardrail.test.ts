@@ -28,6 +28,10 @@ describe('cache contract guardrail', () => {
       'useRecortes.ts',
       'useMomentos.ts',
       'useNotasAttachments.ts',
+      'useEntities.ts',
+      'useQuotes.ts',
+      'useRelationships.ts',
+      'useTasks.ts',
     ]) {
       expect(source(file), file).toContain("from './cacheInvalidation'")
     }
@@ -50,10 +54,31 @@ describe('cache contract guardrail', () => {
     )
   })
 
+  it('evita que core graph vuelva a duplicar invalidaciones transversales a mano', () => {
+    const forbiddenDirectInvalidation =
+      /invalidateQueries\(\{\s*queryKey:\s*queryKeys\.(entities|relationships|quotes|counts|entityRefsCount|entitiesInfinite|relationshipsInfinite|quotesInfinite|momentosInfinite|home|atlas|cronologiaInfinite)\b/
+
+    for (const file of ['useEntities.ts', 'useQuotes.ts', 'useRelationships.ts']) {
+      expect(uncommented(source(file)), file).not.toMatch(forbiddenDirectInvalidation)
+    }
+  })
+
+  it('evita que tareas vuelva a duplicar invalidaciones de calendario e inicio a mano', () => {
+    const src = uncommented(source('useTasks.ts'))
+
+    expect(src).not.toMatch(
+      /invalidateQueries\(\{\s*queryKey:\s*(TASKS_KEY|queryKeys\.(tasks|cronologiaInfinite|home))\b/,
+    )
+  })
+
   it('mantiene el rollback optimista común en los hooks con patches optimistas', () => {
     expect(source('useNotes.ts')).toContain("from './cacheOptimistic'")
     expect(source('useRecortes.ts')).toContain("from './cacheOptimistic'")
     expect(source('notasFeedCache.ts')).toContain("from './cacheOptimistic'")
+    expect(source('useEntities.ts')).toContain("from './cacheOptimistic'")
+    expect(source('useQuotes.ts')).toContain("from './cacheOptimistic'")
+    expect(source('useRelationships.ts')).toContain("from './cacheOptimistic'")
+    expect(source('useTasks.ts')).toContain("from './cacheOptimistic'")
   })
 
   it('restringe invalidateQueries directo a excepciones explícitas', () => {
