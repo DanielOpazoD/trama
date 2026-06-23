@@ -68,11 +68,15 @@ describe('collectFormControlLabels', () => {
   })
 })
 
+// Los tests pasan `exempt: new Map()` para aislarse del FORM_CONTROL_LABEL_EXEMPT
+// real (sus entradas serían "stale" contra estos repos-fixture).
 describe('checkFormControlLabels (ratchet)', () => {
+  const noExempt = new Map()
+
   it('FALLA si el conteo supera el baseline', async () => {
     const { root, write } = await makeRepo()
     write('src/A.tsx', comp('<input placeholder="x" />'))
-    const result = checkFormControlLabels({ root, baseline: 0 })
+    const result = checkFormControlLabels({ root, baseline: 0, exempt: noExempt })
     expect(result.ok).toBe(false)
     expect(result.failures).toContainEqual({ kind: 'increase', actual: 1, baseline: 0 })
   })
@@ -80,8 +84,8 @@ describe('checkFormControlLabels (ratchet)', () => {
   it('PASA en el baseline y avisa (dropped) por debajo', async () => {
     const { root, write } = await makeRepo()
     write('src/A.tsx', comp('<input placeholder="x" />'))
-    expect(checkFormControlLabels({ root, baseline: 1 }).ok).toBe(true)
-    const below = checkFormControlLabels({ root, baseline: 2 })
+    expect(checkFormControlLabels({ root, baseline: 1, exempt: noExempt }).ok).toBe(true)
+    const below = checkFormControlLabels({ root, baseline: 2, exempt: noExempt })
     expect(below.ok).toBe(true)
     expect(below.dropped).toBe(true)
   })

@@ -207,7 +207,6 @@ export function TaskItem({
                     type="date"
                     value={due}
                     onChange={(e) => setDue(e.target.value)}
-                    aria-label="Fecha de vencimiento"
                     className="input-paper text-sm normal-case tracking-normal"
                   />
                 </label>

@@ -358,7 +358,6 @@ export function ClavesView({
               type="checkbox"
               checked={critical}
               onChange={(e) => setCritical(e.target.checked)}
-              aria-label="Clave crítica"
             />
             crítica
           </label>

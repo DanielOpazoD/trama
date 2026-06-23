@@ -28,9 +28,29 @@ import { pathToFileURL } from 'node:url'
 
 export const FORM_CONTROL_LABEL_BASELINE = 0
 
-// Controles SIN etiqueta legítimos (p. ej. envueltos por un <label> padre, que
-// este escaneo plano no detecta). Allowlist con razón, como hard-delete.
-export const FORM_CONTROL_LABEL_EXEMPT = new Map([])
+// Controles SIN etiqueta para el escaneo plano pero LEGÍTIMAMENTE nombrados por
+// un <label> padre que los envuelve (asociación nativa por anidamiento, que el
+// escaneo no detecta). El nombre accesible viene del texto del <label>; agregar
+// aria-label sería redundante y, si difiere del texto visible, viola WCAG 2.5.3
+// (Label in Name). Allowlist con razón verificada, como hard-delete.
+export const FORM_CONTROL_LABEL_EXEMPT = new Map([
+  [
+    'src/components/notas/ClavesVaultParts.tsx:124',
+    'Checkbox envuelto por <label> con <span>Llave física</span>.',
+  ],
+  [
+    'src/components/notas/ClavesVaultParts.tsx:284',
+    'Checkbox envuelto por <label> con el texto "crítica".',
+  ],
+  [
+    'src/components/notas/ClavesView.tsx:357',
+    'Checkbox envuelto por <label> con el texto "crítica".',
+  ],
+  [
+    'src/components/notas/TaskItem.tsx:206',
+    'Input date envuelto por <label> con el texto "vence".',
+  ],
+])
 
 const CONTROL_RE = /<(input|textarea|select)\b/g
 // Captura el valor de htmlFor/id en sus cuatro formas: "x", 'x', {`x`}/{'x'} y

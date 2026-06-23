@@ -129,7 +129,6 @@ export function VaultGate({
                     setUsePhysicalKey(checked)
                     if (checked && !physicalKey) setPhysicalKey(generatePhysicalKey())
                   }}
-                  aria-label="Llave física"
                 />
               </label>
             )}
@@ -142,7 +141,7 @@ export function VaultGate({
                     if (e.key === 'Enter') void submit()
                   }}
                   placeholder="Llave física"
-                  aria-label="Llave física"
+                  aria-label="Valor de la llave física"
                   className="input-paper w-full text-sm font-mono tracking-wider"
                 />
                 {!hasVault && (
@@ -286,7 +285,6 @@ export function SecretCard({
               type="checkbox"
               checked={critical}
               onChange={(e) => setCritical(e.target.checked)}
-              aria-label="Clave crítica"
             />
             crítica
           </label>

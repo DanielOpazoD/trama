@@ -106,7 +106,7 @@ export function WorkspaceSavedDocItem({
               else if (e.key === 'Escape') onCancelRename()
             }}
             onBlur={onRenameBlur}
-            aria-label={`Nombre de ${saved.name}`}
+            aria-label={`Renombrar ${saved.name}`}
             className="input-paper flex-1 min-w-0 rounded border border-ink-200 px-1.5 py-0.5 text-caption"
           />
         ) : (
