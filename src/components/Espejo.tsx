@@ -1,5 +1,6 @@
-import { useMemo, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useEntitiesQuery, useQuotesQuery, useRelationshipsQuery } from '../state'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import { ENTITY_TYPES } from '../types'
 import type { Entity, Quote, Relationship } from '../types'
 import { CloseIcon, EndMark } from './Icons'
@@ -205,14 +206,11 @@ export function Espejo({ open, onClose }: { open: boolean; onClose: () => void }
     [entities, relationships, quotes],
   )
 
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  // Escape, focus trap, scroll-lock y restauración de foco delegados a
+  // useModalOverlay (mismo patrón que EditorialReader, otro lector editorial
+  // a pantalla completa). Espejo no tiene atajos propios ni sub-estados con
+  // Escape mode-aware: un único Escape cierra.
+  const overlay = useModalOverlay({ open, onClose })
 
   if (!open) return null
 
@@ -221,7 +219,9 @@ export function Espejo({ open, onClose }: { open: boolean; onClose: () => void }
 
   return (
     <div
+      ref={overlay.dialogRef}
       role="dialog"
+      aria-modal="true"
       aria-label="Espejo"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up overflow-y-auto"
     >

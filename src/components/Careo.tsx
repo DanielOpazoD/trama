@@ -5,6 +5,7 @@ import { CloseIcon, EndMark } from './Icons'
 import { generateCareoLaminaBlob } from '../lib/lamina'
 import { downloadBlob } from '../lib/downloadBlob'
 import { useToast } from '../state/toast'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 
 /**
  * Careo — dos voces frente a frente. Eliges dos entidades y sus citas se
@@ -86,6 +87,7 @@ export function Careo({ open, onClose }: { open: boolean; onClose: () => void })
   const { data: relationships = [] } = useRelationshipsQuery()
   const toast = useToast()
   const [exporting, setExporting] = useState(false)
+  const overlay = useModalOverlay({ open, onClose })
 
   const candidates = useMemo(
     () => entitiesWithQuotes(entities, quotes),
@@ -105,15 +107,6 @@ export function Careo({ open, onClose }: { open: boolean; onClose: () => void })
       setRightId(candidates[1]!.entity.id)
     }
   }, [open, candidates, leftId, rightId])
-
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
 
   const left = entities.find((e) => e.id === leftId) ?? null
   const right = entities.find((e) => e.id === rightId) ?? null
@@ -155,7 +148,9 @@ export function Careo({ open, onClose }: { open: boolean; onClose: () => void })
 
   return (
     <div
+      ref={overlay.dialogRef}
       role="dialog"
+      aria-modal="true"
       aria-label="Careo"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up"
     >

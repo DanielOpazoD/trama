@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, fireEvent } from '@testing-library/react'
 import { Espejo, composeEspejo } from './Espejo'
 import { renderWithProviders } from '../test-utils'
 import type { Entity, Quote, Relationship } from '../types'
@@ -147,7 +147,20 @@ describe('<Espejo />', () => {
     stubFetch({ entities: [] })
     renderWithProviders(<Espejo open onClose={() => {}} />)
     const dialog = await screen.findByRole('dialog', { name: 'Espejo' })
+    // useModalOverlay exige aria-modal para que los lectores de pantalla
+    // aíslen el espejo del resto de la app.
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(dialog.textContent).toMatch(/todavía está en blanco/i)
+  })
+
+  it('cierra con Escape (en document)', async () => {
+    stubFetch({ entities: [] })
+    const onClose = vi.fn()
+    renderWithProviders(<Espejo open onClose={onClose} />)
+    await screen.findByRole('dialog', { name: 'Espejo' })
+    // Escape lo gestiona useModalOverlay: listener en captura sobre document.
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
   })
 
   it('renders the composition prose when entities exist', async () => {
