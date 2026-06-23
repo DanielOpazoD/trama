@@ -162,6 +162,15 @@ const SCRIPT_ENTRIES = [
       'Ratchet que congela arbitrary values y aliases legacy de la type scale en src.',
   },
   {
+    file: 'scripts/check-modal-overlay.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:modal-overlay'],
+    summary:
+      'Ratchet que institucionaliza la adopción de useModalOverlay en role=dialog.',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',
@@ -656,6 +665,13 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Ratchet de design tokens: arbitrary values y aliases legacy congelados.',
+  },
+  {
+    command: 'npm run check:modal-overlay',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary: 'Ratchet de adopción de useModalOverlay en componentes con role=dialog.',
   },
   {
     command: 'npm run check:pdf-runtime-boundaries',
