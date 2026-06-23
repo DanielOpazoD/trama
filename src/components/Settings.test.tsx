@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Settings } from './Settings'
@@ -55,6 +55,13 @@ describe('<Settings />', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+  it('es un diálogo modal accesible (role=dialog + aria-modal)', () => {
+    render(<Settings open onClose={() => {}} theme="paper" onSetTheme={() => {}} />)
+
+    const dialog = screen.getByRole('dialog', { name: 'Configuración' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+  })
+
   it('navega entre secciones, pasa tema y cierra por Escape/backdrop', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
@@ -72,7 +79,9 @@ describe('<Settings />', () => {
     expect(onSetTheme).toHaveBeenCalledWith('night')
 
     await user.click(screen.getByRole('button', { name: 'Cerrar configuración' }))
-    await user.keyboard('{Escape}')
+    // Escape lo intercepta useModalOverlay con un listener en `document`
+    // (fase de captura), por eso lo disparamos sobre `document`.
+    fireEvent.keyDown(document, { key: 'Escape' })
 
     expect(onClose).toHaveBeenCalledTimes(2)
   })

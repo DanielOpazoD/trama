@@ -40,23 +40,21 @@ export const MODAL_OVERLAY_EXEMPT = new Map([
     'Confirmación inline dentro de la barra role="toolbar": sustituye el header ' +
       'de la barra (sin backdrop ni overlay), no es un diálogo modal.',
   ],
+  [
+    'src/components/notas/pdfStudio/editor/PdfTextEditor.tsx',
+    'Modal estructural, pero su Escape es ESCALONADO (cancela edición -> ' +
+      'deselecciona -> cierra) vía usePdfTextEditorKeyboard; el Escape ' +
+      'incondicional de useModalOverlay lo rompería. Ya usa useFocusTrap propio.',
+  ],
 ])
 
 // Modales todavía hand-rolled, diferidos por riesgo. RATCHET: esta lista solo
 // puede ENCOGER. Migrar a useModalOverlay y removerlos de acá; nunca agregar.
 export const MODAL_OVERLAY_PENDING = new Map([
-  [
-    'src/components/Settings.tsx',
-    'Panel de ajustes con foco/scroll propios; migración diferida por riesgo.',
-  ],
-  [
-    'src/components/notas/pdfStudio/editor/PdfTextEditor.tsx',
-    'Editor de texto del PDF Studio con manejo propio; migración diferida por riesgo.',
-  ],
-  [
-    'src/components/notas/NotasWorld.tsx',
-    'Shell de NotasWorld con overlay propio; migración diferida por riesgo.',
-  ],
+  // Vacío: todos los modales hand-rolled migraron a useModalOverlay (Settings,
+  // el buscador embebido de NotasWorld) o se reclasificaron como EXEMPT
+  // (PdfTextEditor). El ratchet ahora exige el hook para todo role=dialog nuevo
+  // que no sea un EXEMPT justificado.
 ])
 
 // role="dialog" / role="alertdialog" con comillas simples o dobles. Hoy todos

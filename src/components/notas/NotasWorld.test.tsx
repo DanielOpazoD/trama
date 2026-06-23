@@ -143,6 +143,29 @@ describe('<NotasWorld />', () => {
     ).toBeInTheDocument()
   })
 
+  it('abre el buscador global como diálogo modal y lo cierra con Escape', async () => {
+    // El buscador global usa useModalOverlay: rol de diálogo + cierre por el
+    // stack de overlays (Escape). Antes el Escape era un listener propio; ahora
+    // lo delega al hook, que además atrapa el foco y restaura al cerrar.
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+
+    expect(screen.queryByRole('dialog', { name: 'Buscar en Notas' })).toBeNull()
+
+    // El trigger por defecto es el botón "Buscar…" del sidebar expandido; el
+    // diálogo (aria-label "Buscar en Notas") es lo que abre. El icon-button
+    // "Buscar en Notas" solo existe con el sidebar colapsado.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Buscar…' })[0]!)
+
+    const dialog = await screen.findByRole('dialog', { name: 'Buscar en Notas' })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Buscar en Notas' })).toBeNull(),
+    )
+  })
+
   it('precarga PDF Studio por intención sobre Imprenta sin montarlo al iniciar', async () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
 

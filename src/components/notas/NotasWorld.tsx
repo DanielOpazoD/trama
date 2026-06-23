@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
@@ -8,6 +8,7 @@ import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useClampedSection } from '../../hooks/useClampedSection'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useTheme } from '../../hooks/useTheme'
 import { LoadingHint } from '../LoadingHint'
 import { SectionPinGate } from '../SectionPinGate'
@@ -85,14 +86,13 @@ export function NotasWorld({
   // alguna sección oculta, evalúa `s.id === section` (TDZ si viene después).
   const visibleSections = SECTIONS.filter((s) => isVisible(s.id) || s.id === section)
 
-  useEffect(() => {
-    if (!searchOpen) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setSearchOpen(false)
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [searchOpen])
+  // El buscador global es un diálogo modal: foco atrapado en el panel, Escape
+  // por el stack de overlays (compone con nidos y restaura el foco) y
+  // scroll-lock del shell de fondo. Mismo patrón que el ⌘K del mundo principal.
+  const searchOverlay = useModalOverlay({
+    open: searchOpen,
+    onClose: () => setSearchOpen(false),
+  })
 
   const sendImagesToPdf = useCallback(
     async (recortes: Recorte[]) => {
@@ -242,16 +242,19 @@ export function NotasWorld({
         </div>
       </main>
 
-      {/* Buscador global — overlay abierto desde el chrome. */}
+      {/* Buscador global — diálogo modal abierto desde el chrome. El backdrop
+          cierra al clic; el panel atrapa el foco (useModalOverlay) y recaptura
+          el clic. */}
       {searchOpen && (
         <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Buscar en Notas"
           onClick={() => setSearchOpen(false)}
           className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh] bg-ink-900/20 backdrop-blur-sm"
         >
           <div
+            ref={searchOverlay.dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Buscar en Notas"
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-2xl rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-3 animate-fade-up"
           >
