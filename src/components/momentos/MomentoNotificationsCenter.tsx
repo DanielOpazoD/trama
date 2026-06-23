@@ -4,6 +4,7 @@ import type { MomentoShareInvitation } from '../../api/momentos'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { BellIcon } from '../Icons'
 import { MomentoShareInvitationCard } from './MomentoShareInvitationCard'
+import { CountBadge } from '../CountBadge'
 
 export function MomentoNotificationsCenter({
   invitations,
@@ -90,15 +91,11 @@ export function MomentoNotificationsCenter({
         title="Notificaciones"
       >
         <BellIcon size={14} />
-        {count > 0 && (
-          <span
-            className="absolute -right-1 -top-1 min-w-[14px] rounded-full px-1 text-center text-[9px] leading-[14px] text-paper-50"
-            style={{ backgroundColor: 'var(--accent-gold)' }}
-            aria-hidden
-          >
-            {count}
-          </span>
-        )}
+        <CountBadge
+          count={count}
+          className="absolute -right-1 -top-1 min-w-[14px] rounded-full px-1 text-center text-[9px] leading-[14px] text-paper-50"
+          style={{ backgroundColor: 'var(--accent-gold)' }}
+        />
       </button>
 
       {panel}

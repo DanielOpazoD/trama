@@ -12,6 +12,7 @@ import {
 } from '../Icons'
 import type { LibraryFileType, LibrarySource } from '../../types/biblioteca'
 import { FileTypeIcon } from './FileTypeIcon'
+import { CountBadge } from '../CountBadge'
 
 /**
  * Popover de filtros de la Biblioteca: un botón "Filtros" (con badge del número
@@ -133,14 +134,10 @@ export function FilterPopover({
         }`}
       >
         <FilterIcon size={16} />
-        {activeCount > 0 && (
-          <span
-            aria-hidden
-            className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-[10px] font-medium leading-none tabular-nums"
-          >
-            {activeCount}
-          </span>
-        )}
+        <CountBadge
+          count={activeCount}
+          className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full bg-ink-700 text-paper-50 text-[10px] font-medium leading-none tabular-nums"
+        />
       </button>
 
       {popover.open &&
