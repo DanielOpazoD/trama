@@ -27,10 +27,21 @@ import type { PdfDoc, PdfFormFieldDraft, PdfPage } from './modelTypes'
 const MIN = 0.018
 
 function page(id: string): PdfPage {
-  return { id, annotations: [], rotationQuarters: 0, kind: 'pdf', sourceId: 's', pageIndex: 0 }
+  return {
+    id,
+    annotations: [],
+    rotationQuarters: 0,
+    kind: 'pdf',
+    sourceId: 's',
+    pageIndex: 0,
+  }
 }
 
-function field(id: string, pageId: string, over: Partial<PdfFormFieldDraft> = {}): PdfFormFieldDraft {
+function field(
+  id: string,
+  pageId: string,
+  over: Partial<PdfFormFieldDraft> = {},
+): PdfFormFieldDraft {
   return {
     id,
     pageId,
@@ -47,7 +58,11 @@ function field(id: string, pageId: string, over: Partial<PdfFormFieldDraft> = {}
 
 function doc(pages: PdfPage[], formFields: PdfFormFieldDraft[] = []): PdfDoc {
   const file = new File([], 's.pdf', { type: 'application/pdf' })
-  return { sources: [{ id: 's', kind: 'pdf', file, pageCount: pages.length }], pages, formFields }
+  return {
+    sources: [{ id: 's', kind: 'pdf', file, pageCount: pages.length }],
+    pages,
+    formFields,
+  }
 }
 
 describe('normalización de caja (makePdfFormFieldDraft / resize / translate)', () => {

@@ -42,7 +42,12 @@ function source(id: string, pageCount = 3): PdfSource {
   }
 }
 
-function page(id: string, sourceId = 's1', pageIndex = 0, annotations: Annotation[] = []): PdfPage {
+function page(
+  id: string,
+  sourceId = 's1',
+  pageIndex = 0,
+  annotations: Annotation[] = [],
+): PdfPage {
   return { id, annotations, rotationQuarters: 0, kind: 'pdf', sourceId, pageIndex }
 }
 

@@ -133,7 +133,9 @@ export function HealthPanel() {
               />
               <div className="min-w-0 flex-1">
                 <div className="text-body font-medium leading-tight">{alert.label}</div>
-                <p className="mt-1 text-caption leading-relaxed opacity-80">{alert.hint}</p>
+                <p className="mt-1 text-caption leading-relaxed opacity-80">
+                  {alert.hint}
+                </p>
               </div>
             </li>
           ))}
