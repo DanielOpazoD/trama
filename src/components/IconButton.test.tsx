@@ -28,14 +28,17 @@ describe('<IconButton />', () => {
     expect(screen.getByRole('button')).toHaveAttribute('type', 'submit')
   })
 
-  it('trae un anillo de foco de teclado y conserva el className del call site', () => {
+  it('conserva el className del call site sin imponer un anillo de foco propio', () => {
     render(
       <IconButton label="X" className="absolute top-1 text-ink-300">
         i
       </IconButton>,
     )
     const btn = screen.getByRole('button')
-    expect(btn).toHaveClass('focus-visible:ring-2', 'absolute', 'top-1', 'text-ink-300')
+    expect(btn).toHaveClass('absolute', 'top-1', 'text-ink-300')
+    // No impone su propio focus-visible: usa el :focus-visible global de la app
+    // (evita un doble indicador sobre el outline global).
+    expect(btn.className).not.toMatch(/focus-visible|ring-/)
   })
 
   it('reenvía props nativas (onClick, disabled, title)', () => {
