@@ -1,5 +1,7 @@
 import { sqlTyped, type SqlClient } from '../db.js'
 import { copyRecorteImageToStore, removeBlob } from '../recorte-to-momento.js'
+import { logEvent } from '../observability.js'
+import { reclassifyRecorteToMomento } from './reclassify-media.js'
 
 /**
  * Álbum partido: WhatsApp/Twilio a veces parte un envío de varias fotos en
@@ -239,4 +241,128 @@ export async function joinRecortePhotosToMomento(
     for (const c of copied) await ops.remove('momentos-media', c.storageKey)
   }
   return total
+}
+
+/** Soft-delete de la captura reciente, inyectado por el orquestador (vive en el
+ *  webhook-endpoint). Se usa solo al promover un recorte reciente a Momento. */
+export type SoftDeleteCapture = (
+  sql: SqlClient,
+  userId: string,
+  kind: string,
+  id: string,
+) => Promise<boolean>
+
+/** Resultado de un intento de anexado de álbum partido. */
+export type AlbumAppendResult = {
+  /** Nuevo total de fotos del destino tras anexar, o `null` si no se anexó. */
+  appendedTotal: number | null
+  /** Id de la captura destino del anexado (si hubo anexado). */
+  lastId: string | null
+  /** Kind de la captura destino (`momento` | `recorte`). */
+  lastKind: string
+}
+
+/**
+ * Álbum partido: decide si las fotos nuevas de este mensaje se ANEXAN a la
+ * captura de media reciente del número y, si corresponde, ejecuta la rama
+ * adecuada (las 4 combinaciones route × kind reciente):
+ *
+ *  - route 'momento' + reciente momento → suma al episodio.
+ *  - route 'momento' + reciente recorte → sube TODO el recorte a Momento
+ *    (reclasifica + soft-borra) y suma las fotos nuevas al episodio.
+ *  - route 'recorte' + reciente recorte → suma al recorte-evento.
+ *  - route 'recorte' + reciente momento → copia las fotos cross-store y las
+ *    suma al episodio (copy → append → remove en {@link joinRecortePhotosToMomento}).
+ *
+ * Es MOVER el bloque inline del webhook a su hogar natural (este módulo ya tiene
+ * toda la infra de append). Devuelve `appendedTotal: null` cuando no se anexó
+ * (no hay captura reciente en ventana, o falló) → el orquestador cae a crear una
+ * captura nueva con las mismas fotos. Las claves `momentoKeys`/`recorteKeys` se
+ * vacían in-place cuando el anexado confirma (esas fotos ya no se persisten por
+ * separado), igual que en el código original. Best-effort: nunca lanza.
+ */
+export async function appendSplitAlbum(
+  sql: SqlClient,
+  userId: string,
+  recent: RecentMediaCapture,
+  args: {
+    route: 'momento' | 'recorte'
+    newImageCount: number
+    momentoKeys: string[]
+    momentoCapturedAts: Array<string | null>
+    recorteKeys: Array<{ key: string; mime: string; capturedAt?: string | null }>
+    softDeleteCapture: SoftDeleteCapture
+  },
+): Promise<AlbumAppendResult> {
+  const { route, newImageCount, momentoKeys, momentoCapturedAts, recorteKeys } = args
+  let appendedTotal: number | null = null
+  let lastId: string | null = null
+  let lastKind = ''
+  try {
+    if (route === 'momento') {
+      // Fotos nuevas ya en momentos-media (momentoKeys).
+      if (recent.kind === 'momento') {
+        appendedTotal = await appendImagesToMomento(sql, userId, recent.id, momentoKeys)
+        if (appendedTotal !== null) {
+          lastId = recent.id
+          lastKind = 'momento'
+        }
+      } else {
+        // El lote reciente era un recorte y esta foto dice "a momento":
+        // subimos TODO el álbum a un momento (reclasificación) y anexamos.
+        const res = await reclassifyRecorteToMomento(sql, userId, recent.id, '')
+        if (res.status === 'ok') {
+          await args.softDeleteCapture(sql, userId, 'recorte', recent.id)
+          appendedTotal = await appendImagesToMomento(sql, userId, res.id, momentoKeys)
+          if (appendedTotal !== null) {
+            lastId = res.id
+            lastKind = 'momento'
+          }
+        }
+      }
+    } else {
+      if (recent.kind === 'recorte') {
+        appendedTotal = await appendImagesToRecorteEvent(
+          sql,
+          userId,
+          recent.id,
+          recorteKeys,
+        )
+        if (appendedTotal !== null) {
+          lastId = recent.id
+          lastKind = 'recorte'
+        }
+      } else {
+        // La danza cross-store vive en el helper: copy → append → remove.
+        appendedTotal = await joinRecortePhotosToMomento(
+          sql,
+          userId,
+          recent.id,
+          recorteKeys,
+        )
+        if (appendedTotal !== null) {
+          lastId = recent.id
+          lastKind = 'momento'
+        }
+      }
+    }
+  } catch (err) {
+    logEvent({
+      event: 'whatsapp_media_failed',
+      message: err instanceof Error ? err.message : String(err),
+    })
+    appendedTotal = null
+  }
+  if (appendedTotal !== null) {
+    momentoKeys.length = 0
+    momentoCapturedAts.length = 0
+    recorteKeys.length = 0
+    logEvent({
+      event: 'whatsapp_album_append',
+      kind: lastKind,
+      count: newImageCount,
+      total: appendedTotal,
+    })
+  }
+  return { appendedTotal, lastId, lastKind }
 }
