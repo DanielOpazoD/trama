@@ -204,7 +204,8 @@ export async function runQueryPlanCheck({ dbUrl = DB_URL } = {}) {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 if (isMain) {
   runQueryPlanCheck().catch((err) => {
-    console.error(err instanceof Error ? err.message : String(err))
+    const message = err instanceof Error && err.message ? err.message : String(err)
+    console.error(`check:query-plans failed for ${DB_URL}: ${message}`)
     process.exitCode = 1
   })
 }
