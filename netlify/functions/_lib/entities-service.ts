@@ -147,7 +147,7 @@ export function clampEntityLimit(limitParam: string | null): number {
 }
 
 /** Fila cruda del SELECT de dup-detection (snake_case + distancia coseno). */
-export type DuplicateRow = {
+export type DupRow = {
   id: string
   name: string
   type: string
@@ -170,7 +170,7 @@ export type DuplicateSuggestion = {
  * en [0,1] vía `1 - distance/2`, clampeada por seguridad. PURO — la query y el
  * 409 los maneja el handler.
  */
-export function buildDuplicateSuggestions(rows: DuplicateRow[]): DuplicateSuggestion[] {
+export function buildDuplicateSuggestions(rows: DupRow[]): DuplicateSuggestion[] {
   return rows.map((row) => ({
     id: row.id,
     name: row.name,

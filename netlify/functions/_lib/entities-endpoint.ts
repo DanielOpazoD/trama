@@ -15,7 +15,7 @@ import {
   clampEntityLimit,
   parseEntityCursor,
   shouldReembedEntity,
-  type DuplicateRow,
+  type DupRow,
 } from './entities-service.js'
 
 // Shape devuelto por los SELECT/RETURNING de entidades (snake_case, raw).
@@ -144,7 +144,7 @@ export default withObservability(
       const url = new URL(req.url)
       const force = url.searchParams.get('force') === 'true'
       if (emb && !force) {
-        const dupRows = await sqlTyped<DuplicateRow>(sql`
+        const dupRows = await sqlTyped<DupRow>(sql`
         SELECT id, name, type, description,
                (embedding <=> ${toPgVector(emb.vector)}::vector) AS distance
         FROM entities
