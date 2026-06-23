@@ -401,6 +401,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Smoke E2E multiusuario env-gated para rutas y aislamiento.',
   },
   {
+    file: 'scripts/run-query-integration-local.mjs',
+    domain: 'database',
+    kind: 'runner',
+    critical: false,
+    packageScripts: ['test:query-it:local'],
+    summary:
+      'Ejecuta query.integration contra Postgres real local sin permitir skips por falta de QUERY_IT_DB_URL.',
+  },
+  {
     file: 'scripts/run-vitest.mjs',
     domain: 'test',
     kind: 'runner',
