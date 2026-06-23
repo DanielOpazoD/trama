@@ -79,7 +79,7 @@ export function ToastHost() {
       className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-up pointer-events-none"
     >
       <div className={`toast-surface ${toneClass}`} style={achievementStyle}>
-        <span className="text-sm leading-snug flex-1">{current.message}</span>
+        <span className="text-body leading-snug flex-1">{current.message}</span>
         {current.action && (
           <button
             onClick={async () => {

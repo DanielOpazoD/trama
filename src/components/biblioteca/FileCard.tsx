@@ -87,7 +87,7 @@ export function FileCard({
       {/* Nombre — 2 líneas con elipsis. `pl-7` deja aire para el círculo de
           selección y `pr-8` para las acciones. */}
       <h3
-        className="text-sm font-medium text-ink-700 leading-snug line-clamp-2 pl-7 pr-8"
+        className="text-body font-medium text-ink-700 leading-snug line-clamp-2 pl-7 pr-8"
         title={item.title}
       >
         {item.title}

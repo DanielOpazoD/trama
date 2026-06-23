@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
+import { CountBadge } from '../CountBadge'
 
 const ACCENT = 'var(--accent-sage)'
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
@@ -178,15 +179,11 @@ export function ActivityCalendar({
               >
                 {c.day}
                 {/* Contador en la esquina: cuántas notas/tareas hay ese día. */}
-                {c.count > 0 && (
-                  <span
-                    aria-hidden
-                    className="absolute -top-0.5 -right-0.5 min-w-[13px] h-[13px] px-0.5 inline-flex items-center justify-center rounded-full text-[8px] font-semibold leading-none text-paper-50"
-                    style={{ backgroundColor: ACCENT }}
-                  >
-                    {c.count}
-                  </span>
-                )}
+                <CountBadge
+                  count={c.count}
+                  className="absolute -top-0.5 -right-0.5 min-w-[13px] h-[13px] px-0.5 inline-flex items-center justify-center rounded-full text-[8px] font-semibold leading-none text-paper-50"
+                  style={{ backgroundColor: ACCENT }}
+                />
               </button>
             )
           })}

@@ -44,7 +44,7 @@ export function HilosSueltos({
   return (
     <section aria-label="Hilos sueltos">
       <h3 className="section-eyebrow mb-1.5">hilos sueltos</h3>
-      <p className="text-xs text-ink-400 leading-relaxed mb-3">
+      <p className="text-caption text-ink-400 leading-relaxed mb-3">
         Entidades que aún no se cruzan con nada. Abre una y teje su primera relación.
       </p>
       <ul className="flex flex-wrap gap-2">

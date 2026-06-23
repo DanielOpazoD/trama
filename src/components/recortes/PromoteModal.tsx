@@ -211,15 +211,16 @@ export function PromoteModal({
         </header>
 
         <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
-          <label className="block text-caption text-ink-700">
+          <label htmlFor="promote-text" className="block text-caption text-ink-700">
             {target === 'momento' && isImageCaptura ? 'Pie de foto (opcional)' : 'Texto'}
             <textarea
+              id="promote-text"
               ref={textRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={busy}
               rows={5}
-              className="input-paper mt-1 block w-full resize-none rounded-md border border-ink-200 px-2.5 py-2 font-serif text-sm leading-relaxed"
+              className="input-paper mt-1 block w-full resize-none rounded-md border border-ink-200 px-2.5 py-2 font-serif text-body leading-relaxed"
             />
           </label>
 
@@ -236,9 +237,10 @@ export function PromoteModal({
                   />
                 </div>
               </label>
-              <label className="block text-caption text-ink-700">
+              <label htmlFor="promote-source" className="block text-caption text-ink-700">
                 Fuente
                 <input
+                  id="promote-source"
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
                   disabled={busy}
@@ -250,18 +252,20 @@ export function PromoteModal({
 
           {target === 'entity' && (
             <>
-              <label className="block text-caption text-ink-700">
+              <label htmlFor="promote-name" className="block text-caption text-ink-700">
                 Nombre
                 <input
+                  id="promote-name"
                   value={entityName}
                   onChange={(e) => setEntityName(e.target.value)}
                   disabled={busy}
                   className="input-paper mt-1 block h-9 w-full rounded-md border border-ink-200 px-2.5 font-serif text-sm"
                 />
               </label>
-              <label className="block text-caption text-ink-700">
+              <label htmlFor="promote-type" className="block text-caption text-ink-700">
                 Tipo
                 <select
+                  id="promote-type"
                   value={entityType}
                   onChange={(e) => setEntityType(e.target.value)}
                   disabled={busy}

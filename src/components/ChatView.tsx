@@ -222,12 +222,12 @@ export function ChatView({
               <SkeletonList count={5} Component={ThreadRowSkeleton} />
             </div>
           ) : threads.length === 0 ? (
-            <p className="px-4 py-6 text-ink-400 italic text-sm leading-relaxed">
+            <p className="px-4 py-6 text-ink-400 italic text-body leading-relaxed">
               Aún sin conversaciones. Empieza una arriba o pregunta algo abajo y la IA
               usará tu trama como contexto.
             </p>
           ) : visibleThreads.length === 0 ? (
-            <p className="px-4 py-6 text-ink-300 italic text-sm leading-relaxed">
+            <p className="px-4 py-6 text-ink-300 italic text-body leading-relaxed">
               Sin hilos en esta sección.
             </p>
           ) : (
@@ -298,7 +298,7 @@ export function ChatView({
               específico. Si no hay hilo activo, el EmptyChatHint del
               cuerpo explica. */}
           {activeThread && (
-            <p className="mt-1.5 text-xs text-ink-400 leading-relaxed">
+            <p className="mt-1.5 text-caption text-ink-400 leading-relaxed">
               {threadSubtitle(activeThread.context)}
             </p>
           )}
@@ -363,9 +363,10 @@ export function ChatView({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="pregúntale a la IA sobre tu trama, sus temas, las personas que la habitan…"
+            aria-label="Mensaje"
             rows={1}
             disabled={sendPending}
-            className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-xl px-3 py-2 text-sm text-ink-700 placeholder:text-ink-300 focus:border-ink-200 leading-relaxed transition-colors"
+            className="flex-1 resize-none bg-paper-100/40 border border-ink-100/60 rounded-xl px-3 py-2 text-body text-ink-700 placeholder:text-ink-300 focus:border-ink-200 leading-relaxed transition-colors"
           />
           <button
             type="submit"

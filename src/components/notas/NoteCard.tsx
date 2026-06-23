@@ -383,6 +383,7 @@ export function NoteCard({
         accept="image/*"
         multiple
         className="hidden"
+        aria-label="Agregar fotos"
         onChange={(e) => addPhotos(e.target.files)}
       />
 

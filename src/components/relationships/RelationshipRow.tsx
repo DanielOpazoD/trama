@@ -89,7 +89,7 @@ function RelationshipRowInternal({
         </button>
       </div>
       {rel.notes && (
-        <p className="mt-1 text-sm text-ink-400 leading-relaxed">{rel.notes}</p>
+        <p className="mt-1 text-body text-ink-400 leading-relaxed">{rel.notes}</p>
       )}
     </div>
   )

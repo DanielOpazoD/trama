@@ -209,7 +209,7 @@ export function RelationshipsView({
         </div>
       )}
       {emptyHint && !suggest.isPending && (
-        <div className="mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 bg-paper-100/60 border border-ink-100/60 rounded-lg text-xs text-ink-500 leading-snug">
+        <div className="mb-6 flex items-start gap-2 pl-3 pr-1.5 py-2 bg-paper-100/60 border border-ink-100/60 rounded-lg text-caption text-ink-500 leading-snug">
           <span className="flex-1">{emptyHint}</span>
           <button
             onClick={() => setEmptyHint(null)}
@@ -251,6 +251,7 @@ export function RelationshipsView({
                 <select
                   value={type}
                   onChange={(event) => setType(event.target.value as RelationshipType)}
+                  aria-label="Tipo de relación"
                   className="input-paper"
                 >
                   {RELATIONSHIP_TYPES.map((relType) => (
@@ -274,6 +275,7 @@ export function RelationshipsView({
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Nota sobre la relación (opcional)"
+                aria-label="Nota sobre la relación"
                 className="input-paper w-full"
               />
               <button

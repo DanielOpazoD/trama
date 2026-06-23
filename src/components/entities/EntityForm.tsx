@@ -171,6 +171,7 @@ export function EntityForm({
           placeholder="Nombre"
           className="input-paper flex-1"
           autoFocus
+          aria-label="Nombre"
           aria-describedby={
             proactiveMatches.length > 0 ? 'dup-proactive-hint' : undefined
           }
@@ -179,6 +180,7 @@ export function EntityForm({
           value={type}
           onChange={(event) => setType(event.target.value as EntityType)}
           className="input-paper"
+          aria-label="Tipo"
         >
           {ENTITY_TYPES.map((entityType) => (
             <option key={entityType.value} value={entityType.value}>
@@ -192,6 +194,7 @@ export function EntityForm({
           onChange={(event) => setYear(event.target.value)}
           placeholder="Año"
           className="input-paper w-full sm:w-24"
+          aria-label="Año"
         />
       </div>
 
@@ -231,6 +234,7 @@ export function EntityForm({
         placeholder="Nota o descripción (opcional)"
         rows={2}
         className="input-paper w-full resize-none"
+        aria-label="Nota o descripción"
       />
       <div className="flex items-center justify-end gap-3 pt-1">
         <button
@@ -258,7 +262,7 @@ export function EntityForm({
           >
             ¿es la misma entidad?
           </p>
-          <p className="text-xs text-ink-500 mb-2 leading-relaxed">
+          <p className="text-caption text-ink-500 mb-2 leading-relaxed">
             Ya tienes una entidad muy parecida. Si es la misma, mejor quédate con la
             existente:
           </p>

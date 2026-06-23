@@ -307,11 +307,13 @@ export function ClavesView({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Nombre de la clave"
+            aria-label="Nombre de la clave"
             className="input-paper w-full text-sm"
           />
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as SecretKind)}
+            aria-label="Tipo de clave"
             className="input-paper w-full text-sm"
           >
             {SECRET_KINDS.map((k) => (
@@ -326,6 +328,7 @@ export function ClavesView({
           onChange={(e) => setSecret(e.target.value)}
           placeholder="Valor secreto"
           type="password"
+          aria-label="Valor secreto"
           className="input-paper w-full text-sm mb-2"
         />
         <div className="grid sm:grid-cols-[1fr_1fr_160px_auto] gap-2 items-center">
@@ -333,18 +336,21 @@ export function ClavesView({
             value={service}
             onChange={(e) => setService(e.target.value)}
             placeholder="Servicio o cuenta"
+            aria-label="Servicio o cuenta"
             className="input-paper w-full text-sm"
           />
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Usuario o identificador"
+            aria-label="Usuario o identificador"
             className="input-paper w-full text-sm"
           />
           <input
             type="date"
             value={expiresAt}
             onChange={(e) => setExpiresAt(e.target.value)}
+            aria-label="Fecha de vencimiento"
             className="input-paper w-full text-sm"
           />
           <label className="inline-flex items-center gap-2 text-micro uppercase tracking-eyebrow text-ink-400">
@@ -361,7 +367,8 @@ export function ClavesView({
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
           placeholder="Notas privadas"
-          className="input-paper mt-2 w-full resize-y text-sm leading-relaxed"
+          aria-label="Notas privadas"
+          className="input-paper mt-2 w-full resize-y text-body leading-relaxed"
         />
         <div className="mt-2 flex justify-end">
           <button

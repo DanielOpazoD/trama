@@ -128,6 +128,7 @@ export function WorkspaceTemplateCard({
             }
             onConfirmRename()
           }}
+          aria-label={`Nombre de la plantilla ${saved.name}`}
           className="input-paper flex-1 min-w-0 text-caption px-1.5 py-0.5 rounded border border-ink-200"
         />
       ) : (

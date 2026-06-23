@@ -351,6 +351,7 @@ export function BibliotecaView({
               type="file"
               multiple
               accept="image/*,video/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/msword,application/vnd.ms-excel,application/vnd.ms-powerpoint,text/*,application/json"
+              aria-label="Subir archivos"
               className="sr-only"
               onChange={(e) => {
                 void handleFilesSelected(e.target.files)

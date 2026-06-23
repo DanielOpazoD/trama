@@ -71,8 +71,9 @@ export function FormFieldInspector({
       )}
 
       <div className="mt-2 grid gap-1.5 text-caption text-ink-600">
-        <label className="flex items-center gap-2">
+        <label htmlFor="form-field-required" className="flex items-center gap-2">
           <input
+            id="form-field-required"
             type="checkbox"
             checked={field.required ?? false}
             onChange={(event) => onPatch({ required: event.currentTarget.checked })}
@@ -80,8 +81,9 @@ export function FormFieldInspector({
           />
           Requerido
         </label>
-        <label className="flex items-center gap-2">
+        <label htmlFor="form-field-read-only" className="flex items-center gap-2">
           <input
+            id="form-field-read-only"
             type="checkbox"
             checked={field.readOnly ?? false}
             onChange={(event) => onPatch({ readOnly: event.currentTarget.checked })}

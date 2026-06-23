@@ -30,12 +30,14 @@ export function PromptComposer({
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="Título del prompt"
+          aria-label="Título del prompt"
           className="input-paper w-full text-sm"
         />
         <input
           value={collection}
           onChange={(e) => onCollectionChange(e.target.value)}
           placeholder="Colección"
+          aria-label="Colección"
           className="input-paper w-full text-sm"
         />
       </div>
@@ -44,7 +46,8 @@ export function PromptComposer({
         onChange={(e) => onContentChange(e.target.value)}
         rows={5}
         placeholder="Escribe el prompt..."
-        className="input-paper w-full resize-y text-sm leading-relaxed"
+        aria-label="Contenido del prompt"
+        className="input-paper w-full resize-y text-body leading-relaxed"
       />
       <PendingAttachmentsInput
         files={pendingFiles}

@@ -164,7 +164,7 @@ function Constellation({
         </span>
       </div>
       {cluster.summary && (
-        <p className="mb-4 text-sm text-ink-400 italic leading-relaxed max-w-2xl">
+        <p className="mb-4 text-body text-ink-400 italic leading-relaxed max-w-2xl">
           {cluster.summary}
         </p>
       )}

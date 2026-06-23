@@ -167,7 +167,7 @@ export function ProactiveView() {
                 <SuggestionBody suggestion={s} />
 
                 {s.payload.reason && (
-                  <p className="mt-2 text-xs text-ink-400 leading-relaxed italic">
+                  <p className="mt-2 text-caption text-ink-400 leading-relaxed italic">
                     {s.payload.reason}
                   </p>
                 )}
@@ -229,7 +229,7 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
   const p = suggestion.payload
   if (suggestion.kind === 'relationship') {
     return (
-      <p className="text-sm text-ink-700 leading-relaxed">
+      <p className="text-body text-ink-700 leading-relaxed">
         <span>{p.fromName}</span>
         <span className="mx-2 text-micro uppercase tracking-eyebrow text-ink-300">
           {relTypeLabel(p.type)}
@@ -240,7 +240,7 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
   }
   if (suggestion.kind === 'reclassification') {
     return (
-      <p className="text-sm text-ink-700 leading-relaxed">
+      <p className="text-body text-ink-700 leading-relaxed">
         <span>{p.name}</span>
         <span className="ml-2 section-eyebrow line-through decoration-ink-300/60">
           {entityTypeLabel(p.oldType)}
@@ -254,7 +254,7 @@ function SuggestionBody({ suggestion }: { suggestion: ProactiveSuggestion }) {
   }
   if (suggestion.kind === 'description') {
     return (
-      <div className="text-sm leading-relaxed">
+      <div className="text-body leading-relaxed">
         <span className="text-ink-700">{p.name}</span>
         <span className="ml-2 text-micro uppercase tracking-eyebrow text-ink-300">
           añadir descripción

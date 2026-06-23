@@ -118,7 +118,8 @@ function MonthNoteField({
           onBlur={persist}
           rows={2}
           placeholder="Recordatorios o notas globales del mes…"
-          className="w-full resize-none bg-transparent text-sm text-ink-700 placeholder:text-ink-300 leading-relaxed"
+          aria-label="Notas del mes"
+          className="w-full resize-none bg-transparent text-body text-ink-700 placeholder:text-ink-300 leading-relaxed"
         />
       )}
       {save.isPending && (

@@ -8,6 +8,7 @@ import type { ViewMode } from '../types/view'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
 import { MOBILE_PRIMARY_ITEMS, MOBILE_MORE_VIEWS } from '../lib/navigation'
 import { MobileMoreSheet } from './MobileMoreSheet'
+import { CountBadge } from './CountBadge'
 
 /**
  * Barra de navegación principal en móvil. Reemplaza al Sidebar cuando el
@@ -86,15 +87,11 @@ export function MobileBottomNav({
                 >
                   <span className="relative">
                     <Icon size={18} />
-                    {noticeCount > 0 && (
-                      <span
-                        aria-hidden
-                        className="absolute -right-1 -top-1 min-w-[14px] rounded-full px-1 text-center text-[9px] leading-[14px] text-paper-50"
-                        style={{ backgroundColor: 'var(--accent-gold)' }}
-                      >
-                        {noticeCount}
-                      </span>
-                    )}
+                    <CountBadge
+                      count={noticeCount}
+                      className="absolute -right-1 -top-1 min-w-[14px] rounded-full px-1 text-center text-[9px] leading-[14px] text-paper-50"
+                      style={{ backgroundColor: 'var(--accent-gold)' }}
+                    />
                   </span>
                   <span
                     className="text-micro leading-tight tracking-tight font-medium truncate max-w-full px-1"

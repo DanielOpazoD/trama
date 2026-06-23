@@ -119,9 +119,13 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
             nueva invitación
           </p>
           <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto]">
-            <label className="block text-micro uppercase tracking-eyebrow text-ink-400">
+            <label
+              htmlFor="share-email"
+              className="block text-micro uppercase tracking-eyebrow text-ink-400"
+            >
               correo
               <input
+                id="share-email"
                 type="email"
                 required
                 value={email}

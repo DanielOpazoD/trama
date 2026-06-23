@@ -422,6 +422,7 @@ function WeekComposer({
           }
         }}
         placeholder="Agregar recordatorio…"
+        aria-label="Nuevo recordatorio"
         className="flex-1 min-w-0 bg-transparent text-ink-700 placeholder:text-ink-300 py-0.5"
       />
       {title.trim() && (

@@ -144,7 +144,7 @@ export function QuoteCard({
     <li className="group border-l-2 border-ink-200/70 pl-3">
       <blockquote
         onDoubleClick={startFullEdit}
-        className="font-serif text-ink-600 italic leading-relaxed text-sm cursor-text select-text"
+        className="font-serif text-ink-600 italic leading-relaxed text-body cursor-text select-text"
         title="Doble click para editar"
       >
         «{quote.text}»
@@ -239,6 +239,7 @@ export function QuoteCard({
             value={userReflDraft}
             onChange={(e) => setUserReflDraft(e.target.value)}
             placeholder="tu reflexión sobre esta cita…"
+            aria-label="Tu reflexión sobre esta cita"
             rows={3}
             className="input-paper w-full resize-none text-sm"
             autoFocus
@@ -310,7 +311,7 @@ export function QuoteCard({
             )}
           </button>
           {aiReflOpen && (
-            <p className="text-ink-500 text-sm leading-relaxed mt-0.5 whitespace-pre-wrap animate-fade-up">
+            <p className="text-ink-500 text-body leading-relaxed mt-0.5 whitespace-pre-wrap animate-fade-up">
               {quote.aiReflection}
             </p>
           )}
@@ -331,7 +332,7 @@ export function QuoteCard({
               propuesta de la IA
             </span>
           </div>
-          <p className="text-ink-600 text-sm leading-relaxed whitespace-pre-wrap">
+          <p className="text-ink-600 text-body leading-relaxed whitespace-pre-wrap">
             {pendingAi.text}
           </p>
           <div className="mt-2 flex items-center justify-end gap-2">

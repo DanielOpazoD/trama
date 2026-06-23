@@ -88,7 +88,7 @@ export function Splash() {
         {/* Saludo según hora — primera impresión personalizada. Color
             gold para anclar con el wash radial del fondo. */}
         <p
-          className="font-serif italic text-sm leading-none mark-thread"
+          className="font-serif italic text-body leading-none mark-thread"
           style={{ color: 'var(--accent-gold)' }}
         >
           {greetingForSplash()}
@@ -108,7 +108,7 @@ export function Splash() {
           <OrnamentBreak size={56} />
         </div>
 
-        <p className="mark-thread font-serif italic text-sm text-ink-400 leading-snug">
+        <p className="mark-thread font-serif italic text-body text-ink-400 leading-snug">
           {aphorism}
         </p>
       </div>

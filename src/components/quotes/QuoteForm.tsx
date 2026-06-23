@@ -63,6 +63,7 @@ export function QuoteForm({ entities }: { entities: Entity[] }) {
         value={entityId}
         onChange={(event) => setEntityId(event.target.value)}
         className="input-paper w-full"
+        aria-label="Atribución"
       >
         <option value="">— elige a quién pertenece —</option>
         {entities.map((entity) => (
@@ -77,6 +78,7 @@ export function QuoteForm({ entities }: { entities: Entity[] }) {
         placeholder="La cita"
         rows={4}
         className="input-paper w-full resize-none"
+        aria-label="Cita"
       />
       <input
         type="text"
@@ -84,6 +86,7 @@ export function QuoteForm({ entities }: { entities: Entity[] }) {
         onChange={(event) => setSource(event.target.value)}
         placeholder="Fuente (libro, página, año — opcional)"
         className="input-paper w-full"
+        aria-label="Fuente"
       />
       <textarea
         value={context}
@@ -91,6 +94,7 @@ export function QuoteForm({ entities }: { entities: Entity[] }) {
         placeholder="Contexto de la cita (de qué habla, dónde aparece — opcional)"
         rows={2}
         className="input-paper w-full resize-none"
+        aria-label="Contexto"
       />
       <textarea
         value={userReflection}
@@ -98,6 +102,7 @@ export function QuoteForm({ entities }: { entities: Entity[] }) {
         placeholder="Tu reflexión propia (qué viste en esto, por qué la guardas — opcional)"
         rows={2}
         className="input-paper w-full resize-none"
+        aria-label="Reflexión"
       />
       <button type="submit" disabled={addQuote.isPending} className="btn-accent">
         {addQuote.isPending ? 'Añadiendo…' : 'Añadir'}

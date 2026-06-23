@@ -51,6 +51,7 @@ export function PdfStudioDocumentControls({
         type="file"
         accept={ACCEPT}
         multiple
+        aria-label="Archivo PDF o imagen"
         className="sr-only"
         onChange={onFileInput}
       />

@@ -60,6 +60,7 @@ export function NotaEditModal({
           value={bodyText}
           onChange={(e) => setBodyText(e.target.value)}
           placeholder="Una observación, una idea, un recuerdo del día…"
+          aria-label="Nota del día"
           rows={6}
           className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={updateMomento.isPending}

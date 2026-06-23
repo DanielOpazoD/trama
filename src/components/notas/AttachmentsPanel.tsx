@@ -88,6 +88,7 @@ export function AttachmentsPanel({
             ref={inputRef}
             type="file"
             className="sr-only"
+            aria-label="Subir anexo"
             onChange={(e) => onFiles(e.target.files)}
           />
         </label>

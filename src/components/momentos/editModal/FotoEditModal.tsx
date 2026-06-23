@@ -310,6 +310,7 @@ export function FotoEditModal({
             type="file"
             multiple
             accept="image/jpeg,image/png,image/webp,image/gif"
+            aria-label="Agregar fotos"
             className="sr-only"
             onChange={(e) => {
               const files = Array.from(e.target.files ?? [])
@@ -356,6 +357,7 @@ export function FotoEditModal({
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           placeholder="Título del episodio (opcional)"
+          aria-label="Título del episodio"
           className="input-paper w-full font-serif text-lead leading-relaxed placeholder:italic"
           disabled={uploading || updateMomento.isPending}
         />
@@ -363,6 +365,7 @@ export function FotoEditModal({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Tu nota sobre el momento (opcional)"
+          aria-label="Nota del momento"
           rows={3}
           className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={uploading || updateMomento.isPending}

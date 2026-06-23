@@ -263,6 +263,7 @@ export function AskBar({
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
+            aria-label="Subir imagen"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0]
@@ -276,12 +277,13 @@ export function AskBar({
             onChange={(event) => setText(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholderForView(view)}
+            aria-label="Mensaje"
             rows={1}
             disabled={ask.isPending || busy || imageBusy}
             // ι3: font-serif para que el input se sienta como escribir
             // en un cuaderno, no en un form. El placeholder también
             // se beneficia (italic implícito en Spectral).
-            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 placeholder:italic leading-relaxed font-serif text-base"
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 placeholder:italic leading-relaxed font-serif text-lead"
           />
           <button
             type="submit"

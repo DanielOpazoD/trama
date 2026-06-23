@@ -183,18 +183,26 @@ export function PdfTemplateFillVariablesPanel({
         </p>
       ) : null}
       <div className="mt-2 grid grid-cols-2 gap-1.5">
-        <label className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600">
+        <label
+          htmlFor="template-fill-show-guides"
+          className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600"
+        >
           <span>Ver campos</span>
           <input
+            id="template-fill-show-guides"
             type="checkbox"
             checked={showFieldGuides}
             onChange={(event) => onShowFieldGuidesChange(event.currentTarget.checked)}
             className="h-4 w-4 accent-[color:var(--accent-sage)]"
           />
         </label>
-        <label className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600">
+        <label
+          htmlFor="template-fill-pending-only"
+          className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1.5 text-caption text-ink-600"
+        >
           <span>Solo pendientes</span>
           <input
+            id="template-fill-pending-only"
             type="checkbox"
             checked={showPendingOnly}
             onChange={(event) => onShowPendingOnlyChange(event.currentTarget.checked)}

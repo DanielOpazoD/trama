@@ -102,6 +102,7 @@ export function VaultGate({
                 if (e.key === 'Enter') void submit()
               }}
               placeholder="Clave de acceso"
+              aria-label="Clave de acceso"
               className="input-paper w-full text-sm"
             />
             {!hasVault && (
@@ -113,6 +114,7 @@ export function VaultGate({
                   if (e.key === 'Enter') void submit()
                 }}
                 placeholder="Confirmar clave"
+                aria-label="Confirmar clave"
                 className="input-paper w-full text-sm"
               />
             )}
@@ -139,6 +141,7 @@ export function VaultGate({
                     if (e.key === 'Enter') void submit()
                   }}
                   placeholder="Llave física"
+                  aria-label="Valor de la llave física"
                   className="input-paper w-full text-sm font-mono tracking-wider"
                 />
                 {!hasVault && (
@@ -239,11 +242,13 @@ export function SecretCard({
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
+            aria-label="Nombre de la clave"
             className="input-paper w-full text-sm"
           />
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value as SecretKind)}
+            aria-label="Tipo de clave"
             className="input-paper w-full text-sm"
           >
             {SECRET_KINDS.map((k) => (
@@ -258,18 +263,21 @@ export function SecretCard({
             value={service}
             onChange={(e) => setService(e.target.value)}
             placeholder="Servicio o cuenta"
+            aria-label="Servicio o cuenta"
             className="input-paper w-full text-sm"
           />
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Usuario o identificador"
+            aria-label="Usuario o identificador"
             className="input-paper w-full text-sm"
           />
           <input
             type="date"
             value={expiresAt}
             onChange={(e) => setExpiresAt(e.target.value)}
+            aria-label="Fecha de vencimiento"
             className="input-paper w-full text-sm"
           />
           <label className="inline-flex items-center gap-2 text-micro uppercase tracking-eyebrow text-ink-400">
@@ -286,7 +294,8 @@ export function SecretCard({
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
           placeholder="Notas privadas"
-          className="input-paper mt-2 w-full resize-y text-sm leading-relaxed"
+          aria-label="Notas privadas"
+          className="input-paper mt-2 w-full resize-y text-body leading-relaxed"
         />
         <div className="mt-3 flex justify-end gap-2">
           <button

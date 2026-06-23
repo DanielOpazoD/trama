@@ -80,8 +80,12 @@ export function DocSettingsMenu({
         >
           {/* Numeración de páginas */}
           <div className="space-y-1.5">
-            <label className="flex items-center gap-2 text-caption text-ink-700">
+            <label
+              htmlFor="pdf-page-numbers"
+              className="flex items-center gap-2 text-caption text-ink-700"
+            >
               <input
+                id="pdf-page-numbers"
                 type="checkbox"
                 checked={!!pn}
                 onChange={(e) =>

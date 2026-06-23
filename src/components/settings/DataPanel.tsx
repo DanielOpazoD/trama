@@ -220,6 +220,7 @@ export function DataPanel() {
         type="file"
         accept="application/json"
         onChange={handleFileChange}
+        aria-label="Importar archivo JSON"
         className="hidden"
       />
 

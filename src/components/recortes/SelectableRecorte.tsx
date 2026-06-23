@@ -60,7 +60,7 @@ export function SelectableRecorte({
         aria-hidden
       >
         {selected && (
-          <span className="text-xs font-bold leading-none text-paper-50">✓</span>
+          <span className="text-caption font-bold leading-none text-paper-50">✓</span>
         )}
       </div>
       <div className="pointer-events-none opacity-90">{children}</div>

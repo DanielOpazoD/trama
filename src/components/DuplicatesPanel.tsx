@@ -102,6 +102,7 @@ export function DuplicatesPanel({
                       type="radio"
                       checked={keepId === e.id}
                       onChange={() => setKeepers((m) => new Map(m).set(g, e.id))}
+                      aria-label={`Conservar ${e.name}`}
                     />
                     <span className="text-ink-700">{e.name}</span>
                     <span

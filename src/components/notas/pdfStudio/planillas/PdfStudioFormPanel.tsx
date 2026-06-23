@@ -77,6 +77,7 @@ export function PdfStudioFormPanel({
                       <label key={field.name} className="flex items-center gap-2">
                         <input
                           type="checkbox"
+                          aria-label={field.name}
                           checked={value === true}
                           onChange={(event) =>
                             onChange(

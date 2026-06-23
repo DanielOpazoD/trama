@@ -141,6 +141,9 @@ jobs:
       - name: Modal overlay adoption check
         run: npm run check:modal-overlay
 
+      - name: Form control labels check
+        run: npm run check:form-control-labels
+
       - name: PDF runtime boundaries check
         run: npm run check:pdf-runtime-boundaries
 

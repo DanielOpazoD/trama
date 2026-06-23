@@ -65,6 +65,7 @@ export function PlaylistImporter({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder="https://open.spotify.com/playlist/…"
+              aria-label="URL de la playlist"
               className="input-paper flex-1 text-sm"
               disabled={isPending}
               autoFocus

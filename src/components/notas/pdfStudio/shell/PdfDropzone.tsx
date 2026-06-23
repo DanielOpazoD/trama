@@ -40,7 +40,7 @@ export function PdfDropzone({
         <span className="font-serif text-2xl italic leading-tight text-ink-600">
           {title}
         </span>
-        <span className="text-sm text-ink-400 leading-relaxed">{subtitle}</span>
+        <span className="text-body text-ink-400 leading-relaxed">{subtitle}</span>
       </span>
       <span className="mt-1 flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-400">
         {['PDF', 'JPG', 'PNG'].map((t) => (

@@ -165,7 +165,7 @@ function TabsStrip({ tabs }: { tabs: NonNullable<TopBarTabsProp> }) {
             role="tab"
             aria-selected={active}
             onClick={() => tabs.onChange(item.value)}
-            className={`relative text-sm leading-none transition-colors ${
+            className={`relative text-body leading-none transition-colors ${
               active ? 'text-ink-800 font-medium' : 'text-ink-400 hover:text-ink-700'
             }`}
           >

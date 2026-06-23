@@ -139,6 +139,7 @@ export function WorkspaceFoldersBar({
                         else if (e.key === 'Escape') setRenaming(null)
                       }}
                       onBlur={commitRename}
+                      aria-label={`Nombre de la carpeta ${folder.name}`}
                       placeholder="Nombre de la carpeta"
                       className="input-paper min-w-0 flex-1 rounded border border-ink-200 px-1.5 py-0.5 text-caption"
                     />
@@ -243,6 +244,7 @@ export function WorkspaceFoldersBar({
               if (e.key === 'Enter') onCreateFolder()
               else if (e.key === 'Escape') onCancelDraft()
             }}
+            aria-label="Nombre de la carpeta nueva"
             placeholder="Nombre de la carpeta"
             className="input-paper w-full rounded border border-ink-200 px-2 py-1 text-caption"
           />

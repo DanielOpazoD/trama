@@ -164,6 +164,7 @@ export function StampAssetMenu({
                 ref={fileInputRef}
                 type="file"
                 accept={STAMP_ASSET_ACCEPT}
+                aria-label="Archivo de firma o timbre"
                 className="hidden"
                 aria-hidden="true"
                 tabIndex={-1}

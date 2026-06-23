@@ -28,6 +28,7 @@ export function PdfTextEditorAuxiliaryControls({
           ref={stampInputRef}
           type="file"
           accept={stampAccept}
+          aria-label="Archivo de timbre"
           className="hidden"
           aria-hidden="true"
           tabIndex={-1}
@@ -42,6 +43,7 @@ export function PdfTextEditorAuxiliaryControls({
         ref={signatureInputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp"
+        aria-label="Archivo de firma"
         className="hidden"
         aria-hidden="true"
         tabIndex={-1}

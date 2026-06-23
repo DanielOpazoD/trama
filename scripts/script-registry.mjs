@@ -171,6 +171,15 @@ const SCRIPT_ENTRIES = [
       'Ratchet que institucionaliza la adopción de useModalOverlay en role=dialog.',
   },
   {
+    file: 'scripts/check-form-control-labels.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:form-control-labels'],
+    summary:
+      'Ratchet de nombres accesibles en controles de formulario (input/textarea/select), reconociendo la asociación htmlFor/id.',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',
@@ -691,6 +700,13 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Ratchet de adopción de useModalOverlay en componentes con role=dialog.',
+  },
+  {
+    command: 'npm run check:form-control-labels',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary: 'Ratchet de nombres accesibles en controles de formulario.',
   },
   {
     command: 'npm run check:pdf-runtime-boundaries',
