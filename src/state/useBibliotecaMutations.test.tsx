@@ -9,9 +9,14 @@ import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from './offline'
 import { ToastProvider, useToast } from './toast'
-import { useRenameLibraryItem, useSetLibraryItemDeleted } from './useBiblioteca'
+import {
+  useBibliotecaList,
+  useRenameLibraryItem,
+  useSetLibraryItemDeleted,
+} from './useBiblioteca'
 import { queryKeys } from './queryClient'
 import * as apiModule from '../api'
+import { ApiClientError } from '../api/request'
 import type { LibraryItem } from '../types/biblioteca'
 
 function makeQueryClient() {
@@ -127,6 +132,93 @@ describe('useRenameLibraryItem', () => {
     // Rollback al snapshot previo.
     expect(readItems(qc)[0]?.title).toBe('Original.pdf')
     expect(result.current.toast.current?.tone).toBe('error')
+  })
+})
+
+describe('useBibliotecaList', () => {
+  it('pide primera página con filtros estables y aplana el contrato de API', async () => {
+    const listSpy = vi.spyOn(apiModule.api.biblioteca, 'list').mockResolvedValue({
+      items: [item({ itemId: 'a1', title: 'Borges.pdf' })],
+      nextCursor: 'cursor-2',
+    })
+    const qc = makeQueryClient()
+
+    const { result } = renderHook(
+      () =>
+        useBibliotecaList({
+          tab: 'documentos',
+          q: 'borges',
+          orden: 'creado-desc',
+          tipo: 'pdf',
+          fuente: 'subido',
+          tag: 'lectura',
+          incluyeEliminados: false,
+        }),
+      { wrapper: wrapWith(qc) },
+    )
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.pages[0]?.items[0]?.title).toBe('Borges.pdf')
+    expect(result.current.hasNextPage).toBe(true)
+    expect(listSpy).toHaveBeenCalledWith({
+      tab: 'documentos',
+      q: 'borges',
+      orden: 'creado-desc',
+      tipo: 'pdf',
+      fuente: 'subido',
+      tag: 'lectura',
+      incluyeEliminados: false,
+      cursor: undefined,
+    })
+    expect(
+      qc.getQueryData([
+        ...queryKeys.bibliotecaInfinite,
+        'documentos',
+        'borges',
+        'creado-desc',
+        'pdf',
+        'subido',
+        'lectura',
+        'activos',
+      ]),
+    ).toBeDefined()
+  })
+
+  it('usa nextCursor como pageParam y propaga ApiClientError al consumidor', async () => {
+    const apiError = new ApiClientError({
+      code: 'VALIDATION',
+      status: 400,
+      message: 'Cursor inválido',
+      requestId: 'rid-biblioteca-cursor',
+    })
+    const listSpy = vi
+      .spyOn(apiModule.api.biblioteca, 'list')
+      .mockResolvedValueOnce({
+        items: [item({ itemId: 'a1' })],
+        nextCursor: 'cursor-2',
+      })
+      .mockRejectedValueOnce(apiError)
+    const qc = makeQueryClient()
+    const { result } = renderHook(() => useBibliotecaList({ tab: 'todo' }), {
+      wrapper: wrapWith(qc),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    let nextPageResult: Awaited<ReturnType<typeof result.current.fetchNextPage>>
+    await act(async () => {
+      nextPageResult = await result.current.fetchNextPage()
+    })
+
+    expect(listSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ tab: 'todo', cursor: 'cursor-2' }),
+    )
+    expect(nextPageResult!.error).toBe(apiError)
+    expect(nextPageResult!.error).toMatchObject({
+      code: 'VALIDATION',
+      status: 400,
+      requestId: 'rid-biblioteca-cursor',
+    })
   })
 })
 
