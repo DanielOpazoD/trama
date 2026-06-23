@@ -146,7 +146,7 @@ describe('useBibliotecaList', () => {
     const { result } = renderHook(
       () =>
         useBibliotecaList({
-          tab: 'documentos',
+          tab: 'archivos',
           q: 'borges',
           orden: 'creado-desc',
           tipo: 'pdf',
@@ -161,7 +161,7 @@ describe('useBibliotecaList', () => {
     expect(result.current.data?.pages[0]?.items[0]?.title).toBe('Borges.pdf')
     expect(result.current.hasNextPage).toBe(true)
     expect(listSpy).toHaveBeenCalledWith({
-      tab: 'documentos',
+      tab: 'archivos',
       q: 'borges',
       orden: 'creado-desc',
       tipo: 'pdf',
@@ -173,7 +173,7 @@ describe('useBibliotecaList', () => {
     expect(
       qc.getQueryData([
         ...queryKeys.bibliotecaInfinite,
-        'documentos',
+        'archivos',
         'borges',
         'creado-desc',
         'pdf',

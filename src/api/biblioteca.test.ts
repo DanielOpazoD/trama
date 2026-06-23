@@ -81,7 +81,7 @@ describe('bibliotecaApi list/download contracts', () => {
     await expect(
       bibliotecaApi.list({
         q: 'borges',
-        tab: 'documentos',
+        tab: 'archivos',
         tag: 'lectura',
         limit: 25,
         cursor: 'cursor-1',
@@ -104,7 +104,7 @@ describe('bibliotecaApi list/download contracts', () => {
       nextCursor: 'cursor-2',
     })
     expect(requestMock).toHaveBeenCalledWith(
-      '/api/biblioteca?q=borges&tab=documentos&tag=lectura&limit=25&cursor=cursor-1',
+      '/api/biblioteca?q=borges&tab=archivos&tag=lectura&limit=25&cursor=cursor-1',
     )
   })
 
