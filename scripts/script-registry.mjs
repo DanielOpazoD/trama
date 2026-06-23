@@ -272,6 +272,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Verifica constraints reales de data URL para firmas y timbres PDF.',
   },
   {
+    file: 'scripts/check-query-plans.mjs',
+    domain: 'database',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:query-plans'],
+    summary:
+      'Ejecuta EXPLAIN JSON sobre listados calientes y bloquea seq scans grandes no allowlisteados.',
+  },
+  {
     file: 'scripts/cleanup-runtime-fixtures.mjs',
     domain: 'multiuser',
     kind: 'tool',
@@ -808,6 +817,13 @@ export const QUALITY_GATES = [
     phase: 'database',
     required: true,
     summary: 'Contratos endpoint a DB para entidades, citas, momentos y feed de notas.',
+  },
+  {
+    command: 'npm run check:query-plans',
+    job: 'migrations',
+    phase: 'database',
+    required: true,
+    summary: 'Planes de query de listados calientes sobre Postgres migrado.',
   },
 ]
 

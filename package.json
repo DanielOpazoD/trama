@@ -39,6 +39,7 @@
     "check:client-api-contracts": "node scripts/client-api-contracts.mjs",
     "client-api-contracts:inventory": "node scripts/client-api-contracts.mjs --json",
     "check:cte-regression": "bash scripts/check-cte-regression.sh",
+    "check:query-plans": "node scripts/check-query-plans.mjs",
     "check:whatsapp-schema": "node scripts/check-whatsapp-schema.mjs",
     "check:pdf-stamp-assets-schema": "node scripts/check-pdf-stamp-assets-schema.mjs",
     "test:whatsapp-it": "node scripts/run-vitest.mjs run netlify/functions/_lib/whatsapp-persist.integration.test.ts",
