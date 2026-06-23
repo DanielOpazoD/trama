@@ -1,17 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, fireEvent } from '@testing-library/react'
 import { LibroModal } from './LibroModal'
-import { LaminaModal } from './LaminaModal'
 import { makeQueryClient, renderWithProviders } from '../../test-utils'
 import { queryKeys } from '../../state/queryClient'
 import type { Entity, Quote } from '../../types'
 
 /**
- * Smoke de los dos modales de Tanda 2. La composición real del libro se
- * testea en src/lib/libro/buildLibro.test.ts (ejecución completa con
- * pdf-lib); acá va el chrome: que abran, muestren sus controles y cierren.
- * El canvas de la lámina no existe en happy-dom → la vista previa cae al
- * placeholder "componiendo…", que es exactamente el camino degradado.
+ * Smoke del modal del libro. La composición real del libro se testea en
+ * src/lib/libro/buildLibro.test.ts (ejecución completa con pdf-lib); acá va
+ * el chrome: que abra, muestre sus controles y cierre. La Lámina, su modal
+ * hermano, tiene su propio smoke en LaminaModal.test.tsx.
  */
 
 function jsonResp(body: unknown) {
@@ -115,46 +113,5 @@ describe('<LibroModal />', () => {
     expect(ficha).toHaveTextContent(/lista para imprenta/i)
     expect(screen.getByRole('button', { name: /previsualizar pdf/i })).toBeEnabled()
     expect(screen.getByRole('button', { name: /componer pdf/i })).toBeEnabled()
-  })
-})
-
-describe('<LaminaModal />', () => {
-  const INPUT = {
-    text: 'El olvido es la única venganza y el único perdón',
-    attribution: 'Borges',
-    source: null,
-    marginalia: 'me persigue',
-  }
-
-  it('muestra los tres fondos y el toggle de marginalia', async () => {
-    renderWithProviders(<LaminaModal input={INPUT} onClose={() => {}} />)
-    expect(screen.getByRole('dialog', { name: 'Lámina' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Papel' })).toBeChecked()
-    expect(screen.getByRole('radio', { name: 'Noche' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Vela' })).toBeInTheDocument()
-    expect(screen.getByText(/incluir tu reflexión manuscrita/)).toBeInTheDocument()
-
-    // Cambiar de fondo no rompe (la preview cae al placeholder en happy-dom).
-    fireEvent.click(screen.getByRole('radio', { name: 'Vela' }))
-    expect(screen.getByRole('radio', { name: 'Vela' })).toBeChecked()
-  })
-
-  it('se monta en body para no quedar atrapada por contenedores transformados', () => {
-    renderWithProviders(
-      <div style={{ transform: 'translateY(10px)' }}>
-        <LaminaModal input={INPUT} onClose={() => {}} />
-      </div>,
-    )
-
-    expect(screen.getByRole('dialog', { name: 'Lámina' }).parentElement).toBe(
-      document.body,
-    )
-  })
-
-  it('cierra con Escape', () => {
-    const onClose = vi.fn()
-    renderWithProviders(<LaminaModal input={INPUT} onClose={onClose} />)
-    fireEvent.keyDown(window, { key: 'Escape' })
-    expect(onClose).toHaveBeenCalledOnce()
   })
 })

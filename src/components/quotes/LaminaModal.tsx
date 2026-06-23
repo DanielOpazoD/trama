@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import {
   generateLaminaBlob,
   generateLaminaPreview,
@@ -57,13 +58,11 @@ export function LaminaModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme, withMarginalia, input.text])
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  // Escape + focus trap + scroll-lock + restaurar foco al trigger, vía el
+  // primitivo canónico. Reemplaza el listener manual de keydown en window.
+  // Escape cierra siempre (igual que antes): generar/compartir no bloqueaba
+  // el cierre — solo deshabilita los botones de acción del footer.
+  const overlay = useModalOverlay({ open: true, onClose })
 
   const canShareFiles =
     typeof navigator !== 'undefined' &&
@@ -114,8 +113,10 @@ export function LaminaModal({
         tabIndex={-1}
       />
       <div
+        ref={overlay.dialogRef}
         role="dialog"
         aria-label="Lámina"
+        aria-modal="true"
         className="fixed inset-x-4 top-10 bottom-10 z-50 flex flex-col overflow-hidden rounded-xl border border-ink-100/50 bg-paper-50/95 shadow-lg shadow-ink-900/10 backdrop-blur-md md:left-1/2 md:right-auto md:w-[520px] md:-ml-[260px]"
       >
         <header className="px-5 py-3.5 border-b border-ink-100/60 flex items-baseline justify-between gap-3">

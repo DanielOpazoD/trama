@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { CloseIcon, ReadingIcon } from '../Icons'
 
 /**
@@ -20,13 +20,11 @@ export function EssayOverlay({
   title?: string | null
   onClose: () => void
 }) {
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  // El padre monta el overlay condicionalmente, así que mientras existe está
+  // abierto. useModalOverlay aporta focus trap, aria-modal, Escape (con stack
+  // de overlays), scroll-lock y restauración de foco al cerrar — reemplaza el
+  // listener manual de Escape sobre window que había antes.
+  const overlay = useModalOverlay({ open: true, onClose })
 
   const paragraphs = content
     .split(/\n{2,}/)
@@ -35,7 +33,9 @@ export function EssayOverlay({
 
   return (
     <div
+      ref={overlay.dialogRef}
       role="dialog"
+      aria-modal="true"
       aria-label="Ensayo"
       className="fixed inset-0 z-50 overflow-y-auto bg-paper-50 animate-fade-up"
     >

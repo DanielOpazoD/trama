@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
 import { CloseIcon } from './Icons'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import { renderMarkdown } from './notas/markdown'
 
 /**
@@ -20,29 +20,19 @@ export function EditorialReader({
   title?: string
   markdown: string
 }) {
-  const closeRef = useRef<HTMLButtonElement | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    closeRef.current?.focus()
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  const overlay = useModalOverlay({ open, onClose })
 
   if (!open) return null
 
   return (
     <div
+      ref={overlay.dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={title ?? 'Lectura editorial'}
       className="animate-fade-up fixed inset-0 z-50 overflow-y-auto bg-paper-50 motion-reduce:animate-none"
     >
       <button
-        ref={closeRef}
         onClick={onClose}
         aria-label="Cerrar lectura"
         className="fixed right-5 top-5 z-10 rounded-full bg-paper-50/80 p-2 text-ink-300 backdrop-blur transition-colors hover:text-ink-700"

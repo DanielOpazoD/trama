@@ -19,14 +19,18 @@ describe('<EditorialReader />', () => {
         markdown={'# Tesis\n\nUn párrafo de prueba.'}
       />,
     )
-    expect(screen.getByRole('dialog', { name: 'Borrador' })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: 'Borrador' })
+    expect(dialog).toBeInTheDocument()
+    // El primitivo useModalOverlay exige aria-modal para los lectores de pantalla.
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByText('Un párrafo de prueba.')).toBeInTheDocument()
   })
 
-  it('cierra con Escape y con el botón', () => {
+  it('cierra con Escape (en document) y con el botón', () => {
     const onClose = vi.fn()
     render(<EditorialReader open onClose={onClose} markdown="# X" />)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // Escape lo gestiona useModalOverlay: listener en captura sobre document.
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByRole('button', { name: /cerrar lectura/i }))
     expect(onClose).toHaveBeenCalledTimes(2)
