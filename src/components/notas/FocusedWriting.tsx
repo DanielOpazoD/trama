@@ -56,13 +56,14 @@ export function FocusedWriting({
   // Escape guarda antes de cerrar: lo preservamos en el onClose del overlay.
   // El componente solo se monta cuando está abierto (los call sites lo renderizan
   // condicionalmente), así que el overlay siempre está `open`.
-  const overlay = useModalOverlay({
-    open: true,
-    onClose: () => {
-      onSave?.()
-      onClose()
-    },
-  })
+  // save-then-close compartido por el botón X y el Escape del overlay. Antes el
+  // botón apuntaba a un `close` inexistente -> resolvía al global window.close()
+  // (no-op): no cerraba ni guardaba.
+  const handleClose = () => {
+    onSave?.()
+    onClose()
+  }
+  const overlay = useModalOverlay({ open: true, onClose: handleClose })
 
   useEffect(() => {
     const opener = openerRef.current
@@ -82,7 +83,7 @@ export function FocusedWriting({
     >
       <button
         type="button"
-        onClick={close}
+        onClick={handleClose}
         aria-label="Cerrar escritura enfocada"
         title="Cerrar"
         className="fixed right-5 top-5 z-10 inline-flex h-9 w-9 items-center justify-center

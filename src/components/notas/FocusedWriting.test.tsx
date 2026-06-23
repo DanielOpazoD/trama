@@ -55,6 +55,18 @@ describe('<FocusedWriting />', () => {
     expect(onClose).toHaveBeenCalledOnce()
   })
 
+  it('el botón Cerrar guarda y cierra (no window.close)', async () => {
+    const onClose = vi.fn()
+    const onSave = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <FocusedWriting value="x" onChange={() => {}} onClose={onClose} onSave={onSave} />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Cerrar escritura enfocada' }))
+    expect(onSave).toHaveBeenCalledOnce()
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
   it('restaura el foco al disparador al cerrar', async () => {
     function Host() {
       const [open, setOpen] = useState(false)

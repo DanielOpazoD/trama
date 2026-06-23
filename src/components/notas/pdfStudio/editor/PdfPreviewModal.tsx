@@ -115,14 +115,14 @@ export function PdfPreviewModal({
 
   return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Vista previa del PDF ensamblado"
       onClick={onClose}
       className="pdf-studio fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/40 backdrop-blur-sm"
     >
       <div
         ref={overlay.dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Vista previa del PDF ensamblado"
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-3xl h-[95vh] overflow-hidden rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
       >

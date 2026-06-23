@@ -69,9 +69,11 @@ describe('<PdfPreviewModal />', () => {
 
   it('cierra al hacer click en el backdrop', () => {
     const { onClose } = renderModal()
-    // El backdrop es el contenedor con role=dialog; el panel interior frena
-    // la propagación. Clic directo sobre el dialog (backdrop) cierra.
-    fireEvent.click(screen.getByRole('dialog'))
+    // El backdrop es el contenedor EXTERNO (onClick=onClose); el panel interior
+    // —el que lleva role=dialog + dialogRef— frena la propagación. Clic en el
+    // backdrop (padre del dialog) cierra.
+    const backdrop = screen.getByRole('dialog').parentElement as HTMLElement
+    fireEvent.click(backdrop)
     expect(onClose).toHaveBeenCalledOnce()
   })
 
