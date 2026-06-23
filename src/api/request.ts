@@ -102,6 +102,7 @@ type CanonicalErrorBody = {
     details?: unknown
     requestId?: string
   }
+  requestId?: string
 }
 
 function duplicateSuggestionsFromDetails(
@@ -166,6 +167,14 @@ async function parseErrorResponse(
         message,
         details: parsed.error.details,
         requestId: parsed.error.requestId ?? requestId,
+      })
+    }
+    if (typeof parsed.error === 'string') {
+      return new ApiClientError({
+        code: 'UNKNOWN',
+        status: response.status,
+        message: parsed.error,
+        requestId: parsed.requestId ?? requestId,
       })
     }
   } catch {
@@ -294,8 +303,19 @@ export async function request<T = unknown>(url: string, init?: RequestInit): Pro
   // Modo prueba: servimos desde el store local en vez de pegar a /api/*.
   if (isDemoMode()) return demoRequest<T>(url, init)
   const response = await requestResponse(url, init)
-  if (response.status === 204) {
+  if (response.status === 204 || response.status === 205) {
     return undefined as T
   }
-  return response.json() as Promise<T>
+  const text = await response.text()
+  if (text.trim() === '') return undefined as T
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    throw new ApiClientError({
+      code: 'UNKNOWN',
+      status: response.status,
+      message: `${init?.method ?? 'GET'} ${url} devolvió JSON inválido`,
+      requestId: response.headers.get('x-request-id'),
+    })
+  }
 }

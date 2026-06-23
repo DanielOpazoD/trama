@@ -228,6 +228,48 @@ describe('request auth', () => {
   })
 })
 
+describe('request success parsing', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('devuelve undefined para 204 y respuestas 2xx con body vacío', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response('', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(request('/api/notes/note-1', { method: 'DELETE' })).resolves.toBe(
+      undefined,
+    )
+    await expect(request('/api/notes/note-1/restore', { method: 'POST' })).resolves.toBe(
+      undefined,
+    )
+  })
+
+  it('convierte JSON inválido de respuestas 2xx en ApiClientError trazable', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(
+        async () =>
+          new Response('<html>proxy error</html>', {
+            status: 200,
+            headers: { 'x-request-id': 'rid-success-invalid' },
+          }),
+      ),
+    )
+
+    await expect(request('/api/search?q=borges')).rejects.toMatchObject({
+      name: 'ApiClientError',
+      code: 'UNKNOWN',
+      status: 200,
+      message: 'GET /api/search?q=borges devolvió JSON inválido',
+      requestId: 'rid-success-invalid',
+    })
+  })
+})
+
 describe('request error parsing', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -307,5 +349,83 @@ describe('request error parsing', () => {
     await expect(
       request('/api/notes', { method: 'POST', body: '{}' }),
     ).rejects.toBeInstanceOf(ApiClientError)
+  })
+
+  it('preserva x-request-id de header cuando el error canónico no lo incluye', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () =>
+        Response.json(
+          {
+            error: {
+              code: 'NOT_FOUND',
+              message: 'No existe',
+            },
+          },
+          { status: 404, headers: { 'x-request-id': 'rid-header-only' } },
+        ),
+      ),
+    )
+
+    await expect(request('/api/entities/e-missing')).rejects.toMatchObject({
+      name: 'ApiClientError',
+      code: 'NOT_FOUND',
+      status: 404,
+      message: 'No existe',
+      requestId: 'rid-header-only',
+    })
+  })
+
+  it('parsea errores legacy { error: string } sin exponer JSON crudo al usuario', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () =>
+        Response.json(
+          { error: 'Formato viejo pero legible', requestId: 'rid-legacy' },
+          { status: 422 },
+        ),
+      ),
+    )
+
+    await expect(request('/api/legacy', { method: 'POST' })).rejects.toMatchObject({
+      name: 'ApiClientError',
+      code: 'UNKNOWN',
+      status: 422,
+      message: 'Formato viejo pero legible',
+      requestId: 'rid-legacy',
+    })
+  })
+
+  it('mantiene texto o HTML no canónico como fallback con status y requestId', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(
+        async () =>
+          new Response('<!doctype html><title>Gateway</title>', {
+            status: 502,
+            headers: { 'x-request-id': 'rid-html' },
+          }),
+      ),
+    )
+
+    await expect(request('/api/search?q=borges')).rejects.toMatchObject({
+      name: 'ApiClientError',
+      code: 'UNKNOWN',
+      status: 502,
+      message: '<!doctype html><title>Gateway</title>',
+      requestId: 'rid-html',
+    })
+  })
+
+  it('deja pasar AbortError sin envolverlo como ApiClientError', async () => {
+    const abortError = new DOMException('The operation was aborted.', 'AbortError')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () => {
+        throw abortError
+      }),
+    )
+
+    await expect(request('/api/search?q=borges')).rejects.toBe(abortError)
   })
 })
