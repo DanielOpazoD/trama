@@ -100,3 +100,56 @@ Si una regla nueva produce demasiadas violaciones historicas, el PR debe:
 1. documentar el baseline o allowlist;
 2. bloquear deuda nueva cuando sea posible;
 3. dejar la limpieza masiva para un PR dedicado.
+
+## Paquete Local DB
+
+Corre:
+
+```bash
+npm run db:up
+npm run local:db-confidence
+```
+
+Runbook detallado: `docs/local-db-confidence.md`.
+
+Este paquete no reemplaza a CI. Sirve para reproducir localmente los gates que
+mas dependen de Postgres real y para evitar que cada PR backend/data tenga su
+propia receta informal. Usa la DB migrada local por defecto
+`postgresql://localhost:5433/trama`; si necesitas otra instancia, define
+`DATABASE_URL`, `NETLIFY_DB_URL`, `QUERY_IT_DB_URL` o `BACKEND_DATA_IT_DB_URL`.
+Los logs siempre redaccionan credenciales de la URL.
+
+`test:query-it:local` y `test:backend-data-it` crean roles temporales
+no-superusuario para probar RLS real. Si tu URL migrada local no tiene permiso
+`CREATE ROLE`, conserva `NETLIFY_DB_URL` para los gates runtime y pasa una URL
+admin throwaway solo para integraciones:
+
+```bash
+LOCAL_DB_CONFIDENCE_ADMIN_DB_URL=postgresql://postgres@localhost:5433/trama \
+npm run local:db-confidence
+```
+
+El runner ejecuta en orden:
+
+| Gate                           | Que prueba                                                              |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| `npm run check:cte-regression` | Semantica de CTEs sensibles contra una Postgres efimera aislada.        |
+| `npm run check:query-plans`    | `EXPLAIN` JSON de listados calientes sobre la DB migrada.               |
+| `npm run test:query-it:local`  | Integracion del motor de queries sin skips silenciosos por falta de DB. |
+| `npm run test:backend-data-it` | Contratos endpoint->DB de entidades, citas, momentos y feed de notas.   |
+| `npm run check:user-id-writes` | Writes privados con `user_id` explicito y warnings revisados.           |
+
+`test:query-it:local` y `test:backend-data-it` son wrappers, no llamadas
+directas a Vitest: ambos inyectan una URL local por defecto para que una DB
+ausente falle en rojo en vez de convertir la suite en `skipped`.
+
+Por seguridad, `check:cte-regression` no hereda la URL de la DB migrada local
+desde `local:db-confidence`: usa su Postgres efimera por defecto. Solo define
+`LOCAL_DB_CONFIDENCE_CTE_DATABASE_URL` si la URL apunta a una DB throwaway,
+porque la regresion CTE crea y destruye fixtures propios.
+
+Si `check:query-plans` falla por conexion, levanta la DB con `npm run db:up` y
+vuelve a correr el paquete. Si falla por `Seq Scan`, revisa el plan antes de
+agregar indices: un seq scan chico o catalogal puede ser correcto, pero los
+feeds por `user_id` y busquedas calientes deben quedar cubiertos por indices o
+por una allowlist pequena y justificada.

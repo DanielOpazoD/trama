@@ -89,8 +89,10 @@ npm run check:legacy-identity-schema
 tabla con default legacy histórico tenga una migración posterior `DROP DEFAULT`.
 `check:user-id-writes` revisa que los `INSERT INTO` productivos a tablas
 privadas escriban `user_id` explícitamente y no dependan del default removido.
-También informa warnings no bloqueantes para SQL que requiere revisión humana,
-como `INSERT INTO <tabla> VALUES ...` o `INSERT ... SELECT`.
+También revisa SQL que requiere lectura humana, como
+`INSERT INTO <tabla> VALUES ...` o `INSERT ... SELECT`: un warning nuevo bloquea
+hasta que el SQL se simplifique o quede en el allowlist con una razón concreta
+de ownership/RLS.
 `legacy-identity:report` genera un Markdown corto con tablas históricas,
 defaults removidos y estado de checks. CI lo sube como artifact
 `legacy-identity-report`.

@@ -1,5 +1,5 @@
 import pg from 'pg'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, URL } from 'node:url'
 
 const DEFAULT_DB_URL = 'postgresql://trama:trama_local_dev@localhost:5433/trama'
 const DB_URL = process.env.DATABASE_URL || process.env.NETLIFY_DB_URL || DEFAULT_DB_URL
@@ -19,6 +19,44 @@ function readEnvInteger(name, fallback, { min }) {
     )
   }
   return value
+}
+
+export function sanitizeDbUrlForLog(dbUrl) {
+  try {
+    const parsed = new URL(dbUrl)
+    parsed.username = ''
+    parsed.password = ''
+    return parsed.toString()
+  } catch {
+    return '[unparseable database URL]'
+  }
+}
+
+function connectionRefused(error) {
+  if (!error || typeof error !== 'object') return false
+  if (error.code === 'ECONNREFUSED') return true
+  if (Array.isArray(error.errors)) return error.errors.some(connectionRefused)
+  return false
+}
+
+export function formatQueryPlanCheckFailure({ dbUrl, error }) {
+  const safeDbUrl = sanitizeDbUrlForLog(dbUrl)
+  if (connectionRefused(error)) {
+    return [
+      `check:query-plans no pudo conectar a Postgres (${safeDbUrl}).`,
+      '',
+      'Levanta la DB local migrada con `npm run db:up` y vuelve a correr `npm run check:query-plans`.',
+      'Para correr todo el paquete backend/data local, usa `npm run local:db-confidence`.',
+      'También puedes definir DATABASE_URL o NETLIFY_DB_URL apuntando a una Postgres migrada.',
+    ].join('\n')
+  }
+
+  const message = error instanceof Error && error.message ? error.message : String(error)
+  return `check:query-plans failed for ${safeDbUrl}: ${message}`
+}
+
+export async function setQueryPlanRlsContext(client, userId = FIXTURE_USER_ID) {
+  await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId])
 }
 
 export function collectPlanNodes(explainJson) {
@@ -146,8 +184,11 @@ async function explain(pool, label, text, values = [], opts = {}) {
 
 export async function runQueryPlanCheck({ dbUrl = DB_URL } = {}) {
   const pool = new pg.Pool({ connectionString: dbUrl })
+  const client = await pool.connect()
   try {
-    await setupFixtures(pool)
+    await client.query('BEGIN')
+    await setQueryPlanRlsContext(client)
+    await setupFixtures(client)
     const checks = [
       [
         'entities.paginated',
@@ -222,10 +263,15 @@ export async function runQueryPlanCheck({ dbUrl = DB_URL } = {}) {
     ]
 
     for (const [label, text, values] of checks) {
-      await explain(pool, label, text, values)
+      await explain(client, label, text, values)
       console.log(`query-plan OK: ${label}`)
     }
+    await client.query('ROLLBACK')
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {})
+    throw error
   } finally {
+    client.release()
     await pool.end()
   }
 }
@@ -233,8 +279,7 @@ export async function runQueryPlanCheck({ dbUrl = DB_URL } = {}) {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 if (isMain) {
   runQueryPlanCheck().catch((err) => {
-    const message = err instanceof Error && err.message ? err.message : String(err)
-    console.error(`check:query-plans failed for ${DB_URL}: ${message}`)
+    console.error(formatQueryPlanCheckFailure({ dbUrl: DB_URL, error: err }))
     process.exitCode = 1
   })
 }

@@ -1,26 +1,27 @@
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath, URL } from 'node:url'
 
-export const DEFAULT_QUERY_IT_DB_URL =
+export const DEFAULT_BACKEND_DATA_IT_DB_URL =
   'postgresql://trama:trama_local_dev@localhost:5433/trama'
 
-const QUERY_IT_TEST_ARGS = [
+const BACKEND_DATA_IT_TEST_ARGS = [
   'scripts/run-vitest.mjs',
   'run',
-  'netlify/functions/_lib/query.integration.test.ts',
+  'netlify/functions/_lib/backend-data-contracts.integration.test.ts',
 ]
 
-export function buildQueryIntegrationEnv(env = process.env) {
+export function buildBackendDataIntegrationEnv(env = process.env) {
   const dbUrl =
-    env.QUERY_IT_DB_URL ||
+    env.BACKEND_DATA_IT_DB_URL ||
     env.LOCAL_DB_CONFIDENCE_ADMIN_DB_URL ||
+    env.QUERY_IT_DB_URL ||
     env.DATABASE_URL ||
     env.NETLIFY_DB_URL ||
-    DEFAULT_QUERY_IT_DB_URL
+    DEFAULT_BACKEND_DATA_IT_DB_URL
 
   return {
     ...env,
-    QUERY_IT_DB_URL: dbUrl,
+    BACKEND_DATA_IT_DB_URL: dbUrl,
   }
 }
 
@@ -36,26 +37,28 @@ export function sanitizeDbUrlForLog(dbUrl) {
 }
 
 function describeDbSource(env) {
-  if (env.QUERY_IT_DB_URL) return 'QUERY_IT_DB_URL'
+  if (env.BACKEND_DATA_IT_DB_URL) return 'BACKEND_DATA_IT_DB_URL'
   if (env.LOCAL_DB_CONFIDENCE_ADMIN_DB_URL) return 'LOCAL_DB_CONFIDENCE_ADMIN_DB_URL'
+  if (env.QUERY_IT_DB_URL) return 'QUERY_IT_DB_URL'
   if (env.DATABASE_URL) return 'DATABASE_URL'
   if (env.NETLIFY_DB_URL) return 'NETLIFY_DB_URL'
   return 'local default (npm run db:up)'
 }
 
-export function runQueryIntegrationLocal({
+export function runBackendDataIntegrationLocal({
   env = process.env,
   spawnSyncImpl = spawnSync,
   stdout = console.log,
   stderr = console.error,
 } = {}) {
-  const childEnv = buildQueryIntegrationEnv(env)
+  const childEnv = buildBackendDataIntegrationEnv(env)
   stdout(
-    `Query integration DB: ${describeDbSource(env)} -> QUERY_IT_DB_URL=${sanitizeDbUrlForLog(childEnv.QUERY_IT_DB_URL)}`,
+    `Backend data integration DB: ${describeDbSource(env)} -> BACKEND_DATA_IT_DB_URL=${sanitizeDbUrlForLog(childEnv.BACKEND_DATA_IT_DB_URL)}`,
   )
   if (
-    !env.QUERY_IT_DB_URL &&
+    !env.BACKEND_DATA_IT_DB_URL &&
     !env.LOCAL_DB_CONFIDENCE_ADMIN_DB_URL &&
+    !env.QUERY_IT_DB_URL &&
     !env.DATABASE_URL &&
     !env.NETLIFY_DB_URL
   ) {
@@ -64,7 +67,7 @@ export function runQueryIntegrationLocal({
     )
   }
 
-  const result = spawnSyncImpl(process.execPath, QUERY_IT_TEST_ARGS, {
+  const result = spawnSyncImpl(process.execPath, BACKEND_DATA_IT_TEST_ARGS, {
     stdio: 'inherit',
     env: childEnv,
   })
@@ -72,7 +75,7 @@ export function runQueryIntegrationLocal({
   const status = typeof result.status === 'number' ? result.status : 1
   if (status !== 0) {
     stderr(
-      'Query integration failed against a real Postgres URL. This wrapper intentionally does not allow the test to skip silently.',
+      'Backend data integration failed against a real Postgres URL. This wrapper intentionally does not allow the test to skip silently.',
     )
   }
   return status
@@ -80,5 +83,5 @@ export function runQueryIntegrationLocal({
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 if (isMain) {
-  process.exitCode = runQueryIntegrationLocal()
+  process.exitCode = runBackendDataIntegrationLocal()
 }

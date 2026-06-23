@@ -290,6 +290,15 @@ const SCRIPT_ENTRIES = [
       'Ejecuta EXPLAIN JSON sobre listados calientes y bloquea seq scans grandes no allowlisteados.',
   },
   {
+    file: 'scripts/local-db-confidence.mjs',
+    domain: 'database',
+    kind: 'runner',
+    critical: false,
+    packageScripts: ['local:db-confidence'],
+    summary:
+      'Orquesta el paquete local DB: CTE regression, query plans e integraciones reales contra Postgres.',
+  },
+  {
     file: 'scripts/cleanup-runtime-fixtures.mjs',
     domain: 'multiuser',
     kind: 'tool',
@@ -428,6 +437,15 @@ const SCRIPT_ENTRIES = [
       'Ejecuta query.integration contra Postgres real local sin permitir skips por falta de QUERY_IT_DB_URL.',
   },
   {
+    file: 'scripts/run-backend-data-integration-local.mjs',
+    domain: 'database',
+    kind: 'runner',
+    critical: false,
+    packageScripts: ['test:backend-data-it'],
+    summary:
+      'Ejecuta backend-data-contracts.integration contra Postgres real sin permitir skips por falta de DB.',
+  },
+  {
     file: 'scripts/run-vitest.mjs',
     domain: 'test',
     kind: 'runner',
@@ -438,7 +456,6 @@ const SCRIPT_ENTRIES = [
       'test:coverage',
       'test:whatsapp-it',
       'test:query-it',
-      'test:backend-data-it',
     ],
     summary: 'Runner local de Vitest que aísla temporales y argumentos del repo.',
   },

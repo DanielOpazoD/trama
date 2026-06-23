@@ -1,11 +1,84 @@
-import { describe, expect, it } from 'vitest'
-import { assertNoLargeSeqScans, collectPlanNodes } from './check-query-plans.mjs'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const pgMock = vi.hoisted(() => {
+  const state = {
+    queryCalls: [],
+    end: vi.fn(),
+    release: vi.fn(),
+  }
+  const client = {
+    query: vi.fn(async (text, values) => {
+      state.queryCalls.push([text, values])
+      if (String(text).startsWith('EXPLAIN')) {
+        return {
+          rows: [
+            {
+              'QUERY PLAN': [
+                {
+                  Plan: {
+                    'Node Type': 'Index Scan',
+                    'Relation Name': 'entities',
+                    'Plan Rows': 1,
+                  },
+                },
+              ],
+            },
+          ],
+        }
+      }
+      return { rows: [] }
+    }),
+    release: state.release,
+  }
+  const pool = {
+    connect: vi.fn(async () => client),
+    end: state.end,
+  }
+  const Pool = vi.fn(function Pool() {
+    return pool
+  })
+  return {
+    client,
+    pool,
+    Pool,
+    reset() {
+      state.queryCalls.length = 0
+      state.end.mockClear()
+      state.release.mockClear()
+      client.query.mockClear()
+      pool.connect.mockClear()
+      this.Pool.mockClear()
+    },
+    get queryTexts() {
+      return state.queryCalls.map(([text]) => text)
+    },
+  }
+})
+
+vi.mock('pg', () => ({
+  default: {
+    Pool: pgMock.Pool,
+  },
+}))
+
+import {
+  assertNoLargeSeqScans,
+  collectPlanNodes,
+  formatQueryPlanCheckFailure,
+  runQueryPlanCheck,
+  sanitizeDbUrlForLog,
+  setQueryPlanRlsContext,
+} from './check-query-plans.mjs'
 
 function plan(node) {
   return [{ Plan: node }]
 }
 
 describe('check-query-plans', () => {
+  beforeEach(() => {
+    pgMock.reset()
+  })
+
   it('recorre nodos anidados de un EXPLAIN JSON', () => {
     const nodes = collectPlanNodes(
       plan({
@@ -77,5 +150,71 @@ describe('check-query-plans', () => {
         { allowedRelations: ['entity_types'] },
       ),
     ).not.toThrow()
+  })
+
+  it('redacta credenciales de la URL de DB al reportar errores', () => {
+    expect(sanitizeDbUrlForLog('postgresql://trama:secret@localhost:5433/trama')).toBe(
+      'postgresql://localhost:5433/trama',
+    )
+
+    expect(sanitizeDbUrlForLog('not a url')).toBe('[unparseable database URL]')
+  })
+
+  it('convierte ECONNREFUSED contra la DB local en instrucciones accionables', () => {
+    const error = new AggregateError(
+      [
+        Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5433'), {
+          code: 'ECONNREFUSED',
+          address: '127.0.0.1',
+          port: 5433,
+        }),
+        Object.assign(new Error('connect ECONNREFUSED ::1:5433'), {
+          code: 'ECONNREFUSED',
+          address: '::1',
+          port: 5433,
+        }),
+      ],
+      '',
+    )
+    Object.assign(error, { code: 'ECONNREFUSED' })
+
+    const message = formatQueryPlanCheckFailure({
+      dbUrl: 'postgresql://trama:trama_local_dev@localhost:5433/trama',
+      error,
+    })
+
+    expect(message).toContain('check:query-plans no pudo conectar a Postgres')
+    expect(message).toContain('npm run db:up')
+    expect(message).toContain('npm run local:db-confidence')
+    expect(message).toContain('DATABASE_URL')
+    expect(message).toContain('postgresql://localhost:5433/trama')
+    expect(message).not.toContain('trama_local_dev')
+    expect(message).not.toContain('AggregateError')
+  })
+
+  it('setea contexto RLS de fixture antes de sembrar datos privados', async () => {
+    const queryCalls = []
+    const client = {
+      query: async (...args) => {
+        queryCalls.push(args)
+        return { rows: [] }
+      },
+    }
+
+    await setQueryPlanRlsContext(client, 'query-plan-test-user')
+
+    expect(queryCalls).toEqual([
+      ["SELECT set_config('app.current_user_id', $1, true)", ['query-plan-test-user']],
+    ])
+  })
+
+  it('hace rollback en una corrida exitosa para no persistir fixtures de query plans', async () => {
+    await runQueryPlanCheck({ dbUrl: 'postgresql://trama:secret@localhost:5433/trama' })
+
+    expect(pgMock.queryTexts).toContain('BEGIN')
+    expect(pgMock.queryTexts).toContain('ROLLBACK')
+    expect(pgMock.queryTexts).not.toContain('COMMIT')
+    expect(pgMock.client.release).toHaveBeenCalledTimes(1)
+    expect(pgMock.pool.end).toHaveBeenCalledTimes(1)
   })
 })
