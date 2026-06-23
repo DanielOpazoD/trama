@@ -22,18 +22,11 @@ describe('<CountBadge />', () => {
     expect(screen.getByText('9+')).toBeInTheDocument()
   })
 
-  it('es decorativo por defecto (aria-hidden, sin role)', () => {
+  it('es decorativo (aria-hidden, sin role): el conteo lo anuncia el control padre', () => {
     render(<CountBadge count={3} />)
     const badge = screen.getByText('3')
     expect(badge).toHaveAttribute('aria-hidden', 'true')
     expect(badge).not.toHaveAttribute('role')
-  })
-
-  it('con label se anuncia como status accesible', () => {
-    render(<CountBadge count={3} label="3 notificaciones" />)
-    const badge = screen.getByRole('status', { name: '3 notificaciones' })
-    expect(badge).toHaveTextContent('3')
-    expect(badge).not.toHaveAttribute('aria-hidden')
   })
 
   it('propaga className y style al call site (cero drift visual)', () => {

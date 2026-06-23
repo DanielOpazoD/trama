@@ -126,7 +126,11 @@ export function FilterPopover({
         onClick={popover.toggle}
         aria-haspopup="menu"
         aria-expanded={popover.open}
-        aria-label="Filtros"
+        aria-label={
+          activeCount > 0
+            ? `Filtros, ${activeCount} ${activeCount === 1 ? 'activo' : 'activos'}`
+            : 'Filtros'
+        }
         className={`relative inline-flex items-center justify-center size-8 rounded-md transition-colors ${
           activeCount > 0 || popover.open
             ? 'text-ink-700 bg-ink-50'
