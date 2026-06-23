@@ -153,6 +153,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Valida fronteras frontend para evitar imports o ownership drift.',
   },
   {
+    file: 'scripts/check-design-tokens.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:design-tokens'],
+    summary:
+      'Ratchet que congela arbitrary values y aliases legacy de la type scale en src.',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',
@@ -640,6 +649,13 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Fronteras frontend.',
+  },
+  {
+    command: 'npm run check:design-tokens',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary: 'Ratchet de design tokens: arbitrary values y aliases legacy congelados.',
   },
   {
     command: 'npm run check:pdf-runtime-boundaries',
