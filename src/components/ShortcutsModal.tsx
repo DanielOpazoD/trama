@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
 import { getPdfShortcutGroups } from '../lib/pdfStudio/model/commands'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import { CloseIcon, OrnamentBreak } from './Icons'
 
 /**
@@ -70,14 +70,10 @@ export function ShortcutsModal({
   open: boolean
   onClose: () => void
 }) {
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  // useModalOverlay aporta focus trap + scroll-lock + Escape (respetando el
+  // stack de overlays) + restaurar el foco al trigger al cerrar. Antes este
+  // modal escuchaba Escape a mano sobre window; ahora lo delega al primitivo.
+  const overlay = useModalOverlay({ open, onClose })
 
   if (!open) return null
 
@@ -91,7 +87,9 @@ export function ShortcutsModal({
         tabIndex={-1}
       />
       <div
+        ref={overlay.dialogRef}
         role="dialog"
+        aria-modal="true"
         aria-label="Atajos de teclado"
         className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-full max-w-2xl max-h-[85vh]
                    bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/12

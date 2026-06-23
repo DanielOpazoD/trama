@@ -68,6 +68,8 @@ describe('<LibroModal />', () => {
   it('muestra título editable, autor y el resumen de la edición', () => {
     renderWithProviders(<LibroModal onClose={() => {}} />)
     const dialog = screen.getByRole('dialog', { name: 'Mi libro' })
+    // Migrado a useModalOverlay: el diálogo es aria-modal.
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(dialog.textContent).toMatch(/florilegio como edición/i)
     expect(screen.getByDisplayValue('Florilegio')).toBeInTheDocument()
     // Sin citas, componer queda deshabilitado.
@@ -77,7 +79,8 @@ describe('<LibroModal />', () => {
   it('cierra con Escape', () => {
     const onClose = vi.fn()
     renderWithProviders(<LibroModal onClose={onClose} />)
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // useModalOverlay escucha keydown en document (capture).
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledOnce()
   })
 

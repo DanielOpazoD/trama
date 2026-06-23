@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Onboarding } from './Onboarding'
@@ -25,7 +25,9 @@ describe('<Onboarding />', () => {
 
     render(<Onboarding enabled onComplete={onComplete} />)
 
-    expect(screen.getByRole('dialog', { name: 'Bienvenido a Trama' })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: 'Bienvenido a Trama' })
+    expect(dialog).toBeInTheDocument()
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByText('Trama es un mapa de tus afinidades.')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Sigue' }))
@@ -42,28 +44,32 @@ describe('<Onboarding />', () => {
   })
 
   it('permite saltar el tour con Escape', async () => {
-    const user = userEvent.setup()
     const onComplete = vi.fn()
 
     render(<Onboarding enabled onComplete={onComplete} />)
 
-    await user.keyboard('{Escape}')
+    // Escape lo intercepta useModalOverlay con un listener en `document`
+    // (captura), que ejecuta `skip` → `finish`.
+    fireEvent.keyDown(document, { key: 'Escape' })
 
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
     expect(onComplete).toHaveBeenCalledOnce()
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('usa el onComplete vigente al cerrar con teclado', async () => {
-    const user = userEvent.setup()
     const initialOnComplete = vi.fn()
     const currentOnComplete = vi.fn()
 
     const { rerender } = render(<Onboarding enabled onComplete={initialOnComplete} />)
     rerender(<Onboarding enabled onComplete={currentOnComplete} />)
 
-    await user.keyboard('{Escape}')
+    fireEvent.keyDown(document, { key: 'Escape' })
 
+    await waitFor(() => {
+      expect(currentOnComplete).toHaveBeenCalledOnce()
+    })
     expect(initialOnComplete).not.toHaveBeenCalled()
-    expect(currentOnComplete).toHaveBeenCalledOnce()
   })
 })
