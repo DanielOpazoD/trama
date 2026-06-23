@@ -56,6 +56,12 @@ El cliente tiene tres bordes permitidos:
 | Streaming/raw con `Response` real | `apiFetch()`    | Solo cuando el consumidor necesita `body`, headers o protocolo streaming. Debe manejar `response.ok` explícitamente. |
 | Blobs privados                    | `requestBlob()` | Usa auth + `ApiErrors`; no repetir `fetch + response.ok + response.blob()` en componentes.                           |
 
+`request<T>()` acepta `204/205` y bodies 2xx vacíos como `undefined`; si un
+endpoint propio responde 2xx con HTML/texto no JSON, el cliente lanza
+`ApiClientError` con `status` y `x-request-id` para que el fallo sea trazable.
+Los usos nuevos de `Response` crudo dentro de `src/api/*` deben quedar
+allowlisteados por conteo y razón en `scripts/client-api-contracts.mjs`.
+
 Matriz de blobs privados:
 
 | Superficie                     | Endpoint/ruta                     | Consumidor esperado                                          | Excepción                                                                                |

@@ -90,4 +90,42 @@ describe('chatApi.streamChatMessage', () => {
 
     expect(errors).toEqual(['rate limited'])
   })
+
+  it('reporta message canónico cuando el POST de streaming devuelve ApiErrors', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () =>
+        Response.json(
+          {
+            error: {
+              code: 'UNAUTHENTICATED',
+              message: 'Sesión requerida',
+              requestId: 'rid-chat-stream',
+            },
+          },
+          { status: 401 },
+        ),
+      ),
+    )
+
+    const errors: string[] = []
+    await chatApi.streamChatMessage('thread-1', 'hola', {
+      onError: (message) => errors.push(message),
+    })
+
+    expect(errors).toEqual(['Sesión requerida'])
+  })
+
+  it('pasa AbortSignal hasta el transporte raw del streaming', async () => {
+    const controller = new AbortController()
+    const fetchMock = vi.fn<typeof fetch>(async () => streamResponse([]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await chatApi.streamChatMessage('thread-1', 'hola', {}, controller.signal)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/chat/threads/thread-1/messages',
+      expect.objectContaining({ signal: controller.signal }),
+    )
+  })
 })
