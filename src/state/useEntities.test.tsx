@@ -223,8 +223,11 @@ describe('useDeleteEntity — cascade', () => {
 })
 
 describe('invalidación de queries', () => {
-  function invalidatedKeys(spy: ReturnType<typeof vi.spyOn>) {
-    return spy.mock.calls.map(([filters]) => filters?.queryKey)
+  function invalidatedKeys(spy: { mock: { calls: unknown[][] } }) {
+    return spy.mock.calls.map((call) => {
+      const filters = call[0] as { queryKey?: unknown } | undefined
+      return filters?.queryKey
+    })
   }
 
   it('useAddEntity invalida la superficie completa de creación', async () => {
