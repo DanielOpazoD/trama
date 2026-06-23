@@ -45,7 +45,7 @@ export function SettingsPanelContent({
 
       <footer className="mt-16 pt-6 border-t border-ink-100/40 flex flex-col items-center gap-3">
         <TramaMark size={14} className="text-ink-200" />
-        <p className="font-serif italic text-xs text-ink-300 leading-relaxed text-center">
+        <p className="font-serif italic text-caption text-ink-300 leading-relaxed text-center">
           Trama — compuesto en Spectral e Inter,
           <br />
           primavera de {new Date().getFullYear()}

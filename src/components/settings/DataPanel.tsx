@@ -288,7 +288,7 @@ function ImportPreviewCard({
     >
       <header className="space-y-1">
         <p className="section-eyebrow">Vista previa · {fileName}</p>
-        <p className="text-sm text-ink-700 leading-relaxed">
+        <p className="text-body text-ink-700 leading-relaxed">
           Esta importación es <strong>aditiva</strong>: agrega lo nuevo a tu trama actual.{' '}
           <strong>No reemplaza</strong> ni borra nada de lo que ya tienes. Las filas con
           el mismo identificador se omiten silenciosas.

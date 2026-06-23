@@ -36,7 +36,7 @@ export function PanelHeader({
       <h3 className="font-serif text-2xl text-ink-800 leading-tight tracking-tight">
         {title}
       </h3>
-      <p className="text-sm text-ink-400 leading-relaxed max-w-prose">{hint}</p>
+      <p className="text-body text-ink-400 leading-relaxed max-w-prose">{hint}</p>
       {/* Accent-rule sutil debajo — el header termina como una entrada
           de índice subrayada en un libro. */}
       <div className="accent-rule mt-3" />

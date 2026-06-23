@@ -138,7 +138,7 @@ export function AITaskSettings() {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-ink-500 leading-relaxed">
+      <p className="text-caption text-ink-500 leading-relaxed">
         Distintos modelos son buenos en cosas distintas. Aquí eliges qué provider usa cada
         tarea. <em>Default</em> usa el provider general configurado en Netlify (
         <code className="text-micro bg-paper-100 px-1 rounded">{defaultProvider}</code>).
