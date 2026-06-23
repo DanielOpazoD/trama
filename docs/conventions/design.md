@@ -69,7 +69,8 @@ Usar SOLO para spacing vertical en headers de vista, padding de cards, separaci�
 **Texto vs contraste**: `text-ink-300` (#63636b) es el muted más claro permitido para texto legible — pasa AA con ~5.1:1 sobre `paper-50` blanco, incluso en `text-micro` (10px) que requiere 4.5:1 por ser texto pequeño. Era #71717a hasta ε5 (axe lo cazó en 4.43, justo bajo el umbral). `text-ink-200` (#d4d4d8) NO se usa para texto, solo para iconos decorativos, separators (·), o disabled states.
 
 **Axe en CI:** `e2e/a11y.spec.ts` corre axe-core sobre superficies principales
-(Inicio, Entidades, recorte en Notas, Settings Estado y palette). Pendiente para
+(Inicio, Entidades, recorte en Notas, Settings Estado, palette, Momentos,
+Cronología y Atlas). Pendiente para
 futuros audits: color contrast de chips de tipos sobre fondo de card (algunos
 `typeAccent` claros podrían fallar), touch target sizes en mobile (algunos icon
 buttons son <44px) y nuevas superficies densas antes de convertirlas en flujo

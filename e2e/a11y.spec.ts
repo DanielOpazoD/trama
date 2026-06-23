@@ -269,6 +269,81 @@ test('a11y: Settings Estado sin violaciones', async ({ page }) => {
   expect(results.violations).toEqual([])
 })
 
+test('a11y: MomentosView sin violaciones', async ({ page }) => {
+  const state = emptyState()
+  state.entities.push(SAMPLE_ENTITY)
+  await skipSplash(page)
+  await mockBackend(page, state)
+  // Deep-link `?view=momentos` (mismo gesto que e2e/momentos.spec.ts):
+  // abre la vista directo sin depender del estado del sidebar.
+  await page.goto('/?view=momentos')
+  await page
+    .getByRole('heading', { name: 'Momentos', level: 2 })
+    .waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(400)
+
+  const results = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en MomentosView:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+    }
+  }
+  expect(results.violations).toEqual([])
+})
+
+test('a11y: CronologíaView sin violaciones', async ({ page }) => {
+  const state = emptyState()
+  state.entities.push(SAMPLE_ENTITY)
+  state.quotes.push(SAMPLE_QUOTE)
+  await skipSplash(page)
+  await mockBackend(page, state)
+  await page.goto('/?view=cronologia')
+  await page
+    .getByRole('heading', { name: 'Cronología', level: 2 })
+    .waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(400)
+
+  const results = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en CronologíaView:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+    }
+  }
+  expect(results.violations).toEqual([])
+})
+
+test('a11y: AtlasView sin violaciones', async ({ page }) => {
+  const state = emptyState()
+  state.entities.push(SAMPLE_ENTITY)
+  await skipSplash(page)
+  await mockBackend(page, state)
+  await page.goto('/?view=atlas')
+  await page
+    .getByRole('heading', { name: 'Atlas', level: 2 })
+    .waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(400)
+
+  const results = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en AtlasView:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+    }
+  }
+  expect(results.violations).toEqual([])
+})
+
 test('a11y: palette ⌘K abierto sin violaciones', async ({ page }) => {
   const state = emptyState()
   state.entities.push(SAMPLE_ENTITY)
