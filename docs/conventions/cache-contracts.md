@@ -28,14 +28,17 @@ Momentos, entidades, citas, relaciones, tareas, attachments y el feed unificado.
   `search`.
 - Entidades: create/update invalidan sus read-models derivados
   (`entitiesInfinite`, `home`, `atlas`, `cronologiaInfinite`, y en create
-  también `counts`/`entityRefsCount`). Delete/merge/restore además refrescan
-  `entities`, `relationships`, `quotes`, las listas infinitas relacionadas y
-  `momentosInfinite` porque el servidor puede reasignar o soft-deletear links,
-  citas y momentos vinculados.
+  también `counts`/`entityRefsCount`). Delete refresca las listas infinitas del
+  grafo (`entitiesInfinite`, `relationshipsInfinite`, `quotesInfinite`),
+  agregados y superficies derivadas. Merge/restore además refrescan los queries
+  base wholesale (`entities`, `relationships`, `quotes`) porque el servidor puede
+  reasignar o revivir links, citas y momentos vinculados.
 - Citas: create/delete invalidan `quotesInfinite`, `counts`, `entityRefsCount`
-  y `home`; update invalida `quotesInfinite` y `home`.
+  y `home`; update invalida `quotesInfinite` y `home`; restore añade `quotes`
+  wholesale al mismo contrato de delete.
 - Relaciones: create/delete invalidan `relationshipsInfinite`, `counts`,
-  `entityRefsCount` y `home`; update invalida `relationshipsInfinite` y `home`.
+  `entityRefsCount` y `home`; update invalida `relationshipsInfinite` y `home`;
+  restore añade `relationships` wholesale al mismo contrato de delete.
 - Tareas: cualquier create/update/delete/restore invalida el prefijo `tasks`,
   `cronologiaInfinite` y `home`.
 - Attachments: siempre invalida `notasAttachments(ownerType, ownerId)`. Si el
@@ -56,12 +59,14 @@ Momentos, entidades, citas, relaciones, tareas, attachments y el feed unificado.
 | Crear/editar/eliminar/restaurar Momento | `momentosInfinite`, `home`, `cronologiaInfinite`, `atlas`, `search`                                                                                                                          | Cambia timeline, agregados e índice global.                                  |
 | Crear entidad                           | `counts`, `entityRefsCount`, `entitiesInfinite`, `home`, `atlas`, `cronologiaInfinite`                                                                                                       | Cambia grafo, agregados e Inicio.                                            |
 | Editar entidad                          | `entitiesInfinite`, `home`, `atlas`, `cronologiaInfinite`                                                                                                                                    | Cambia read-models de grafo/timeline sin tocar relaciones.                   |
-| Eliminar entidad                        | `counts`, `entityRefsCount`, `entitiesInfinite`, `quotesInfinite`, `relationshipsInfinite`, `home`, `atlas`, `cronologiaInfinite`, `momentosInfinite`                                        | Cascadea soft-delete a citas/relaciones y puede afectar momentos vinculados. |
+| Eliminar entidad                        | `counts`, `entityRefsCount`, `entitiesInfinite`, `relationshipsInfinite`, `quotesInfinite`, `home`, `atlas`, `cronologiaInfinite`, `momentosInfinite`                                        | Cascadea soft-delete a citas/relaciones y puede afectar momentos vinculados. |
 | Merge/restaurar entidad                 | `entities`, `relationships`, `quotes`, `counts`, `entityRefsCount`, `entitiesInfinite`, `relationshipsInfinite`, `quotesInfinite`, `home`, `atlas`, `cronologiaInfinite`, `momentosInfinite` | Reasigna o revive relaciones derivadas del grafo.                            |
 | Crear/eliminar cita                     | `quotesInfinite`, `counts`, `entityRefsCount`, `home`                                                                                                                                        | Cambia conteos, refs e Inicio.                                               |
 | Editar cita                             | `quotesInfinite`, `home`                                                                                                                                                                     | Cambia listas y destacados sin mover refs necesariamente.                    |
+| Restaurar cita                          | `quotes`, `quotesInfinite`, `counts`, `entityRefsCount`, `home`                                                                                                                              | Revive la cita y el query wholesale usado por vistas/cache de dominio.       |
 | Crear/eliminar relación                 | `counts`, `entityRefsCount`, `relationshipsInfinite`, `home`                                                                                                                                 | Cambia grafo, refs e Inicio.                                                 |
 | Editar relación                         | `relationshipsInfinite`, `home`                                                                                                                                                              | Cambia la lista y el resumen de Inicio.                                      |
+| Restaurar relación                      | `relationships`, `counts`, `entityRefsCount`, `relationshipsInfinite`, `home`                                                                                                                | Revive la relación y el query wholesale usado por vistas/cache de dominio.   |
 | Crear/editar/eliminar/restaurar tarea   | `tasks`, `cronologiaInfinite`, `home`                                                                                                                                                        | Cambia listas de tareas, calendario e Inicio.                                |
 | Attachment de nota                      | `notasAttachments(owner)`, `notes`, `notasFeed`, `search`                                                                                                                                    | `hasImages`/`hasAudio` se recalculan server-side.                            |
 | Attachment de tarea                     | `notasAttachments(owner)`, `tasks`                                                                                                                                                           | Solo cambia owner operativo de Tareas.                                       |
@@ -92,10 +97,12 @@ El patrón recomendado es:
 
 ## Undo
 
-Los flujos `delete -> toast Deshacer -> restore` deben invalidar la misma
-superficie en delete y restore. El restore usa el `deletedAt` exacto que devolvió
-el DELETE, porque el servidor revive la fila y sus relaciones/attachments por
-esa marca.
+Los flujos `delete -> toast Deshacer -> restore` deben partir de la misma
+superficie de delete. Cuando el restore revive un objeto que también tiene query
+wholesale de dominio, añade ese query base: entidad añade `entities`,
+`relationships` y `quotes`; cita añade `quotes`; relación añade `relationships`.
+El restore usa el `deletedAt` exacto que devolvió el DELETE, porque el servidor
+revive la fila y sus relaciones/attachments por esa marca.
 
 ## Tests
 

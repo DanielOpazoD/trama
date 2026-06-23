@@ -44,38 +44,27 @@ export function invalidateEntityDeleteSurface(queryClient: QueryClient): void {
   ])
 }
 
+const entityMergeRestoreKeys: QueryKey[] = [
+  queryKeys.entities,
+  queryKeys.relationships,
+  queryKeys.quotes,
+  queryKeys.counts,
+  queryKeys.entityRefsCount,
+  queryKeys.entitiesInfinite,
+  queryKeys.relationshipsInfinite,
+  queryKeys.quotesInfinite,
+  queryKeys.home,
+  queryKeys.atlas,
+  queryKeys.cronologiaInfinite,
+  queryKeys.momentosInfinite,
+]
+
 export function invalidateEntityMergeSurface(queryClient: QueryClient): void {
-  invalidateMany(queryClient, [
-    queryKeys.entities,
-    queryKeys.relationships,
-    queryKeys.quotes,
-    queryKeys.counts,
-    queryKeys.entityRefsCount,
-    queryKeys.entitiesInfinite,
-    queryKeys.relationshipsInfinite,
-    queryKeys.quotesInfinite,
-    queryKeys.home,
-    queryKeys.atlas,
-    queryKeys.cronologiaInfinite,
-    queryKeys.momentosInfinite,
-  ])
+  invalidateMany(queryClient, entityMergeRestoreKeys)
 }
 
 export function invalidateEntityRestoreSurface(queryClient: QueryClient): void {
-  invalidateMany(queryClient, [
-    queryKeys.entities,
-    queryKeys.relationships,
-    queryKeys.quotes,
-    queryKeys.counts,
-    queryKeys.entityRefsCount,
-    queryKeys.entitiesInfinite,
-    queryKeys.relationshipsInfinite,
-    queryKeys.quotesInfinite,
-    queryKeys.home,
-    queryKeys.atlas,
-    queryKeys.cronologiaInfinite,
-    queryKeys.momentosInfinite,
-  ])
+  invalidateMany(queryClient, entityMergeRestoreKeys)
 }
 
 export function invalidateQuoteCreateSurface(queryClient: QueryClient): void {

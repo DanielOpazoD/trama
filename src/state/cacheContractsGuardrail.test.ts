@@ -56,7 +56,7 @@ describe('cache contract guardrail', () => {
 
   it('evita que core graph vuelva a duplicar invalidaciones transversales a mano', () => {
     const forbiddenDirectInvalidation =
-      /invalidateQueries\(\{\s*queryKey:\s*queryKeys\.(entities|relationships|quotes|counts|entityRefsCount|entitiesInfinite|relationshipsInfinite|quotesInfinite|momentosInfinite|home|atlas|cronologiaInfinite)\b/
+      /invalidateQueries\(\s*\{[^)]*?\bqueryKey:\s*queryKeys\.(entities|relationships|quotes|counts|entityRefsCount|entitiesInfinite|relationshipsInfinite|quotesInfinite|momentosInfinite|home|atlas|cronologiaInfinite)\b/
 
     for (const file of ['useEntities.ts', 'useQuotes.ts', 'useRelationships.ts']) {
       expect(uncommented(source(file)), file).not.toMatch(forbiddenDirectInvalidation)
@@ -67,18 +67,22 @@ describe('cache contract guardrail', () => {
     const src = uncommented(source('useTasks.ts'))
 
     expect(src).not.toMatch(
-      /invalidateQueries\(\{\s*queryKey:\s*(TASKS_KEY|queryKeys\.(tasks|cronologiaInfinite|home))\b/,
+      /invalidateQueries\(\s*\{[^)]*?\bqueryKey:\s*(TASKS_KEY|queryKeys\.(tasks|cronologiaInfinite|home))\b/,
     )
   })
 
   it('mantiene el rollback optimista común en los hooks con patches optimistas', () => {
-    expect(source('useNotes.ts')).toContain("from './cacheOptimistic'")
-    expect(source('useRecortes.ts')).toContain("from './cacheOptimistic'")
-    expect(source('notasFeedCache.ts')).toContain("from './cacheOptimistic'")
-    expect(source('useEntities.ts')).toContain("from './cacheOptimistic'")
-    expect(source('useQuotes.ts')).toContain("from './cacheOptimistic'")
-    expect(source('useRelationships.ts')).toContain("from './cacheOptimistic'")
-    expect(source('useTasks.ts')).toContain("from './cacheOptimistic'")
+    for (const file of [
+      'useNotes.ts',
+      'useRecortes.ts',
+      'notasFeedCache.ts',
+      'useEntities.ts',
+      'useQuotes.ts',
+      'useRelationships.ts',
+      'useTasks.ts',
+    ]) {
+      expect(uncommented(source(file)), file).toMatch(/from ['"]\.\/cacheOptimistic['"]/)
+    }
   })
 
   it('restringe invalidateQueries directo a excepciones explícitas', () => {
