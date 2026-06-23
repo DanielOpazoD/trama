@@ -172,6 +172,9 @@ describe('buildMediaReply (ensamblado del texto de respuesta de media)', () => {
       buildMediaReply(mediaInput({ saved: 0, skipped: new Set(['audio_format']) }))
         .message,
     ).toContain('nota de voz')
+    expect(
+      buildMediaReply(mediaInput({ saved: 0, skipped: new Set(['audio_ai']) })).message,
+    ).toContain('No pude transcribir')
   })
 
   it('config faltante no filtra nombres de env vars', () => {

@@ -225,7 +225,13 @@ export async function joinRecortePhotosToMomento(
   const copied: Array<{ storageKey: string; originalKey: string }> = []
   for (const rk of recorteKeys) {
     const c = await ops.copy('momentos-media', rk.key, userId)
-    if (c) copied.push({ storageKey: c.storageKey, originalKey: rk.key })
+    if (!c) {
+      for (const copiedImage of copied) {
+        await ops.remove('momentos-media', copiedImage.storageKey)
+      }
+      return null
+    }
+    copied.push({ storageKey: c.storageKey, originalKey: rk.key })
   }
   if (copied.length === 0) return null
 
@@ -312,7 +318,15 @@ export async function appendSplitAlbum(
         // subimos TODO el álbum a un momento (reclasificación) y anexamos.
         const res = await reclassifyRecorteToMomento(sql, userId, recent.id, '')
         if (res.status === 'ok') {
-          await args.softDeleteCapture(sql, userId, 'recorte', recent.id)
+          const softDeleted = await args.softDeleteCapture(
+            sql,
+            userId,
+            'recorte',
+            recent.id,
+          )
+          if (!softDeleted) {
+            throw new Error(`failed to soft-delete recorte ${recent.id}`)
+          }
           appendedTotal = await appendImagesToMomento(sql, userId, res.id, momentoKeys)
           if (appendedTotal !== null) {
             lastId = res.id

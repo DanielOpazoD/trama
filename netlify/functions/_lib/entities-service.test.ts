@@ -146,19 +146,31 @@ describe('entities-service', () => {
 
   describe('parseEntityCursor', () => {
     it('corta en el último ":" para preservar la hora del ISO timestamp', () => {
-      expect(parseEntityCursor('2026-05-21T16:12:30.000Z:abc-123')).toEqual({
+      expect(
+        parseEntityCursor(
+          '2026-05-21T16:12:30.000Z:11111111-1111-4111-8111-111111111111',
+        ),
+      ).toEqual({
         ts: '2026-05-21T16:12:30.000Z',
-        id: 'abc-123',
+        id: '11111111-1111-4111-8111-111111111111',
       })
     })
 
-    it('devuelve null para cursor vacío, null o malformado', () => {
+    it('devuelve null para cursor vacío, null o malformado antes del cast SQL', () => {
       expect(parseEntityCursor(null)).toBeNull()
       expect(parseEntityCursor('')).toBeNull()
       // sin separador
       expect(parseEntityCursor('sololetras')).toBeNull()
       // separador en posición 0 (sin timestamp) -> inválido
       expect(parseEntityCursor(':abc')).toBeNull()
+      // separador final (sin UUID) -> inválido
+      expect(parseEntityCursor('2026-05-21T16:12:30.000Z:')).toBeNull()
+      // timestamp no parseable -> inválido
+      expect(
+        parseEntityCursor('fecha-rara:11111111-1111-4111-8111-111111111111'),
+      ).toBeNull()
+      // UUID inválido -> inválido
+      expect(parseEntityCursor('2026-05-21T16:12:30.000Z:abc-123')).toBeNull()
     })
   })
 

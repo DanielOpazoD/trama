@@ -14,7 +14,7 @@ export type RecorteSuggestion = {
 }
 
 /**
- * E6 — schema Zod fiel a la proyección canónica de 16 columnas que devuelven
+ * E6 — schema Zod fiel a la proyección canónica de 15 columnas que devuelven
  * los SELECT/RETURNING críticos de recortes (promote, unpromote, el read
  * idempotente de la promoción foto). Se usa con `parseRows(...)` para validar
  * el shape en runtime: si en el futuro alguien edita uno de esos SELECT y
@@ -52,7 +52,7 @@ export type RecorteRow = z.infer<typeof RecorteRowSchema> & {
 }
 
 /**
- * E4 — única fuente de verdad de la proyección de 16 columnas que devuelven los
+ * E4 — única fuente de verdad de la proyección de columnas que devuelven los
  * CTE de promoción de recortes (SELECT/RETURNING). Antes vivía repetida ~8 veces
  * inline en los tres bloques de `/promote` (quote/entity/momento), que solo se
  * diferencian en el INSERT del destino. Es texto SQL estático (identificadores
@@ -60,7 +60,7 @@ export type RecorteRow = z.infer<typeof RecorteRowSchema> & {
  * `sql.unsafe(...)` —el driver lo concatena literal, no como parámetro—. El
  * orden y los nombres replican exactamente `RecorteRowSchema`.
  */
-const RECORTE_ROW_COLUMNS = [
+const recorteRowColumns = [
   'id',
   'text',
   'source_url',
@@ -79,9 +79,9 @@ const RECORTE_ROW_COLUMNS = [
 ] as const
 
 /** `id, text, ...` — proyección sin alias (SELECT de `marked` y rama UNION). */
-const RECORTE_ROW_PROJECTION = RECORTE_ROW_COLUMNS.join(', ')
+const recorteRowProjection = recorteRowColumns.join(', ')
 /** `r.id, r.text, ...` — proyección con alias `r` (RETURNING y JOIN sobre recortes). */
-const RECORTE_ROW_PROJECTION_R = RECORTE_ROW_COLUMNS.map((col) => `r.${col}`).join(', ')
+const recorteRowProjectionR = recorteRowColumns.map((col) => `r.${col}`).join(', ')
 
 /** Fragmento `inserted AS (...)` específico del target, ya con sus parámetros. */
 export type PromoteInsertedCte = ReturnType<SqlClient>
@@ -111,14 +111,15 @@ export async function buildPromoteRecorteCte(
   if (!unsafe) {
     throw new Error('El cliente SQL no soporta sql.unsafe para los CTE de recortes')
   }
-  const projection = unsafe(RECORTE_ROW_PROJECTION)
-  const projectionR = unsafe(RECORTE_ROW_PROJECTION_R)
+  const projection = unsafe(recorteRowProjection)
+  const projectionR = unsafe(recorteRowProjectionR)
   return parseRows(
     await sqlTyped<RecorteRow>(sql`
       WITH current_recorte AS (
         SELECT id, status
         FROM recortes
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+        FOR UPDATE
       ),
       inserted AS (
         ${inserted}

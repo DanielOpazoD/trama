@@ -86,12 +86,13 @@ export function setupMockSql() {
     strings: TemplateStringsArray
     values: unknown[]
   }
-  type MockUnsafe = { sql: string }
+  type MockUnsafe = { __mockSqlUnsafe: true; sql: string }
   const isFragment = (v: unknown): v is MockFragment =>
     typeof v === 'object' && v !== null && (v as MockFragment).__mockSqlFragment === true
   const isUnsafe = (v: unknown): v is MockUnsafe =>
     typeof v === 'object' &&
     v !== null &&
+    (v as MockUnsafe).__mockSqlUnsafe === true &&
     typeof (v as MockUnsafe).sql === 'string' &&
     !isFragment(v)
 
@@ -150,7 +151,7 @@ export function setupMockSql() {
     }
     return thenable as unknown as Promise<unknown[]>
   }
-  sql.unsafe = (rawSql: string): MockUnsafe => ({ sql: rawSql })
+  sql.unsafe = (rawSql: string): MockUnsafe => ({ __mockSqlUnsafe: true, sql: rawSql })
   sql.transaction = async (fn: (tx: typeof sql) => unknown[]) => {
     const tx = ((strings: TemplateStringsArray, ...values: unknown[]) => {
       record(strings, values)

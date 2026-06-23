@@ -14,6 +14,7 @@ import {
   buildEntityEmbeddingSource,
   clampEntityLimit,
   parseEntityCursor,
+  patchTouchesEmbeddingInput,
   shouldReembedEntity,
   type DupRow,
 } from './entities-service.js'
@@ -197,12 +198,7 @@ export default withObservability(
       // Solo leemos la fila actual si el PATCH tocó algún campo que alimenta el
       // embedding; la decisión pura (¿cambió de verdad el texto?) vive en
       // shouldReembedEntity para no re-embedear sin cambio real (regla AGENTS).
-      if (
-        body.name !== undefined ||
-        body.type !== undefined ||
-        body.year !== undefined ||
-        body.description !== undefined
-      ) {
+      if (patchTouchesEmbeddingInput(body)) {
         const currentRows = await sqlTyped<{
           name: string
           type: string

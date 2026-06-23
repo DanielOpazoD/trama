@@ -92,7 +92,7 @@ export function parseInlineTags(raw: string): string[] {
   ].slice(0, 10)
 }
 
-const DEST_BY_KIND: Record<string, string> = {
+const destByKind: Record<string, string> = {
   momento: 'Momentos',
   recorte: 'Recortes',
   quote: 'Citas',
@@ -153,7 +153,7 @@ export function buildMediaReply(input: MediaReplyInput): MediaReply {
   } = input
   const lines: string[] = []
   if (saved > 0) {
-    const dest = DEST_BY_KIND[lastKind] ?? 'Trama'
+    const dest = destByKind[lastKind] ?? 'Trama'
     if (appendedTotal !== null) {
       const noun = lastKind === 'momento' ? 'tu momento' : 'tu evento en Recortes'
       lines.push(

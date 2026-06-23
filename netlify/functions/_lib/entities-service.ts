@@ -121,20 +121,23 @@ export function shouldReembedEntity(params: {
   )
 }
 
-/** Cursor de paginación parseado: `"<created_at_iso>:<uuid>"`. */
 export type EntityCursor = { ts: string; id: string } | null
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * Parsea el cursor `"<created_at_iso>:<uuid>"` que devolvimos como `nextCursor`.
  * Cortamos en el ÚLTIMO `:` porque el timestamp ISO contiene `:` (la hora).
- * Devuelve null si el cursor es vacío o malformado (el handler cae a la primera
- * página). PURO — solo parsea el string.
+ * Devuelve null si es vacío/malformado (el handler cae a la primera página).
  */
 export function parseEntityCursor(cursorParam: string | null): EntityCursor {
   if (!cursorParam) return null
   const sep = cursorParam.lastIndexOf(':')
-  if (sep <= 0) return null
-  return { ts: cursorParam.slice(0, sep), id: cursorParam.slice(sep + 1) }
+  if (sep <= 0 || sep === cursorParam.length - 1) return null
+  const ts = cursorParam.slice(0, sep)
+  const id = cursorParam.slice(sep + 1)
+  if (Number.isNaN(Date.parse(ts)) || !uuidPattern.test(id)) return null
+  return { ts, id }
 }
 
 /**

@@ -36,6 +36,7 @@ export const BACKEND_DOMAIN_SERVICE_CONTRACTS = [
       'shouldReembedEntity',
       'buildDuplicateSuggestions',
       'parseEntityCursor',
+      'clampEntityLimit',
     ],
     serviceRequires: [
       'export function buildEntityCreateDraft',
@@ -43,6 +44,7 @@ export const BACKEND_DOMAIN_SERVICE_CONTRACTS = [
       'export function shouldReembedEntity',
       'export function buildDuplicateSuggestions',
       'export function parseEntityCursor',
+      'export function clampEntityLimit',
     ],
     endpointMaxLines: 380,
     serviceMaxLines: 185,
