@@ -48,7 +48,12 @@ function createFixture() {
   write(
     root,
     'src/api/chat.ts',
-    "import { apiFetch } from './request'\nexport async function f(threadId) { const response = await apiFetch(`/api/chat/threads/${threadId}/messages`); return response.body }\n",
+    "import { apiFetch } from './request'\nexport async function f(threadId, handlers) { const response = await apiFetch(`/api/chat/threads/${threadId}/messages`); if (!response.ok || !response.body) { const text = await response.text(); handlers.onError?.(text || `HTTP ${response.status}`); return } return response.body.getReader() }\n",
+  )
+  write(
+    root,
+    'src/api/biblioteca.ts',
+    "export async function f(uploadUrl, file) { const putResponse = await fetch(uploadUrl, { method: 'PUT', body: file }); if (!putResponse.ok) throw new Error(`R2 ${putResponse.status}`) }\n",
   )
   write(
     root,
@@ -240,10 +245,12 @@ describe('checkClientApiContracts', () => {
       apiClientError: false,
     })
     expect(inventory.summary).toEqual({
-      directFetchFiles: 6,
-      allowedDirectFetchFiles: 6,
+      directFetchFiles: 7,
+      allowedDirectFetchFiles: 7,
       rawApiFetchFiles: 3,
       allowedRawApiFetchFiles: 3,
+      rawResponseUsageFiles: 2,
+      allowedRawResponseUsageFiles: 2,
       privateBlobConsumers: 8,
       privateBlobConsumersOk: 8,
     })
@@ -297,6 +304,56 @@ describe('checkClientApiContracts', () => {
           file: 'src/lib/photoExport.ts',
           ok: false,
           missingRequired: ['requestBlob(url)'],
+        }),
+      ]),
+    )
+  })
+
+  it('rechaza parsear Response manualmente en un nuevo módulo src/api sin excepción', () => {
+    const root = createFixture()
+    write(
+      root,
+      'src/api/badManual.ts',
+      "import { requestResponse } from './request'\nexport async function f() { const response = await requestResponse('/api/bad'); if (!response.ok) return response.text(); return response.json() }\n",
+    )
+
+    const result = checkClientApiContracts(root)
+
+    expect(result.ok).toBe(false)
+    expect(result.failures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'src/api/badManual.ts',
+          message: expect.stringContaining('parsea Response manualmente'),
+        }),
+      ]),
+    )
+  })
+
+  it('rechaza que una excepción de Response crudo crezca sin actualizar el contrato', () => {
+    const root = createFixture()
+    write(
+      root,
+      'src/api/biblioteca.ts',
+      [
+        'export async function f(uploadUrl, file, secondUrl) {',
+        "  const putResponse = await fetch(uploadUrl, { method: 'PUT', body: file })",
+        '  if (!putResponse.ok) throw new Error(`R2 ${putResponse.status}`)',
+        "  const secondResponse = await fetch(secondUrl, { method: 'PUT', body: file })",
+        '  if (!secondResponse.ok) throw new Error(`R2 ${secondResponse.status}`)',
+        '}',
+        '',
+      ].join('\n'),
+    )
+
+    const result = checkClientApiContracts(root)
+
+    expect(result.ok).toBe(false)
+    expect(result.failures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'src/api/biblioteca.ts',
+          message: expect.stringContaining('Response crudo(s) permitidos'),
         }),
       ]),
     )

@@ -70,6 +70,29 @@ const RAW_API_FETCH_ALLOWLIST = [
   },
 ]
 
+const RAW_RESPONSE_USAGE_ALLOWLIST = [
+  {
+    file: 'src/api/chat.ts',
+    count: 5,
+    reason: 'streaming chat protocol needs Response.body and raw failure text',
+    requires: [
+      'const response = await apiFetch(`/api/chat/threads/${threadId}/messages`',
+      'response.body.getReader()',
+      'handlers.onError?.(text || `HTTP ${response.status}`)',
+    ],
+  },
+  {
+    file: 'src/api/biblioteca.ts',
+    count: 2,
+    reason: 'R2 presigned PUT is cross-origin and only exposes status/ok',
+    requires: [
+      'const putResponse = await fetch(uploadUrl, {',
+      'if (!putResponse.ok)',
+      'putResponse.status',
+    ],
+  },
+]
+
 const PRIVATE_BLOB_CONTRACTS = [
   {
     file: 'src/components/notas/AttachmentsPanel.tsx',
@@ -139,6 +162,14 @@ function countDirectFetches(source) {
 
 function countRawApiFetches(source) {
   return source.match(/\bapiFetch\s*\(/g)?.length ?? 0
+}
+
+function countRawResponseUsages(source) {
+  return (
+    source.match(
+      /\b[a-zA-Z_$][\w$]*Response\.(?:ok|body|status|headers|text|blob|json)\b|\bresponse\.(?:ok|body|status|headers|text|blob|json)\b/g,
+    )?.length ?? 0
+  )
 }
 
 function textChecks(contract, source) {
@@ -222,6 +253,31 @@ export function buildClientApiInventory(root = process.cwd()) {
     .filter(Boolean)
     .sort((a, b) => a.file.localeCompare(b.file))
 
+  const rawResponseAllowByFile = new Map(
+    RAW_RESPONSE_USAGE_ALLOWLIST.map((entry) => [entry.file, entry]),
+  )
+  const rawResponseUsages = allSourceFiles(projectRoot)
+    .filter((file) => {
+      const rel = relative(projectRoot, file)
+      return rel.startsWith('src/api/') && rel !== 'src/api/request.ts'
+    })
+    .map((file) => {
+      const rel = relative(projectRoot, file)
+      const source = readFileSync(file, 'utf8')
+      const count = countRawResponseUsages(source)
+      if (count === 0) return null
+      const allowed = rawResponseAllowByFile.get(rel)
+      return {
+        file: rel,
+        count,
+        allowed: Boolean(allowed),
+        reason: allowed?.reason ?? null,
+        expectedCount: allowed?.count ?? null,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.file.localeCompare(b.file))
+
   const privateBlobConsumers = PRIVATE_BLOB_CONTRACTS.map((contract) => {
     const source = sourceOrNull(projectRoot, contract.file)
     if (source === null) {
@@ -257,12 +313,16 @@ export function buildClientApiInventory(root = process.cwd()) {
     requestExports,
     directFetches,
     rawApiFetches,
+    rawResponseUsages,
     privateBlobConsumers,
     summary: {
       directFetchFiles: directFetches.length,
       allowedDirectFetchFiles: directFetches.filter((entry) => entry.allowed).length,
       rawApiFetchFiles: rawApiFetches.length,
       allowedRawApiFetchFiles: rawApiFetches.filter((entry) => entry.allowed).length,
+      rawResponseUsageFiles: rawResponseUsages.length,
+      allowedRawResponseUsageFiles: rawResponseUsages.filter((entry) => entry.allowed)
+        .length,
       privateBlobConsumers: privateBlobConsumers.length,
       privateBlobConsumersOk: privateBlobConsumers.filter((entry) => entry.ok).length,
     },
@@ -308,6 +368,26 @@ function inventoryFailures(inventory, root) {
     }
   }
   for (const contract of RAW_API_FETCH_ALLOWLIST) {
+    const source = sourceOrNull(projectRoot, contract.file)
+    if (source === null) continue
+    pushMissingTextFailures(failures, contract, source)
+  }
+  for (const entry of inventory.rawResponseUsages) {
+    if (!entry.allowed) {
+      failures.push({
+        file: entry.file,
+        message: `${entry.file} parsea Response manualmente; usa request(), requestBlob() o justifica una excepción en scripts/client-api-contracts.mjs.`,
+      })
+      continue
+    }
+    if (entry.expectedCount !== entry.count) {
+      failures.push({
+        file: entry.file,
+        message: `${entry.file} declara ${entry.expectedCount} usos de Response crudo(s) permitidos por "${entry.reason}", pero tiene ${entry.count}.`,
+      })
+    }
+  }
+  for (const contract of RAW_RESPONSE_USAGE_ALLOWLIST) {
     const source = sourceOrNull(projectRoot, contract.file)
     if (source === null) continue
     pushMissingTextFailures(failures, contract, source)
