@@ -3,6 +3,7 @@ import {
   buildUserIdWriteContractReport,
   findUserIdWriteContractIssues,
   findUserIdWriteContractWarnings,
+  hasBlockingUserIdWriteFindings,
 } from './user-id-write-contracts.mjs'
 
 describe('user_id write contracts', () => {
@@ -158,5 +159,56 @@ describe('user_id write contracts', () => {
         reason: expect.stringContaining('recorte owner'),
       }),
     ])
+  })
+
+  it('acepta whatsapp_pending_media porque user_id viene de parámetros autenticados antes del unnest', () => {
+    const report = buildUserIdWriteContractReport({
+      privateTables: ['whatsapp_pending_media'],
+      sources: [
+        {
+          file: 'netlify/functions/_lib/whatsapp/pending-media.ts',
+          source: `
+            await sql\`
+              INSERT INTO whatsapp_pending_media (
+                user_id, phone_e164, group_id, storage_key, mime, captured_at, caption
+              )
+              SELECT \${userId}, \${phone}, \${groupId}::uuid, x.key, x.mime,
+                x.captured_at::timestamptz, \${caption}
+              FROM unnest(\${keys}::text[], \${mimes}::text[], \${capturedAts}::text[])
+                AS x(key, mime, captured_at)
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(report.warnings).toBe(0)
+    expect(report.acceptedWarnings).toBe(1)
+    expect(report.acceptedWarningDetails[0]).toMatchObject({
+      file: 'netlify/functions/_lib/whatsapp/pending-media.ts',
+      table: 'whatsapp_pending_media',
+      reason: expect.stringContaining('authenticated userId parameter'),
+    })
+  })
+
+  it('trata warnings no aceptados como findings bloqueantes', () => {
+    const report = buildUserIdWriteContractReport({
+      privateTables: ['notes'],
+      warningAllowlist: [],
+      sources: [
+        {
+          file: 'netlify/functions/notes.mts',
+          source: `
+            await sql\`
+              INSERT INTO notes (content, user_id)
+              SELECT content, owner_id FROM imported_notes
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(report.warnings).toBe(1)
+    expect(hasBlockingUserIdWriteFindings(report)).toBe(true)
   })
 })

@@ -31,6 +31,13 @@ export const USER_ID_WRITE_WARNING_ALLOWLIST = [
     reason: 'album append selects the owner-visible recorte before writing image user_id',
   },
   {
+    file: 'netlify/functions/_lib/whatsapp/pending-media.ts',
+    table: 'whatsapp_pending_media',
+    kind: 'insert_select_manual_review',
+    reason:
+      'pending media writes user_id from the authenticated userId parameter before unnesting uploaded image metadata',
+  },
+  {
     file: 'netlify/functions/entities-merge.mts',
     table: 'momento_entities',
     kind: 'insert_select_manual_review',
@@ -210,6 +217,10 @@ export function buildUserIdWriteContractReport(options = {}) {
   }
 }
 
+export function hasBlockingUserIdWriteFindings(report) {
+  return report.issues > 0 || report.warnings > 0
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const report = buildUserIdWriteContractReport()
   const issues = findUserIdWriteContractIssues()
@@ -227,4 +238,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (const warning of accepted) {
     console.warn(`${warning.message} ACEPTADO: ${warning.reason}`)
   }
+  if (unresolved.length > 0) process.exit(1)
 }
