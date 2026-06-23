@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Recorte } from '../../api'
@@ -72,5 +72,30 @@ describe('<PromoteModal /> → momento', () => {
       input: { momento: { kind: string } }
     }
     expect(arg.input.momento.kind).toBe('recorte')
+  })
+})
+
+describe('<PromoteModal /> → accesibilidad de modal', () => {
+  beforeEach(() => {
+    toastMocks.useToast.mockReturnValue({ show: vi.fn() })
+    stateMocks.usePromoteRecorte.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+    })
+    document.body.innerHTML = ''
+  })
+
+  it('es un diálogo modal (role=dialog + aria-modal)', () => {
+    render(<PromoteModal recorte={baseRecorte} target="momento" onClose={vi.fn()} />)
+    const dialog = screen.getByRole('dialog', { name: /promover a momento/i })
+    // useModalOverlay aísla el modal para lectores de pantalla.
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+  })
+
+  it('cierra con Escape', () => {
+    const onClose = vi.fn()
+    render(<PromoteModal recorte={baseRecorte} target="momento" onClose={onClose} />)
+    // useModalOverlay escucha en document (fase de captura).
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
   })
 })

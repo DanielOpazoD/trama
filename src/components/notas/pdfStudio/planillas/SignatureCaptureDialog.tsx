@@ -1,5 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
+import { useModalOverlay } from '../../../../hooks/useModalOverlay'
 
 export function SignatureCaptureDialog({
   field,
@@ -14,6 +15,18 @@ export function SignatureCaptureDialog({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawingRef = useRef(false)
+  // El padre monta este diálogo solo cuando hay firma activa, así que
+  // open=true mientras vive. El hook aporta el gap de a11y que faltaba:
+  // focus-trap (Tab no escapa al PDF), Escape→cerrar y restauración de
+  // foco. lockScroll=false porque el overlay es absolute dentro del panel
+  // del estudio, no fixed sobre toda la página (mismo criterio que
+  // StampSignatureDrawDialog y ConfirmDestroy). El canvas y su captura de
+  // puntero quedan intactos: el hook no toca eventos de puntero.
+  const overlay = useModalOverlay({
+    open: true,
+    onClose: onCancel,
+    lockScroll: false,
+  })
 
   function point(event: ReactPointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current
@@ -65,6 +78,7 @@ export function SignatureCaptureDialog({
   return (
     <div className="absolute inset-0 z-[90] flex items-center justify-center bg-ink-900/20">
       <section
+        ref={overlay.dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Firmar ${field.name}`}

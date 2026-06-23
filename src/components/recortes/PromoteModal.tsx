@@ -5,7 +5,7 @@ import { ENTITY_TYPES } from '../../types'
 import type { Entity } from '../../types'
 import type { Recorte, RecorteTarget } from '../../api'
 import { CloseIcon } from '../Icons'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { EntityCombobox } from '../EntityCombobox'
 
 export type PromoteSeed = {
@@ -65,9 +65,11 @@ export function PromoteModal({
   // momento de texto): el servidor copia el blob y la imagen aparece en el
   // álbum. El resto sigue siendo un momento «recorte» de texto/enlace.
   const isImageCaptura = !!recorte.imageKey
-  const dialogRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
-  useFocusTrap(dialogRef, true)
+  // Modal auto-gestionado: el overlay aporta focus-trap, scroll-lock y Escape
+  // (consciente del stack). Mientras promueve (busy) no se puede cerrar con
+  // Escape, igual que el backdrop y los botones quedan deshabilitados.
+  const overlay = useModalOverlay({ open: true, onClose, closeOnEscape: !busy })
 
   useEffect(() => {
     textRef.current?.focus()
@@ -180,7 +182,7 @@ export function PromoteModal({
         tabIndex={-1}
       />
       <div
-        ref={dialogRef}
+        ref={overlay.dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={`Promover a ${TARGET_LABEL[target]}`}

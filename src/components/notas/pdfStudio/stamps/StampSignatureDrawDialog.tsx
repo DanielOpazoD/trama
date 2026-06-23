@@ -1,4 +1,5 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { useModalOverlay } from '../../../../hooks/useModalOverlay'
 
 export function StampSignatureDrawDialog({
   onCancel,
@@ -9,6 +10,18 @@ export function StampSignatureDrawDialog({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawingRef = useRef(false)
+
+  // Diálogo modal real: lo monta el padre mientras está abierto, así que
+  // open=true mientras vive. El hook aporta focus-trap (Tab no escapa al PDF)
+  // y Escape→cerrar, que antes faltaban. lockScroll=false porque el overlay
+  // es absolute dentro del panel del estudio, no fixed sobre toda la página
+  // (mismo criterio que ConfirmDestroy). El canvas y su captura de puntero
+  // quedan intactos: el hook no toca eventos de puntero.
+  const overlay = useModalOverlay({
+    open: true,
+    onClose: onCancel,
+    lockScroll: false,
+  })
 
   function point(event: ReactPointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current
@@ -56,6 +69,7 @@ export function StampSignatureDrawDialog({
   return (
     <div className="absolute inset-0 z-[90] flex items-center justify-center bg-ink-900/20">
       <section
+        ref={overlay.dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Dibujar firma"
