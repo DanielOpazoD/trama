@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { FocusedWriting } from './FocusedWriting'
@@ -18,9 +18,19 @@ function Harness({ onClose }: { onClose: () => void }) {
 }
 
 describe('<FocusedWriting />', () => {
-  it('se abre como diálogo con la etiqueta accesible', () => {
+  it('se abre como diálogo modal con la etiqueta accesible', () => {
     render(<Harness onClose={() => {}} />)
-    expect(screen.getByRole('dialog', { name: 'Escritura enfocada' })).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: 'Escritura enfocada' })
+    expect(dialog).toBeInTheDocument()
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+  })
+
+  it('enfoca el textarea al abrir (autoFocus dentro del focus trap)', async () => {
+    render(<Harness onClose={() => {}} />)
+    const ta = screen.getByLabelText('Contenido de la nota')
+    // El focus trap de useModalOverlay respeta el autoFocus del cuerpo: el foco
+    // inicial cae en el textarea, no en el primer botón (Cerrar).
+    await waitFor(() => expect(document.activeElement).toBe(ta))
   })
 
   it('los cambios del cuerpo propagan al estado del caller', async () => {
@@ -39,7 +49,8 @@ describe('<FocusedWriting />', () => {
     render(
       <FocusedWriting value="x" onChange={() => {}} onClose={onClose} onSave={onSave} />,
     )
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // useModalOverlay intercepta Escape con un listener en `document`.
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onSave).toHaveBeenCalledOnce()
     expect(onClose).toHaveBeenCalledOnce()
   })
@@ -69,7 +80,7 @@ describe('<FocusedWriting />', () => {
 
     expect(screen.getByRole('dialog', { name: 'Escritura enfocada' })).toBeInTheDocument()
 
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
 
     expect(screen.queryByRole('dialog', { name: 'Escritura enfocada' })).toBeNull()
     expect(document.activeElement).toBe(opener)

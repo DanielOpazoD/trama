@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { useFocusTrap } from '../../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../../hooks/useModalOverlay'
 
 /**
  * Primitivas compartidas por los 3 sub-modales de edición de momentos
@@ -17,7 +16,15 @@ import { useFocusTrap } from '../../../hooks/useFocusTrap'
  */
 
 /**
- * Overlay + dialog. Maneja focus trap y Escape-to-close.
+ * Overlay + dialog. Delega focus trap, Escape-to-close, scroll-lock y
+ * restauración de foco a `useModalOverlay` (mismo patrón que ConfirmDestroy
+ * y CommandPalette). El modal solo se monta cuando está visible, así que
+ * `open: true` mientras vive el componente.
+ *
+ * El Escape acá no tiene lógica propia ni guard de "cambios sin guardar":
+ * los tres sub-modales pasan el mismo `onClose` para backdrop/Escape/cancelar
+ * y el guardado llama a `onClose` por su cuenta. Por eso basta con enrutar
+ * Escape a `onClose` vía el hook.
  */
 export function ModalShell({
   ariaLabel,
@@ -32,16 +39,7 @@ export function ModalShell({
   children: React.ReactNode
   onClose: () => void
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, true)
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  const overlay = useModalOverlay({ open: true, onClose })
 
   return createPortal(
     <div data-momento-modal-root="">
@@ -53,7 +51,7 @@ export function ModalShell({
       />
       <div className="fixed inset-0 z-[130] flex items-center justify-center px-4 pointer-events-none">
         <div
-          ref={dialogRef}
+          ref={overlay.dialogRef}
           role="dialog"
           aria-label={ariaLabel}
           aria-modal="true"
