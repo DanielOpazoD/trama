@@ -21,7 +21,7 @@ export type QuoteSearchItem = {
 export type MomentoSearchItem = {
   id: string
   kind: string
-  captured_at: string
+  captured_at: string | Date
   text: string
 }
 

@@ -55,6 +55,8 @@ describe('entities endpoint — integration', () => {
           position_y: null,
           origin: { kind: 'manual' },
           spotify_url: null,
+          wikipedia_url: null,
+          grokipedia_url: null,
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-01T00:00:00Z',
         },
@@ -88,6 +90,8 @@ describe('entities endpoint — integration', () => {
           position_y: null,
           origin: { kind: 'manual' },
           spotify_url: null,
+          wikipedia_url: null,
+          grokipedia_url: null,
           created_at: '2026-01-01T00:00:00Z',
           updated_at: '2026-01-01T00:00:00Z',
         },
@@ -122,6 +126,8 @@ describe('entities endpoint — integration', () => {
         position_y: null,
         origin: { kind: 'manual' },
         spotify_url: null,
+        wikipedia_url: null,
+        grokipedia_url: null,
         created_at: rowDate, // ← clave: pasamos Date, no string
         updated_at: rowDate,
       })

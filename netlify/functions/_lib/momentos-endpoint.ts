@@ -10,6 +10,7 @@ import { parseSearchParams, requestPath } from './request-contracts.js'
 import { MomentoCreateBody, MomentoPatchBody } from './momento-schemas.js'
 import { ensureUserRow } from './user-provisioning.js'
 import { runWithSystemRls } from './user-rls.js'
+import { parseRows } from './row-parse.js'
 import {
   buildMomentosListResponse,
   buildMomentosListParams,
@@ -24,6 +25,10 @@ import {
   buildMomentoPatchDraft,
   ownerIdFromMomentoRow,
 } from './momentos-service.js'
+import {
+  MomentoEntityLinkRowSchema,
+  MomentoListRowSchema,
+} from './backend-row-schemas.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -71,8 +76,9 @@ export default withObservability(
 
     // ---------------- GET one ----------------
     if (req.method === 'GET' && id) {
-      const rows = await runWithSystemRls(() =>
-        sqlTyped<MomentoResponseRow>(sql`
+      const rows = parseRows(
+        await runWithSystemRls(() =>
+          sqlTyped<MomentoResponseRow>(sql`
       SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
              m.created_at, m.updated_at,
              m.user_id AS owner_user_id,
@@ -90,6 +96,9 @@ export default withObservability(
         AND m.deleted_at IS NULL
         AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
     `),
+        ),
+        MomentoListRowSchema,
+        'momentos.get',
       )
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Momento no encontrado')
@@ -97,8 +106,9 @@ export default withObservability(
       // Traemos los entityIds linkeados también, para que el cliente no haga
       // un round-trip aparte. El JOIN a entities excluye entidades soft-borradas:
       // el link sobrevive (restaurar la entidad lo revive), pero no se lista.
-      const links = await runWithSystemRls(() =>
-        sqlTyped<MomentoLinkIdRow>(sql`
+      const links = parseRows(
+        await runWithSystemRls(() =>
+          sqlTyped<MomentoLinkIdRow>(sql`
       SELECT me.entity_id
       FROM momento_entities me
       JOIN entities e ON e.id = me.entity_id AND e.deleted_at IS NULL
@@ -106,6 +116,9 @@ export default withObservability(
         AND me.user_id = ${ownerIdFromMomentoRow(rows[0], userId)}
         AND me.deleted_at IS NULL
     `),
+        ),
+        MomentoEntityLinkRowSchema.pick({ entity_id: true }),
+        'momentos.get.links',
       )
       return Response.json({
         ...rows[0],
@@ -123,8 +136,9 @@ export default withObservability(
 
       let rows: MomentoListRow[]
       if (cursorTs && cursorId && validKind) {
-        rows = await runWithSystemRls(() =>
-          sqlTyped<MomentoListRow>(sql`
+        rows = parseRows(
+          await runWithSystemRls(() =>
+            sqlTyped<MomentoListRow>(sql`
         SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
                m.created_at, m.updated_at,
                m.user_id AS owner_user_id,
@@ -145,10 +159,14 @@ export default withObservability(
         ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
       `),
+          ),
+          MomentoListRowSchema,
+          'momentos.list.cursor.kind',
         )
       } else if (cursorTs && cursorId) {
-        rows = await runWithSystemRls(() =>
-          sqlTyped<MomentoListRow>(sql`
+        rows = parseRows(
+          await runWithSystemRls(() =>
+            sqlTyped<MomentoListRow>(sql`
         SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
                m.created_at, m.updated_at,
                m.user_id AS owner_user_id,
@@ -168,10 +186,14 @@ export default withObservability(
         ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
       `),
+          ),
+          MomentoListRowSchema,
+          'momentos.list.cursor',
         )
       } else if (validKind) {
-        rows = await runWithSystemRls(() =>
-          sqlTyped<MomentoListRow>(sql`
+        rows = parseRows(
+          await runWithSystemRls(() =>
+            sqlTyped<MomentoListRow>(sql`
         SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
                m.created_at, m.updated_at,
                m.user_id AS owner_user_id,
@@ -191,10 +213,14 @@ export default withObservability(
         ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
       `),
+          ),
+          MomentoListRowSchema,
+          'momentos.list.kind',
         )
       } else {
-        rows = await runWithSystemRls(() =>
-          sqlTyped<MomentoListRow>(sql`
+        rows = parseRows(
+          await runWithSystemRls(() =>
+            sqlTyped<MomentoListRow>(sql`
         SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
                m.created_at, m.updated_at,
                m.user_id AS owner_user_id,
@@ -213,6 +239,9 @@ export default withObservability(
         ORDER BY m.captured_at DESC, m.id DESC
         LIMIT ${limit + 1}
       `),
+          ),
+          MomentoListRowSchema,
+          'momentos.list.all',
         )
       }
 
@@ -223,8 +252,9 @@ export default withObservability(
       // el GET individual): el link queda latente hasta un eventual restore.
       let linksByMomento = new Map<string, string[]>()
       if (itemIds.length > 0) {
-        const links = await runWithSystemRls(() =>
-          sqlTyped<MomentoEntityLinkRow>(sql`
+        const links = parseRows(
+          await runWithSystemRls(() =>
+            sqlTyped<MomentoEntityLinkRow>(sql`
         SELECT me.momento_id, me.entity_id
         FROM momento_entities me
         JOIN momentos m ON m.id = me.momento_id
@@ -233,6 +263,9 @@ export default withObservability(
           AND me.user_id = m.user_id
           AND me.deleted_at IS NULL
       `),
+          ),
+          MomentoEntityLinkRowSchema,
+          'momentos.list.links',
         )
         linksByMomento = groupMomentoEntityLinks(links)
       }
@@ -439,8 +472,9 @@ export default withObservability(
         }
       }
 
-      const updated = await runWithSystemRls(() =>
-        sqlTyped<MomentoResponseRow>(sql`
+      const updated = parseRows(
+        await runWithSystemRls(() =>
+          sqlTyped<MomentoResponseRow>(sql`
       SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
              m.created_at, m.updated_at,
              m.user_id AS owner_user_id,
@@ -456,13 +490,20 @@ export default withObservability(
       LEFT JOIN users owner ON owner.id = m.user_id
       WHERE m.id = ${id}
     `),
+        ),
+        MomentoListRowSchema,
+        'momentos.patch.returning',
       )
-      const links = await runWithSystemRls(() =>
-        sqlTyped<MomentoLinkIdRow>(sql`
+      const links = parseRows(
+        await runWithSystemRls(() =>
+          sqlTyped<MomentoLinkIdRow>(sql`
       SELECT entity_id
       FROM momento_entities
       WHERE momento_id = ${id} AND user_id = ${ownerUserId} AND deleted_at IS NULL
     `),
+        ),
+        MomentoEntityLinkRowSchema.pick({ entity_id: true }),
+        'momentos.patch.links',
       )
       return Response.json({
         ...updated[0],

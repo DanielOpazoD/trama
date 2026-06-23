@@ -333,6 +333,20 @@ jobs:
           QUERY_IT_DB_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
         run: npm run test:query-it
 
+      # Contratos backend/data: ejercita handlers reales contra la DB migrada
+      # para cubrir happy paths endpoint→Postgres que los mocks SQL no prueban.
+      - name: Backend data contracts integration (real Postgres)
+        env:
+          BACKEND_DATA_IT_DB_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run test:backend-data-it
+
+      # Performance contract: los listados calientes por user_id deben seguir
+      # usando índices verificables cuando la DB ya tiene fixtures suficientes.
+      - name: Query plans contract
+        env:
+          DATABASE_URL: postgresql://trama:trama_local_dev@localhost:5433/trama
+        run: npm run check:query-plans
+
       # Idempotencia: re-correr no debe aplicar ninguna migración nueva
       # (todas quedaron registradas en _migrations). Esto valida que el
       # tracking incremental — el mismo modelo que usa Netlify — funciona.

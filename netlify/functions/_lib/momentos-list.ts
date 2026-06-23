@@ -1,22 +1,8 @@
 import type { MomentoKind } from './momento-embed.js'
 import { QueryParam } from './request-contracts.js'
+import type { MomentoEntityLinkRow, MomentoListRow } from './backend-row-schemas.js'
 import { z } from 'zod'
-
-export type MomentoListRow = {
-  id: string
-  kind: string
-  captured_at: Date | string
-  payload: unknown
-  note: string | null
-  origin: unknown
-  created_at: Date | string
-  updated_at: Date | string
-}
-
-export type MomentoEntityLinkRow = {
-  momento_id: string
-  entity_id: string
-}
+export type { MomentoEntityLinkRow, MomentoListRow } from './backend-row-schemas.js'
 
 function isValidKind(v: unknown): v is MomentoKind {
   return v === 'nota' || v === 'recorte' || v === 'foto'

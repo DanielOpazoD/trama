@@ -272,6 +272,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Verifica constraints reales de data URL para firmas y timbres PDF.',
   },
   {
+    file: 'scripts/check-query-plans.mjs',
+    domain: 'database',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:query-plans'],
+    summary:
+      'Ejecuta EXPLAIN JSON sobre listados calientes y bloquea seq scans grandes no allowlisteados.',
+  },
+  {
     file: 'scripts/cleanup-runtime-fixtures.mjs',
     domain: 'multiuser',
     kind: 'tool',
@@ -401,6 +410,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Smoke E2E multiusuario env-gated para rutas y aislamiento.',
   },
   {
+    file: 'scripts/run-query-integration-local.mjs',
+    domain: 'database',
+    kind: 'runner',
+    critical: false,
+    packageScripts: ['test:query-it:local'],
+    summary:
+      'Ejecuta query.integration contra Postgres real local sin permitir skips por falta de QUERY_IT_DB_URL.',
+  },
+  {
     file: 'scripts/run-vitest.mjs',
     domain: 'test',
     kind: 'runner',
@@ -411,6 +429,7 @@ const SCRIPT_ENTRIES = [
       'test:coverage',
       'test:whatsapp-it',
       'test:query-it',
+      'test:backend-data-it',
     ],
     summary: 'Runner local de Vitest que aísla temporales y argumentos del repo.',
   },
@@ -791,6 +810,20 @@ export const QUALITY_GATES = [
     phase: 'database',
     required: true,
     summary: 'Integración query con DB.',
+  },
+  {
+    command: 'npm run test:backend-data-it',
+    job: 'migrations',
+    phase: 'database',
+    required: true,
+    summary: 'Contratos endpoint a DB para entidades, citas, momentos y feed de notas.',
+  },
+  {
+    command: 'npm run check:query-plans',
+    job: 'migrations',
+    phase: 'database',
+    required: true,
+    summary: 'Planes de query de listados calientes sobre Postgres migrado.',
   },
 ]
 
