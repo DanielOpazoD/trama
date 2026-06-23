@@ -23,7 +23,13 @@ describe('run-query-integration-local', () => {
     expect(env.QUERY_IT_DB_URL).toBe('postgresql://explicit/query')
   })
 
-  it('usa DATABASE_URL o NETLIFY_DB_URL cuando QUERY_IT_DB_URL no viene seteado', () => {
+  it('usa URL admin, DATABASE_URL o NETLIFY_DB_URL cuando QUERY_IT_DB_URL no viene seteado', () => {
+    expect(
+      buildQueryIntegrationEnv({
+        LOCAL_DB_CONFIDENCE_ADMIN_DB_URL: 'postgresql://from/admin',
+      }).QUERY_IT_DB_URL,
+    ).toBe('postgresql://from/admin')
+
     expect(
       buildQueryIntegrationEnv({
         DATABASE_URL: 'postgresql://from/database',

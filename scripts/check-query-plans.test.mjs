@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { assertNoLargeSeqScans, collectPlanNodes } from './check-query-plans.mjs'
+import {
+  assertNoLargeSeqScans,
+  collectPlanNodes,
+  formatQueryPlanCheckFailure,
+  sanitizeDbUrlForLog,
+  setQueryPlanRlsContext,
+} from './check-query-plans.mjs'
 
 function plan(node) {
   return [{ Plan: node }]
@@ -77,5 +83,61 @@ describe('check-query-plans', () => {
         { allowedRelations: ['entity_types'] },
       ),
     ).not.toThrow()
+  })
+
+  it('redacta credenciales de la URL de DB al reportar errores', () => {
+    expect(sanitizeDbUrlForLog('postgresql://trama:secret@localhost:5433/trama')).toBe(
+      'postgresql://localhost:5433/trama',
+    )
+
+    expect(sanitizeDbUrlForLog('not a url')).toBe('[unparseable database URL]')
+  })
+
+  it('convierte ECONNREFUSED contra la DB local en instrucciones accionables', () => {
+    const error = new AggregateError(
+      [
+        Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5433'), {
+          code: 'ECONNREFUSED',
+          address: '127.0.0.1',
+          port: 5433,
+        }),
+        Object.assign(new Error('connect ECONNREFUSED ::1:5433'), {
+          code: 'ECONNREFUSED',
+          address: '::1',
+          port: 5433,
+        }),
+      ],
+      '',
+    )
+    Object.assign(error, { code: 'ECONNREFUSED' })
+
+    const message = formatQueryPlanCheckFailure({
+      dbUrl: 'postgresql://trama:trama_local_dev@localhost:5433/trama',
+      error,
+    })
+
+    expect(message).toContain('check:query-plans no pudo conectar a Postgres')
+    expect(message).toContain('npm run db:up')
+    expect(message).toContain('npm run local:db-confidence')
+    expect(message).toContain('DATABASE_URL')
+    expect(message).toContain('postgresql://localhost:5433/trama')
+    expect(message).not.toContain('trama_local_dev')
+    expect(message).not.toContain('AggregateError')
+  })
+
+  it('setea contexto RLS de fixture antes de sembrar datos privados', async () => {
+    const queryCalls = []
+    const client = {
+      query: async (...args) => {
+        queryCalls.push(args)
+        return { rows: [] }
+      },
+    }
+
+    await setQueryPlanRlsContext(client, 'query-plan-test-user')
+
+    expect(queryCalls).toEqual([
+      ["SELECT set_config('app.current_user_id', $1, true)", ['query-plan-test-user']],
+    ])
   })
 })
