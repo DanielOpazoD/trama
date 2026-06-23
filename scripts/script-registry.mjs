@@ -420,6 +420,7 @@ const SCRIPT_ENTRIES = [
       'test:coverage',
       'test:whatsapp-it',
       'test:query-it',
+      'test:backend-data-it',
     ],
     summary: 'Runner local de Vitest que aísla temporales y argumentos del repo.',
   },
@@ -800,6 +801,13 @@ export const QUALITY_GATES = [
     phase: 'database',
     required: true,
     summary: 'Integración query con DB.',
+  },
+  {
+    command: 'npm run test:backend-data-it',
+    job: 'migrations',
+    phase: 'database',
+    required: true,
+    summary: 'Contratos endpoint a DB para entidades, citas, momentos y feed de notas.',
   },
 ]
 

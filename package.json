@@ -44,6 +44,7 @@
     "test:whatsapp-it": "node scripts/run-vitest.mjs run netlify/functions/_lib/whatsapp-persist.integration.test.ts",
     "test:query-it": "node scripts/run-vitest.mjs run netlify/functions/_lib/query.integration.test.ts",
     "test:query-it:local": "node scripts/run-query-integration-local.mjs",
+    "test:backend-data-it": "node scripts/run-vitest.mjs run netlify/functions/_lib/backend-data-contracts.integration.test.ts",
     "pr-stack:check": "node scripts/verify-pr-stack.mjs",
     "bench:search-scale": "node scripts/search-scale-benchmark.mjs",
     "bench:search-scale:portable": "SEARCH_BENCHMARK_SCHEMA=portable node scripts/search-scale-benchmark.mjs",
