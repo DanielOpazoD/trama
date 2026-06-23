@@ -26,17 +26,22 @@ import { pathToFileURL } from 'node:url'
 //   - un id referenciado por algún htmlFor del MISMO archivo (label asociado)
 // Si no, cuenta como SIN ETIQUETAR (deuda).
 
-export const FORM_CONTROL_LABEL_BASELINE = 134
+export const FORM_CONTROL_LABEL_BASELINE = 0
 
 // Controles SIN etiqueta legítimos (p. ej. envueltos por un <label> padre, que
 // este escaneo plano no detecta). Allowlist con razón, como hard-delete.
 export const FORM_CONTROL_LABEL_EXEMPT = new Map([])
 
 const CONTROL_RE = /<(input|textarea|select)\b/g
-const HTMLFOR_RE = /htmlFor=(?:"([^"]+)"|'([^']+)'|\{\s*[`'"]([^`'"]+)[`'"]\s*\})/g
+// Captura el valor de htmlFor/id en sus cuatro formas: "x", 'x', {`x`}/{'x'} y
+// {ident} (p. ej. id={useId()} guardado en una variable). Reconocer la forma
+// {ident} evita falsos positivos en controles asociados dinámicamente.
+const HTMLFOR_RE =
+  /htmlFor=(?:"([^"]+)"|'([^']+)'|\{\s*[`'"]([^`'"]+)[`'"]\s*\}|\{\s*([A-Za-z_$][\w$.]*)\s*\})/g
 const LABEL_ATTR_RE = /\b(aria-label|aria-labelledby|title)\b[=\s]/
 const HIDDEN_RE = /type=(?:"hidden"|'hidden'|\{\s*[`'"]hidden[`'"]\s*\})/
-const ID_RE = /\bid=(?:"([^"]+)"|'([^']+)'|\{\s*[`'"]([^`'"]+)[`'"]\s*\})/
+const ID_RE =
+  /\bid=(?:"([^"]+)"|'([^']+)'|\{\s*[`'"]([^`'"]+)[`'"]\s*\}|\{\s*([A-Za-z_$][\w$.]*)\s*\})/
 
 // Extrae el tag completo desde `<` hasta el `>` de cierre a profundidad 0,
 // respetando strings y `{...}` (los arrow handlers traen `>` dentro de llaves).
@@ -59,13 +64,21 @@ function extractTag(src, startIdx) {
 
 function collectHtmlForTargets(source) {
   const ids = new Set()
-  for (const m of source.matchAll(HTMLFOR_RE)) ids.add(m[1] ?? m[2] ?? m[3])
+  for (const m of source.matchAll(HTMLFOR_RE)) ids.add(m[1] ?? m[2] ?? m[3] ?? m[4])
   return ids
 }
 
 function tagId(tag) {
   const m = tag.match(ID_RE)
-  return m ? (m[1] ?? m[2] ?? m[3]) : null
+  return m ? (m[1] ?? m[2] ?? m[3] ?? m[4]) : null
+}
+
+// Neutraliza comentarios de bloque (incluye los JSX `{/* … */}` y JSDoc) para
+// que un `<textarea>` mencionado en prosa no cuente como control. Reemplaza solo
+// los caracteres que no son saltos de línea, preservando offsets y números de
+// línea del reporte.
+function stripBlockComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
 }
 
 function isLabeled(tag, htmlForTargets) {
@@ -94,7 +107,7 @@ export function collectFormControlLabels(root = process.cwd()) {
   const unlabeled = []
 
   for (const file of walk(srcRoot).filter(isScannedFile)) {
-    const source = readFileSync(file, 'utf8')
+    const source = stripBlockComments(readFileSync(file, 'utf8'))
     if (!CONTROL_RE.test(source)) continue
     CONTROL_RE.lastIndex = 0
     const htmlForTargets = collectHtmlForTargets(source)

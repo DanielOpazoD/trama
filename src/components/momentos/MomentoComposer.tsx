@@ -132,6 +132,7 @@ function NotaFields({ composer }: { composer: Composer }) {
       value={composer.noteDraft}
       onChange={(e) => composer.setNoteDraft(e.target.value)}
       placeholder="Una observación, una idea, un recuerdo del día…"
+      aria-label="Nota del momento"
       rows={3}
       className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
       disabled={composer.isPending}
@@ -149,6 +150,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
           onChange={(e) => composer.setRecorteUrl(e.target.value)}
           onBlur={composer.fetchPreview}
           placeholder="https://… (opcional, pega y la IA lo lee)"
+          aria-label="URL del recorte"
           className="input-paper flex-1"
           disabled={composer.isPending}
         />
@@ -167,6 +169,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
         value={composer.recorteTitle}
         onChange={(e) => composer.setRecorteTitle(e.target.value)}
         placeholder="Título"
+        aria-label="Título del recorte"
         className="input-paper w-full"
         disabled={composer.isPending}
       />
@@ -174,6 +177,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
         value={composer.recorteBody}
         onChange={(e) => composer.setRecorteBody(e.target.value)}
         placeholder="Texto del recorte (el tweet, el párrafo, lo que pegues)"
+        aria-label="Texto del recorte"
         rows={3}
         className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
         disabled={composer.isPending}
@@ -184,6 +188,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
           value={composer.recorteAuthor}
           onChange={(e) => composer.setRecorteAuthor(e.target.value)}
           placeholder="Autor (opcional)"
+          aria-label="Autor"
           className="input-paper flex-1"
           disabled={composer.isPending}
         />
@@ -192,6 +197,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
           value={composer.recorteSource}
           onChange={(e) => composer.setRecorteSource(e.target.value)}
           placeholder="Fuente (Twitter, blog…)"
+          aria-label="Fuente"
           className="input-paper flex-1"
           disabled={composer.isPending}
         />
@@ -200,6 +206,7 @@ function RecorteFields({ composer }: { composer: Composer }) {
         value={composer.recorteNote}
         onChange={(e) => composer.setRecorteNote(e.target.value)}
         placeholder="Tu nota: por qué te llamó la atención"
+        aria-label="Nota del recorte"
         rows={2}
         // Mismo tipo de fuente que usa la nota — coherencia tipográfica
         // entre los 3 kinds de entrada. La marginalia decorativa vive en
@@ -237,6 +244,7 @@ function FotoFields({ composer }: { composer: Composer }) {
           // usuario puede armar el episodio en un paso.
           multiple
           accept="image/jpeg,image/png,image/webp,image/gif"
+          aria-label="Agregar fotos"
           className="sr-only"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? [])
@@ -451,9 +459,13 @@ function FotoFields({ composer }: { composer: Composer }) {
             </div>
           </div>
           {composer.photoDateMode === 'custom' && (
-            <label className="block text-caption text-ink-500">
+            <label
+              htmlFor="composer-custom-photo-date"
+              className="block text-caption text-ink-500"
+            >
               Fecha personalizada
               <input
+                id="composer-custom-photo-date"
                 type="datetime-local"
                 value={composer.customPhotoCapturedAt}
                 onChange={(e) => composer.setCustomPhotoCapturedAt(e.target.value)}
@@ -476,6 +488,7 @@ function FotoFields({ composer }: { composer: Composer }) {
         value={composer.photoCaption}
         onChange={(e) => composer.setPhotoCaption(e.target.value)}
         placeholder="Título del episodio (opcional)"
+        aria-label="Título del episodio"
         className="input-paper w-full font-serif text-lead leading-relaxed placeholder:italic"
         disabled={composer.isPending}
       />
@@ -483,6 +496,7 @@ function FotoFields({ composer }: { composer: Composer }) {
         value={composer.photoNote}
         onChange={(e) => composer.setPhotoNote(e.target.value)}
         placeholder="Tu nota sobre el momento (opcional)"
+        aria-label="Nota del momento"
         rows={2}
         className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
         disabled={composer.isPending}

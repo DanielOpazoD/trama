@@ -63,6 +63,7 @@ export function QuoteEditMode({
         rows={3}
         placeholder="texto de la cita"
         className="input-paper w-full resize-none text-sm font-serif italic"
+        aria-label="Texto de la cita"
       />
       <input
         type="text"
@@ -70,6 +71,7 @@ export function QuoteEditMode({
         onChange={(e) => setSourceDraft(e.target.value)}
         placeholder="fuente (libro, página, año — opcional)"
         className="input-paper w-full text-sm"
+        aria-label="Fuente"
       />
       <div>
         <label htmlFor={entitySelectId} className="section-eyebrow block mb-1">

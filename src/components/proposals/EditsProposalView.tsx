@@ -76,6 +76,7 @@ function ProposedEditRow({
         checked={checked}
         onChange={onToggle}
         className="mt-1 accent-ink-600"
+        aria-label="Aplicar este cambio"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2 text-sm">
@@ -131,6 +132,7 @@ function ProposedDeleteRow({
         onChange={onToggle}
         className="mt-1"
         style={{ accentColor: 'var(--accent-clay)' }}
+        aria-label="Confirmar este borrado"
       />
       <div className="min-w-0 flex-1 text-sm">
         <div className="flex items-baseline gap-2">

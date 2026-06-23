@@ -341,6 +341,7 @@ export function TwitterView({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar en tus bookmarks…"
+              aria-label="Buscar"
               className="min-w-0 flex-1 rounded-lg border border-ink-100/60 bg-paper-50 px-3 py-1.5 text-sm text-ink-700 placeholder:text-ink-300 focus:border-ink-300"
             />
             <button

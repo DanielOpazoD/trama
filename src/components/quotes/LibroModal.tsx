@@ -157,9 +157,10 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
         </header>
 
         <div className="max-h-[min(72vh,620px)] overflow-y-auto p-5 space-y-4">
-          <label className="block text-caption text-ink-700">
+          <label htmlFor="libro-titulo" className="block text-caption text-ink-700">
             Título
             <input
+              id="libro-titulo"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={busy}
@@ -167,10 +168,11 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
               placeholder="Florilegio"
             />
           </label>
-          <label className="block text-caption text-ink-700">
+          <label htmlFor="libro-autor" className="block text-caption text-ink-700">
             Autor{' '}
             <span className="text-ink-300">(opcional — tu nombre en la portada)</span>
             <input
+              id="libro-autor"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
               disabled={busy}
@@ -184,6 +186,7 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
               onChange={(e) => setIncludeMarginalia(e.target.checked)}
               disabled={busy}
               className="accent-[var(--accent-primary)]"
+              aria-label="Incluir mis reflexiones como marginalia manuscrita"
             />
             incluir mis reflexiones como marginalia manuscrita
           </label>
@@ -195,6 +198,7 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setOnlyFavorites(e.target.checked)}
                 disabled={busy}
                 className="accent-[var(--accent-primary)]"
+                aria-label="Edición breve: solo favoritas"
               />
               edición breve: solo favoritas ★ ({favoriteCount})
             </label>

@@ -57,6 +57,7 @@ export function WorkspaceTemplateCreateBox({
               if (e.key === 'Enter') onConfirm()
               else if (e.key === 'Escape') onCancel()
             }}
+            aria-label="Nombre de la planilla"
             placeholder="Nombre de la planilla"
             className="input-paper flex-1 min-w-0 text-caption px-2 py-1 rounded-md border border-ink-200"
           />

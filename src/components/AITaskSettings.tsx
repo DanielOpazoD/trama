@@ -171,6 +171,7 @@ export function AITaskSettings() {
                   value={current?.provider ?? ''}
                   onChange={(e) => pick(task.key, e.target.value)}
                   disabled={busyTask === task.key}
+                  aria-label={`Proveedor para ${task.label}`}
                   className="input-paper text-xs py-1 pr-7"
                   style={{ minWidth: '11rem' }}
                 >
@@ -197,6 +198,7 @@ export function AITaskSettings() {
                     value={current?.model ?? ''}
                     onChange={(e) => pickModel(task.key, e.target.value)}
                     disabled={busyTask === task.key}
+                    aria-label={`Modelo para ${task.label}`}
                     className="input-paper text-xs py-1 pr-7"
                     style={{ minWidth: '11rem' }}
                   >
@@ -218,6 +220,7 @@ export function AITaskSettings() {
                     value={current?.verifyWith ?? ''}
                     onChange={(e) => pickVerifier(task.key, e.target.value)}
                     disabled={busyTask === task.key}
+                    aria-label={`Verificar ${task.label} con un segundo modelo`}
                     className="input-paper text-xs py-1 pr-7"
                     style={{ minWidth: '11rem' }}
                   >

@@ -239,6 +239,7 @@ export function QuoteCard({
             value={userReflDraft}
             onChange={(e) => setUserReflDraft(e.target.value)}
             placeholder="tu reflexión sobre esta cita…"
+            aria-label="Tu reflexión sobre esta cita"
             rows={3}
             className="input-paper w-full resize-none text-sm"
             autoFocus

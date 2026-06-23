@@ -154,6 +154,7 @@ export function TaskItem({
             }
           }}
           placeholder="Título de la tarea"
+          aria-label="Título de la tarea"
           className="input-paper w-full text-ink-700 mb-2"
           autoFocus
         />
@@ -161,6 +162,7 @@ export function TaskItem({
           value={detail}
           onChange={(e) => setDetail(e.target.value)}
           placeholder="Detalle (opcional) · usa #etiquetas"
+          aria-label="Detalle de la tarea"
           rows={2}
           className="input-paper w-full resize-none text-sm mb-2"
         />
@@ -205,6 +207,7 @@ export function TaskItem({
                     type="date"
                     value={due}
                     onChange={(e) => setDue(e.target.value)}
+                    aria-label="Fecha de vencimiento"
                     className="input-paper text-sm normal-case tracking-normal"
                   />
                 </label>

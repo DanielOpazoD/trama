@@ -263,6 +263,7 @@ export function AskBar({
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
+            aria-label="Subir imagen"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0]
@@ -276,6 +277,7 @@ export function AskBar({
             onChange={(event) => setText(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholderForView(view)}
+            aria-label="Mensaje"
             rows={1}
             disabled={ask.isPending || busy || imageBusy}
             // ι3: font-serif para que el input se sienta como escribir

@@ -295,6 +295,7 @@ export function AttachmentPhotos({
         accept="image/*"
         multiple
         className="hidden"
+        aria-label="Agregar fotos"
         onChange={(e) => onFiles(e.target.files)}
       />
 

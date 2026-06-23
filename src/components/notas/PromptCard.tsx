@@ -40,11 +40,13 @@ export function PromptCard({
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            aria-label="Título del prompt"
             className="input-paper w-full text-sm"
           />
           <input
             value={collection}
             onChange={(e) => setCollection(e.target.value)}
+            aria-label="Colección"
             className="input-paper w-full text-sm"
           />
         </div>
@@ -52,6 +54,7 @@ export function PromptCard({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={6}
+          aria-label="Contenido del prompt"
           className="input-paper w-full resize-y text-sm"
         />
         <div className="mt-2 flex justify-end gap-2">

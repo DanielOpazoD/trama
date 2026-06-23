@@ -42,6 +42,7 @@ export function AudioPicker({
           <input
             type="file"
             accept={ACCEPT}
+            aria-label="Reemplazar nota de voz"
             className="sr-only"
             onChange={handleChange}
             disabled={disabled}
@@ -65,6 +66,7 @@ export function AudioPicker({
       <input
         type="file"
         accept={ACCEPT}
+        aria-label="Agregar nota de voz"
         className="sr-only"
         onChange={handleChange}
         disabled={disabled}

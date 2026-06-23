@@ -38,6 +38,7 @@ export function PendingAttachmentsInput({
             multiple
             disabled={busy}
             className="sr-only"
+            aria-label="Adjuntar archivo"
             onChange={(e) => {
               addFiles(e.target.files)
               e.currentTarget.value = ''

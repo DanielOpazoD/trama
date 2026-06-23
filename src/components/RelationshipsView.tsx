@@ -251,6 +251,7 @@ export function RelationshipsView({
                 <select
                   value={type}
                   onChange={(event) => setType(event.target.value as RelationshipType)}
+                  aria-label="Tipo de relación"
                   className="input-paper"
                 >
                   {RELATIONSHIP_TYPES.map((relType) => (
@@ -274,6 +275,7 @@ export function RelationshipsView({
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 placeholder="Nota sobre la relación (opcional)"
+                aria-label="Nota sobre la relación"
                 className="input-paper w-full"
               />
               <button

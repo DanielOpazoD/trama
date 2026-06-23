@@ -48,6 +48,7 @@ export function QuickNoteForm({
         rows={2}
         className="input-paper w-full resize-none text-sm"
         autoFocus
+        aria-label="Cita"
       />
       {showReflection ? (
         <textarea
@@ -56,6 +57,7 @@ export function QuickNoteForm({
           placeholder="Tu reflexión…"
           rows={2}
           className="input-paper w-full resize-none text-sm"
+          aria-label="Reflexión"
         />
       ) : (
         <button

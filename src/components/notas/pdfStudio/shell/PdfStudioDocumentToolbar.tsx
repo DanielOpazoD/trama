@@ -219,8 +219,12 @@ export function PdfStudioDocumentToolbar({
                 <p className="mb-2 text-micro uppercase tracking-eyebrow text-ink-300">
                   Encabezado y pie
                 </p>
-                <label className="flex items-center gap-2 text-caption text-ink-700">
+                <label
+                  htmlFor="pdf-page-numbers-page"
+                  className="flex items-center gap-2 text-caption text-ink-700"
+                >
                   <input
+                    id="pdf-page-numbers-page"
                     type="checkbox"
                     checked={!!pageNumbers}
                     onChange={(e) =>

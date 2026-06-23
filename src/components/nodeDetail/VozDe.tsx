@@ -87,6 +87,7 @@ export function VozDe({ entity }: { entity: Entity }) {
         rows={2}
         className="input-paper w-full resize-none text-sm leading-relaxed"
         autoFocus
+        aria-label="Tema"
       />
       <div className="flex justify-end">
         <button

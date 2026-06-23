@@ -224,6 +224,7 @@ export function ReadingMode({
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Pega aquí el texto. Cuanto más, mejor — la IA lo procesa por trozos."
+            aria-label="Texto a procesar"
             disabled={processing}
             rows={12}
             className="input-paper w-full resize-none font-serif leading-relaxed"

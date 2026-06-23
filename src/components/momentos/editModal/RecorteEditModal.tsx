@@ -77,6 +77,7 @@ export function RecorteEditModal({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://…"
+          aria-label="URL del recorte"
           className="input-paper w-full text-sm"
           disabled={updateMomento.isPending}
         />
@@ -85,6 +86,7 @@ export function RecorteEditModal({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Título"
+          aria-label="Título del recorte"
           className="input-paper w-full"
           disabled={updateMomento.isPending}
         />
@@ -92,6 +94,7 @@ export function RecorteEditModal({
           value={bodyText}
           onChange={(e) => setBodyText(e.target.value)}
           placeholder="Texto del recorte (el tweet, el párrafo, lo que pegues)"
+          aria-label="Texto del recorte"
           rows={4}
           className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={updateMomento.isPending}
@@ -102,6 +105,7 @@ export function RecorteEditModal({
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
             placeholder="Autor (opcional)"
+            aria-label="Autor"
             className="input-paper flex-1 text-sm"
             disabled={updateMomento.isPending}
           />
@@ -110,6 +114,7 @@ export function RecorteEditModal({
             value={source}
             onChange={(e) => setSource(e.target.value)}
             placeholder="Fuente (Twitter, blog…)"
+            aria-label="Fuente"
             className="input-paper flex-1 text-sm"
             disabled={updateMomento.isPending}
           />
@@ -118,6 +123,7 @@ export function RecorteEditModal({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Tu nota: por qué te llamó la atención"
+          aria-label="Nota del recorte"
           rows={2}
           className="input-paper w-full resize-none font-serif text-lead leading-relaxed placeholder:italic"
           disabled={updateMomento.isPending}

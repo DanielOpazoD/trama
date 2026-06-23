@@ -140,6 +140,7 @@ export function EntityCombobox({
         onFocus={() => setOpen(true)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        aria-label="Buscar entidad"
         className="input-paper w-full"
         autoComplete="off"
       />

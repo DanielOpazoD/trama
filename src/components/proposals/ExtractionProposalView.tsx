@@ -102,6 +102,7 @@ function ProposedEntityRow({
         checked={checked}
         onChange={onToggle}
         className="mt-1 accent-ink-600"
+        aria-label="Incluir esta entidad"
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2 flex-wrap">
@@ -145,6 +146,7 @@ function ProposedRelationshipRow({
         checked={checked}
         onChange={onToggle}
         className="mt-1 accent-ink-600"
+        aria-label="Incluir esta relación"
       />
       <div className="min-w-0 flex-1 text-sm">
         <span className="text-ink-700">{rel.fromName}</span>
@@ -212,6 +214,7 @@ function ProposedQuoteRow({
         checked={checked}
         onChange={onToggle}
         className="mt-1 accent-ink-600"
+        aria-label="Incluir esta cita"
       />
       <div className="min-w-0 flex-1">
         <blockquote className="font-serif text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-3 italic text-sm">

@@ -69,6 +69,7 @@ export function NotasGlobalSearch({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar en notas, tareas, prompts y claves..."
+          aria-label="Búsqueda global"
           className="flex-1 bg-transparent text-sm text-ink-700 placeholder:text-ink-300"
           autoFocus={autoFocus}
         />

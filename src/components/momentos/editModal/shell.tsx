@@ -85,16 +85,19 @@ export function CapturedAtField({
   disabled?: boolean
 }) {
   return (
-    <label className="block space-y-1">
-      <span className="section-eyebrow">fecha y hora del momento</span>
+    <div className="block space-y-1">
+      <label htmlFor="captured-at" className="section-eyebrow">
+        fecha y hora del momento
+      </label>
       <input
+        id="captured-at"
         type="datetime-local"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="input-paper w-full text-sm tabular-nums"
         disabled={disabled}
       />
-    </label>
+    </div>
   )
 }
 

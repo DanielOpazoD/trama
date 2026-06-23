@@ -267,6 +267,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
           onSelect={handleSelect}
           onKeyDown={handleKeyDown}
           placeholder="Escribe libremente. @ enlaza una entidad; al inicio de una línea, > busca una cita."
+          aria-label="Hoja suelta"
           rows={8}
           className="input-paper w-full resize-y font-serif text-lead leading-relaxed placeholder:italic"
           disabled={addMomento.isPending}

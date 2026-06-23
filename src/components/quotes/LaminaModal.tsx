@@ -185,6 +185,7 @@ export function LaminaModal({
                 checked={withMarginalia}
                 onChange={(e) => setWithMarginalia(e.target.checked)}
                 className="accent-[var(--accent-primary)]"
+                aria-label="Incluir tu reflexión manuscrita"
               />
               incluir tu reflexión manuscrita
             </label>

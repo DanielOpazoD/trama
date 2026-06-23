@@ -133,6 +133,7 @@ export function DescriptionEditor({
         rows={3}
         className="input-paper w-full resize-none"
         autoFocus
+        aria-label="Descripción"
       />
       {allowsSpotify && (
         <input
@@ -141,6 +142,7 @@ export function DescriptionEditor({
           onChange={(e) => setUrlDraft(e.target.value)}
           placeholder="https://open.spotify.com/…"
           className="input-paper w-full text-sm"
+          aria-label="Enlace de Spotify"
         />
       )}
       {/* Wikipedia — para cualquier tipo. El botón propone el artículo; el
@@ -153,6 +155,7 @@ export function DescriptionEditor({
             onChange={(e) => setWikiDraft(e.target.value)}
             placeholder="https://es.wikipedia.org/wiki/…"
             className="input-paper w-full text-sm"
+            aria-label="Enlace de Wikipedia"
           />
           <button
             type="button"
@@ -180,6 +183,7 @@ export function DescriptionEditor({
           onChange={(e) => setGrokDraft(e.target.value)}
           placeholder="https://grokipedia.com/…"
           className="input-paper w-full text-sm"
+          aria-label="Enlace de Grokipedia"
         />
         <button
           type="button"
