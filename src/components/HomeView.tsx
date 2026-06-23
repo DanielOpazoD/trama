@@ -83,22 +83,6 @@ export function HomeView({
 
   const totalEntities = entities.length
 
-  // Ruta de ERROR (F2): un fetch fallido de la portada NO es lo mismo que
-  // "una trama recién empieza". Antes, si `useHomeQuery` fallaba, `home`
-  // quedaba undefined → `totalEntities === 0` → caía al EmptyMessage, y el
-  // usuario veía la guía de bienvenida creyendo que su trama estaba vacía.
-  // Ahora lo nombramos como error y ofrecemos reintentar (mismo patrón que
-  // EntitiesView/QuotesView). Solo cuando no hay datos en cache para pintar.
-  if (homeError && totalEntities === 0) {
-    return (
-      <ErrorState
-        title="No se pudo cargar tu portada"
-        onRetry={() => refetchHome()}
-        retrying={homeFetching}
-      />
-    )
-  }
-
   if (entitiesLoading) {
     // Skeleton de Home — header placeholder + featured quote silueta +
     // timeline de 5 filas con stagger. Reemplaza al "cargando…" italic
@@ -139,7 +123,18 @@ export function HomeView({
 
       <HomeProjects />
 
-      {totalEntities === 0 ? (
+      {homeError && totalEntities === 0 ? (
+        // Ruta de ERROR (F2): un fetch fallido de la portada NO es "trama
+        // vacía" — antes caía al EmptyMessage y el usuario veía la guía de
+        // bienvenida creyendo que su trama estaba vacía. Mostramos ErrorState
+        // en el área de contenido; el Greeting (hero + fecha) y HomeProjects
+        // se conservan arriba (no blanqueamos toda la portada).
+        <ErrorState
+          title="No se pudo cargar tu portada"
+          onRetry={() => refetchHome()}
+          retrying={homeFetching}
+        />
+      ) : totalEntities === 0 ? (
         <>
           <EmptyMessage
             illustration="weave"
