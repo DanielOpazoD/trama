@@ -36,7 +36,7 @@ export function PrivacyPanel() {
         <div className="flex items-start justify-between gap-4 p-4 card-paper">
           <div className="min-w-0">
             <p className="text-ink-700 leading-snug">Bloqueo por PIN al abrir</p>
-            <p className="mt-1 text-sm text-ink-400 leading-relaxed">
+            <p className="mt-1 text-body text-ink-400 leading-relaxed">
               Cuando esté activado, la app pedirá un PIN cada vez que abras una pestaña
               nueva. El PIN es <span className="font-mono text-ink-600">151219</span>.
             </p>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { OAuthReturn } from '../lib/oauthReturn'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import { CloseIcon } from './Icons'
 import { SettingsNav } from './settings/SettingsNav'
 import { SettingsPanelContent } from './settings/SettingsPanelContent'
@@ -53,14 +54,10 @@ export function Settings({
     setSection(getInitialSettingsSection(initialSection))
   }, [initialSection])
 
-  useEffect(() => {
-    if (!open) return
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
+  // Modal auto-gestionado: focus trap + aria-modal + Escape + scroll-lock +
+  // restaurar foco vía useModalOverlay. Reemplaza el listener manual de Escape
+  // que solo cubría el cierre por teclado.
+  const overlay = useModalOverlay({ open, onClose })
 
   if (!open) return null
 
@@ -74,7 +71,9 @@ export function Settings({
         tabIndex={-1}
       />
       <div
+        ref={overlay.dialogRef}
         role="dialog"
+        aria-modal="true"
         aria-label="Configuración"
         className="fixed inset-4 md:inset-8 lg:inset-12 z-40 max-w-6xl max-h-[calc(100vh-4rem)] mx-auto
                    bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/15

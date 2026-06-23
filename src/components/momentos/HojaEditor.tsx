@@ -268,7 +268,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
           onKeyDown={handleKeyDown}
           placeholder="Escribe libremente. @ enlaza una entidad; al inicio de una línea, > busca una cita."
           rows={8}
-          className="input-paper w-full resize-y font-serif text-base leading-relaxed placeholder:italic"
+          className="input-paper w-full resize-y font-serif text-lead leading-relaxed placeholder:italic"
           disabled={addMomento.isPending}
           autoFocus
         />
@@ -332,7 +332,7 @@ export function HojaEditor({ onClose }: { onClose: () => void }) {
                         idx === activeIndex ? 'bg-paper-100' : 'hover:bg-paper-100/60'
                       }`}
                     >
-                      <p className="text-sm text-ink-700 font-serif italic leading-snug line-clamp-2">
+                      <p className="text-body text-ink-700 font-serif italic leading-snug line-clamp-2">
                         «{hit.text}»
                       </p>
                       <p className="text-micro uppercase tracking-eyebrow text-ink-300 mt-0.5">

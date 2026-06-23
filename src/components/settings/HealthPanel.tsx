@@ -85,7 +85,7 @@ export function HealthPanel() {
       <div className="card-paper-soft flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div>
           <p className="section-eyebrow">diagnóstico operativo</p>
-          <p className="mt-1 text-xs text-ink-400 leading-relaxed">
+          <p className="mt-1 text-caption text-ink-400 leading-relaxed">
             Snapshot compacto para pegar en un issue, PR o incidente.
           </p>
         </div>
@@ -132,8 +132,10 @@ export function HealthPanel() {
                 } ${alert.severity !== 'info' ? 'animate-pulse-subtle' : ''}`}
               />
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium leading-tight">{alert.label}</div>
-                <p className="mt-1 text-xs leading-relaxed opacity-80">{alert.hint}</p>
+                <div className="text-body font-medium leading-tight">{alert.label}</div>
+                <p className="mt-1 text-caption leading-relaxed opacity-80">
+                  {alert.hint}
+                </p>
               </div>
             </li>
           ))}

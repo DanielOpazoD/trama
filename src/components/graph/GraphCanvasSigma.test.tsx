@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { Entity, Relationship } from '../../types'
 
@@ -299,6 +299,82 @@ describe('<GraphCanvasSigma />', () => {
     expect(sigmaMocks.MockSigma.instances[1]!.graph.nodes.get('a')).toMatchObject({
       x: 100,
       y: -200,
+    })
+  })
+
+  function renderTwoNodes(onSelect = vi.fn()) {
+    render(
+      <GraphCanvasSigma
+        entities={[ent('a', 'persona'), ent('b', 'libro')]}
+        relationships={[rel('r1', 'a', 'b')]}
+        positions={
+          new Map([
+            ['a', { x: 1, y: 2 }],
+            ['b', { x: 3, y: 4 }],
+          ])
+        }
+        selectedId={null}
+        onSelect={onSelect}
+      />,
+    )
+    return { onSelect }
+  }
+
+  it('expone el grafo como aplicación focusable con atajos de teclado', () => {
+    renderTwoNodes()
+    const canvas = screen.getByRole('application')
+    expect(canvas).toHaveAttribute('tabindex', '0')
+    expect(canvas).toHaveAttribute(
+      'aria-keyshortcuts',
+      expect.stringContaining('ArrowRight'),
+    )
+    // La aria-label ya no declara la antigua limitación; describe el teclado.
+    expect(canvas).toHaveAttribute('aria-label', expect.stringContaining('flechas'))
+    expect(canvas.getAttribute('aria-label')).not.toContain('Sin navegación por teclado')
+  })
+
+  it('recorre los nodos con el teclado, los anuncia y selecciona con Enter', () => {
+    const { onSelect } = renderTwoNodes()
+    const canvas = screen.getByRole('application')
+    const status = screen.getByRole('status')
+    expect(status).toBeEmptyDOMElement()
+
+    fireEvent.keyDown(canvas, { key: 'ArrowRight' })
+    expect(status).toHaveTextContent('a, persona. Nodo 1 de 2.')
+
+    fireEvent.keyDown(canvas, { key: 'ArrowRight' })
+    expect(status).toHaveTextContent('b, libro. Nodo 2 de 2.')
+
+    fireEvent.keyDown(canvas, { key: 'Enter' })
+    expect(onSelect).toHaveBeenCalledWith('b')
+
+    fireEvent.keyDown(canvas, { key: 'Escape' })
+    expect(onSelect).toHaveBeenLastCalledWith(null)
+    expect(status).toBeEmptyDOMElement()
+  })
+
+  it('al enfocar por teclado resalta el nodo y acerca la cámara', () => {
+    renderTwoNodes()
+    const sigma = sigmaMocks.MockSigma.instances[0]!
+    const canvas = screen.getByRole('application')
+
+    fireEvent.keyDown(canvas, { key: 'ArrowRight' }) // enfoca 'a'
+
+    // La cámara viaja al display data del nodo enfocado (y invertida en Sigma).
+    expect(sigma.camera.animate).toHaveBeenCalledWith(
+      { x: 1, y: -2 },
+      expect.objectContaining({ easing: 'quadraticOut' }),
+    )
+
+    // El nodeReducer (misma instancia, lee focusedRef) resalta el nodo enfocado.
+    const nodeReducer = sigma.config.nodeReducer as (
+      node: string,
+      data: Record<string, unknown>,
+    ) => Record<string, unknown>
+    expect(nodeReducer('a', { size: 6 })).toMatchObject({
+      highlighted: true,
+      forceLabel: true,
+      zIndex: 2,
     })
   })
 })

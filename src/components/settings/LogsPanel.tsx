@@ -245,7 +245,7 @@ function ErrorRow({
               {entry.httpMethod ?? 'GET'} {entry.httpPath}
             </p>
           )}
-          <p className="text-xs text-ink-700 whitespace-pre-wrap break-words font-mono leading-relaxed">
+          <p className="text-caption text-ink-700 whitespace-pre-wrap break-words font-mono leading-relaxed">
             {entry.message}
           </p>
           {hasStack && (
@@ -416,7 +416,7 @@ function ExtractionRow({
           {entry.error && (
             <div>
               <p className="section-eyebrow mb-1">error</p>
-              <p className="text-xs text-[color:var(--accent-clay)] whitespace-pre-wrap break-words font-mono leading-relaxed">
+              <p className="text-caption text-[color:var(--accent-clay)] whitespace-pre-wrap break-words font-mono leading-relaxed">
                 {entry.error}
               </p>
             </div>
@@ -424,7 +424,7 @@ function ExtractionRow({
           {hasInput && (
             <div>
               <p className="section-eyebrow mb-1">input</p>
-              <p className="text-xs text-ink-700 whitespace-pre-wrap break-words font-serif italic leading-relaxed bg-paper-50 border border-ink-100/60 rounded p-2 max-h-32 overflow-y-auto">
+              <p className="text-caption text-ink-700 whitespace-pre-wrap break-words font-serif italic leading-relaxed bg-paper-50 border border-ink-100/60 rounded p-2 max-h-32 overflow-y-auto">
                 {entry.inputText}
               </p>
             </div>
