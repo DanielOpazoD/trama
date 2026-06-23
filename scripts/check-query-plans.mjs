@@ -60,7 +60,10 @@ async function setupFixtures(pool) {
   await pool.query(
     `INSERT INTO entities (user_id, type, name, description, origin, created_at)
      SELECT $1, 'query-plan-entity', 'query plan entity ' || gs,
-            'query plan fixture hot searchable ' || gs,
+            CASE WHEN gs % 100 = 0
+              THEN 'query plan fixture hot searchable ' || gs
+              ELSE 'query plan fixture cold searchable ' || gs
+            END,
             '{"kind":"manual"}'::jsonb,
             NOW() - (gs || ' seconds')::interval
      FROM generate_series(1, $2::int) AS gs`,
@@ -68,13 +71,20 @@ async function setupFixtures(pool) {
   )
   await pool.query(
     `INSERT INTO quotes (user_id, entity_id, text, source, origin, created_at)
-     SELECT $1, e.id, 'query plan quote hot searchable ' || row_number() OVER (),
+     SELECT $1, fixture.id,
+            CASE WHEN fixture.rn % 100 = 0
+              THEN 'query plan quote hot searchable ' || fixture.rn
+              ELSE 'query plan quote cold searchable ' || fixture.rn
+            END,
             'query-plan', '{"kind":"manual"}'::jsonb,
-            NOW() - (row_number() OVER () || ' seconds')::interval
-     FROM entities e
-     WHERE e.user_id = $1 AND e.deleted_at IS NULL
-     ORDER BY e.created_at DESC
-     LIMIT $2::int`,
+            NOW() - (fixture.rn || ' seconds')::interval
+     FROM (
+       SELECT e.id, row_number() OVER (ORDER BY e.created_at DESC) AS rn
+       FROM entities e
+       WHERE e.user_id = $1 AND e.deleted_at IS NULL
+       ORDER BY e.created_at DESC
+       LIMIT $2::int
+     ) AS fixture`,
     [FIXTURE_USER_ID, FIXTURE_SIZE],
   )
   await pool.query(
@@ -86,7 +96,14 @@ async function setupFixtures(pool) {
   )
   await pool.query(
     `INSERT INTO momentos (user_id, kind, payload, origin, captured_at, created_at)
-     SELECT $1, 'nota', jsonb_build_object('bodyText', 'query plan momento hot searchable ' || gs),
+     SELECT $1, 'nota',
+            jsonb_build_object(
+              'bodyText',
+              CASE WHEN gs % 100 = 0
+                THEN 'query plan momento hot searchable ' || gs
+                ELSE 'query plan momento cold searchable ' || gs
+              END
+            ),
             '{"kind":"manual"}'::jsonb,
             NOW() - (gs || ' seconds')::interval,
             NOW() - (gs || ' seconds')::interval

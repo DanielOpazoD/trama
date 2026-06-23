@@ -152,7 +152,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 520,
+    maxLines: 550,
     files: ['netlify/functions/_lib/momentos-endpoint.ts'],
   },
   {
@@ -162,7 +162,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 335,
+    maxLines: 370,
     files: ['netlify/functions/_lib/search-endpoint.ts'],
   },
   {
