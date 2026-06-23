@@ -3,13 +3,14 @@
 Este documento fija el contrato mínimo para TanStack Query en `src/state/*`.
 El objetivo no es crear un framework: es evitar invalidaciones dispersas,
 rollbacks incompletos y read-models desincronizados entre Notas, Recortes,
-Momentos, attachments y el feed unificado.
+Momentos, entidades, citas, relaciones, tareas, attachments y el feed unificado.
 
 ## Helpers
 
 - `src/state/cacheInvalidation.ts` centraliza superficies de invalidación por
-  dominio. Si una mutación toca Notas, Recortes, Momentos o attachments, usa el
-  helper del dominio antes de agregar `qc.invalidateQueries(...)` directo.
+  dominio. Si una mutación toca Notas, Recortes, Momentos, entidades, citas,
+  relaciones, tareas o attachments, usa el helper del dominio antes de agregar
+  `qc.invalidateQueries(...)` directo.
 - `src/state/cacheOptimistic.ts` centraliza snapshots y restores de cache. Los
   hooks optimistas deben capturar snapshot antes de parchear y restaurarlo en
   `onError`.
@@ -25,6 +26,18 @@ Momentos, attachments y el feed unificado.
   `entities` o `momentosInfinite`, además de `counts` y `home`.
 - Momentos: `momentosInfinite`, `home`, `cronologiaInfinite`, `atlas` y
   `search`.
+- Entidades: create/update invalidan sus read-models derivados
+  (`entitiesInfinite`, `home`, `atlas`, `cronologiaInfinite`, y en create
+  también `counts`/`entityRefsCount`). Delete/merge/restore además refrescan
+  `entities`, `relationships`, `quotes`, las listas infinitas relacionadas y
+  `momentosInfinite` porque el servidor puede reasignar o soft-deletear links,
+  citas y momentos vinculados.
+- Citas: create/delete invalidan `quotesInfinite`, `counts`, `entityRefsCount`
+  y `home`; update invalida `quotesInfinite` y `home`.
+- Relaciones: create/delete invalidan `relationshipsInfinite`, `counts`,
+  `entityRefsCount` y `home`; update invalida `relationshipsInfinite` y `home`.
+- Tareas: cualquier create/update/delete/restore invalida el prefijo `tasks`,
+  `cronologiaInfinite` y `home`.
 - Attachments: siempre invalida `notasAttachments(ownerType, ownerId)`. Si el
   owner es `note`, también invalida `notes`, `notasFeed` y `search` porque
   `hasImages` y `hasAudio` se derivan en servidor. Si el owner es `task`,
@@ -32,17 +45,26 @@ Momentos, attachments y el feed unificado.
 
 ## Matriz De Contratos
 
-| Acción                                  | Queries afectadas                                                                | Razón                                                        |
-| --------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Crear/editar/eliminar/restaurar nota    | `notes`, `notasFeed`, `search`                                                   | Cambia contenido textual y el read-model del feed.           |
-| Promover nota a Momento                 | `notes`, `notasFeed`, `search`, `momentosInfinite`, `cronologiaInfinite`, `home` | La nota cambia estado y aparece un Momento derivado.         |
-| Crear/editar/eliminar/restaurar recorte | `recortes`, `notasFeed`, `search`                                                | Cambia captura indexable y su presencia en el feed.          |
-| Crear recorte                           | `recortes`, `notasFeed`, `search`, `counts`, `home`                              | Además de la bandeja/feed, cambia métricas e Inicio.         |
-| Promover recorte                        | `recortes`, `notasFeed`, `search`, destino, `counts`, `home`                     | El recorte cambia triage y nace/actualiza el objeto destino. |
-| Revertir promoción de recorte           | `recortes`, `notasFeed`, `search`, posibles destinos, `counts`, `home`           | El destino puede ser cita, entidad o momento.                |
-| Crear/editar/eliminar/restaurar Momento | `momentosInfinite`, `home`, `cronologiaInfinite`, `atlas`, `search`              | Cambia timeline, agregados e índice global.                  |
-| Attachment de nota                      | `notasAttachments(owner)`, `notes`, `notasFeed`, `search`                        | `hasImages`/`hasAudio` se recalculan server-side.            |
-| Attachment de tarea                     | `notasAttachments(owner)`, `tasks`                                               | Solo cambia owner operativo de Tareas.                       |
+| Acción                                  | Queries afectadas                                                                                                                                                                            | Razón                                                                        |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Crear/editar/eliminar/restaurar nota    | `notes`, `notasFeed`, `search`                                                                                                                                                               | Cambia contenido textual y el read-model del feed.                           |
+| Promover nota a Momento                 | `notes`, `notasFeed`, `search`, `momentosInfinite`, `cronologiaInfinite`, `home`                                                                                                             | La nota cambia estado y aparece un Momento derivado.                         |
+| Crear/editar/eliminar/restaurar recorte | `recortes`, `notasFeed`, `search`                                                                                                                                                            | Cambia captura indexable y su presencia en el feed.                          |
+| Crear recorte                           | `recortes`, `notasFeed`, `search`, `counts`, `home`                                                                                                                                          | Además de la bandeja/feed, cambia métricas e Inicio.                         |
+| Promover recorte                        | `recortes`, `notasFeed`, `search`, destino, `counts`, `home`                                                                                                                                 | El recorte cambia triage y nace/actualiza el objeto destino.                 |
+| Revertir promoción de recorte           | `recortes`, `notasFeed`, `search`, posibles destinos, `counts`, `home`                                                                                                                       | El destino puede ser cita, entidad o momento.                                |
+| Crear/editar/eliminar/restaurar Momento | `momentosInfinite`, `home`, `cronologiaInfinite`, `atlas`, `search`                                                                                                                          | Cambia timeline, agregados e índice global.                                  |
+| Crear entidad                           | `counts`, `entityRefsCount`, `entitiesInfinite`, `home`, `atlas`, `cronologiaInfinite`                                                                                                       | Cambia grafo, agregados e Inicio.                                            |
+| Editar entidad                          | `entitiesInfinite`, `home`, `atlas`, `cronologiaInfinite`                                                                                                                                    | Cambia read-models de grafo/timeline sin tocar relaciones.                   |
+| Eliminar entidad                        | `counts`, `entityRefsCount`, `entitiesInfinite`, `quotesInfinite`, `relationshipsInfinite`, `home`, `atlas`, `cronologiaInfinite`, `momentosInfinite`                                        | Cascadea soft-delete a citas/relaciones y puede afectar momentos vinculados. |
+| Merge/restaurar entidad                 | `entities`, `relationships`, `quotes`, `counts`, `entityRefsCount`, `entitiesInfinite`, `relationshipsInfinite`, `quotesInfinite`, `home`, `atlas`, `cronologiaInfinite`, `momentosInfinite` | Reasigna o revive relaciones derivadas del grafo.                            |
+| Crear/eliminar cita                     | `quotesInfinite`, `counts`, `entityRefsCount`, `home`                                                                                                                                        | Cambia conteos, refs e Inicio.                                               |
+| Editar cita                             | `quotesInfinite`, `home`                                                                                                                                                                     | Cambia listas y destacados sin mover refs necesariamente.                    |
+| Crear/eliminar relación                 | `counts`, `entityRefsCount`, `relationshipsInfinite`, `home`                                                                                                                                 | Cambia grafo, refs e Inicio.                                                 |
+| Editar relación                         | `relationshipsInfinite`, `home`                                                                                                                                                              | Cambia la lista y el resumen de Inicio.                                      |
+| Crear/editar/eliminar/restaurar tarea   | `tasks`, `cronologiaInfinite`, `home`                                                                                                                                                        | Cambia listas de tareas, calendario e Inicio.                                |
+| Attachment de nota                      | `notasAttachments(owner)`, `notes`, `notasFeed`, `search`                                                                                                                                    | `hasImages`/`hasAudio` se recalculan server-side.                            |
+| Attachment de tarea                     | `notasAttachments(owner)`, `tasks`                                                                                                                                                           | Solo cambia owner operativo de Tareas.                                       |
 
 ## Optimistic Update
 
@@ -52,6 +74,10 @@ el rollback es claro:
 - patch de nota (`pinned`, título, contenido): snapshot de `notes` y todas las
   variantes cargadas de `notasFeed`.
 - patch/promoción de recorte: snapshot de `recortes` y `notasFeed`.
+- create/update de entidad, cita o relación: snapshot del query wholesale del
+  dominio (`entities`, `quotes`, `relationships`) y restore en `onError`.
+- update/delete de tarea: snapshot de todas las variantes bajo el prefijo
+  `tasks` y restore en `onError`.
 - mutations con side effects amplios o destino incierto: preferir invalidación
   simple en `onSuccess`.
 
