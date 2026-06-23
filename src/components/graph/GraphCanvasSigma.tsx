@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react'
 import Sigma from 'sigma'
 import Graph from 'graphology'
-import type { Entity, Relationship } from '../../types'
+import { ENTITY_TYPES, type Entity, type Relationship } from '../../types'
 import {
   graphHashToSignature,
   hashGraphPart,
   initialGraphHash,
 } from '../../lib/graphSignature'
+import { useGraphKeyboardNav } from '../../hooks/useGraphKeyboardNav'
 
 /**
  * Renderer WebGL para el grafo. Se activa cuando hay muchos nodos
@@ -54,6 +55,29 @@ function readThemeInk(): { label: string; edge: string } {
     edge: styles.getPropertyValue('--graph-edge-ink').trim() || fallback.edge,
   }
 }
+
+/** Etiquetas legibles por tipo, para anunciar el nodo enfocado a lectores de
+ *  pantalla. Tipos fuera de la lista (custom desde la DB) caen al valor crudo. */
+const TYPE_LABELS = new Map(ENTITY_TYPES.map((t) => [t.value, t.label]))
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
+
+/** Viaja la cámara hasta un nodo (mismo gesto out-quart de la casa). No-op si
+ *  el nodo ya no existe o aún no tiene display data. */
+function panCameraTo(sigma: Sigma, nodeId: string, duration: number) {
+  if (!sigma.getGraph().hasNode(nodeId)) return
+  const display = sigma.getNodeDisplayData(nodeId)
+  if (!display) return
+  sigma
+    .getCamera()
+    .animate({ x: display.x, y: display.y }, { duration, easing: 'quadraticOut' })
+}
+
 export function GraphCanvasSigma({
   entities,
   relationships,
@@ -74,6 +98,19 @@ export function GraphCanvasSigma({
   const onSelectRef = useRef(onSelect)
   selectedRef.current = selectedId
   onSelectRef.current = onSelect
+
+  // Navegación por teclado — paridad con el SVG vía el mismo hook: flechas/Tab
+  // recorren los nodos, Enter/Espacio selecciona, Escape sale. El nodo enfocado
+  // conduce la linterna + la cámara, y se anuncia por una región aria-live: en
+  // WebGL no hay DOM por nodo para colgar aria-activedescendant como en el SVG.
+  const { focusedIndex, onKeyDown } = useGraphKeyboardNav({
+    entities,
+    selectedId,
+    onSelect,
+  })
+  const focusedEntity = focusedIndex >= 0 ? (entities[focusedIndex] ?? null) : null
+  const focusedRef = useRef<string | null>(null)
+  focusedRef.current = focusedEntity?.id ?? null
 
   const graphModel = useMemo(() => {
     // Grado por nodo → peso visual (sqrt para comprimir la cola larga).
@@ -195,11 +232,19 @@ export function GraphCanvasSigma({
       // el grafo. Se evalúan en cada frame; deben ser baratos.
       nodeReducer: (node, data) => {
         const res = { ...data }
-        const focus = hoveredRef.current ?? selectedRef.current
+        // Prioridad del foco para la linterna: hover (mouse) > teclado > selección.
+        const focus = hoveredRef.current ?? focusedRef.current ?? selectedRef.current
         if (selectedRef.current === node) {
           res.size = (data.size as number) * 1.5
           res.zIndex = 2
           res.highlighted = true
+        }
+        // El nodo enfocado por teclado se resalta y conserva su nombre aunque el
+        // LOD lo hubiera ocultado: el foco siempre tiene que verse.
+        if (focusedRef.current === node) {
+          res.highlighted = true
+          res.zIndex = 2
+          res.forceLabel = true
         }
         // Linterna: con un foco activo, lo que no es el foco ni vecino
         // se apaga — el barrio del nodo queda iluminado.
@@ -211,7 +256,7 @@ export function GraphCanvasSigma({
       },
       edgeReducer: (edge, data) => {
         const res = { ...data }
-        const focus = hoveredRef.current ?? selectedRef.current
+        const focus = hoveredRef.current ?? focusedRef.current ?? selectedRef.current
         if (focus) {
           const [u, v] = graph.extremities(edge)
           if (u === focus || v === focus) {
@@ -259,26 +304,42 @@ export function GraphCanvasSigma({
     const sigma = sigmaRef.current
     if (!sigma) return
     sigma.refresh()
-    if (!selectedId || !sigma.getGraph().hasNode(selectedId)) return
-    const display = sigma.getNodeDisplayData(selectedId)
-    if (!display) return
-    const reduced =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    sigma
-      .getCamera()
-      .animate(
-        { x: display.x, y: display.y },
-        { duration: reduced ? 0 : 450, easing: 'quadraticOut' },
-      )
+    if (selectedId) panCameraTo(sigma, selectedId, prefersReducedMotion() ? 0 : 450)
   }, [selectedId])
 
+  // Foco por teclado: refresca la linterna y acerca la cámara al nodo enfocado
+  // (más corto que la selección, para responder al ritmo de las flechas). El
+  // resaltado lo aplica el nodeReducer leyendo focusedRef.
+  useEffect(() => {
+    const sigma = sigmaRef.current
+    if (!sigma) return
+    sigma.refresh({ skipIndexation: true })
+    const id = focusedEntity?.id
+    if (id) panCameraTo(sigma, id, prefersReducedMotion() ? 0 : 280)
+  }, [focusedEntity])
+
+  const focusAnnouncement = focusedEntity
+    ? `${focusedEntity.name}${
+        TYPE_LABELS.has(focusedEntity.type)
+          ? `, ${TYPE_LABELS.get(focusedEntity.type)}`
+          : ''
+      }. Nodo ${focusedIndex + 1} de ${entities.length}.`
+    : ''
+
   return (
-    <div
-      ref={containerRef}
-      className="h-full w-full"
-      role="application"
-      aria-label={`Grafo (WebGL). ${entities.length} entidades, ${relationships.length} relaciones. Clic en un nodo para seleccionar, fondo para deseleccionar. Sin navegación por teclado en este modo; la navegación por teclado está disponible en el modo SVG.`}
-    />
+    <div className="relative h-full w-full">
+      <div
+        ref={containerRef}
+        className="h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink-300"
+        role="application"
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        aria-keyshortcuts="ArrowRight ArrowLeft ArrowUp ArrowDown Enter Space Escape"
+        aria-label={`Grafo (WebGL). ${entities.length} entidades, ${relationships.length} relaciones. Clic en un nodo o usa las flechas y Tab para recorrer los nodos; Enter o Espacio selecciona, Escape deselecciona.`}
+      />
+      <div role="status" aria-live="polite" className="sr-only">
+        {focusAnnouncement}
+      </div>
+    </div>
   )
 }
