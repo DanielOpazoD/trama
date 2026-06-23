@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import type {
   EditImageOptions,
   EditorModel,
@@ -29,11 +29,18 @@ export function ImageEditorModal({
   options: EditImageOptions
   onResolve: (result: File | null) => void
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement | null>(null)
-  useFocusTrap(dialogRef, true)
+
+  // Modal accesible: focus trap + aria-modal + Escape + scroll-lock + restaurar
+  // foco al cerrar. Escape descarta los cambios (resuelve con null), igual que
+  // el botón "cancelar". El guard de stack de overlays del hook evita que un
+  // modal de fondo (p. ej. editar momento) reciba también el Escape.
+  // Los atajos propios del editor (flechas para mover/redimensionar el recorte,
+  // ver CropOverlay) son onKeyDown locales: el hook solo cubre Escape y no los
+  // toca.
+  const overlay = useModalOverlay({ open: true, onClose: () => onResolve(null) })
 
   const [model, setModel] = useState<EditorModel>(defaultModel)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -54,20 +61,6 @@ export function ImageEditorModal({
     }
     img.src = previewUrl
   }, [previewUrl])
-
-  // Escape cierra SOLO este editor (captura + stopImmediatePropagation evita que
-  // un modal de fondo —p. ej. el de editar momento— también lo reciba).
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.stopImmediatePropagation()
-        e.preventDefault()
-        onResolve(null)
-      }
-    }
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [onResolve])
 
   // Ancho disponible para encajar la imagen.
   useLayoutEffect(() => {
@@ -173,7 +166,7 @@ export function ImageEditorModal({
       />
       <div className="fixed inset-0 z-[61] flex items-center justify-center px-4 py-6 pointer-events-none animate-fade-up">
         <div
-          ref={dialogRef}
+          ref={overlay.dialogRef}
           role="dialog"
           aria-label="Editor de imágenes"
           aria-modal="true"

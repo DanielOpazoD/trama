@@ -38,11 +38,12 @@ describe('<ImageEditorModal />', () => {
     return { onResolve }
   }
 
-  it('renderiza el diálogo con las tres herramientas y el footer', () => {
+  it('renderiza el diálogo (role=dialog + aria-modal) con las tres herramientas y el footer', () => {
     setup()
-    expect(
-      screen.getByRole('dialog', { name: /editor de imágenes/i }),
-    ).toBeInTheDocument()
+    const dialog = screen.getByRole('dialog', { name: /editor de imágenes/i })
+    expect(dialog).toBeInTheDocument()
+    // Migrado a useModalOverlay: contrato de modal accesible.
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(screen.getByRole('button', { name: /^recortar$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^girar$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^texto$/i })).toBeInTheDocument()
@@ -52,6 +53,14 @@ describe('<ImageEditorModal />', () => {
   it('cancelar resuelve con null', () => {
     const { onResolve } = setup()
     fireEvent.click(screen.getByRole('button', { name: /^cancelar$/i }))
+    expect(onResolve).toHaveBeenCalledWith(null)
+  })
+
+  it('Escape (keydown en document) descarta y resuelve con null', () => {
+    // useModalOverlay escucha Escape en document (captura). Igual que el botón
+    // "cancelar", descarta los cambios resolviendo con null.
+    const { onResolve } = setup()
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onResolve).toHaveBeenCalledWith(null)
   })
 
