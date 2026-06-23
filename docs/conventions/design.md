@@ -59,7 +59,7 @@ Usar SOLO para spacing vertical en headers de vista, padding de cards, separaci�
 - `lang="es"` en `<html>`
 - Semantic HTML: `<main>`, `<aside>`, `<nav>`, `<header>`, `<footer>` usados consistentemente
 - Jerarquía de headings: un solo `<h1>` por pantalla (vive en TopBar; el wordmark "Trama" del Sidebar es `<span>` decorativo)
-- `aria-label` en 48+ icon buttons; `aria-describedby` automático en `<Tooltip>`
+- Botones de solo-ícono vía `<IconButton label="…">` (aria-label obligatorio por tipos, gobernado por `check:icon-button`); `aria-describedby` automático en `<Tooltip>`
 - `role="alert"` en ErrorBoundary fallback y banners de error
 - `role="status"` en ToastHost (`aria-live="polite"`)
 - `role="tooltip"` en `<Tooltip>` con id linkeado al trigger
@@ -69,8 +69,8 @@ Usar SOLO para spacing vertical en headers de vista, padding de cards, separaci�
 **Texto vs contraste**: `text-ink-300` (#63636b) es el muted más claro permitido para texto legible — pasa AA con ~5.1:1 sobre `paper-50` blanco, incluso en `text-micro` (10px) que requiere 4.5:1 por ser texto pequeño. Era #71717a hasta ε5 (axe lo cazó en 4.43, justo bajo el umbral). `text-ink-200` (#d4d4d8) NO se usa para texto, solo para iconos decorativos, separators (·), o disabled states.
 
 **Axe en CI:** `e2e/a11y.spec.ts` corre axe-core sobre superficies principales
-(Inicio, Entidades, recorte en Notas, Settings Estado, palette, Momentos y
-Atlas). Pendiente para
+(Inicio, Entidades, recorte en Notas, Settings Estado, palette, Momentos,
+Atlas, y Notas·Prompts / Notas·Tareas). Pendiente para
 futuros audits: color contrast de chips de tipos sobre fondo de card (algunos
 `typeAccent` claros podrían fallar), touch target sizes en mobile (algunos icon
 buttons son <44px) y nuevas superficies densas antes de convertirlas en flujo
@@ -133,3 +133,24 @@ Regla de adopción, sin crear framework:
 Si encontrás `bg-paper-100/60 border border-ink-100/60 rounded-xl` escrito a mano, es `.card-paper-soft`. Si encontrás `flex p-1 bg-paper-100/60 rounded-lg border border-ink-100/50 w-fit`, es `.card-segment`.
 
 **Acknowledged-but-active pattern (γ3)** — para indicadores que avisan de algo (dot rojo de health alerts) Y que el usuario puede "reconocer" sin resolver. La función `acknowledgeHealthAlerts(codes)` se llama al abrir Settings; persiste los códigos vistos en localStorage. Si un código NUEVO aparece después, vuelve a iluminar. Si una alerta se va y vuelve (mismo código), también re-aparece — el set se REEMPLAZA por completo, no se acumula. Replicable para cualquier sistema de "notificación que el usuario puede silenciar hasta que cambie".
+
+## Primitivos de UI (botones, badges)
+
+Componentes pequeños que centralizan un CONTRATO (a11y, comportamiento), no una estética. El look siempre queda en `className`/`style` del call site → cada uso conserva su aspecto exacto; el primitivo no impone una única apariencia.
+
+**`<IconButton label="…">{ícono}</IconButton>`** (`src/components/IconButton.tsx`) — para botones de SOLO ÍCONO. Aporta tres cosas que estaban dispersas en ~250 botones: `type="button"` por defecto (un `<button>` sin type dentro de un `<form>` lo envía sin querer), `label` OBLIGATORIO por tipos → `aria-label` (no compila si falta, así un botón de ícono nunca queda sin nombre) y un anillo `focus-visible` consistente (muchos solo tenían `hover:` y eran invisibles al navegar con Tab). El ícono va como children; cualquier prop nativa de `<button>` (onClick, disabled, title, aria-pressed, role…) se reenvía. NO usar para botones con texto (esos usan las clases `btn-ink/ghost/accent`); IconButton es solo para los que dependen del aria-label para tener nombre.
+
+**`<CountBadge count={n} />`** (`src/components/CountBadge.tsx`) — badge de conteo (notificaciones, filtros activos, ítems por día). No renderiza nada si `count <= 0` y capa el número en `max` (default 99 → `99+`). Es DECORATIVO (aria-hidden) a propósito: el conteo debe ir en el NOMBRE ACCESIBLE del control padre (p. ej. `aria-label={`Filtros, ${n} activos`}`), no duplicarse desde el badge (dentro de un botón, un `role=status` con aria-label le robaría el nombre).
+
+### Gates que gobiernan el design system
+
+Cuatro ratchets (en `scripts/`, corren en el job `lint` de CI) congelan el estado actual y solo permiten MEJORARLO; nunca suben el baseline:
+
+| Gate                        | Congela                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `check:design-tokens`       | arbitrary values tipográficos + aliases legacy de la type scale (usar tokens) |
+| `check:modal-overlay`       | adopción de `useModalOverlay` en `role="dialog"`                              |
+| `check:form-control-labels` | nombres accesibles en `input/textarea/select` (reconoce `htmlFor`/`useId`)    |
+| `check:icon-button`         | adopción de `IconButton` en botones de solo-ícono                             |
+
+Cada uno baja su baseline cuando alguien migra; el gate avisa para actualizar el piso. Para migrar un caso nuevo, seguí el primitivo/token correspondiente en vez de reintroducir el patrón hand-rolled.
