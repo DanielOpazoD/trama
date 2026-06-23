@@ -29,7 +29,9 @@ describe('<DuplicatesPanel />', () => {
 
   it('combina conservando la entidad marcada e invalida los dominios tocados', async () => {
     const queryClient = makeQueryClient()
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
+    const invalidateSpy = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockImplementation(() => Promise.resolve(undefined))
     const mergeSpy = vi.spyOn(api, 'mergeEntities').mockResolvedValue({
       id: 'e-rayuela',
       name: 'Rayuela',
@@ -57,9 +59,20 @@ describe('<DuplicatesPanel />', () => {
       expect(screen.getByText(/nombre idéntico/i)).toBeInTheDocument()
     })
 
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.entities })
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.relationships })
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.quotes })
+    expect(invalidateSpy.mock.calls.map(([filters]) => filters?.queryKey)).toEqual([
+      queryKeys.entities,
+      queryKeys.relationships,
+      queryKeys.quotes,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.relationshipsInfinite,
+      queryKeys.quotesInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.momentosInfinite,
+    ])
   })
 
   it('descarta grupos localmente y permite cerrar cuando no quedan duplicados', () => {

@@ -21,6 +21,18 @@ function directInvalidationLines(file: string): string[] {
     .filter((line) => line.includes('invalidateQueries('))
 }
 
+const forbiddenNotesRecortesAttachmentsInvalidation =
+  /invalidateQueries\(\s*\{[^)]*?\bqueryKey:\s*queryKeys\.(notes|notasFeed|recortes|quotes|quotesInfinite|entities|momentosInfinite|counts|home|notasAttachments|tasks|search)\b/
+
+const forbiddenMomentosInvalidation =
+  /invalidateQueries\(\s*\{[^)]*?\bqueryKey:\s*(MOMENTOS_INFINITE|queryKeys\.(home|cronologiaInfinite|atlas|momentoShareAccess))\b/
+
+const forbiddenCoreGraphInvalidation =
+  /invalidateQueries\(\s*\{[^)]*?\bqueryKey:\s*queryKeys\.(entities|relationships|quotes|counts|entityRefsCount|entitiesInfinite|relationshipsInfinite|quotesInfinite|momentosInfinite|home|atlas|cronologiaInfinite)\b/
+
+const forbiddenTasksInvalidation =
+  /invalidateQueries\(\s*\{[^)]*?\bqueryKey:\s*(TASKS_KEY|queryKeys\.(tasks|cronologiaInfinite|home))\b/
+
 describe('cache contract guardrail', () => {
   it('mantiene los hooks objetivo conectados a cacheInvalidation', () => {
     for (const file of [
@@ -28,32 +40,68 @@ describe('cache contract guardrail', () => {
       'useRecortes.ts',
       'useMomentos.ts',
       'useNotasAttachments.ts',
+      'useEntities.ts',
+      'useQuotes.ts',
+      'useRelationships.ts',
+      'useTasks.ts',
     ]) {
       expect(source(file), file).toContain("from './cacheInvalidation'")
     }
   })
 
   it('evita que Notas, Recortes y attachments vuelvan a invalidar superficies críticas a mano', () => {
-    const forbiddenDirectInvalidation =
-      /invalidateQueries\(\{\s*queryKey:\s*queryKeys\.(notes|notasFeed|recortes|quotes|quotesInfinite|entities|momentosInfinite|counts|home|notasAttachments|tasks|search)\b/
-
     for (const file of ['useNotes.ts', 'useRecortes.ts', 'useNotasAttachments.ts']) {
-      expect(uncommented(source(file)), file).not.toMatch(forbiddenDirectInvalidation)
+      expect(uncommented(source(file)), file).not.toMatch(
+        forbiddenNotesRecortesAttachmentsInvalidation,
+      )
     }
   })
 
   it('evita que Momentos vuelva a duplicar invalidaciones de timeline/share access', () => {
     const src = uncommented(source('useMomentos.ts'))
 
-    expect(src).not.toMatch(
-      /invalidateQueries\(\{\s*queryKey:\s*(MOMENTOS_INFINITE|queryKeys\.(home|cronologiaInfinite|atlas|momentoShareAccess))\b/,
+    expect(src).not.toMatch(forbiddenMomentosInvalidation)
+  })
+
+  it('evita que core graph vuelva a duplicar invalidaciones transversales a mano', () => {
+    for (const file of ['useEntities.ts', 'useQuotes.ts', 'useRelationships.ts']) {
+      expect(uncommented(source(file)), file).not.toMatch(forbiddenCoreGraphInvalidation)
+    }
+  })
+
+  it('evita que tareas vuelva a duplicar invalidaciones de calendario e inicio a mano', () => {
+    const src = uncommented(source('useTasks.ts'))
+
+    expect(src).not.toMatch(forbiddenTasksInvalidation)
+  })
+
+  it('detecta invalidaciones manuales aunque queryKey no sea la primera opcion', () => {
+    expect(
+      'queryClient.invalidateQueries({ exact: true, queryKey: queryKeys.notes })',
+    ).toMatch(forbiddenNotesRecortesAttachmentsInvalidation)
+    expect(
+      'queryClient.invalidateQueries({ refetchType: "active", queryKey: MOMENTOS_INFINITE })',
+    ).toMatch(forbiddenMomentosInvalidation)
+    expect(
+      'queryClient.invalidateQueries({ exact: true, queryKey: queryKeys.entities })',
+    ).toMatch(forbiddenCoreGraphInvalidation)
+    expect('queryClient.invalidateQueries({ exact: true, queryKey: TASKS_KEY })').toMatch(
+      forbiddenTasksInvalidation,
     )
   })
 
   it('mantiene el rollback optimista común en los hooks con patches optimistas', () => {
-    expect(source('useNotes.ts')).toContain("from './cacheOptimistic'")
-    expect(source('useRecortes.ts')).toContain("from './cacheOptimistic'")
-    expect(source('notasFeedCache.ts')).toContain("from './cacheOptimistic'")
+    for (const file of [
+      'useNotes.ts',
+      'useRecortes.ts',
+      'notasFeedCache.ts',
+      'useEntities.ts',
+      'useQuotes.ts',
+      'useRelationships.ts',
+      'useTasks.ts',
+    ]) {
+      expect(uncommented(source(file)), file).toMatch(/from ['"]\.\/cacheOptimistic['"]/)
+    }
   })
 
   it('restringe invalidateQueries directo a excepciones explícitas', () => {

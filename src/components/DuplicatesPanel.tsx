@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { api, type DuplicateGroup } from '../api'
-import { queryKeys } from '../state/queryClient'
+import { type DuplicateGroup } from '../api'
+import { useMergeEntities } from '../state'
 import { typeAccent } from './graph/GraphNode'
 
 /**
@@ -22,7 +21,7 @@ export function DuplicatesPanel({
   embeddingSkipped: boolean
   onClose: () => void
 }) {
-  const queryClient = useQueryClient()
+  const mergeEntities = useMergeEntities()
   const [groups, setGroups] = useState(initial)
   const [keepers, setKeepers] = useState<Map<DuplicateGroup, string>>(
     () => new Map(initial.map((g) => [g, g.entities[0]?.id ?? ''])),
@@ -41,11 +40,7 @@ export function DuplicatesPanel({
     setBusy(g)
     setError(null)
     try {
-      await api.mergeEntities(keepId, mergeIds)
-      // Refresca todo lo que el merge tocó (el prefijo cubre infinite + counts).
-      queryClient.invalidateQueries({ queryKey: queryKeys.entities })
-      queryClient.invalidateQueries({ queryKey: queryKeys.relationships })
-      queryClient.invalidateQueries({ queryKey: queryKeys.quotes })
+      await mergeEntities.mutateAsync({ keepId, mergeIds })
       setGroups((prev) => prev.filter((x) => x !== g))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo combinar')

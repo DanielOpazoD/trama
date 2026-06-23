@@ -44,6 +44,16 @@ function wrapWith(qc: QueryClient, offline = false) {
   }
 }
 
+function invalidatedKeys(qc: QueryClient) {
+  const spy = vi
+    .spyOn(qc, 'invalidateQueries')
+    .mockImplementation(() => Promise.resolve(undefined))
+  return {
+    spy,
+    keys: () => spy.mock.calls.map(([filters]) => filters?.queryKey),
+  }
+}
+
 const REAL_RELATIONSHIP: Relationship = {
   id: 'rel-real',
   fromId: 'ent-A',
@@ -302,5 +312,80 @@ describe('useDeleteRelationship', () => {
       await result.current.toast.current!.action!.onAction()
     })
     expect(restoreSpy).toHaveBeenCalledWith('rel-real', '2026-05-28T00:00:00Z')
+  })
+})
+
+describe('invalidación de queries', () => {
+  it('useAddRelationship invalida counts, refs, relationships infinite y home', async () => {
+    vi.spyOn(apiModule.api, 'createRelationship').mockResolvedValue(REAL_RELATIONSHIP)
+    const qc = makeQueryClient()
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [])
+    const invalidations = invalidatedKeys(qc)
+
+    const { result } = renderHook(() => useAddRelationship(), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.mutate({
+        fromId: 'ent-A',
+        toId: 'ent-B',
+        type: 'influye_en',
+      })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidations.keys()).toEqual([
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+    ])
+  })
+
+  it('useUpdateRelationship invalida relationships infinite y home', async () => {
+    vi.spyOn(apiModule.api, 'updateRelationship').mockResolvedValue({
+      ...REAL_RELATIONSHIP,
+      notes: 'después',
+    })
+    const qc = makeQueryClient()
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [REAL_RELATIONSHIP])
+    const invalidations = invalidatedKeys(qc)
+
+    const { result } = renderHook(() => useUpdateRelationship(), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.mutate({ id: 'rel-real', patch: { notes: 'después' } })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidations.keys()).toEqual([
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+    ])
+  })
+
+  it('useDeleteRelationship invalida counts, refs, relationships infinite y home', async () => {
+    vi.spyOn(apiModule.api, 'deleteRelationship').mockResolvedValue({
+      deletedAt: '2026-05-28T00:00:00Z',
+    } as unknown as Awaited<ReturnType<typeof apiModule.api.deleteRelationship>>)
+    const qc = makeQueryClient()
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [REAL_RELATIONSHIP])
+    const invalidations = invalidatedKeys(qc)
+
+    const { result } = renderHook(() => useDeleteRelationship(), {
+      wrapper: wrapWith(qc),
+    })
+    act(() => {
+      result.current.mutate({ id: 'rel-real', silent: true })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(invalidations.keys()).toEqual([
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+    ])
   })
 })

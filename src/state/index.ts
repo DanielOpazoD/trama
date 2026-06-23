@@ -27,6 +27,7 @@ export {
   useUpdateEntityType,
   useUpdateEntity,
   useDeleteEntity,
+  useMergeEntities,
   useVoiceOfEntity,
 } from './useEntities'
 export { useReclassifyEntities } from './useReclassifyEntities'

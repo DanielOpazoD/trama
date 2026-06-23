@@ -2,16 +2,30 @@ import { describe, expect, it, vi } from 'vitest'
 import { makeQueryClient } from '../test-utils'
 import { queryKeys } from './queryClient'
 import {
+  invalidateEntityCreateSurface,
+  invalidateEntityDeleteSurface,
+  invalidateEntityMergeSurface,
+  invalidateEntityRestoreSurface,
+  invalidateEntityUpdateSurface,
   invalidateMomentoShareAccessSurface,
   invalidateMomentoShareInvitationResponseSurface,
   invalidateMomentosSurface,
   invalidateAttachmentOwnerSurface,
   invalidateNoteMutationSurface,
   invalidateNotesPromotionSurface,
+  invalidateQuoteCreateSurface,
+  invalidateQuoteDeleteSurface,
+  invalidateQuoteRestoreSurface,
+  invalidateQuoteUpdateSurface,
   invalidateRecorteCreateSurface,
   invalidateRecorteMutationSurface,
   invalidateRecortePromotionSurface,
   invalidateSearchSurface,
+  invalidateRelationshipCreateSurface,
+  invalidateRelationshipDeleteSurface,
+  invalidateRelationshipRestoreSurface,
+  invalidateRelationshipUpdateSurface,
+  invalidateTasksSurface,
 } from './cacheInvalidation'
 
 function invalidatedKeys(qc: ReturnType<typeof makeQueryClient>) {
@@ -130,6 +144,105 @@ describe('cacheInvalidation', () => {
       queryKeys.notasAttachments('task', 't1'),
       queryKeys.tasks,
       queryKeys.notasAttachments('prompt', 'p1'),
+    ])
+  })
+
+  it('centraliza entidades, citas, relaciones y tareas core', () => {
+    const qc = makeQueryClient()
+    const spy = invalidatedKeys(qc)
+
+    invalidateEntityCreateSurface(qc)
+    invalidateEntityUpdateSurface(qc)
+    invalidateEntityDeleteSurface(qc)
+    invalidateEntityMergeSurface(qc)
+    invalidateEntityRestoreSurface(qc)
+    invalidateQuoteCreateSurface(qc)
+    invalidateQuoteUpdateSurface(qc)
+    invalidateQuoteDeleteSurface(qc)
+    invalidateQuoteRestoreSurface(qc)
+    invalidateRelationshipCreateSurface(qc)
+    invalidateRelationshipUpdateSurface(qc)
+    invalidateRelationshipDeleteSurface(qc)
+    invalidateRelationshipRestoreSurface(qc)
+    invalidateTasksSurface(qc)
+
+    expect(queryKeysFrom(spy)).toEqual([
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.entitiesInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.quotesInfinite,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.momentosInfinite,
+      queryKeys.entities,
+      queryKeys.relationships,
+      queryKeys.quotes,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.relationshipsInfinite,
+      queryKeys.quotesInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.momentosInfinite,
+      queryKeys.entities,
+      queryKeys.relationships,
+      queryKeys.quotes,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.entitiesInfinite,
+      queryKeys.relationshipsInfinite,
+      queryKeys.quotesInfinite,
+      queryKeys.home,
+      queryKeys.atlas,
+      queryKeys.cronologiaInfinite,
+      queryKeys.momentosInfinite,
+      queryKeys.quotesInfinite,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.home,
+      queryKeys.quotesInfinite,
+      queryKeys.home,
+      queryKeys.quotesInfinite,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.home,
+      queryKeys.quotes,
+      queryKeys.quotesInfinite,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.home,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.relationships,
+      queryKeys.counts,
+      queryKeys.entityRefsCount,
+      queryKeys.relationshipsInfinite,
+      queryKeys.home,
+      queryKeys.tasks,
+      queryKeys.cronologiaInfinite,
+      queryKeys.home,
     ])
   })
 })
