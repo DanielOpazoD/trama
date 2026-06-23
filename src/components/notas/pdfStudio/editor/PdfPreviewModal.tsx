@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   openPdfPreview,
@@ -7,7 +7,7 @@ import {
 import { LoadingHint } from '../../../LoadingHint'
 import { Spinner } from '../../../Spinner'
 import { CloseIcon, DownloadIcon, PrinterIcon } from '../../../Icons'
-import { useFocusTrap } from '../../../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../../../hooks/useModalOverlay'
 import { useInViewport } from './useInViewport'
 
 /** Una página del preview: render PEREZOSO (sólo al acercarse al scroll del modal),
@@ -80,8 +80,12 @@ export function PdfPreviewModal({
   onDownload: (blob: Blob) => void
   onPrint: (blob: Blob) => void
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, true)
+  // Modal auto-gestionado: el padre lo monta/desmonta (no hay prop `open`),
+  // así que mientras está montado siempre está abierto. useModalOverlay nos da
+  // focus trap + Escape (respetando el stack de overlays, en fase de captura) +
+  // restaurar foco. lockScroll se deja en false para preservar el comportamiento
+  // previo: este modal nunca bloqueó el scroll del body.
+  const overlay = useModalOverlay({ open: true, onClose, lockScroll: false })
   const [preview, setPreview] = useState<PdfPreview | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
@@ -109,25 +113,16 @@ export function PdfPreviewModal({
     }
   }, [blob])
 
-  // Esc cierra (el focus-trap completo lo agrega useFocusTrap).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Vista previa del PDF ensamblado"
       onClick={onClose}
       className="pdf-studio fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-ink-900/40 backdrop-blur-sm"
     >
       <div
-        ref={dialogRef}
+        ref={overlay.dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Vista previa del PDF ensamblado"
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-3xl h-[95vh] overflow-hidden rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col"
       >

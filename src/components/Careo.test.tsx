@@ -136,6 +136,8 @@ describe('<Careo />', () => {
   it('enfrenta a las dos entidades con más citas y declara la relación', async () => {
     renderWithProviders(<Careo open onClose={() => {}} />)
     const dialog = await screen.findByRole('dialog', { name: 'Careo' })
+    // Modal accesible: aria-modal para que los lectores de pantalla aíslen el careo.
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
     // Esperar a que la data cargue y el par inicial se fije.
     await screen.findByText('Borges')
     expect(dialog.textContent).toMatch(/el aleph/)
@@ -147,7 +149,8 @@ describe('<Careo />', () => {
     const onClose = vi.fn()
     renderWithProviders(<Careo open onClose={onClose} />)
     await screen.findByRole('dialog', { name: 'Careo' })
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // useModalOverlay escucha en document (fase de captura).
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledOnce()
   })
 })

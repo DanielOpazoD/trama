@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useEffect, useState } from 'react'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 
 /**
  * τ-mobile-bridge: modal con un código QR que abre el composer de
@@ -28,8 +28,10 @@ export function MomentoQRModal({
 }) {
   const [svgMarkup, setSvgMarkup] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, open)
+  // υ-a11y: focus trap + aria-modal + Escape + restaurar foco unificados en
+  // useModalOverlay. lockScroll:false preserva el comportamiento previo (este
+  // modal nunca bloqueó el scroll del body).
+  const overlay = useModalOverlay({ open, onClose, lockScroll: false })
 
   const url =
     typeof window !== 'undefined'
@@ -67,16 +69,6 @@ export function MomentoQRModal({
     }
   }, [open, url])
 
-  // Cerrar con Escape.
-  useEffect(() => {
-    if (!open) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
   function handleCopy() {
     if (typeof navigator === 'undefined' || !navigator.clipboard) return
     navigator.clipboard.writeText(url).catch(() => {
@@ -106,7 +98,7 @@ export function MomentoQRModal({
           que el backdrop reciba los clicks fuera del modal. */}
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
         <div
-          ref={dialogRef}
+          ref={overlay.dialogRef}
           role="dialog"
           aria-label="Escanear con el celular"
           aria-modal="true"

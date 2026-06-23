@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../state'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import type { Quote } from '../types'
 import {
   ChevronLeftIcon,
@@ -131,10 +132,15 @@ export function Atril({ open, onClose }: { open: boolean; onClose: () => void })
     }
   }
 
+  // Escape, focus trap, scroll-lock y restaurar foco los maneja
+  // useModalOverlay. Acá solo quedan los atajos PROPIOS del atril: ← →
+  // para hojear el archivo. Sin deps a propósito: cada render renueva el
+  // listener para que goPrev/goNext cierren sobre el `index` vigente.
+  const overlay = useModalOverlay({ open, onClose })
+
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowLeft') goPrev()
       if (e.key === 'ArrowRight') goNext()
     }
@@ -146,7 +152,9 @@ export function Atril({ open, onClose }: { open: boolean; onClose: () => void })
 
   return (
     <div
+      ref={overlay.dialogRef}
       role="dialog"
+      aria-modal="true"
       aria-label="Atril"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up"
     >

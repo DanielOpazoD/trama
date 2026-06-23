@@ -138,6 +138,9 @@ jobs:
       - name: Design tokens ratchet check
         run: npm run check:design-tokens
 
+      - name: Modal overlay adoption check
+        run: npm run check:modal-overlay
+
       - name: PDF runtime boundaries check
         run: npm run check:pdf-runtime-boundaries
 

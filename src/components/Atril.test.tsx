@@ -191,12 +191,21 @@ describe('<Atril />', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('es un diálogo modal accesible (role=dialog + aria-modal)', async () => {
+    stubFetch()
+    renderWithProviders(<Atril open onClose={() => {}} />)
+    const dialog = await screen.findByRole('dialog', { name: 'Atril' })
+    // useModalOverlay exige aria-modal para los lectores de pantalla.
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+  })
+
   it('calls onClose when ESC is pressed', async () => {
     stubFetch()
     const onClose = vi.fn()
     renderWithProviders(<Atril open onClose={onClose} />)
     await screen.findByRole('dialog', { name: 'Atril' })
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // Escape lo gestiona useModalOverlay: listener en captura sobre document.
+    fireEvent.keyDown(document, { key: 'Escape' })
     expect(onClose).toHaveBeenCalledOnce()
   })
 })

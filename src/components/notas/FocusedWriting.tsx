@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { CloseIcon } from '../Icons'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { MarkdownField } from './MarkdownField'
 
@@ -13,8 +13,9 @@ import { MarkdownField } from './MarkdownField'
  *
  * Edita el MISMO borrador del caller: `value`/`onChange` fluyen en vivo, así al
  * cerrar el caller ya tiene el texto último (no hace falta guardar aparte). Si
- * se pasa `onSave`, se llama al cerrar. Escape cierra. Atrapa el foco mientras
- * está abierta y lo devuelve al disparador al cerrar (vía `useFocusTrap`).
+ * se pasa `onSave`, se llama al cerrar. Escape cierra. Atrapa el foco, bloquea
+ * el scroll del fondo y respeta el stack de overlays vía `useModalOverlay`; el
+ * foco al disparador se restaura abajo (ver `openerRef`).
  *
  * Se carga con `React.lazy` desde sus call sites para no inflar el chunk de
  * NotasWorld con la superficie de escritura completa.
@@ -39,47 +40,42 @@ export function FocusedWriting({
   onClose: () => void
   onSave?: () => void
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
   // El cuerpo crece con el contenido; el overlay scrollea si hace falta.
   const bodyRef = useAutosizeTextarea(value, { minRows: 12, maxRows: 200 })
   // Capturamos el disparador en el PRIMER render (antes de que el autoFocus del
-  // textarea mueva el foco), para poder devolvérselo al cerrar. No lo hace
-  // useFocusTrap porque su captura corre tras el commit, cuando el autoFocus ya
-  // robó el foco. El trap igual cubre el ciclado con Tab dentro del overlay.
+  // textarea mueva el foco), para poder devolvérselo al cerrar. El focus trap de
+  // useModalOverlay NO sirve para esto: su captura corre tras el commit, cuando
+  // el autoFocus del textarea ya robó el foco — restauraría al textarea, no al
+  // disparador. El hook sí cubre el ciclado con Tab y respeta el autoFocus.
   const openerRef = useRef<HTMLElement | null>(
     typeof document !== 'undefined'
       ? (document.activeElement as HTMLElement | null)
       : null,
   )
-  useFocusTrap(dialogRef, true)
 
-  function close() {
+  // Escape guarda antes de cerrar: lo preservamos en el onClose del overlay.
+  // El componente solo se monta cuando está abierto (los call sites lo renderizan
+  // condicionalmente), así que el overlay siempre está `open`.
+  // save-then-close compartido por el botón X y el Escape del overlay. Antes el
+  // botón apuntaba a un `close` inexistente -> resolvía al global window.close()
+  // (no-op): no cerraba ni guardaba.
+  const handleClose = () => {
     onSave?.()
     onClose()
   }
+  const overlay = useModalOverlay({ open: true, onClose: handleClose })
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        close()
-      }
-    }
-    window.addEventListener('keydown', onKey)
     const opener = openerRef.current
     return () => {
-      window.removeEventListener('keydown', onKey)
       // Devolver el foco al disparador si sigue en el DOM.
       if (opener && document.contains(opener)) opener.focus()
     }
-    // close es estable para esta vida del overlay (deps de onSave/onClose
-    // raramente cambian); lo dejamos fuera para no re-suscribir en cada render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div
-      ref={dialogRef}
+      ref={overlay.dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="Escritura enfocada"
@@ -87,7 +83,7 @@ export function FocusedWriting({
     >
       <button
         type="button"
-        onClick={close}
+        onClick={handleClose}
         aria-label="Cerrar escritura enfocada"
         title="Cerrar"
         className="fixed right-5 top-5 z-10 inline-flex h-9 w-9 items-center justify-center
