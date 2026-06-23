@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import { queryKeys } from '../../state/queryClient'
+import { ErrorState } from '../ErrorState'
 
 /** Etiqueta legible del destino de una captura. */
 const KIND_LABEL: Record<string, string> = {
@@ -47,6 +48,20 @@ export function WhatsAppMetricsCard() {
   })
 
   const m = metrics.data
+
+  // Un fetch fallido NO es "todavía no hay actividad": sin esta rama, el error
+  // colapsaba en el mismo `return null` discreto que el caso vacío, y el panel
+  // de WhatsApp parecía inactivo cuando en realidad la consulta se rompió.
+  if (metrics.isError && !m) {
+    return (
+      <ErrorState
+        title="No se pudieron cargar las métricas"
+        onRetry={() => metrics.refetch()}
+        retrying={metrics.isFetching}
+      />
+    )
+  }
+
   if (!m || m.total === 0) return null
 
   const failRate = m.total > 0 ? Math.round((m.failed / m.total) * 100) : 0

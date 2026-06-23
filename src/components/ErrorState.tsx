@@ -30,7 +30,7 @@ export function ErrorState({
       className="mt-8 px-8 py-10 border border-dashed border-ink-200/70 rounded-xl bg-paper-50/30 max-w-xl mx-auto text-center animate-fade-up"
     >
       <h3 className="font-serif text-2xl text-ink-600 italic leading-tight">{title}</h3>
-      <p className="mt-3 text-sm text-ink-400 leading-relaxed">
+      <p className="mt-3 text-body text-ink-400 leading-relaxed">
         {body ?? 'Hubo un problema al traer esta información. Puede ser temporal.'}
       </p>
       {onRetry && (
@@ -39,7 +39,7 @@ export function ErrorState({
             type="button"
             onClick={onRetry}
             disabled={retrying}
-            className="text-xs uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors py-2 px-4 border-b border-ink-200 hover:border-ink-500 disabled:text-ink-200 disabled:border-ink-100"
+            className="text-caption uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors py-2 px-4 border-b border-ink-200 hover:border-ink-500 disabled:text-ink-200 disabled:border-ink-100"
           >
             {retrying ? 'reintentando…' : 'reintentar'}
           </button>

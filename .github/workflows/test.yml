@@ -135,6 +135,9 @@ jobs:
       - name: Frontend boundaries check
         run: npm run check:frontend-boundaries
 
+      - name: Design tokens ratchet check
+        run: npm run check:design-tokens
+
       - name: PDF runtime boundaries check
         run: npm run check:pdf-runtime-boundaries
 

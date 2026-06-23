@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../api'
 import { LoadingHint } from '../LoadingHint'
+import { ErrorState } from '../ErrorState'
 import { buildTimingBuckets } from './timing-helpers'
 
 /**
@@ -44,6 +45,17 @@ export function PlaysTiming({ since, enabled }: { since: string; enabled: boolea
 
   if (timingQuery.isLoading) {
     return <LoadingHint text="cargando patrón temporal" />
+  }
+  // Un fetch fallido NO es "no escuchaste nada": sin esta rama el componente
+  // caía a `return null` y se confundía con el vacío real, ocultando el fallo.
+  if (timingQuery.isError) {
+    return (
+      <ErrorState
+        title="No se pudo cargar el patrón temporal"
+        onRetry={() => timingQuery.refetch()}
+        retrying={timingQuery.isFetching}
+      />
+    )
   }
   if (!data) return null
 

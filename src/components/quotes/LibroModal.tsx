@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useEntitiesQuery, useQuotesQuery } from '../../state'
 import { useToast } from '../../state/toast'
 import { downloadBlob } from '../../lib/downloadBlob'
@@ -29,13 +30,15 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
   const [previewPages, setPreviewPages] = useState<string[] | null>(null)
   const cacheRef = useRef<{ key: string; bytes: Uint8Array } | null>(null)
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !busy) onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, busy])
+  // Escape + focus trap + scroll-lock + restaurar foco al trigger, vía el
+  // primitivo canónico. Mientras se compone (busy) Escape no cierra —
+  // preserva el guard `!busy` que tenía el handler manual. El backdrop y los
+  // botones de cierre mantienen su propio guard `busy` más abajo.
+  const overlay = useModalOverlay({
+    open: true,
+    onClose,
+    closeOnEscape: !busy,
+  })
 
   const favoriteCount = quotes.filter((q) => q.pinnedAt).length
   const effectiveQuotes = onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
@@ -123,8 +126,10 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
         tabIndex={-1}
       />
       <div
+        ref={overlay.dialogRef}
         role="dialog"
         aria-label="Mi libro"
+        aria-modal="true"
         className="fixed inset-x-4 top-16 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[560px] z-50 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up"
       >
         <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">

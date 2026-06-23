@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useHomeQuery, useProactiveQuery } from '../state'
 import { EmptyMessage } from './EmptyMessage'
+import { ErrorState } from './ErrorState'
 import { EndMark, OrnamentBreak } from './Icons'
 import { QuoteSkeleton, SkeletonList, TimelineRowSkeleton } from './Skeleton'
 import { WeeklyActivity } from './WeeklyActivity'
@@ -44,7 +45,13 @@ export function HomeView({
   onNavigate: (view: 'grafo' | 'entidades' | 'citas' | 'momentos' | 'sugerencias') => void
   onSelectEntity: (id: string) => void
 }) {
-  const { data: home, isLoading: entitiesLoading } = useHomeQuery()
+  const {
+    data: home,
+    isLoading: entitiesLoading,
+    isError: homeError,
+    isFetching: homeFetching,
+    refetch: refetchHome,
+  } = useHomeQuery()
   const entities = useMemo(() => home?.entities ?? [], [home?.entities])
   const quotes = useMemo(() => home?.quotes ?? [], [home?.quotes])
   const relationships = useMemo(() => home?.relationships ?? [], [home?.relationships])
@@ -116,7 +123,18 @@ export function HomeView({
 
       <HomeProjects />
 
-      {totalEntities === 0 ? (
+      {homeError && totalEntities === 0 ? (
+        // Ruta de ERROR (F2): un fetch fallido de la portada NO es "trama
+        // vacía" — antes caía al EmptyMessage y el usuario veía la guía de
+        // bienvenida creyendo que su trama estaba vacía. Mostramos ErrorState
+        // en el área de contenido; el Greeting (hero + fecha) y HomeProjects
+        // se conservan arriba (no blanqueamos toda la portada).
+        <ErrorState
+          title="No se pudo cargar tu portada"
+          onRetry={() => refetchHome()}
+          retrying={homeFetching}
+        />
+      ) : totalEntities === 0 ? (
         <>
           <EmptyMessage
             illustration="weave"

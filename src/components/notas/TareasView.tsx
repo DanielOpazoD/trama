@@ -8,6 +8,7 @@ import {
 } from '../../state'
 import type { Task, TaskPriority, TaskCategory } from '../../api'
 import { LoadingHint } from '../LoadingHint'
+import { ErrorState } from '../ErrorState'
 import { ViewHeader } from '../ViewHeader'
 import { PlusIcon, CameraIcon, SortIcon } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
@@ -319,6 +320,16 @@ export function TareasView() {
         <div className="py-10 flex justify-center">
           <LoadingHint text="cargando recordatorios" size="sm" />
         </div>
+      ) : rangeQuery.isError && tasks.length === 0 ? (
+        // Un fetch fallido NO es un mes vacío: sin esta rama, las hojas semanales
+        // se dibujarían sin recordatorios y el fallo pasaría por "no hay nada".
+        // `tasks.length === 0` evita pisar el contenido en cache (keepPreviousData)
+        // ante un error transitorio al navegar de mes.
+        <ErrorState
+          title="No se pudieron cargar los recordatorios"
+          onRetry={() => rangeQuery.refetch()}
+          retrying={rangeQuery.isFetching}
+        />
       ) : (
         <div className="space-y-4">{orderedWeekKeys.map(renderWeek)}</div>
       )}

@@ -225,7 +225,51 @@ describe('<CommandPalette />', () => {
         onSelectEntity={() => {}}
       />,
     )
-    fireEvent.keyDown(window, { key: 'Escape' })
+    // Escape lo intercepta useModalOverlay con un listener en `document`
+    // (fase de captura), por eso disparamos sobre `document`.
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('es un diálogo modal accesible (role=dialog + aria-modal)', () => {
+    renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    const dialog = screen.getByRole('dialog', { name: /buscar/i })
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+  })
+
+  it('enfoca el input de búsqueda al abrir (focus trap)', async () => {
+    renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    const input = screen.getByPlaceholderText(/buscar/i)
+    // El focus trap de useModalOverlay enfoca el primer focuseable del
+    // diálogo (el input) en el siguiente microtick tras montar.
+    await waitFor(() => expect(document.activeElement).toBe(input))
+  })
+
+  it('cierra al hacer clic en el backdrop', () => {
+    const onClose = vi.fn()
+    renderWithProviders(
+      <CommandPalette
+        open
+        onClose={onClose}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /cerrar/i }))
     expect(onClose).toHaveBeenCalledOnce()
   })
 
@@ -250,7 +294,7 @@ describe('<CommandPalette />', () => {
       />,
     )
 
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
 
     expect(staleOnClose).not.toHaveBeenCalled()
     expect(currentOnClose).toHaveBeenCalledOnce()
@@ -447,7 +491,7 @@ describe('<CommandPalette />', () => {
     expect(await screen.findByText('Sócrates')).toBeInTheDocument()
 
     // Escape vuelve a búsqueda: el palette sigue abierto (onClose no llamado).
-    fireEvent.keyDown(window, { key: 'Escape' })
+    fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByText('Sócrates')).not.toBeInTheDocument())
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByRole('dialog')).toBeInTheDocument()

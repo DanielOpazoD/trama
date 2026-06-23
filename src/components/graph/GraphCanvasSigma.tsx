@@ -278,7 +278,7 @@ export function GraphCanvasSigma({
       ref={containerRef}
       className="h-full w-full"
       role="application"
-      aria-label={`Grafo (WebGL). ${entities.length} entidades, ${relationships.length} relaciones. Clic en un nodo para seleccionar, fondo para deseleccionar.`}
+      aria-label={`Grafo (WebGL). ${entities.length} entidades, ${relationships.length} relaciones. Clic en un nodo para seleccionar, fondo para deseleccionar. Sin navegación por teclado en este modo; la navegación por teclado está disponible en el modo SVG.`}
     />
   )
 }

@@ -105,7 +105,7 @@ export function ViewHeader({
         </div>
         <div className="accent-rule mt-3 mb-2" />
         {subtitle && (
-          <p className="mt-2 text-sm text-ink-400 leading-relaxed max-w-2xl">
+          <p className="mt-2 text-body text-ink-400 leading-relaxed max-w-2xl">
             {subtitle}
           </p>
         )}

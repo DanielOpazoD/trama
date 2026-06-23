@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ShortcutsModal } from './ShortcutsModal'
 
@@ -10,8 +9,15 @@ describe('<ShortcutsModal />', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('muestra grupos de atajos y cierra por botón, backdrop y Escape', async () => {
-    const user = userEvent.setup()
+  it('expone el diálogo como modal accesible', () => {
+    render(<ShortcutsModal open onClose={() => {}} />)
+
+    const dialog = screen.getByRole('dialog', { name: 'Atajos de teclado' })
+    expect(dialog).toBeInTheDocument()
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+  })
+
+  it('muestra grupos de atajos y cierra por botón, backdrop y Escape', () => {
     const onClose = vi.fn()
 
     render(<ShortcutsModal open onClose={onClose} />)
@@ -25,9 +31,11 @@ describe('<ShortcutsModal />', () => {
     expect(screen.getByText('Imprenta · edición')).toBeInTheDocument()
     expect(screen.getByText('Copiar cuadro o imagen seleccionada')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Cerrar' }))
-    await user.click(screen.getByRole('button', { name: 'Cerrar atajos' }))
-    await user.keyboard('{Escape}')
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar atajos' }))
+    // Escape lo intercepta useModalOverlay con un listener en `document`
+    // (capture), no sobre el window del componente como antes.
+    fireEvent.keyDown(document, { key: 'Escape' })
 
     expect(onClose).toHaveBeenCalledTimes(3)
   })

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useModalOverlay } from '../hooks/useModalOverlay'
 import { EndMark, OrnamentBreak, SparkleIcon } from './Icons'
 
 /**
@@ -147,16 +148,22 @@ export function Onboarding({
     if (stepIdx > 0) setStepIdx(stepIdx - 1)
   }, [stepIdx])
 
+  // Escape (saltar el tour), focus trap, scroll-lock y restauración de foco
+  // los maneja useModalOverlay. Escape ejecuta `skip` → `finish`, que persiste
+  // el flag y notifica onComplete: mismo comportamiento que el handler manual.
+  const overlay = useModalOverlay({ open, onClose: skip })
+
+  // Las flechas para navegar entre pasos son propias de este modal — el hook
+  // solo cubre Escape, así que estas se quedan acá.
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') skip()
       if (e.key === 'ArrowRight') next()
       if (e.key === 'ArrowLeft') back()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [back, next, open, skip])
+  }, [back, next, open])
 
   if (!open) return null
 
@@ -171,6 +178,7 @@ export function Onboarding({
         aria-hidden
       />
       <div
+        ref={overlay.dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Bienvenido a Trama"

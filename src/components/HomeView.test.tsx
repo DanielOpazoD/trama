@@ -1,11 +1,12 @@
-import { describe, it, expect, vi } from 'vitest'
-import { screen } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { HomeView } from './HomeView'
 import { makeQueryClient, renderWithProviders } from '../test-utils'
 import { queryKeys } from '../state/queryClient'
+import { api } from '../api'
 import type { Entity, Quote, Relationship } from '../types'
 
 const ENTITY: Entity = {
@@ -183,5 +184,55 @@ describe('<HomeView />', () => {
       // para skip (HomeView no fuerza tener un "ver grafo" sin contexto).
       expect(true).toBe(true)
     }
+  })
+
+  describe('ruta de error (F2)', () => {
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    function setupError() {
+      const qc = makeQueryClient()
+      // NO seedeamos queryKeys.home → la query corre y falla.
+      // El resto de keys quedan seedeadas para que las sub-queries no peguen.
+      qc.setQueryData(['proactive', 'pending'], [])
+      qc.setQueryData(queryKeys.cronicas, [])
+      qc.setQueryData(queryKeys.xCronica, { cronica: null })
+      qc.setQueryData(queryKeys.readingTables, [])
+      vi.spyOn(api, 'readHome').mockRejectedValue(new Error('server down'))
+      return renderWithProviders(
+        <HomeView onNavigate={vi.fn()} onSelectEntity={vi.fn()} />,
+        { queryClient: qc },
+      )
+    }
+
+    it('cuando el fetch de la portada falla muestra ErrorState, no el EmptyMessage', async () => {
+      setupError()
+      // El primitivo ErrorState expone role="alert" + su título.
+      const alert = await screen.findByRole('alert')
+      expect(alert).toBeInTheDocument()
+      expect(screen.getByText(/No se pudo cargar tu portada/i)).toBeInTheDocument()
+      // NO debe colapsar a "una trama recién empieza" (empty real).
+      expect(screen.queryByText(/Una trama recién empieza/i)).toBeNull()
+    })
+
+    it('el ErrorState ofrece reintentar y vuelve a llamar al fetch', async () => {
+      const readHome = vi
+        .spyOn(api, 'readHome')
+        .mockRejectedValue(new Error('server down'))
+      const qc = makeQueryClient()
+      qc.setQueryData(['proactive', 'pending'], [])
+      qc.setQueryData(queryKeys.cronicas, [])
+      qc.setQueryData(queryKeys.xCronica, { cronica: null })
+      qc.setQueryData(queryKeys.readingTables, [])
+      renderWithProviders(<HomeView onNavigate={vi.fn()} onSelectEntity={vi.fn()} />, {
+        queryClient: qc,
+      })
+      await screen.findByRole('alert')
+      const callsBefore = readHome.mock.calls.length
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', { name: /reintentar/i }))
+      await waitFor(() => expect(readHome.mock.calls.length).toBeGreaterThan(callsBefore))
+    })
   })
 })

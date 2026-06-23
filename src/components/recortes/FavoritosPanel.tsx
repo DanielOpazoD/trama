@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useDeleteFavorito, useFavoritosQuery, useUpdateFavorito } from '../../state'
 import type { Favorito } from '../../api'
 import { EmptyMessage } from '../EmptyMessage'
+import { ErrorState } from '../ErrorState'
 import { LoadingHint } from '../LoadingHint'
 import { PencilIcon } from '../Icons'
 import { hostOf, LinkMediaPreview } from './LinkMediaPreview'
@@ -110,9 +111,29 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
 }
 
 export function FavoritosPanel() {
-  const { data: favoritos = [], isLoading } = useFavoritosQuery()
+  const {
+    data: favoritos = [],
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useFavoritosQuery()
 
   if (isLoading) return <LoadingHint text="cargando" />
+
+  // Un fetch fallido no es un panel vacío: sin esta rama, un error de carga caía
+  // al EmptyMessage («Todavía no marcaste ninguna página»), confundiendo «roto»
+  // con «vacío». Solo cuando no hay nada que mostrar; si el refetch falla con
+  // datos en mano, conservamos las tarjetas.
+  if (isError && favoritos.length === 0) {
+    return (
+      <ErrorState
+        title="No se pudieron cargar los favoritos"
+        onRetry={() => refetch()}
+        retrying={isFetching}
+      />
+    )
+  }
 
   if (favoritos.length === 0) {
     return (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { TaskCategory } from '../../api'
 import { useMonthNoteQuery, useSaveMonthNote } from '../../state'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
+import { ErrorState } from '../ErrorState'
 
 const CATEGORY_TABS: { key: TaskCategory; label: string }[] = [
   { key: 'trabajo', label: 'Trabajo' },
@@ -100,6 +101,15 @@ function MonthNoteField({
           <div className="h-3 w-3/4 rounded skeleton-shimmer" />
           <div className="h-3 w-2/3 rounded skeleton-shimmer" />
         </div>
+      ) : query.isError && !loaded ? (
+        // Carga inicial fallida: NO mostrar el textarea vacío (parecería "sin
+        // notas todavía" cuando en realidad el fetch se rompió). Una vez cargado
+        // el contenido, un refetch fallido no pisa lo que el usuario está editando.
+        <ErrorState
+          title="No se pudieron cargar las notas"
+          onRetry={() => query.refetch()}
+          retrying={query.isFetching}
+        />
       ) : (
         <textarea
           ref={textareaRef}

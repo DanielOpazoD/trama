@@ -98,6 +98,21 @@ describe('<MomentoFeedback />', () => {
     )
   })
 
+  it('muestra ErrorState cuando la query falla, no el estado vacío', async () => {
+    vi.spyOn(apiModule.api, 'getMomentoFeedback').mockRejectedValue(new Error('boom'))
+
+    render(<MomentoFeedback momentoId="mom-1" />, {
+      wrapper: wrapWith(makeQueryClient()),
+    })
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent('No se pudo cargar el feedback')
+    expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument()
+    // El fallo no debe disfrazarse de "sin actividad todavía".
+    expect(screen.queryByRole('button', { name: /me gusta/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /comentar/i })).toBeNull()
+  })
+
   it('permite eliminar comentarios cuando el contrato entrega permiso', async () => {
     vi.spyOn(apiModule.api, 'getMomentoFeedback').mockResolvedValue({
       comments: [
