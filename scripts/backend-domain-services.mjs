@@ -27,6 +27,27 @@ export const BACKEND_DOMAIN_SERVICE_CONTRACTS = [
     serviceMaxLines: 140,
   },
   {
+    domain: 'entities',
+    endpoint: 'netlify/functions/_lib/entities-endpoint.ts',
+    service: 'netlify/functions/_lib/entities-service.ts',
+    endpointRequires: [
+      'buildEntityCreateDraft',
+      'buildEntityEmbeddingSource',
+      'shouldReembedEntity',
+      'buildDuplicateSuggestions',
+      'parseEntityCursor',
+    ],
+    serviceRequires: [
+      'export function buildEntityCreateDraft',
+      'export function buildEntityEmbeddingSource',
+      'export function shouldReembedEntity',
+      'export function buildDuplicateSuggestions',
+      'export function parseEntityCursor',
+    ],
+    endpointMaxLines: 380,
+    serviceMaxLines: 185,
+  },
+  {
     domain: 'momentos',
     endpoint: 'netlify/functions/_lib/momentos-endpoint.ts',
     service: 'netlify/functions/_lib/momentos-service.ts',

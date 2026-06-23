@@ -7,9 +7,16 @@ import { ensureUserRow } from './user-provisioning.js'
 import { parseJsonBody } from './zod-body.js'
 import { logErrorEvent, logEvent } from './observability.js'
 import { EntityCreateBody, EntityPatchBody, EntityRestoreBody } from './entity-schemas.js'
-import { embedSafe, entityEmbeddingText, toPgVector } from './embeddings.js'
-
-import { normalizeOrigin } from './origin.js'
+import { embedSafe, toPgVector } from './embeddings.js'
+import {
+  buildDuplicateSuggestions,
+  buildEntityCreateDraft,
+  buildEntityEmbeddingSource,
+  clampEntityLimit,
+  parseEntityCursor,
+  shouldReembedEntity,
+  type DuplicateRow,
+} from './entities-service.js'
 
 // Shape devuelto por los SELECT/RETURNING de entidades (snake_case, raw).
 // El cliente lo transforma vía entityFromRow.
@@ -70,35 +77,22 @@ export default withObservability(
       // entregado. Tuple comparison (created_at, id) DESC. El compuesto
       // (created_at DESC, id DESC) que se añadió en la migración A vuelve
       // esto sublineal.
-      const parsedLimit = Number.parseInt(limitParam, 10)
-      const limit = Number.isFinite(parsedLimit)
-        ? Math.min(Math.max(parsedLimit, 1), 200)
-        : 50
+      const limit = clampEntityLimit(limitParam)
 
-      const cursorParam = url.searchParams.get('cursor')
-      let cursorTs: string | null = null
-      let cursorId: string | null = null
-      if (cursorParam) {
-        const sep = cursorParam.lastIndexOf(':')
-        if (sep > 0) {
-          cursorTs = cursorParam.slice(0, sep)
-          cursorId = cursorParam.slice(sep + 1)
-        }
-      }
+      const cursor = parseEntityCursor(url.searchParams.get('cursor'))
 
-      const rows =
-        cursorTs && cursorId
-          ? await sqlTyped<EntityRow>(sql`
+      const rows = cursor
+        ? await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
                  position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
                  created_at, updated_at
           FROM entities
           WHERE deleted_at IS NULL AND user_id = ${userId}
-            AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
+            AND (created_at, id) < (${cursor.ts}::timestamptz, ${cursor.id}::uuid)
           ORDER BY created_at DESC, id DESC
           LIMIT ${limit + 1}
         `)
-          : await sqlTyped<EntityRow>(sql`
+        : await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay,
                  position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url,
                  created_at, updated_at
@@ -133,19 +127,13 @@ export default withObservability(
       const parsed = await parseJsonBody(req, EntityCreateBody, requestId)
       if (!parsed.ok) return parsed.response
       const body = parsed.data
-      const origin = JSON.stringify(normalizeOrigin(body.origin))
+      const draft = buildEntityCreateDraft(body)
+      const origin = JSON.stringify(draft.origin)
 
       // Embed before inserting so the row lands with its vector populated.
       // embedSafe returns null on any failure (no key, network issue, etc.) —
       // the row is still created and a future re-index can backfill.
-      const emb = await embedSafe(
-        entityEmbeddingText({
-          name: body.name,
-          type: body.type,
-          year: body.year ?? null,
-          description: body.description ?? null,
-        }),
-      )
+      const emb = await embedSafe(draft.embedSource)
 
       // Duplicate-detection guard: if the caller didn't pass `?force=true`,
       // we check whether the new embedding is unusually close to an existing
@@ -156,14 +144,7 @@ export default withObservability(
       const url = new URL(req.url)
       const force = url.searchParams.get('force') === 'true'
       if (emb && !force) {
-        type DupRow = {
-          id: string
-          name: string
-          type: string
-          description: string | null
-          distance: number
-        }
-        const dupRows = await sqlTyped<DupRow>(sql`
+        const dupRows = await sqlTyped<DuplicateRow>(sql`
         SELECT id, name, type, description,
                (embedding <=> ${toPgVector(emb.vector)}::vector) AS distance
         FROM entities
@@ -176,13 +157,7 @@ export default withObservability(
         if (dupRows.length > 0) {
           return ApiErrors.conflict(requestId, 'Posible entidad duplicada', {
             kind: 'possible_duplicate',
-            suggestions: dupRows.map((d) => ({
-              id: d.id,
-              name: d.name,
-              type: d.type,
-              description: d.description,
-              similarity: Math.max(0, Math.min(1, 1 - Number(d.distance) / 2)),
-            })),
+            suggestions: buildDuplicateSuggestions(dupRows),
           })
         }
       }
@@ -218,13 +193,16 @@ export default withObservability(
       const parsed = await parseJsonBody(req, EntityPatchBody, requestId)
       if (!parsed.ok) return parsed.response
       const body = parsed.data
-      const embeddingInputTouched =
+      let embeddingDirty = false
+      // Solo leemos la fila actual si el PATCH tocó algún campo que alimenta el
+      // embedding; la decisión pura (¿cambió de verdad el texto?) vive en
+      // shouldReembedEntity para no re-embedear sin cambio real (regla AGENTS).
+      if (
         body.name !== undefined ||
         body.type !== undefined ||
         body.year !== undefined ||
         body.description !== undefined
-      let embeddingDirty = false
-      if (embeddingInputTouched) {
+      ) {
         const currentRows = await sqlTyped<{
           name: string
           type: string
@@ -235,15 +213,7 @@ export default withObservability(
           FROM entities
           WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         `)
-        const current = currentRows[0]
-        embeddingDirty = Boolean(
-          current &&
-          ((body.name !== undefined && body.name !== current.name) ||
-            (body.type !== undefined && body.type !== current.type) ||
-            (body.year !== undefined && (body.year ?? null) !== current.year) ||
-            (body.description !== undefined &&
-              (body.description ?? null) !== current.description)),
-        )
+        embeddingDirty = shouldReembedEntity({ patch: body, current: currentRows[0] })
       }
       // Only update fields that were actually sent. Postgres COALESCE pattern.
       const rows = await sqlTyped<EntityRow>(sql`
@@ -277,7 +247,7 @@ export default withObservability(
           description: string | null
         }
         embedSafe(
-          entityEmbeddingText({
+          buildEntityEmbeddingSource({
             name: updated.name,
             type: updated.type,
             year: updated.year,
