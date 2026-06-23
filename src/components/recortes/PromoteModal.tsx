@@ -220,7 +220,7 @@ export function PromoteModal({
               onChange={(e) => setText(e.target.value)}
               disabled={busy}
               rows={5}
-              className="input-paper mt-1 block w-full resize-none rounded-md border border-ink-200 px-2.5 py-2 font-serif text-sm leading-relaxed"
+              className="input-paper mt-1 block w-full resize-none rounded-md border border-ink-200 px-2.5 py-2 font-serif text-body leading-relaxed"
             />
           </label>
 

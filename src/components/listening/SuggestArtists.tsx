@@ -121,7 +121,7 @@ export function SuggestArtists() {
 
       {/* Estado vacío inicial */}
       {suggestions.length === 0 && !suggest.isPending && !reason && (
-        <p className="text-sm text-ink-500 italic leading-relaxed">
+        <p className="text-body text-ink-500 italic leading-relaxed">
           Click en <em>descubrir</em> y la IA te propone artistas afines a tu perfil de
           Spotify, que no están todavía en tu trama.
         </p>
@@ -129,7 +129,7 @@ export function SuggestArtists() {
 
       {/* Reason del servidor (e.g. "sin top artistas en Spotify") */}
       {reason && suggestions.length === 0 && (
-        <p className="text-sm text-ink-400 italic leading-relaxed">{reason}</p>
+        <p className="text-body text-ink-400 italic leading-relaxed">{reason}</p>
       )}
 
       {suggestions.length > 0 && (
@@ -149,7 +149,7 @@ export function SuggestArtists() {
                     </span>
                   </div>
                   {s.description && (
-                    <p className="text-sm text-ink-500 leading-relaxed mt-0.5">
+                    <p className="text-body text-ink-500 leading-relaxed mt-0.5">
                       {s.description}
                     </p>
                   )}

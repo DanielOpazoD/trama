@@ -75,7 +75,7 @@ function EntityRowInternal({
         />
       </div>
       {!compact && entity.description && (
-        <p className="mt-1 text-ink-500 text-sm leading-relaxed line-clamp-1">
+        <p className="mt-1 text-ink-500 text-body leading-relaxed line-clamp-1">
           {entity.description}
         </p>
       )}

@@ -111,7 +111,7 @@ export function QuoteEditModal({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={4}
-                className="input-paper w-full text-sm resize-none font-serif italic leading-relaxed"
+                className="input-paper w-full text-body resize-none font-serif italic leading-relaxed"
                 disabled={updateQuote.isPending}
                 autoFocus
               />

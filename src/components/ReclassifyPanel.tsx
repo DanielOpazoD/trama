@@ -95,7 +95,7 @@ export function ReclassifyPanel({
               className="mt-1 accent-ink-700"
               aria-label={`Reclasificar ${p.name}`}
             />
-            <div className="min-w-0 flex-1 text-sm leading-relaxed">
+            <div className="min-w-0 flex-1 text-body leading-relaxed">
               <div>
                 <span className="text-ink-700">{p.name}</span>
                 <span className="ml-2 section-eyebrow line-through decoration-ink-300/60">
@@ -110,7 +110,9 @@ export function ReclassifyPanel({
                 </span>
               </div>
               {p.reason && (
-                <p className="text-ink-400 text-xs leading-relaxed mt-0.5">{p.reason}</p>
+                <p className="text-ink-400 text-caption leading-relaxed mt-0.5">
+                  {p.reason}
+                </p>
               )}
               {p.verification && <VerificationChip verification={p.verification} />}
             </div>

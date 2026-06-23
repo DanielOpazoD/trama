@@ -297,7 +297,7 @@ export function SecretCard({
           rows={2}
           placeholder="Notas privadas"
           aria-label="Notas privadas"
-          className="input-paper mt-2 w-full resize-y text-sm leading-relaxed"
+          className="input-paper mt-2 w-full resize-y text-body leading-relaxed"
         />
         <div className="mt-3 flex justify-end gap-2">
           <button

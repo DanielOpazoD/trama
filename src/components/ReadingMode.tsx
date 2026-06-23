@@ -205,7 +205,7 @@ export function ReadingMode({
             <h2 className="font-serif text-lg text-ink-700 mt-0.5">
               Pega un texto largo
             </h2>
-            <p className="mt-1 text-xs text-ink-400 leading-relaxed">
+            <p className="mt-1 text-caption text-ink-400 leading-relaxed">
               Lo dividiré en partes y propondré una sola extracción al final con todo lo
               que valga la pena guardar. Sirve para capítulos, entrevistas, ensayos.
             </p>
@@ -231,7 +231,7 @@ export function ReadingMode({
             autoFocus
           />
           {text.trim() && !processing && (
-            <p className="text-xs text-ink-400 leading-relaxed">
+            <p className="text-caption text-ink-400 leading-relaxed">
               {text.trim().length.toLocaleString('es')} caracteres ·{' '}
               {estimatedChunks === 1
                 ? 'una sola llamada al modelo'
@@ -251,7 +251,7 @@ export function ReadingMode({
             />
           )}
           {error && (
-            <p className="text-xs text-[color:var(--accent-clay)] leading-relaxed">
+            <p className="text-caption text-[color:var(--accent-clay)] leading-relaxed">
               {error}
             </p>
           )}

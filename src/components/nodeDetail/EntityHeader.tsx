@@ -91,7 +91,7 @@ export function EntityHeader({
           (entity.description ? (
             <p
               onDoubleClick={onEditDescription}
-              className="text-sm text-ink-600 leading-relaxed cursor-text select-text"
+              className="text-body text-ink-600 leading-relaxed cursor-text select-text"
               title="Doble clic para editar"
             >
               {entity.description}

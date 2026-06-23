@@ -390,7 +390,9 @@ function ProposalRow({
             ↗ Spotify
           </a>
         )}
-        {extra && <p className="text-ink-400 text-xs leading-relaxed mt-0.5">{extra}</p>}
+        {extra && (
+          <p className="text-ink-400 text-caption leading-relaxed mt-0.5">{extra}</p>
+        )}
       </div>
       {status === 'pending' && (
         <button

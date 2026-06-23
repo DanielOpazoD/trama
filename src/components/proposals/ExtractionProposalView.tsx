@@ -120,7 +120,7 @@ function ProposedEntityRow({
           )}
         </div>
         {entity.description && (
-          <p className="mt-1 text-ink-500 text-sm leading-relaxed">
+          <p className="mt-1 text-ink-500 text-body leading-relaxed">
             {entity.description}
           </p>
         )}
@@ -217,7 +217,7 @@ function ProposedQuoteRow({
         aria-label="Incluir esta cita"
       />
       <div className="min-w-0 flex-1">
-        <blockquote className="font-serif text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-3 italic text-sm">
+        <blockquote className="font-serif text-ink-600 leading-relaxed border-l-2 border-ink-200 pl-3 italic text-body">
           «{quote.text}»
         </blockquote>
         <div className="mt-1 pl-3 text-xs">

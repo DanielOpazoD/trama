@@ -47,7 +47,7 @@ export function PromptComposer({
         rows={5}
         placeholder="Escribe el prompt..."
         aria-label="Contenido del prompt"
-        className="input-paper w-full resize-y text-sm leading-relaxed"
+        className="input-paper w-full resize-y text-body leading-relaxed"
       />
       <PendingAttachmentsInput
         files={pendingFiles}

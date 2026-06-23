@@ -116,7 +116,7 @@ function ViewErrorFallback({
         <h2 className="font-serif text-lg text-ink-800 leading-tight mb-2">
           Esta vista se rompió.
         </h2>
-        <p className="text-ink-500 text-sm leading-relaxed mb-3">
+        <p className="text-ink-500 text-body leading-relaxed mb-3">
           El resto de la app sigue andando — puedes cambiar de vista desde el lateral. Si
           quieres intentar de nuevo:
         </p>

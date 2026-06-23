@@ -317,7 +317,7 @@ export function TwitterView({
                 {c ? (
                   cronicaOpen && (
                     <div className="mt-2 animate-fade-up">
-                      <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-ink-700">
+                      <p className="whitespace-pre-wrap font-serif text-body leading-relaxed text-ink-700">
                         {c.text}
                       </p>
                       <p className="mt-2 text-micro text-ink-300 tabular-nums">

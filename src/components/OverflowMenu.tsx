@@ -51,7 +51,7 @@ export function OverflowMenu({
         className={triggerClassName}
       >
         {triggerContent ?? (
-          <span aria-hidden className="block text-base leading-none -mt-1">
+          <span aria-hidden className="block text-lead leading-none -mt-1">
             ⋯
           </span>
         )}

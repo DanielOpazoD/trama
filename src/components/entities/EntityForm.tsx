@@ -262,7 +262,7 @@ export function EntityForm({
           >
             ¿es la misma entidad?
           </p>
-          <p className="text-xs text-ink-500 mb-2 leading-relaxed">
+          <p className="text-caption text-ink-500 mb-2 leading-relaxed">
             Ya tienes una entidad muy parecida. Si es la misma, mejor quédate con la
             existente:
           </p>

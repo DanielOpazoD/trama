@@ -85,7 +85,7 @@ export function VozDe({ entity }: { entity: Entity }) {
         onChange={(e) => setQuestion(e.target.value)}
         placeholder="¿Sobre qué tema?"
         rows={2}
-        className="input-paper w-full resize-none text-sm leading-relaxed"
+        className="input-paper w-full resize-none text-body leading-relaxed"
         autoFocus
         aria-label="Tema"
       />
@@ -110,7 +110,7 @@ export function VozDe({ entity }: { entity: Entity }) {
               className="ml-auto"
             />
           </div>
-          <p className="font-serif italic text-ink-600 text-sm leading-relaxed whitespace-pre-wrap border-l-2 border-[color:var(--accent-primary-ring)] pl-3">
+          <p className="font-serif italic text-ink-600 text-body leading-relaxed whitespace-pre-wrap border-l-2 border-[color:var(--accent-primary-ring)] pl-3">
             {answer.text}
           </p>
           <div className="mt-2 flex items-center gap-3">

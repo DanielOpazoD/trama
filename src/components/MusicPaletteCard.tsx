@@ -109,7 +109,7 @@ export function MusicPaletteCard() {
             >
               tu paleta musical
             </p>
-            <p className="text-sm text-ink-500 italic leading-relaxed">
+            <p className="text-body text-ink-500 italic leading-relaxed">
               La IA puede mirar tus me-gusta y top artistas y describirte el tono de lo
               que escuchas — géneros, décadas, afinidades.
             </p>
@@ -203,7 +203,7 @@ export function MusicPaletteCard() {
       </header>
 
       {data.aiSummary && (
-        <p className="font-serif text-base leading-relaxed text-ink-600 italic mb-5 pl-4 border-l-2 border-[color:var(--accent-primary-ring)]">
+        <p className="font-serif text-lead leading-relaxed text-ink-600 italic mb-5 pl-4 border-l-2 border-[color:var(--accent-primary-ring)]">
           {data.aiSummary}
         </p>
       )}

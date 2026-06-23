@@ -21,7 +21,7 @@ export function BibliotecaEmptyState({ trash = false }: { trash?: boolean }) {
       <h3 className="font-serif text-2xl text-ink-600 italic leading-tight">
         {trash ? 'La papelera está vacía' : 'No se encontraron archivos'}
       </h3>
-      <p className="mt-3 text-sm text-ink-400 leading-relaxed">
+      <p className="mt-3 text-body text-ink-400 leading-relaxed">
         {trash
           ? 'Los archivos que elimines de la Biblioteca aparecerán acá.'
           : 'Prueba con otra búsqueda o cambiando los filtros.'}

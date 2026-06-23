@@ -324,7 +324,7 @@ export function TaskItem({
           </button>
           <span
             role="tooltip"
-            className={`pointer-events-none absolute right-0 top-full mt-1 z-20 w-60 max-w-[15rem] rounded-lg border border-ink-100 bg-paper-50 p-2.5 text-sm text-ink-600 whitespace-pre-wrap break-words leading-snug text-left normal-case tracking-normal transition-opacity group-hover/detail:opacity-100 ${
+            className={`pointer-events-none absolute right-0 top-full mt-1 z-20 w-60 max-w-[15rem] rounded-lg border border-ink-100 bg-paper-50 p-2.5 text-body text-ink-600 whitespace-pre-wrap break-words leading-snug text-left normal-case tracking-normal transition-opacity group-hover/detail:opacity-100 ${
               detailOpen ? 'opacity-100' : 'opacity-0'
             }`}
             style={{ boxShadow: 'var(--card-shadow-hover)' }}

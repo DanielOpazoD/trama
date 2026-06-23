@@ -283,7 +283,7 @@ export function AskBar({
             // ι3: font-serif para que el input se sienta como escribir
             // en un cuaderno, no en un form. El placeholder también
             // se beneficia (italic implícito en Spectral).
-            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 placeholder:italic leading-relaxed font-serif text-base"
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-ink-700 placeholder:text-ink-300 placeholder:italic leading-relaxed font-serif text-lead"
           />
           <button
             type="submit"

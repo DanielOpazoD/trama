@@ -80,7 +80,7 @@ export function ConfirmDestroy({
             >
               {title}
             </h3>
-            {body && <p className="text-sm text-ink-400 leading-relaxed">{body}</p>}
+            {body && <p className="text-body text-ink-400 leading-relaxed">{body}</p>}
           </div>
           <div className="px-5 py-3 border-t border-ink-100/60 flex justify-end gap-3">
             <button

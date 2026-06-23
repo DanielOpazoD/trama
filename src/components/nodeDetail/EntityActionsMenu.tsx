@@ -78,7 +78,7 @@ export function EntityActionsMenu({
         title="Más acciones"
         className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
       >
-        <span aria-hidden className="block text-base leading-none -mt-1">
+        <span aria-hidden className="block text-lead leading-none -mt-1">
           ⋯
         </span>
       </button>

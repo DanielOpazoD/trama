@@ -173,7 +173,7 @@ export function EmptyState() {
         </figure>
 
         <div className="space-y-3 pt-8 border-t border-ink-100/60">
-          <p className="text-ink-400 text-sm leading-relaxed max-w-md mx-auto">
+          <p className="text-ink-400 text-body leading-relaxed max-w-md mx-auto">
             Trama es tu mapa de afinidades intelectuales y estéticas. Empieza pegando un
             texto en la barra de abajo, o carga un pequeño ejemplo para ver cómo se
             siente.

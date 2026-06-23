@@ -21,7 +21,7 @@ export function GraphExploreHint({
   return (
     <div className="pointer-events-none absolute top-16 inset-x-0 z-10 flex justify-center px-3">
       <div
-        className="pointer-events-auto flex items-start gap-3 pl-3 pr-1.5 py-2 bg-paper-50/95 border border-ink-100/70 rounded-lg text-xs text-ink-600 shadow-md max-w-md leading-snug"
+        className="pointer-events-auto flex items-start gap-3 pl-3 pr-1.5 py-2 bg-paper-50/95 border border-ink-100/70 rounded-lg text-caption text-ink-600 shadow-md max-w-md leading-snug"
         role="status"
       >
         <span className="flex-1">

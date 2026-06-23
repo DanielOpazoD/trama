@@ -203,7 +203,7 @@ function TimelineRow({
                 </span>
               )}
             </div>
-            <p className="mt-1 font-serif italic text-ink-600 text-sm leading-snug truncate">
+            <p className="mt-1 font-serif italic text-ink-600 text-body leading-snug truncate">
               «{event.payload.text}»
             </p>
           </div>
