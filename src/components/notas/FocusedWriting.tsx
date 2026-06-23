@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { CloseIcon } from '../Icons'
-import { IconButton } from '../IconButton'
+import { CloseButton } from '../CloseButton'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { MarkdownField } from './MarkdownField'
@@ -82,15 +81,13 @@ export function FocusedWriting({
       aria-label="Escritura enfocada"
       className="paper-grain fixed inset-0 z-50 overflow-y-auto bg-paper-50 animate-fade-up"
     >
-      <IconButton
+      <CloseButton
         onClick={handleClose}
         label="Cerrar escritura enfocada"
         title="Cerrar"
         className="fixed right-5 top-5 z-10 inline-flex h-9 w-9 items-center justify-center
                    rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
-      >
-        <CloseIcon />
-      </IconButton>
+      />
 
       <div className="mx-auto max-w-prose px-6 py-16 md:py-24">
         <p className="section-eyebrow-serif text-ink-300">escritura enfocada</p>

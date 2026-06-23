@@ -1,5 +1,4 @@
-import { CloseIcon } from '../Icons'
-import { IconButton } from '../IconButton'
+import { CloseButton } from '../CloseButton'
 
 /**
  * Banner flotante sobre el grafo que comunica el resultado de
@@ -37,17 +36,16 @@ export function GraphSuggestStatusBanner({
             ? error.message
             : 'Sin relaciones nuevas obvias. Añade citas o descripciones para darle más contexto.'}
         </span>
-        <IconButton
+        <CloseButton
           onClick={onClose}
           label="Cerrar aviso"
+          size={12}
           className={
             isError
               ? 'shrink-0 p-1 -m-0.5 text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] rounded transition-colors'
               : 'shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors'
           }
-        >
-          <CloseIcon size={12} />
-        </IconButton>
+        />
       </div>
     </div>
   )

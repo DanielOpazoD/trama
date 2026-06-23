@@ -1,5 +1,4 @@
-import { CloseIcon } from './Icons'
-import { IconButton } from './IconButton'
+import { CloseButton } from './CloseButton'
 import { useModalOverlay } from '../hooks/useModalOverlay'
 import { renderMarkdown } from './notas/markdown'
 
@@ -33,13 +32,11 @@ export function EditorialReader({
       aria-label={title ?? 'Lectura editorial'}
       className="animate-fade-up fixed inset-0 z-50 overflow-y-auto bg-paper-50 motion-reduce:animate-none"
     >
-      <IconButton
+      <CloseButton
         onClick={onClose}
         label="Cerrar lectura"
         className="fixed right-5 top-5 z-10 rounded-full bg-paper-50/80 p-2 text-ink-300 backdrop-blur transition-colors hover:text-ink-700"
-      >
-        <CloseIcon />
-      </IconButton>
+      />
 
       <div className="mx-auto max-w-prose px-6 py-16 md:py-24">
         {title && (

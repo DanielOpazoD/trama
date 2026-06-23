@@ -7,8 +7,7 @@ import {
   useToast,
   useUpdateMomentoShareAccessRole,
 } from '../../state'
-import { CloseIcon } from '../Icons'
-import { IconButton } from '../IconButton'
+import { CloseButton } from '../CloseButton'
 import { personInitial, personLabel, shareRoleLabel } from './sharePresentation'
 
 export function MomentoShareModal({ onClose }: { onClose: () => void }) {
@@ -92,13 +91,10 @@ export function MomentoShareModal({ onClose }: { onClose: () => void }) {
               Compartir todos mis Momentos con este correo.
             </p>
           </div>
-          <IconButton
+          <CloseButton
             onClick={onClose}
             className="p-1.5 text-ink-400 hover:text-ink-700 rounded transition-colors"
-            label="Cerrar"
-          >
-            <CloseIcon size={14} />
-          </IconButton>
+          />
         </div>
 
         <div className="mb-4 grid gap-2 sm:grid-cols-2">

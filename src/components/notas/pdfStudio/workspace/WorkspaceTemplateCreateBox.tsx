@@ -1,4 +1,5 @@
-import { CheckIcon, CloseIcon, PlusIcon } from '../../../Icons'
+import { CheckIcon, PlusIcon } from '../../../Icons'
+import { CloseButton } from '../../../CloseButton'
 import { IconButton } from '../../../IconButton'
 
 const ACCENT = 'var(--accent-sage)'
@@ -71,14 +72,12 @@ export function WorkspaceTemplateCreateBox({
           >
             <CheckIcon size={14} />
           </IconButton>
-          <IconButton
+          <CloseButton
             onClick={onCancel}
             label="Cancelar"
             title="Cancelar"
             className={rowBtn}
-          >
-            <CloseIcon size={14} />
-          </IconButton>
+          />
         </div>
       )}
     </div>

@@ -5,7 +5,6 @@ import type { PdfTemplateMode } from '../planillas/design/PdfTemplateModeBanner'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 import { WaitingVoice } from '../../../WaitingVoice'
 import {
-  CloseIcon,
   FilePdfIcon,
   FileIcon,
   GalleryIcon,
@@ -14,6 +13,7 @@ import {
   UndoIcon,
   UploadIcon,
 } from '../../../Icons'
+import { CloseButton } from '../../../CloseButton'
 import { IconButton } from '../../../IconButton'
 
 const IMAGE_LAYOUT_OPTIONS = [1, 2, 4, 6] as const
@@ -361,13 +361,12 @@ export function PdfStudioDocumentToolbar({
               />{' '}
               · {exportStatus}
             </span>
-            <IconButton
+            <CloseButton
               onClick={onCancelExport}
               label="Cancelar exportación"
+              size={12}
               className="inline-flex h-6 w-6 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-800"
-            >
-              <CloseIcon size={12} />
-            </IconButton>
+            />
           </div>
         )}
         <OverflowMenu

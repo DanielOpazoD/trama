@@ -2,12 +2,12 @@ import type { RefObject } from 'react'
 import {
   CalendarIcon,
   CheckSquareIcon,
-  CloseIcon,
   GalleryIcon,
   ListIcon,
   SearchIcon,
   ThumbSizeIcon,
 } from '../Icons'
+import { CloseButton } from '../CloseButton'
 import { IconButton } from '../IconButton'
 import { OverflowMenu } from '../OverflowMenu'
 import { ActivityCalendar } from './ActivityCalendar'
@@ -224,13 +224,12 @@ export function NotasFeedControls({
               aria-label="Buscar en notas y capturas"
               className="flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300"
             />
-            <IconButton
+            <CloseButton
               onClick={onCloseSearch}
               label="Cerrar búsqueda"
+              size={12}
               className="text-ink-300 hover:text-ink-700 transition-colors"
-            >
-              <CloseIcon size={12} />
-            </IconButton>
+            />
           </div>
           {showTags && tagCounts.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

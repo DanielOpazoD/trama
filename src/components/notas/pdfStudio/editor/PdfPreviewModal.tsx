@@ -6,8 +6,8 @@ import {
 } from '../../../../lib/pdfStudio/render/pdfRender'
 import { LoadingHint } from '../../../LoadingHint'
 import { Spinner } from '../../../Spinner'
-import { CloseIcon, DownloadIcon, PrinterIcon } from '../../../Icons'
-import { IconButton } from '../../../IconButton'
+import { DownloadIcon, PrinterIcon } from '../../../Icons'
+import { CloseButton } from '../../../CloseButton'
 import { useModalOverlay } from '../../../../hooks/useModalOverlay'
 import { useInViewport } from './useInViewport'
 
@@ -152,14 +152,12 @@ export function PdfPreviewModal({
             >
               <DownloadIcon size={12} /> Descargar
             </button>
-            <IconButton
+            <CloseButton
               onClick={onClose}
               label="Cerrar vista previa"
               title="Cerrar (Esc)"
               className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-800 hover:bg-ink-100/50 transition-colors"
-            >
-              <CloseIcon size={14} />
-            </IconButton>
+            />
           </div>
         </header>
 

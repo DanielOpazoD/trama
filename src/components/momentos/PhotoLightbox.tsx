@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '../Icons'
+import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
 import { IconButton } from '../IconButton'
 import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
 
@@ -112,13 +113,11 @@ export function PhotoLightbox({
               </span>
             )}
             <div className="flex-1 flex justify-end">
-              <IconButton
+              <CloseButton
                 onClick={onClose}
-                label="Cerrar"
+                size={18}
                 className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <CloseIcon size={18} />
-              </IconButton>
+              />
             </div>
           </div>
         </div>

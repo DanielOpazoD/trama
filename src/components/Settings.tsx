@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { OAuthReturn } from '../lib/oauthReturn'
 import { useModalOverlay } from '../hooks/useModalOverlay'
-import { CloseIcon } from './Icons'
-import { IconButton } from './IconButton'
+import { CloseButton } from './CloseButton'
 import { SettingsNav } from './settings/SettingsNav'
 import { SettingsPanelContent } from './settings/SettingsPanelContent'
 import {
@@ -89,13 +88,10 @@ export function Settings({
               Configuración
             </h2>
           </div>
-          <IconButton
+          <CloseButton
             onClick={onClose}
-            label="Cerrar"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
-          >
-            <CloseIcon size={14} />
-          </IconButton>
+          />
         </header>
 
         <div className="flex-1 flex flex-col md:flex-row min-h-0">

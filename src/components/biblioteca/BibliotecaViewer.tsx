@@ -7,8 +7,9 @@ import { api } from '../../api'
 import { useSetLibraryItemPinned, useToast } from '../../state'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { CloseIcon, DownloadIcon, InfoIcon, PinIcon } from '../Icons'
+import { DownloadIcon, InfoIcon, PinIcon } from '../Icons'
 import { IconButton } from '../IconButton'
+import { CloseButton } from '../CloseButton'
 import { FileTypeIcon } from './FileTypeIcon'
 import { BibliotecaInspector } from './BibliotecaInspector'
 import {
@@ -142,13 +143,11 @@ function ViewerHeader({
               <InfoIcon size={18} />
             </IconButton>
             {downloadable && <DownloadButton item={item} />}
-            <IconButton
+            <CloseButton
               onClick={onClose}
-              label="Cerrar"
+              size={18}
               className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <CloseIcon size={18} />
-            </IconButton>
+            />
           </div>
         </div>
         <MetadataStrip item={item} />

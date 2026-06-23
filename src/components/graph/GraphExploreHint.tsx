@@ -1,5 +1,4 @@
-import { CloseIcon } from '../Icons'
-import { IconButton } from '../IconButton'
+import { CloseButton } from '../CloseButton'
 
 /**
  * Banner que aparece sobre el grafo cuando la trama está pesada (≥
@@ -36,13 +35,12 @@ export function GraphExploreHint({
         >
           cambiar
         </button>
-        <IconButton
+        <CloseButton
           onClick={onDismiss}
           label="No recordar"
+          size={12}
           className="shrink-0 p-1 -m-0.5 text-ink-300 hover:text-ink-700 rounded transition-colors"
-        >
-          <CloseIcon size={12} />
-        </IconButton>
+        />
       </div>
     </div>
   )

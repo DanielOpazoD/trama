@@ -2,14 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEntitiesQuery, useQuotesQuery } from '../state'
 import { useModalOverlay } from '../hooks/useModalOverlay'
 import type { Quote } from '../types'
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CloseIcon,
-  DiceIcon,
-  ReadingIcon,
-} from './Icons'
+import { ChevronLeftIcon, ChevronRightIcon, DiceIcon, ReadingIcon } from './Icons'
 import { IconButton } from './IconButton'
+import { CloseButton } from './CloseButton'
 import { LaminaModal } from './quotes/LaminaModal'
 
 /**
@@ -159,13 +154,10 @@ export function Atril({ open, onClose }: { open: boolean; onClose: () => void })
       aria-label="Atril"
       className="fixed inset-0 z-50 flex flex-col bg-paper-50 animate-fade-up"
     >
-      <IconButton
+      <CloseButton
         onClick={onClose}
-        label="Cerrar"
         className="absolute top-5 right-5 p-2 text-ink-300 hover:text-ink-700 transition-colors"
-      >
-        <CloseIcon />
-      </IconButton>
+      />
 
       {/* Flechas laterales — hojear el archivo sin salir del atril. */}
       {quote && (

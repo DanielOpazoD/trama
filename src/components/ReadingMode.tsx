@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 import type { ExtractionProposal } from '../types'
-import { CloseIcon, SparkleIcon } from './Icons'
-import { IconButton } from './IconButton'
+import { SparkleIcon } from './Icons'
+import { CloseButton } from './CloseButton'
 import { ProgressBar } from './ProgressBar'
 import { AIThinkingLabel } from './AIThinkingLabel'
 
@@ -211,13 +211,10 @@ export function ReadingMode({
               que valga la pena guardar. Sirve para capítulos, entrevistas, ensayos.
             </p>
           </div>
-          <IconButton
+          <CloseButton
             onClick={handleCancel}
-            label="Cerrar"
             className="p-1.5 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors shrink-0"
-          >
-            <CloseIcon />
-          </IconButton>
+          />
         </header>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">

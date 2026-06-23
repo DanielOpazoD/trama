@@ -6,11 +6,11 @@ import type {
 import {
   CheckIcon,
   ChevronDownIcon,
-  CloseIcon,
   PencilIcon,
   PlusIcon,
   TrashIcon,
 } from '../../../Icons'
+import { CloseButton } from '../../../CloseButton'
 import { IconButton } from '../../../IconButton'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
 import { WorkspaceFolderIcon, workspaceFolderColorOptions } from './WorkspaceFolderIcon'
@@ -273,13 +273,11 @@ export function WorkspaceFoldersBar({
               >
                 <CheckIcon size={14} />
               </IconButton>
-              <IconButton
+              <CloseButton
                 onClick={onCancelDraft}
                 label="Cancelar carpeta"
                 className={rowBtn}
-              >
-                <CloseIcon size={14} />
-              </IconButton>
+              />
             </div>
           </div>
         </div>

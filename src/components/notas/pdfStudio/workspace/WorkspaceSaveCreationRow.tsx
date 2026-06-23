@@ -1,4 +1,5 @@
-import { CheckIcon, CloseIcon } from '../../../Icons'
+import { CheckIcon } from '../../../Icons'
+import { CloseButton } from '../../../CloseButton'
 import { IconButton } from '../../../IconButton'
 
 const rowBtn =
@@ -36,9 +37,7 @@ export function WorkspaceSaveCreationRow({
       >
         <CheckIcon size={14} />
       </IconButton>
-      <IconButton onClick={onCancel} label="Cancelar" className={rowBtn}>
-        <CloseIcon size={14} />
-      </IconButton>
+      <CloseButton onClick={onCancel} label="Cancelar" className={rowBtn} />
     </div>
   )
 }

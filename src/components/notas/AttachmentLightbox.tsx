@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import type { NotasAttachment } from '../../api'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, PencilIcon } from '../Icons'
+import { ChevronLeftIcon, ChevronRightIcon, PencilIcon } from '../Icons'
+import { CloseButton } from '../CloseButton'
 import { IconButton } from '../IconButton'
 
 /**
@@ -103,13 +104,11 @@ export function AttachmentLightbox({
               >
                 <PencilIcon size={14} /> {editing ? 'editando…' : 'editar'}
               </button>
-              <IconButton
+              <CloseButton
                 onClick={onClose}
-                label="Cerrar"
+                size={18}
                 className="size-9 flex items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <CloseIcon size={18} />
-              </IconButton>
+              />
             </div>
           </div>
         </div>
