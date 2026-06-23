@@ -42,7 +42,7 @@ function Host({
 }
 
 function openPopover() {
-  fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+  fireEvent.click(screen.getByRole('button', { name: /^Filtros/ }))
 }
 
 describe('<FilterPopover />', () => {
@@ -55,7 +55,7 @@ describe('<FilterPopover />', () => {
     expect(screen.getByRole('menuitemradio', { name: 'Subidos' })).toBeInTheDocument()
     expect(screen.getByRole('menuitemradio', { name: 'Imágenes' })).toBeInTheDocument()
     // El trigger expone aria-expanded.
-    expect(screen.getByRole('button', { name: 'Filtros' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Filtros/ })).toHaveAttribute(
       'aria-expanded',
       'true',
     )
@@ -74,7 +74,11 @@ describe('<FilterPopover />', () => {
       'aria-checked',
       'true',
     )
-    expect(screen.getByRole('button', { name: 'Filtros' })).toHaveTextContent('1')
+    const trigger = screen.getByRole('button', { name: /^Filtros/ })
+    expect(trigger).toHaveTextContent('1')
+    // El conteo va en el NOMBRE accesible del botón (no en el badge, que es
+    // decorativo): un lector de pantalla sabe cuántos filtros hay activos.
+    expect(trigger).toHaveAccessibleName('Filtros, 1 activo')
   })
 
   it('seleccionar un Tipo emite el valor', () => {
@@ -89,7 +93,9 @@ describe('<FilterPopover />', () => {
 
   it('cuenta dos filtros activos en el badge (tipo + fuente)', () => {
     render(<Host initialTipo="pdf" initialFuente="subido" />)
-    expect(screen.getByRole('button', { name: 'Filtros' })).toHaveTextContent('2')
+    const trigger = screen.getByRole('button', { name: /^Filtros/ })
+    expect(trigger).toHaveTextContent('2')
+    expect(trigger).toHaveAccessibleName('Filtros, 2 activos')
   })
 
   it('volver a clickear la opción activa la limpia (clearable)', () => {
@@ -109,7 +115,7 @@ describe('<FilterPopover />', () => {
   it('sin filtros activos el trigger no muestra badge', () => {
     render(<Host />)
     // El único texto del botón sería el badge; vacío = sin badge.
-    expect(screen.getByRole('button', { name: 'Filtros' })).toHaveTextContent('')
+    expect(screen.getByRole('button', { name: /^Filtros/ })).toHaveTextContent('')
   })
 
   it('alterna "Eliminados recientemente" y lo cuenta en el badge', () => {
@@ -121,6 +127,6 @@ describe('<FilterPopover />', () => {
     expect(
       screen.getByRole('menuitemradio', { name: /Eliminados recientemente/ }),
     ).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByRole('button', { name: 'Filtros' })).toHaveTextContent('1')
+    expect(screen.getByRole('button', { name: /^Filtros/ })).toHaveTextContent('1')
   })
 })
