@@ -60,7 +60,7 @@ async function setupFixtures(pool) {
   await pool.query(
     `INSERT INTO entities (user_id, type, name, description, origin, created_at)
      SELECT $1, 'query-plan-entity', 'query plan entity ' || gs,
-            CASE WHEN gs % 100 = 0
+            CASE WHEN gs % 1000 = 0
               THEN 'query plan fixture hot searchable ' || gs
               ELSE 'query plan fixture cold searchable ' || gs
             END,
@@ -72,7 +72,7 @@ async function setupFixtures(pool) {
   await pool.query(
     `INSERT INTO quotes (user_id, entity_id, text, source, origin, created_at)
      SELECT $1, fixture.id,
-            CASE WHEN fixture.rn % 100 = 0
+            CASE WHEN fixture.rn % 1000 = 0
               THEN 'query plan quote hot searchable ' || fixture.rn
               ELSE 'query plan quote cold searchable ' || fixture.rn
             END,
@@ -99,7 +99,7 @@ async function setupFixtures(pool) {
      SELECT $1, 'nota',
             jsonb_build_object(
               'bodyText',
-              CASE WHEN gs % 100 = 0
+              CASE WHEN gs % 1000 = 0
                 THEN 'query plan momento hot searchable ' || gs
                 ELSE 'query plan momento cold searchable ' || gs
               END
