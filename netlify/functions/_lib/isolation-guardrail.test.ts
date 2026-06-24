@@ -60,7 +60,7 @@ const MUTATION_RETURNING_EXEMPT: Record<
   'momentos.mts': [
     {
       pattern:
-        /UPDATE\s+momento_entities\s+SET\s+deleted_at\s*=\s*NOW\(\)[\s\S]*?WHERE\s+momento_id\s*=\s*\$\{id\}[\s\S]*?user_id\s*=\s*\$\{ownerUserId\}/i,
+        /UPDATE\s+momento_entities\s+SET\s+deleted_at\s*=\s*NOW\(\)[\s\S]*?WHERE\s+momento_id\s*=\s*\$\{momentoId\}[\s\S]*?user_id\s*=\s*\$\{ownerUserId\}/i,
       reason:
         'PATCH entity_ids reemplaza el set completo: limpiar 0 links previos es un resultado válido, no un recurso objetivo inexistente.',
     },
@@ -109,6 +109,33 @@ function uncommentedSource(file: string): string {
     .replace(/\/\/.*$/gm, '')
 }
 
+// Subdirectorios de _lib en los que un endpoint descompone su SQL/lógica
+// (p.ej. `./momentos/handlers.js`, `./whatsapp/foo.js`). Devuelve el fuente de
+// TODOS los .ts no-test de esos submódulos, para que el guardrail siga la
+// descomposición y no quede ciego al SQL que dejó de estar en el archivo raíz.
+function submoduleSources(endpointPath: string, endpointSource: string): string[] {
+  const subdirs = new Set<string>()
+  const importRe = /from\s+['"]\.\/([a-z0-9-]+)\/[^'"]+\.js['"]/gi
+  let match: RegExpExecArray | null
+  while ((match = importRe.exec(endpointSource))) subdirs.add(match[1])
+
+  const out: string[] = []
+  for (const subdir of subdirs) {
+    const dir = join(dirname(endpointPath), subdir)
+    let entries: string[]
+    try {
+      entries = readdirSync(dir)
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      if (!entry.endsWith('.ts') || entry.endsWith('.test.ts')) continue
+      out.push(readFileSync(join(dir, entry), 'utf8'))
+    }
+  }
+  return out
+}
+
 function sourceForFunction(file: string): string {
   const wrapperPath = join(FUNCTIONS_DIR, file)
   const wrapperSource = readFileSync(wrapperPath, 'utf8')
@@ -116,7 +143,9 @@ function sourceForFunction(file: string): string {
     /import\s+\w+(?:\s*,\s*\{\s*config\s*\})?\s+from\s+['"]\.\/_lib\/([^'"]+)\.js['"]/,
   )
   if (!endpointImport?.[1]) return wrapperSource
-  return readFileSync(join(LIB_DIR, `${endpointImport[1]}.ts`), 'utf8')
+  const endpointPath = join(LIB_DIR, `${endpointImport[1]}.ts`)
+  const endpointSource = readFileSync(endpointPath, 'utf8')
+  return [endpointSource, ...submoduleSources(endpointPath, endpointSource)].join('\n')
 }
 
 function uncommentedFunctionSource(file: string): string {
