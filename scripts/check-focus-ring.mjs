@@ -16,26 +16,36 @@ import { pathToFileURL } from 'node:url'
 //   2. SUPRIMIRLA: `focus:outline-none` / `focus-visible:outline-none` sin un
 //      reemplazo visible → el control queda SIN indicador de foco (bug a11y).
 //
+// CUANDO un anillo SÍ está justificado (tarjetas/miniaturas redondeadas, controles
+// sobre imagen, contenedores con overflow-hidden donde el outline no encaja), el
+// estándar es el TOKEN `.focus-ring` / `.focus-ring-inset` (src/index.css), no un
+// `focus-visible:ring-*` ad-hoc. El token usa el mismo color del outline global y
+// se adapta a salvia dentro de .pdf-studio; las clases NO llevan prefijo `focus:`,
+// así que no las cuenta este gate.
+//
 // El gate cuenta las LÍNEAS de src con una utilidad `focus(-visible)?:(ring|outline)`
 // horneada y congela el número: como design-tokens / modal-overlay /
-// form-control-labels / icon-button, solo puede BAJAR. Quitar una utilidad de
-// foco redundante (o sustituirla por la convención global) saca la línea del conteo.
+// form-control-labels / icon-button, solo puede BAJAR. Migrar al token (o caer en
+// la convención global) saca la línea del conteo.
 //
-// El baseline NO implica que las líneas restantes estén mal: hay overrides
-// legítimos (anillos salvia deliberados en pdfStudio, wrappers con focus-within,
-// contenedores con tabIndex={-1} de foco programático). Quedan congelados para
-// revisarlos/bajarlos en pasadas siguientes; lo que el gate impide es que CREZCA
-// el foco horneado sin que alguien lo decida.
+// Baseline 0 tras la pasada de tokenización: ya no queda foco horneado fuera del
+// allowlist. Las líneas EXEMPT NO están mal — son casos donde el indicador NO es
+// un anillo (lo muestra un wrapper con focus-within, un cambio de borde, o es un
+// contenedor con tabIndex={-1} que no debe tener foco). Lo que el gate impide es
+// que REAPAREZCA foco horneado ad-hoc sin que alguien lo decida.
 
-export const FOCUS_RING_BASELINE = 27
+export const FOCUS_RING_BASELINE = 0
 
 // Líneas de foco horneado ACEPTADAS de forma permanente (override deliberado que
 // no se va a quitar). Allowlist file:line con razón, como en los otros ratchets.
+// Tras la pasada de tokenización (token `.focus-ring`/`.focus-ring-inset`), el
+// baseline es 0: TODO anillo intencional usa el token, y lo único que queda
+// horneado son estos casos donde el indicador NO es un anillo (lo muestra un
+// wrapper, un cambio de borde, o es un contenedor que no debe tener foco).
 export const FOCUS_RING_EXEMPT = new Map([
-  // Inputs de búsqueda envueltos en <label class="input-paper">: el recuadro
-  // muestra el foco vía `.input-paper:focus-within` (index.css) y el input
-  // suprime su propio outline para que el ring del recuadro sea el único
-  // indicador (no doble). El `focus:outline-none` acá es correcto, no un bug.
+  // Inputs transparentes envueltos en un contenedor que muestra el foco vía
+  // `:focus-within` (el input suprime su outline para que el indicador sea el
+  // del recuadro, no doble). `.input-paper:focus-within` o `focus-within:border-*`.
   [
     'src/components/BibliotecaView.tsx:344',
     'input-paper wrapper muestra el foco vía :focus-within',
@@ -43,6 +53,44 @@ export const FOCUS_RING_EXEMPT = new Map([
   [
     'src/components/biblioteca/BibliotecaLinkPicker.tsx:216',
     'input-paper wrapper muestra el foco vía :focus-within',
+  ],
+  [
+    'src/components/graph/GraphSearch.tsx:81',
+    'wrapper redondeado muestra el foco vía focus-within:border',
+  ],
+  [
+    'src/components/biblioteca/BibliotecaTagEditor.tsx:86',
+    'label wrapper muestra el foco vía focus-within:border',
+  ],
+  // Inputs/textarea cuyo indicador de foco es un cambio de BORDE/fondo deliberado
+  // (no un outline ni un anillo). Patrón válido y consistente para campos.
+  [
+    'src/components/CommandPaletteResults.tsx:129',
+    'input con foco por cambio de borde (focus:border-ink-400)',
+  ],
+  [
+    'src/components/EditorialProjectPanel.tsx:98',
+    'textarea con foco por cambio de borde (focus:border accent)',
+  ],
+  [
+    'src/components/momentos/MomentoFeedback.tsx:176',
+    'input con foco por cambio de borde + fondo',
+  ],
+  [
+    'src/components/notas/pdfStudio/editor/SelectionInspector.tsx:47',
+    'input con foco por cambio de borde (salvia)',
+  ],
+  // Anillo sutil deliberado en campos densos de planilla (ring-1): un anillo
+  // estándar con offset desbordaría sobre las celdas vecinas.
+  [
+    'src/components/notas/pdfStudio/planillas/FormFieldControl.tsx:27',
+    'anillo sutil (ring-1) en celdas densas de planilla',
+  ],
+  // Contenedor de modal con foco PROGRAMÁTICO (tabIndex={-1}, se enfoca al abrir
+  // para la trampa de foco): no debe mostrar un anillo alrededor del modal entero.
+  [
+    'src/components/notas/pdfStudio/editor/PdfTextEditor.tsx:361',
+    'contenedor de modal con foco programático (tabIndex={-1})',
   ],
 ])
 
@@ -122,9 +170,11 @@ if (isCli) {
     if (result.count > result.baseline) {
       console.error(
         '\nSubió el foco horneado. La app ya tiene un `*:focus-visible` global ' +
-          '(src/index.css): no hornees un `focus-visible:ring-*` propio (doble ' +
+          '(src/index.css): no hornees un `focus-visible:ring-*` ad-hoc (doble ' +
           'indicador) ni suprimas el outline con `focus:outline-none` sin un ' +
-          'reemplazo visible. Nuevos:',
+          'reemplazo visible. Si el elemento NECESITA un anillo (tarjeta, ' +
+          'miniatura, sobre imagen), usá el token `.focus-ring` / ' +
+          '`.focus-ring-inset` en vez de utilidades sueltas. Nuevos:',
       )
       for (const e of result.offenders.slice(0, 30))
         console.error(`  - ${e.file}:${e.line}`)

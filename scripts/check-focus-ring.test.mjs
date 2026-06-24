@@ -47,6 +47,13 @@ describe('collectFocusRings (detección)', () => {
     expect(collectFocusRings(root)).toHaveLength(0)
   })
 
+  it('NO cuenta el token .focus-ring / .focus-ring-inset (es el reemplazo sancionado)', async () => {
+    const { root, write } = await makeRepo()
+    write('src/A.tsx', cls('rounded focus-ring'))
+    write('src/B.tsx', cls('overflow-hidden focus-ring-inset'))
+    expect(collectFocusRings(root)).toHaveLength(0)
+  })
+
   it('escanea .ts además de .tsx pero excluye tests y .d.ts', async () => {
     const { root, write } = await makeRepo()
     write('src/style.ts', `export const c = 'focus-visible:ring-2'`)
