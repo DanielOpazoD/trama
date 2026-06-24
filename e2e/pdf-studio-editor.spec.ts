@@ -498,7 +498,9 @@ test.describe('Imprenta · editor PDF', () => {
 
     const selectButton = page.getByRole('button', { name: 'Herramienta seleccionar' })
     await selectButton.focus()
-    await expect(selectButton).toHaveClass(/focus-visible:ring-2/)
+    // El foco visible ahora usa el token .focus-ring (antes un focus-visible:ring-2
+    // ad-hoc): renderiza el anillo en :focus-visible vía box-shadow.
+    await expect(selectButton).toHaveClass(/focus-ring/)
 
     await page.getByRole('button', { name: 'Agregar cuadro de texto' }).click()
     await page.keyboard.press('Escape')
