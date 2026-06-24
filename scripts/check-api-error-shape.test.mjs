@@ -32,6 +32,17 @@ describe('collectHandRolledErrors (detección)', () => {
     expect(collectHandRolledErrors(root)).toHaveLength(1)
   })
 
+  it('NO se evade con key quoted ni espacios flexibles antes del colon', async () => {
+    const { root, write } = await makeRepo()
+    write(
+      'q1.mts',
+      `export const a = () => Response.json({ ok: false }, { "status": 500 })`,
+    )
+    write('q2.mts', `export const b = () => new Response('e', { 'status': 404 })`)
+    write('sp.mts', `export const c = () => new Response('e', { status : 503 })`)
+    expect(collectHandRolledErrors(root)).toHaveLength(3)
+  })
+
   it('NO marca status < 400 (200 implícito, 204, 302 redirect, json 200)', async () => {
     const { root, write } = await makeRepo()
     write('ok.mts', `export const a = () => new Response(blob, { headers })`)

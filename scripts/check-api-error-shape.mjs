@@ -47,8 +47,11 @@ export const API_ERROR_SHAPE_ALLOWLIST = new Map([
 
 // `new Response(` o `Response.json(` — el `(` de apertura queda al final del match.
 const RESPONSE_CALL_RE = /\b(?:new\s+Response|Response\.json)\s*\(/g
-// `status:` literal de 3 dígitos dentro del ResponseInit.
-const LITERAL_STATUS_RE = /\bstatus:\s*(\d{3})\b/
+// `status` literal de 3 dígitos dentro del ResponseInit. La key puede ir con o
+// sin comillas (`status:`, `"status":`, `'status':`) y con espacios flexibles
+// antes/después de los dos puntos, para que esas variantes no evadan el gate. El
+// borde izquierdo `(?:^|[^\w$])` evita matchear un sufijo como `httpstatus:`.
+const LITERAL_STATUS_RE = /(?:^|[^\w$])["']?status["']?\s*:\s*(\d{3})\b/
 
 // Blanquea comentarios JS (`//` y `/* */`) preservando saltos de línea y
 // respetando strings ('...', "...", `...`), para no confundir un `https://` ni un
