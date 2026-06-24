@@ -51,10 +51,31 @@ describe('extractPhotoIntent (degrada a Recorte sin gastar IA)', () => {
   })
 })
 
-describe('transcribeAudioIntent (degrada cuando no hay presupuesto)', () => {
+describe('transcribeAudioIntent (degrada sin gastar IA)', () => {
   it('over-budget → null', async () => {
     vi.mocked(checkMonthlyBudget).mockResolvedValue(new Response(null, { status: 429 }))
-    const intent = await transcribeAudioIntent('u1', 'r1', getSql(), buffer, 'audio/ogg')
+    const intent = await transcribeAudioIntent(
+      new Request('http://x'),
+      'u1',
+      'r1',
+      getSql(),
+      buffer,
+      'audio/ogg',
+    )
+    expect(intent).toBeNull()
+  })
+
+  it('IA off → null (no transcribe aunque haya presupuesto)', async () => {
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(null)
+    vi.mocked(resolveAIInvocation).mockResolvedValue({ kind: 'off' })
+    const intent = await transcribeAudioIntent(
+      new Request('http://x'),
+      'u1',
+      'r1',
+      getSql(),
+      buffer,
+      'audio/ogg',
+    )
     expect(intent).toBeNull()
   })
 })

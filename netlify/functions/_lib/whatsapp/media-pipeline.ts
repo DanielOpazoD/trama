@@ -105,6 +105,7 @@ export async function extractPhotoIntent(
  * estimado en `extraction_log` para que el cost-cap mensual lo cuente.
  */
 export async function transcribeAudioIntent(
+  req: Request,
   userId: string,
   requestId: string,
   sql: ReturnType<typeof getSql>,
@@ -113,6 +114,11 @@ export async function transcribeAudioIntent(
 ): Promise<CaptureIntent | null> {
   const overBudget = await checkMonthlyBudget(userId, requestId)
   if (overBudget) return null
+  // Honra el toggle AI-off como visión y clasificación: con la IA apagada NO
+  // transcribimos (ni cobramos), aunque haya presupuesto. La invocación solo se
+  // usa para el chequeo off (Whisper no toma provider/model de acá).
+  const invocation = await resolveAIInvocation(req, 'voz', userId)
+  if (invocation.kind === 'off') return null
   try {
     const fileName = `voz.${audioExtFromMime(mimeType)}`
     const { text, usage } = await askLLMForTranscription(buffer, mimeType, fileName)
@@ -190,6 +196,7 @@ export async function handleInboundMedia(
           },
         )
         const intent = await transcribeAudioIntent(
+          req,
           userId,
           requestId,
           sql,
