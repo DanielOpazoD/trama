@@ -3,6 +3,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { createMarkerExemption } from './lib/exempt-marker.mjs'
+
 // Gate RATCHET de nombres accesibles en controles de formulario.
 //
 // La auditoría marcó controles (`<input>`, `<textarea>`, `<select>`) sin nombre
@@ -49,15 +51,12 @@ const LABEL_ATTR_RE = /\b(aria-label|aria-labelledby|title)\b[=\s]/
 const HIDDEN_RE = /type=(?:"hidden"|'hidden'|\{\s*[`'"]hidden[`'"]\s*\})/
 const ID_RE =
   /\bid=(?:"([^"]+)"|'([^']+)'|\{\s*[`'"]([^`'"]+)[`'"]\s*\}|\{\s*([A-Za-z_$][\w$.]*)\s*\})/
-// Marcador de exención inline. La razón es lo que sigue a los dos puntos.
-const EXEMPT_MARKER_RE = /form-control-label-exempt:?\s*(.*)$/
-
-// La razón cruda. Quita el cierre de un comentario JSX (`*/}` / `*/`) que el
-// `(.*)$` arrastra cuando el marcador va como `{/* … */}` en posición de hijo
-// JSX (el caso normal acá, porque el control vive dentro del <label> padre).
-function markerReason(match) {
-  return match[1].replace(/\s*\*\/\}?\s*$/, '').trim()
-}
+// Exención por marcador inline `form-control-label-exempt: <razón>` (razón no
+// vacía obligatoria; un marcador pelado no exime). Como el control vive dentro de
+// su <label> padre, el marcador va en un comentario JSX `{/* … */}` sobre la línea
+// del control. Mecanismo compartido con la familia por-línea (focus-ring,
+// icon-button) vía scripts/lib.
+const EXEMPT = createMarkerExemption('form-control-label-exempt')
 
 // Extrae el tag completo desde `<` hasta el `>` de cierre a profundidad 0,
 // respetando strings y `{...}` (los arrow handlers traen `>` dentro de llaves).
@@ -146,15 +145,13 @@ export function collectFormControlLabels(root = process.cwd()) {
     const rel = relative(projectRoot, file)
     const rawLines = raw.split('\n')
     for (const { line, kind } of found) {
-      const marker =
-        EXEMPT_MARKER_RE.exec(rawLines[line - 1] ?? '') ||
-        (line > 1 ? EXEMPT_MARKER_RE.exec(rawLines[line - 2] ?? '') : null)
+      const marker = EXEMPT.markerFor(rawLines, line)
       controls.push({
         file: rel,
         line,
         kind,
         exempt: Boolean(marker),
-        reason: marker ? markerReason(marker) : '',
+        reason: marker ? EXEMPT.reasonFrom(marker) : '',
       })
     }
   }
@@ -174,17 +171,12 @@ export function collectDanglingFormControlMarkers(root = process.cwd()) {
   for (const file of walk(srcRoot).filter(isScannedFile)) {
     const raw = readFileSync(file, 'utf8')
     if (!raw.includes('form-control-label-exempt')) continue
-    const unlabeled = new Set(
+    const constructLines = new Set(
       unlabeledControlLines(stripBlockComments(raw)).map((c) => c.line),
     )
     const rel = relative(projectRoot, file)
-    const rawLines = raw.split('\n')
-    for (let i = 0; i < rawLines.length; i++) {
-      if (!EXEMPT_MARKER_RE.test(rawLines[i])) continue
-      const here = i + 1
-      if (!unlabeled.has(here) && !unlabeled.has(here + 1))
-        dangling.push({ file: rel, line: here })
-    }
+    for (const line of EXEMPT.danglingLines(raw.split('\n'), constructLines))
+      dangling.push({ file: rel, line })
   }
   return dangling
 }

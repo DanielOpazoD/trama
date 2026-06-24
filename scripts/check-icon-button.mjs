@@ -3,6 +3,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { createMarkerExemption } from './lib/exempt-marker.mjs'
+
 // Gate RATCHET de adopción del primitivo IconButton.
 //
 // El repo tenía ~250 botones de ícono con markup bespoke; IconButton centraliza
@@ -33,14 +35,12 @@ const BUTTON_OPEN_RE = /<button\b/g
 // Contenido = exactamente un ícono autocerrado (componente <XxxIcon …/> o <svg …/>).
 const PURE_ICON_RE = /^<(?:[A-Z][A-Za-z0-9]*Icon|svg)\b[^>]*\/>$/
 const CLOSE_RE = /<\/button>/g
-// Marcador de exención inline. La razón es lo que sigue a los dos puntos.
-const EXEMPT_MARKER_RE = /icon-button-exempt:?\s*(.*)$/
-
-// La razón cruda. Quita el cierre de un comentario JSX (`*/}` / `*/`) que el
-// `(.*)$` arrastra cuando el marcador va como `{/* … */}` en posición de hijo JSX.
-function markerReason(match) {
-  return match[1].replace(/\s*\*\/\}?\s*$/, '').trim()
-}
+// Exención por marcador inline `icon-button-exempt: <razón>` (razón no vacía
+// obligatoria; un marcador pelado no exime). Como el botón vive en posición de
+// hijo JSX, el marcador va en un comentario `{/* … */}` sobre la línea del
+// <button>. Mecanismo compartido con la familia por-línea (focus-ring,
+// form-control-labels) vía scripts/lib.
+const EXEMPT = createMarkerExemption('icon-button-exempt')
 
 // Extrae un bloque balanceado desde `<` (de un tag) hasta su `>` de cierre a
 // profundidad 0, respetando strings y `{...}` (los handlers traen `>` en llaves).
@@ -108,14 +108,12 @@ export function collectIconButtons(root = process.cwd()) {
     const rel = relative(projectRoot, file)
     const rawLines = source.split('\n')
     for (const line of lines) {
-      const marker =
-        EXEMPT_MARKER_RE.exec(rawLines[line - 1] ?? '') ||
-        (line > 1 ? EXEMPT_MARKER_RE.exec(rawLines[line - 2] ?? '') : null)
+      const marker = EXEMPT.markerFor(rawLines, line)
       found.push({
         file: rel,
         line,
         exempt: Boolean(marker),
-        reason: marker ? markerReason(marker) : '',
+        reason: marker ? EXEMPT.reasonFrom(marker) : '',
       })
     }
   }
@@ -134,15 +132,10 @@ export function collectDanglingIconButtonMarkers(root = process.cwd()) {
   for (const file of walk(srcRoot).filter(isScannedFile)) {
     const source = readFileSync(file, 'utf8')
     if (!source.includes('icon-button-exempt')) continue
-    const iconLines = new Set(iconButtonLines(source))
+    const constructLines = new Set(iconButtonLines(source))
     const rel = relative(projectRoot, file)
-    const rawLines = source.split('\n')
-    for (let i = 0; i < rawLines.length; i++) {
-      if (!EXEMPT_MARKER_RE.test(rawLines[i])) continue
-      const here = i + 1
-      if (!iconLines.has(here) && !iconLines.has(here + 1))
-        dangling.push({ file: rel, line: here })
-    }
+    for (const line of EXEMPT.danglingLines(source.split('\n'), constructLines))
+      dangling.push({ file: rel, line })
   }
   return dangling
 }
