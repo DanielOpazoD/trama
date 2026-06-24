@@ -9,7 +9,12 @@ vi.mock('../ai-mode.js', () => ({ resolveAIInvocation: vi.fn() }))
 import { getSql } from '../db.js'
 import { checkMonthlyBudget } from '../cost-cap.js'
 import { resolveAIInvocation } from '../ai-mode.js'
-import { extractPhotoIntent, transcribeAudioIntent } from './media-pipeline.js'
+import { parseInboundMedia } from './media.js'
+import {
+  extractPhotoIntent,
+  handleInboundMedia,
+  transcribeAudioIntent,
+} from './media-pipeline.js'
 
 beforeEach(() => {
   mockSqlResponses.reset()
@@ -77,5 +82,47 @@ describe('transcribeAudioIntent (degrada sin gastar IA)', () => {
       'audio/ogg',
     )
     expect(intent).toBeNull()
+  })
+})
+
+describe('handleInboundMedia (orquestación: caminos de skip sin descarga)', () => {
+  const mediaOf = (contentType: string) =>
+    parseInboundMedia({
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/x',
+      MediaContentType0: contentType,
+    })
+
+  it('audio con formato no transcribible → no guarda nada (saved 0, sin descripción)', async () => {
+    mockSqlResponses.push([]) // persistWhatsAppEvent (best-effort)
+    const r = await handleInboundMedia(
+      new Request('http://x'),
+      'r1',
+      getSql(),
+      'u1',
+      '+1',
+      { Body: '' },
+      mediaOf('audio/x-weird'),
+      'http://trama',
+    )
+    expect(r.saved).toBe(0)
+    expect(r.offerDescription).toBe(false)
+    expect(r.openUrl).toBeUndefined()
+    expect(typeof r.message).toBe('string')
+  })
+
+  it('video con formato no permitido → no guarda nada (saved 0)', async () => {
+    mockSqlResponses.push([])
+    const r = await handleInboundMedia(
+      new Request('http://x'),
+      'r1',
+      getSql(),
+      'u1',
+      '+1',
+      { Body: '' },
+      mediaOf('video/x-weird'),
+      'http://trama',
+    )
+    expect(r.saved).toBe(0)
   })
 })
