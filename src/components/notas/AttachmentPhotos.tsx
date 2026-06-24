@@ -341,8 +341,7 @@ function PhotoThumb({
         onClick={onOpen}
         title={photo.fileName}
         aria-label={`Ver foto ${photo.fileName}`}
-        className="block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-        style={{ outlineColor: 'var(--accent-primary)' }}
+        className="block rounded-md"
       >
         {ready ? (
           <img

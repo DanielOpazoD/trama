@@ -44,6 +44,7 @@ function Field({
         disabled={disabled}
         aria-label={`${label} de selección (%)`}
         onChange={(e) => onChange(Number(e.currentTarget.value) / 100)}
+        // focus-ring-exempt: input con foco por cambio de borde (salvia)
         className="h-7 rounded-md border border-ink-100 bg-paper-50 px-1.5 text-caption tabular-nums text-ink-700 outline-none transition-colors focus:border-[color:var(--accent-sage)] focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 disabled:opacity-45"
       />
     </label>

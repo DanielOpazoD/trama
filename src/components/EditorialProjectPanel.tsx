@@ -95,6 +95,7 @@ export function EditorialProjectPanel({
         onChange={(e) => setDraft(e.target.value)}
         aria-label="Borrador del proyecto"
         rows={10}
+        // focus-ring-exempt: textarea con foco por cambio de borde (accent)
         className="w-full resize-y rounded-md border border-ink-100 bg-paper-50 p-3 font-serif text-body leading-relaxed text-ink-700 focus:border-[color:var(--accent-primary)] focus:outline-none"
       />
 

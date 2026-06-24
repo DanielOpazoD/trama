@@ -85,14 +85,14 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
           onBlur={commitNote}
           autoFocus={!note.trim()}
           aria-label="Nota del favorito"
-          className="mt-2 w-full bg-transparent font-serif text-sm text-ink-600 focus:outline-none"
+          className="mt-2 w-full bg-transparent font-serif text-sm text-ink-600"
         />
       ) : (
         <IconButton
           onClick={() => setEditingNote(true)}
           label="Añadir nota al favorito"
           title="Nota"
-          className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100/50 hover:text-ink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink-300/40"
+          className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100/50 hover:text-ink-600"
         >
           <PencilIcon size={12} />
         </IconButton>

@@ -94,7 +94,7 @@ export function AISourceTag({
   return (
     <Tooltip content={tooltipContent}>
       <span
-        className={`inline-flex items-center gap-1 align-middle text-ink-300/70 hover:text-ink-500 focus-visible:text-ink-500 focus-visible:outline-none transition-colors cursor-help ${className}`}
+        className={`inline-flex items-center gap-1 align-middle text-ink-300/70 hover:text-ink-500 focus-visible:text-ink-500 transition-colors cursor-help ${className}`}
         tabIndex={0}
         role="button"
         aria-label={

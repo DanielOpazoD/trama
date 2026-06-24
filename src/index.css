@@ -1053,9 +1053,12 @@ html.dark .paper-grain::before {
       0 1px 0 rgb(var(--paper-50) / 0.68) inset,
       0 1px 2px rgb(var(--ink-900) / 0.035);
     /* Focus ring uses the editorial primary accent — prussian on cream,
-       lights up to ~3px without shifting layout. */
+       lights up to ~3px without shifting layout. Uses :focus-within so it
+       works whether .input-paper sits on the field itself or on a <label>
+       wrapping it (search boxes); the wrapped <input> sets focus:outline-none
+       so the box ring is the sole indicator (no double indicator). */
   }
-  .input-paper:focus {
+  .input-paper:focus-within {
     outline: none;
     border-color: var(--accent-primary);
     background:
@@ -1064,6 +1067,80 @@ html.dark .paper-grain::before {
     box-shadow:
       0 0 0 3px var(--accent-primary-ring),
       0 10px 24px rgb(var(--ink-900) / 0.06);
+  }
+
+  /* ANILLO DE FOCO ESTÁNDAR (opt-in). La convención por defecto es el
+     `*:focus-visible` global (outline en index.css), que cubre el 95% de los
+     casos. Pero hay elementos donde un outline no encaja: tarjetas/miniaturas
+     redondeadas, controles sobre imagen, contenedores con overflow-hidden. Para
+     ESOS casos, este es el ÚNICO anillo permitido — reemplaza los ad-hoc
+     `focus-visible:ring-2 ring-offset-2 ring-<color>` que estaban dispersos con
+     colores y offsets distintos (ring-ink-300, ring-paper-50/80, ring-[var]…).
+     El color es `--accent-primary` (el mismo del outline global), así que el
+     foco se ve igual en toda la app; dentro de .pdf-studio se vuelve salvia solo
+     por el override de --accent-primary. El gate check:focus-ring exige usar
+     estas clases en vez de hornear utilidades de ring sueltas. */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--paper-50)),
+      0 0 0 4px var(--accent-primary);
+  }
+  /* Variante INSET: para elementos con overflow-hidden o sobre imagen, donde un
+     anillo flotante se recortaría. El halo claro interior da contraste tanto
+     sobre imágenes oscuras como claras. */
+  .focus-ring-inset:focus-visible {
+    outline: none;
+    box-shadow:
+      inset 0 0 0 2px var(--accent-primary),
+      inset 0 0 0 4px rgb(var(--paper-50) / 0.7);
+  }
+  /* Variante CONTENEDOR: cuando el indicador de foco lo muestra un wrapper al
+     enfocarse un hijo (inputs transparentes dentro de un recuadro). Mismo glow
+     suave que `.input-paper:focus-within`, así todos los “campos que se iluminan”
+     comparten el lenguaje en vez de cada uno su `focus-within:border-*` ad-hoc. */
+  .focus-ring-within:focus-within {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-primary-ring);
+  }
+
+  /* Anillo de SELECCIÓN (estado “este ítem está elegido”, distinto del foco).
+     Mismo lenguaje que .focus-ring (anillo de 2px con gap de papel) para que el
+     sistema de anillos sea uno solo; reemplaza los `boxShadow` inline ad-hoc que
+     estaban dispersos. Dos colores semánticos: salvia por defecto, oro para la
+     selección de momentos/recortes. El foco (`.focus-ring:focus-visible`) le gana
+     por especificidad, así que un ítem seleccionado Y enfocado muestra el foco. */
+  .selection-ring {
+    box-shadow:
+      0 0 0 2px rgb(var(--paper-50)),
+      0 0 0 4px var(--accent-sage);
+  }
+  .selection-ring-gold {
+    box-shadow:
+      0 0 0 2px rgb(var(--paper-50)),
+      0 0 0 4px var(--accent-gold);
+  }
+
+  /* En modo de COLORES FORZADOS (alto contraste de Windows, etc.) el navegador
+     descarta `box-shadow`, así que todos los anillos de arriba desaparecerían y
+     el control quedaría sin indicador. Restauramos uno con `outline` (sí
+     respetado) y colores del sistema: foco con Highlight sólido; la selección
+     punteada para distinguirla del foco. El `:focus-visible` le gana a la
+     selección por orden/especificidad, igual que fuera de forced-colors. */
+  @media (forced-colors: active) {
+    .focus-ring:focus-visible,
+    .focus-ring-inset:focus-visible,
+    .focus-ring-within:focus-within {
+      box-shadow: none;
+      outline: 2px solid Highlight;
+      outline-offset: 2px;
+    }
+    .selection-ring,
+    .selection-ring-gold {
+      box-shadow: none;
+      outline: 2px dashed Highlight;
+      outline-offset: 2px;
+    }
   }
 
   .btn-ink {

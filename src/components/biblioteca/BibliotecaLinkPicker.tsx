@@ -213,6 +213,7 @@ export function BibliotecaLinkPicker({
                 placeholder="Buscar…"
                 aria-label="Buscar destino"
                 autoFocus
+                // focus-ring-exempt: input-paper wrapper muestra el foco vía :focus-within
                 className="min-w-0 flex-1 bg-transparent text-sm text-ink-700 placeholder:text-ink-300 focus:outline-none"
               />
             </label>

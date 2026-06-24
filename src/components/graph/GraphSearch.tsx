@@ -63,7 +63,7 @@ export function GraphSearch({
 
   return (
     <div className="absolute right-4 top-16 z-10 w-56">
-      <div className="flex items-center gap-1.5 rounded-full border border-ink-100/70 bg-paper-50/90 px-2.5 py-1 shadow-sm backdrop-blur-sm focus-within:border-ink-300">
+      <div className="flex items-center gap-1.5 rounded-full border border-ink-100/70 bg-paper-50/90 px-2.5 py-1 shadow-sm backdrop-blur-sm focus-ring-within">
         <SearchIcon size={12} className="shrink-0 text-ink-300" />
         <input
           ref={inputRef}
@@ -78,6 +78,7 @@ export function GraphSearch({
           }}
           placeholder="buscar nodo · /"
           aria-label="Buscar nodo en el grafo"
+          // focus-ring-exempt: el wrapper muestra el foco vía el token .focus-ring-within
           className="w-full bg-transparent text-caption text-ink-700 placeholder:text-ink-300 focus:outline-none"
         />
       </div>

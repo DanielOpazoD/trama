@@ -1,4 +1,4 @@
-import type { CSSProperties, Ref } from 'react'
+import type { Ref } from 'react'
 import type { CaptureItem, Note, Recorte } from '../../api'
 import type { RecorteTarget } from '../../api'
 import { NoteCard } from './NoteCard'
@@ -83,9 +83,6 @@ export function NotasFeedVirtualList({
           index: i,
           reducedMotion,
         })
-        const selStyle: CSSProperties | undefined = isSelected
-          ? { boxShadow: `0 0 0 2px var(--accent-sage)`, borderRadius: '0.75rem' }
-          : undefined
         return (
           <div
             key={key}
@@ -102,8 +99,8 @@ export function NotasFeedVirtualList({
             }}
           >
             <div
-              className={reducedMotion ? undefined : 'animate-fade-up'}
-              style={{ ...selStyle, animationDelay: delay }}
+              className={`${reducedMotion ? '' : 'animate-fade-up'} ${isSelected ? 'selection-ring rounded-xl' : ''}`}
+              style={{ animationDelay: delay }}
             >
               {item.type === 'note' ? (
                 <NoteCard

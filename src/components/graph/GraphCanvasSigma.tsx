@@ -330,7 +330,7 @@ export function GraphCanvasSigma({
     <div className="relative h-full w-full">
       <div
         ref={containerRef}
-        className="h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink-300"
+        className="h-full w-full focus-ring-inset"
         role="application"
         tabIndex={0}
         onKeyDown={onKeyDown}

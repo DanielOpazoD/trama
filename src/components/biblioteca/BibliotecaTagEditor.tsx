@@ -72,7 +72,7 @@ export function BibliotecaTagEditor({ item }: { item: LibraryItem }) {
       ))}
 
       {/* Input de alta: crece dentro de la fila de chips. */}
-      <label className="inline-flex min-w-[8rem] flex-1 items-center gap-1 rounded-full border border-dashed border-ink-200 px-2.5 py-0.5 text-caption focus-within:border-ink-300">
+      <label className="inline-flex min-w-[8rem] flex-1 items-center gap-1 rounded-full border border-dashed border-ink-200 px-2.5 py-0.5 text-caption focus-ring-within">
         <PlusIcon size={11} className="shrink-0 text-ink-300" />
         <input
           type="text"
@@ -83,6 +83,7 @@ export function BibliotecaTagEditor({ item }: { item: LibraryItem }) {
           onBlur={addTag}
           placeholder="Agregar etiqueta…"
           aria-label="Agregar etiqueta"
+          // focus-ring-exempt: el label muestra el foco vía el token .focus-ring-within
           className="min-w-0 flex-1 bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none"
         />
       </label>

@@ -173,6 +173,7 @@ export function MomentoFeedback({
               maxLength={500}
               placeholder="Comentar este momento"
               aria-label="Comentario"
+              // focus-ring-exempt: input con foco por cambio de borde + fondo
               className="min-w-0 flex-1 rounded-full border border-transparent bg-ink-100/60 px-3 py-1.5 text-caption text-ink-600 placeholder:text-ink-300 focus:border-ink-200 focus:bg-paper-50 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent-primary)]/20"
             />
             <button
