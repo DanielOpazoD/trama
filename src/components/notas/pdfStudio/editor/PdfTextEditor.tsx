@@ -358,6 +358,7 @@ export function PdfTextEditor({
         ref={dialogRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
+        // focus-ring-exempt: contenedor de modal con foco programático (tabIndex={-1})
         className="relative h-full w-full max-w-[min(1360px,85vw)] overflow-hidden border-x border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/20 flex flex-col focus:outline-none"
       >
         <PdfTextEditorHeaderSlot

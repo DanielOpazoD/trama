@@ -24,6 +24,7 @@ function commonControlStyle(selected = false, fillMode = false): string {
       'h-full w-full rounded-none border-0',
       'bg-transparent px-1.5 text-caption font-medium text-ink-900 shadow-none',
       'outline-none transition-colors placeholder:text-[color:var(--accent-sage)]/80',
+      // focus-ring-exempt: anillo sutil (ring-1) en celdas densas de planilla
       'focus:bg-paper-50/45 focus:ring-1 focus:ring-[color:var(--accent-sage)]/25',
     ].join(' ')
   }

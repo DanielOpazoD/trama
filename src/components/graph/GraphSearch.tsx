@@ -78,6 +78,7 @@ export function GraphSearch({
           }}
           placeholder="buscar nodo · /"
           aria-label="Buscar nodo en el grafo"
+          // focus-ring-exempt: wrapper redondeado muestra el foco vía focus-within:border
           className="w-full bg-transparent text-caption text-ink-700 placeholder:text-ink-300 focus:outline-none"
         />
       </div>

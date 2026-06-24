@@ -126,6 +126,7 @@ export function CommandPaletteResults({
             onChange={(e) => setSaveName(e.target.value)}
             placeholder="nombre de la consulta"
             aria-label="Nombre de la consulta"
+            // focus-ring-exempt: input con foco por cambio de borde (focus:border-ink-400)
             className="flex-1 min-w-0 rounded-lg border border-ink-200 bg-paper-50 px-3 py-1.5 text-sm text-ink-800 placeholder:text-ink-300 focus:border-ink-400 focus:outline-none"
           />
           <button

@@ -24,79 +24,30 @@ import { pathToFileURL } from 'node:url'
 // así que no las cuenta este gate.
 //
 // El gate cuenta las LÍNEAS de src con una utilidad `focus(-visible)?:(ring|outline)`
-// horneada y congela el número: como design-tokens / modal-overlay /
+// horneada y congela el número (baseline 0): como design-tokens / modal-overlay /
 // form-control-labels / icon-button, solo puede BAJAR. Migrar al token (o caer en
 // la convención global) saca la línea del conteo.
 //
-// Baseline 0 tras la pasada de tokenización: ya no queda foco horneado fuera del
-// allowlist. Las líneas EXEMPT NO están mal — son casos donde el indicador NO es
-// un anillo (lo muestra un wrapper con focus-within, un cambio de borde, o es un
-// contenedor con tabIndex={-1} que no debe tener foco). Lo que el gate impide es
-// que REAPAREZCA foco horneado ad-hoc sin que alguien lo decida.
+// EXENCIONES por MARCADOR INLINE (no por allowlist file:LÍNEA, que se rompe al
+// mover líneas): una línea de foco horneado queda exenta si la línea inmediatamente
+// anterior contiene `focus-ring-exempt: <razón>`. La justificación vive pegada al
+// código y sobrevive a refactors. Las líneas exentas NO están mal — son casos donde
+// el indicador NO es un anillo (lo muestra un wrapper con focus-within, un cambio de
+// borde, o es un contenedor con tabIndex={-1} que no debe tener foco). Un marcador
+// sin una línea de foco debajo (dangling) hace fallar el gate, para que se limpie.
+//
+// ALCANCE: el gate solo ve utilidades Tailwind `focus:`/`focus-visible:` en .ts/.tsx.
+// El foco hecho con `style` inline + estado de React (p. ej. el glow del compositor
+// de notas) o en archivos .css sueltos (p. ej. el mascota del login) NO lo cubre;
+// la convención igual aplica ahí, pero no está enforced estáticamente.
 
 export const FOCUS_RING_BASELINE = 0
-
-// Líneas de foco horneado ACEPTADAS de forma permanente (override deliberado que
-// no se va a quitar). Allowlist file:line con razón, como en los otros ratchets.
-// Tras la pasada de tokenización (token `.focus-ring`/`.focus-ring-inset`), el
-// baseline es 0: TODO anillo intencional usa el token, y lo único que queda
-// horneado son estos casos donde el indicador NO es un anillo (lo muestra un
-// wrapper, un cambio de borde, o es un contenedor que no debe tener foco).
-export const FOCUS_RING_EXEMPT = new Map([
-  // Inputs transparentes envueltos en un contenedor que muestra el foco vía
-  // `:focus-within` (el input suprime su outline para que el indicador sea el
-  // del recuadro, no doble). `.input-paper:focus-within` o `focus-within:border-*`.
-  [
-    'src/components/BibliotecaView.tsx:344',
-    'input-paper wrapper muestra el foco vía :focus-within',
-  ],
-  [
-    'src/components/biblioteca/BibliotecaLinkPicker.tsx:216',
-    'input-paper wrapper muestra el foco vía :focus-within',
-  ],
-  [
-    'src/components/graph/GraphSearch.tsx:81',
-    'wrapper redondeado muestra el foco vía focus-within:border',
-  ],
-  [
-    'src/components/biblioteca/BibliotecaTagEditor.tsx:86',
-    'label wrapper muestra el foco vía focus-within:border',
-  ],
-  // Inputs/textarea cuyo indicador de foco es un cambio de BORDE/fondo deliberado
-  // (no un outline ni un anillo). Patrón válido y consistente para campos.
-  [
-    'src/components/CommandPaletteResults.tsx:129',
-    'input con foco por cambio de borde (focus:border-ink-400)',
-  ],
-  [
-    'src/components/EditorialProjectPanel.tsx:98',
-    'textarea con foco por cambio de borde (focus:border accent)',
-  ],
-  [
-    'src/components/momentos/MomentoFeedback.tsx:176',
-    'input con foco por cambio de borde + fondo',
-  ],
-  [
-    'src/components/notas/pdfStudio/editor/SelectionInspector.tsx:47',
-    'input con foco por cambio de borde (salvia)',
-  ],
-  // Anillo sutil deliberado en campos densos de planilla (ring-1): un anillo
-  // estándar con offset desbordaría sobre las celdas vecinas.
-  [
-    'src/components/notas/pdfStudio/planillas/FormFieldControl.tsx:27',
-    'anillo sutil (ring-1) en celdas densas de planilla',
-  ],
-  // Contenedor de modal con foco PROGRAMÁTICO (tabIndex={-1}, se enfoca al abrir
-  // para la trampa de foco): no debe mostrar un anillo alrededor del modal entero.
-  [
-    'src/components/notas/pdfStudio/editor/PdfTextEditor.tsx:361',
-    'contenedor de modal con foco programático (tabIndex={-1})',
-  ],
-])
 
 // `focus:` o `focus-visible:` seguido de una utilidad ring/outline (incluye
 // outline-none, ring-2, ring-offset-*, outline-offset-*, etc.).
 const FOCUS_RING_RE = /focus(?:-visible)?:(?:ring|outline)\b/
+// Marcador de exención inline. La razón es lo que sigue a los dos puntos.
+const EXEMPT_MARKER_RE = /focus-ring-exempt:?\s*(.*)$/
 
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir)) {
@@ -113,44 +64,75 @@ function isScannedFile(file) {
   return file.endsWith('.tsx') || file.endsWith('.ts')
 }
 
-export function collectFocusRings(root = process.cwd()) {
+function eachSourceFile(root, cb) {
   const projectRoot = resolve(root)
   const srcRoot = join(projectRoot, 'src')
-  const found = []
-
   for (const file of walk(srcRoot).filter(isScannedFile)) {
     const source = readFileSync(file, 'utf8')
-    if (!FOCUS_RING_RE.test(source)) continue
-    const lines = source.split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      if (FOCUS_RING_RE.test(lines[i]))
-        found.push({ file: relative(projectRoot, file), line: i + 1 })
-    }
+    cb(relative(projectRoot, file), source.split('\n'))
   }
+}
+
+// Devuelve TODA línea con foco horneado, marcando si está exenta (por el marcador
+// inline en la propia línea o en la inmediatamente anterior) y con su razón.
+export function collectFocusRings(root = process.cwd()) {
+  const found = []
+  eachSourceFile(root, (file, lines) => {
+    for (let i = 0; i < lines.length; i++) {
+      if (!FOCUS_RING_RE.test(lines[i])) continue
+      const marker =
+        EXEMPT_MARKER_RE.exec(lines[i]) ||
+        (i > 0 ? EXEMPT_MARKER_RE.exec(lines[i - 1]) : null)
+      found.push({
+        file,
+        line: i + 1,
+        exempt: Boolean(marker),
+        reason: marker ? marker[1].trim() : '',
+      })
+    }
+  })
   found.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)
   return found
+}
+
+// Marcadores `focus-ring-exempt` que NO tienen una línea de foco horneado en la
+// misma línea ni en la siguiente: quedaron colgando tras un refactor y hay que
+// quitarlos (o el marcador está mal ubicado).
+export function collectDanglingMarkers(root = process.cwd()) {
+  const dangling = []
+  eachSourceFile(root, (file, lines) => {
+    for (let i = 0; i < lines.length; i++) {
+      if (!EXEMPT_MARKER_RE.test(lines[i])) continue
+      const selfFocus = FOCUS_RING_RE.test(lines[i])
+      const nextFocus = i + 1 < lines.length && FOCUS_RING_RE.test(lines[i + 1])
+      if (!selfFocus && !nextFocus) dangling.push({ file, line: i + 1 })
+    }
+  })
+  return dangling
 }
 
 export function checkFocusRings({
   root = process.cwd(),
   baseline = FOCUS_RING_BASELINE,
-  exempt = FOCUS_RING_EXEMPT,
 } = {}) {
   const all = collectFocusRings(root)
-  const offenders = all.filter((e) => !exempt.has(`${e.file}:${e.line}`))
-  const staleExempt = [...exempt.keys()].filter(
-    (key) => !all.some((e) => `${e.file}:${e.line}` === key),
-  )
+  const offenders = all.filter((e) => !e.exempt)
+  const dangling = collectDanglingMarkers(root)
   const failures = []
   if (offenders.length > baseline)
     failures.push({ kind: 'increase', actual: offenders.length, baseline })
-  if (staleExempt.length > 0) failures.push({ kind: 'staleExempt', files: staleExempt })
+  if (dangling.length > 0)
+    failures.push({
+      kind: 'danglingMarker',
+      files: dangling.map((d) => `${d.file}:${d.line}`),
+    })
   return {
     ok: failures.length === 0,
     count: offenders.length,
     baseline,
     offenders,
-    staleExempt,
+    exempt: all.filter((e) => e.exempt),
+    dangling,
     failures,
     dropped: offenders.length < baseline,
   }
@@ -163,7 +145,8 @@ if (isCli) {
   console.log('\nFocus-ring convention ratchet:')
   console.log('-'.repeat(72))
   console.log(
-    `  líneas con foco horneado (focus:ring/outline)  ${String(result.count).padStart(4)}/${result.baseline}`,
+    `  foco horneado sin exención  ${String(result.count).padStart(4)}/${result.baseline}` +
+      `   (exentas por marcador: ${result.exempt.length})`,
   )
   console.log('-'.repeat(72))
   if (!result.ok) {
@@ -174,16 +157,19 @@ if (isCli) {
           'indicador) ni suprimas el outline con `focus:outline-none` sin un ' +
           'reemplazo visible. Si el elemento NECESITA un anillo (tarjeta, ' +
           'miniatura, sobre imagen), usá el token `.focus-ring` / ' +
-          '`.focus-ring-inset` en vez de utilidades sueltas. Nuevos:',
+          '`.focus-ring-inset`. Si es un caso legítimo sin anillo, poné en la ' +
+          'línea de arriba un comentario `focus-ring-exempt: <razón>`. Nuevos:',
       )
       for (const e of result.offenders.slice(0, 30))
         console.error(`  - ${e.file}:${e.line}`)
     }
-    if (result.staleExempt.length > 0) {
+    if (result.dangling.length > 0) {
       console.error(
-        '\nEntradas EXEMPT que ya no aplican (removelas de FOCUS_RING_EXEMPT):',
+        '\nMarcadores `focus-ring-exempt` sin foco horneado debajo (quitalos o ' +
+          'reubicalos):',
       )
-      for (const key of result.staleExempt) console.error(`  - ${key}`)
+      for (const key of result.failures.find((f) => f.kind === 'danglingMarker').files)
+        console.error(`  - ${key}`)
     }
     console.error('')
     process.exit(1)

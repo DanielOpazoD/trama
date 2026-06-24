@@ -83,6 +83,7 @@ export function BibliotecaTagEditor({ item }: { item: LibraryItem }) {
           onBlur={addTag}
           placeholder="Agregar etiqueta…"
           aria-label="Agregar etiqueta"
+          // focus-ring-exempt: label wrapper muestra el foco vía focus-within:border
           className="min-w-0 flex-1 bg-transparent text-ink-700 placeholder:text-ink-300 focus:outline-none"
         />
       </label>
