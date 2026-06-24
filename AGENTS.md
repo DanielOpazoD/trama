@@ -29,7 +29,7 @@ Este archivo lo lee Codex automáticamente al entrar al proyecto. Acá viven sol
 - **Editar una migración aplicada** (rompe consistencia entre entornos, Netlify rechaza el deploy).
 - **Persistir posiciones de drag fuera del modo orgánico del grafo** (las otras vistas son determinísticas).
 - **Agregar un rate limit por IP** (removido a pedido del usuario; el cost-cap mensual es suficiente).
-- **Errores de endpoints con `new Response('texto', { status: 4xx })`** — usá `ApiErrors.*` de `_lib/api-error.ts`. Shape canónico `{ error: { code, message, requestId, details? } }`.
+- **Errores de endpoints con `new Response('texto', { status: 4xx })`** — usá `ApiErrors.*` de `_lib/api-error.ts`. Shape canónico `{ error: { code, message, requestId, details? } }`. Lo enforcea `check:api-error-shape`.
 
 ## Índice de convenciones (docs/conventions/)
 
