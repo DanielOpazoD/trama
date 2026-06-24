@@ -206,6 +206,15 @@ const SCRIPT_ENTRIES = [
       'Primitivo compartido de exención por marcador inline para los gates ratchet por-línea (focus-ring, form-control-labels, icon-button).',
   },
   {
+    file: 'scripts/lib/source-files.mjs',
+    domain: 'ci',
+    kind: 'support',
+    critical: false,
+    packageScripts: [],
+    summary:
+      'Travesía recursiva de archivos compartida por los gates (reemplaza el walk/isScannedFile duplicado en ~9 scripts).',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',
