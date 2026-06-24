@@ -177,7 +177,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-whatsapp-boundary',
-    maxLines: 1400,
+    maxLines: 400,
     files: ['netlify/functions/_lib/whatsapp/webhook-endpoint.ts'],
   },
   {

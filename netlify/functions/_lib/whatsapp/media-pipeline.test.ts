@@ -1,0 +1,128 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { mockSqlResponses, setupMockSql } from '../test-utils'
+
+vi.mock('../db.js', () => setupMockSql())
+vi.mock('../cost-cap.js', () => ({ checkMonthlyBudget: vi.fn() }))
+vi.mock('../ai-mode.js', () => ({ resolveAIInvocation: vi.fn() }))
+
+import { getSql } from '../db.js'
+import { checkMonthlyBudget } from '../cost-cap.js'
+import { resolveAIInvocation } from '../ai-mode.js'
+import { parseInboundMedia } from './media.js'
+import {
+  extractPhotoIntent,
+  handleInboundMedia,
+  transcribeAudioIntent,
+} from './media-pipeline.js'
+
+beforeEach(() => {
+  mockSqlResponses.reset()
+  vi.mocked(checkMonthlyBudget).mockReset()
+  vi.mocked(resolveAIInvocation).mockReset()
+})
+
+const buffer = new ArrayBuffer(8)
+
+describe('extractPhotoIntent (degrada a Recorte sin gastar IA)', () => {
+  it('over-budget → null, sin resolver la invocación', async () => {
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(new Response(null, { status: 429 }))
+    const intent = await extractPhotoIntent(
+      new Request('http://x'),
+      'u1',
+      'r1',
+      buffer,
+      'image/jpeg',
+      'quote',
+      '',
+    )
+    expect(intent).toBeNull()
+    expect(resolveAIInvocation).not.toHaveBeenCalled()
+  })
+
+  it('IA off → null', async () => {
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(null)
+    vi.mocked(resolveAIInvocation).mockResolvedValue({ kind: 'off' })
+    const intent = await extractPhotoIntent(
+      new Request('http://x'),
+      'u1',
+      'r1',
+      buffer,
+      'image/jpeg',
+      'text',
+      '',
+    )
+    expect(intent).toBeNull()
+  })
+})
+
+describe('transcribeAudioIntent (degrada sin gastar IA)', () => {
+  it('over-budget → null', async () => {
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(new Response(null, { status: 429 }))
+    const intent = await transcribeAudioIntent(
+      new Request('http://x'),
+      'u1',
+      'r1',
+      getSql(),
+      buffer,
+      'audio/ogg',
+    )
+    expect(intent).toBeNull()
+  })
+
+  it('IA off → null (no transcribe aunque haya presupuesto)', async () => {
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(null)
+    vi.mocked(resolveAIInvocation).mockResolvedValue({ kind: 'off' })
+    const intent = await transcribeAudioIntent(
+      new Request('http://x'),
+      'u1',
+      'r1',
+      getSql(),
+      buffer,
+      'audio/ogg',
+    )
+    expect(intent).toBeNull()
+  })
+})
+
+describe('handleInboundMedia (orquestación: caminos de skip sin descarga)', () => {
+  const mediaOf = (contentType: string) =>
+    parseInboundMedia({
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/x',
+      MediaContentType0: contentType,
+    })
+
+  it('audio con formato no transcribible → no guarda nada (saved 0, sin descripción)', async () => {
+    mockSqlResponses.push([]) // persistWhatsAppEvent (best-effort)
+    const r = await handleInboundMedia(
+      new Request('http://x'),
+      'r1',
+      getSql(),
+      'u1',
+      '+1',
+      { Body: '' },
+      mediaOf('audio/x-weird'),
+      'http://trama',
+    )
+    expect(r.saved).toBe(0)
+    expect(r.offerDescription).toBe(false)
+    expect(r.openUrl).toBeUndefined()
+    expect(typeof r.message).toBe('string')
+  })
+
+  it('video con formato no permitido → no guarda nada (saved 0)', async () => {
+    mockSqlResponses.push([])
+    const r = await handleInboundMedia(
+      new Request('http://x'),
+      'r1',
+      getSql(),
+      'u1',
+      '+1',
+      { Body: '' },
+      mediaOf('video/x-weird'),
+      'http://trama',
+    )
+    expect(r.saved).toBe(0)
+  })
+})
