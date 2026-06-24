@@ -125,8 +125,11 @@ function submoduleSources(endpointPath: string, endpointSource: string): string[
     let entries: string[]
     try {
       entries = readdirSync(dir)
-    } catch {
-      continue
+    } catch (error: unknown) {
+      // Solo toleramos "el subdir no existe" (un import a otro lado); cualquier
+      // otro error (permisos, etc.) debe explotar, no producir un falso verde.
+      if ((error as { code?: string } | null)?.code === 'ENOENT') continue
+      throw error
     }
     for (const entry of entries) {
       if (!entry.endsWith('.ts') || entry.endsWith('.test.ts')) continue

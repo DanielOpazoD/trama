@@ -2,6 +2,7 @@ import { getSql, sqlTyped } from '../db.js'
 import { runWithSystemRls } from '../user-rls.js'
 import { parseRows } from '../row-parse.js'
 import { toPgVector } from '../embeddings.js'
+import type { Origin } from '../origin.js'
 import type { MomentoKind } from '../momento-embed.js'
 import type { MomentoEntityLinkRow, MomentoListRow } from '../momentos-list.js'
 import {
@@ -309,7 +310,7 @@ export type InsertMomentoDraft = {
   capturedAt: string
   payload: Record<string, unknown>
   note: string | null
-  origin: unknown
+  origin: Origin
   entityIds: string[]
 }
 
