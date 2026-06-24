@@ -21,7 +21,7 @@ const buffer = new ArrayBuffer(8)
 
 describe('extractPhotoIntent (degrada a Recorte sin gastar IA)', () => {
   it('over-budget → null, sin resolver la invocación', async () => {
-    vi.mocked(checkMonthlyBudget).mockResolvedValue(true)
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(new Response(null, { status: 429 }))
     const intent = await extractPhotoIntent(
       new Request('http://x'),
       'u1',
@@ -36,7 +36,7 @@ describe('extractPhotoIntent (degrada a Recorte sin gastar IA)', () => {
   })
 
   it('IA off → null', async () => {
-    vi.mocked(checkMonthlyBudget).mockResolvedValue(false)
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(null)
     vi.mocked(resolveAIInvocation).mockResolvedValue({ kind: 'off' })
     const intent = await extractPhotoIntent(
       new Request('http://x'),
@@ -53,7 +53,7 @@ describe('extractPhotoIntent (degrada a Recorte sin gastar IA)', () => {
 
 describe('transcribeAudioIntent (degrada cuando no hay presupuesto)', () => {
   it('over-budget → null', async () => {
-    vi.mocked(checkMonthlyBudget).mockResolvedValue(true)
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(new Response(null, { status: 429 }))
     const intent = await transcribeAudioIntent('u1', 'r1', getSql(), buffer, 'audio/ogg')
     expect(intent).toBeNull()
   })

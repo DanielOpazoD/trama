@@ -95,7 +95,14 @@ export async function handleQuery(
     const answer = typeof content === 'string' ? content.trim() : ''
     if (!answer) return formatRecallFallback(ctx, origin)
     logEvent({ event: 'whatsapp_recall', usedRag: ctx.usedRag, usedHyde: ctx.usedHyde })
-    await persistWhatsAppEvent(sql, userId, { event: 'recall', ok: true })
+    // El evento de observabilidad NO debe degradar una respuesta ya lograda: si
+    // este INSERT falla, igual devolvemos el answer (sin caer al fallback del
+    // catch, que es para fallos REALES del recall, no del logging).
+    try {
+      await persistWhatsAppEvent(sql, userId, { event: 'recall', ok: true })
+    } catch {
+      // best-effort: el answer ya está listo.
+    }
     return formatRecallAnswer(answer, ctx, origin)
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)

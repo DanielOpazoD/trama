@@ -22,6 +22,13 @@ describe('retitleLast', () => {
     mockSqlResponses.push([{ kind: null, cap_id: null }])
     expect(await retitleLast(getSql(), 'u1', '+1', 'x')).toContain('No hay nada reciente')
   })
+
+  it('un título en blanco no sobrescribe (pide un título real, sin UPDATE)', async () => {
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'c1' }]) // readLastPointer
+    const msg = await retitleLast(getSql(), 'u1', '+1', '   ')
+    expect(msg).toContain('Dime qué título poner')
+    expect(mockSqlResponses.calls).toHaveLength(1) // solo el readLastPointer, ningún UPDATE
+  })
 })
 
 describe('tagLast', () => {

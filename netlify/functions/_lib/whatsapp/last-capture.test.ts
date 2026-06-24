@@ -65,6 +65,14 @@ describe('undoLastCapture', () => {
     expect(msg).toContain('La nota')
     expect(msg).toContain('eliminó')
   })
+
+  it('un fallo al limpiar el puntero no rompe el deshacer (best-effort awaited)', async () => {
+    mockSqlResponses.push([{ kind: 'note', cap_id: 'c1' }]) // SELECT puntero
+    mockSqlResponses.push([{ id: 'c1' }]) // softDelete
+    mockSqlResponses.pushError(new Error('db down')) // la limpieza del puntero falla
+    const msg = await undoLastCapture(getSql(), 'u1', '+1')
+    expect(msg).toContain('eliminó')
+  })
 })
 
 describe('readCaptureText', () => {
@@ -76,6 +84,12 @@ describe('readCaptureText', () => {
   it('null cuando el texto está vacío', async () => {
     mockSqlResponses.push([{ t: '   ' }])
     expect(await readCaptureText(getSql(), 'note', 'c1', 'u1')).toBeNull()
+  })
+
+  it('lee el título de una task (FROM tasks)', async () => {
+    mockSqlResponses.push([{ t: 'comprar pan' }])
+    expect(await readCaptureText(getSql(), 'task', 'c1', 'u1')).toBe('comprar pan')
+    expect(mockSqlResponses.calls[0].template).toContain('FROM tasks')
   })
 })
 

@@ -58,6 +58,10 @@ export async function retitleLast(
   const last = await readLastPointer(sql, userId, phone)
   if (!last) return 'No hay nada reciente para titular.'
   const clean = title.trim().slice(0, 200)
+  if (!clean) {
+    // Un título vacío (p. ej. «título   ») no debe sobrescribir con '' la captura.
+    return 'Dime qué título poner. Por ejemplo: título Ideas de verano'
+  }
   let rows: { id: string }[] = []
   if (last.kind === 'note') {
     rows = await sqlTyped<{

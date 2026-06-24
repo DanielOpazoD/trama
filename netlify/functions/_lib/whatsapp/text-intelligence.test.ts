@@ -38,7 +38,7 @@ describe('buildStatusReply', () => {
 
 describe('classifyFreeform (degradación sin gastar LLM)', () => {
   it('over-budget → nota plana, sin resolver la IA', async () => {
-    vi.mocked(checkMonthlyBudget).mockResolvedValue(true)
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(new Response(null, { status: 429 }))
     const intent = await classifyFreeform(
       new Request('http://x'),
       'u1',
@@ -50,7 +50,7 @@ describe('classifyFreeform (degradación sin gastar LLM)', () => {
   })
 
   it('IA off → nota plana', async () => {
-    vi.mocked(checkMonthlyBudget).mockResolvedValue(false)
+    vi.mocked(checkMonthlyBudget).mockResolvedValue(null)
     vi.mocked(resolveAIInvocation).mockResolvedValue({ kind: 'off' })
     const intent = await classifyFreeform(new Request('http://x'), 'u1', 'hola', 'r1')
     expect(intent).toEqual({ kind: 'note', content: 'hola' })

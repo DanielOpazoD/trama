@@ -71,11 +71,19 @@ export async function undoLastCapture(
     return 'No hay nada reciente para deshacer.'
   }
   const deleted = await softDeleteCapture(sql, userId, last.kind, last.cap_id)
-  sql`
-    UPDATE whatsapp_links
-    SET last_capture_kind = NULL, last_capture_id = NULL, updated_at = NOW()
-    WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
-  `.catch(() => {})
+  // AWAITeado (no fire-and-forget), por la misma razón que recordLastCapture: en
+  // serverless un floating promise puede no escribir antes de que se congele la
+  // instancia, y entonces el puntero quedaría apuntando a una captura ya borrada
+  // (el siguiente comando resolvería un target stale). Sigue siendo best-effort.
+  try {
+    await sql`
+      UPDATE whatsapp_links
+      SET last_capture_kind = NULL, last_capture_id = NULL, updated_at = NOW()
+      WHERE phone_e164 = ${phone} AND user_id = ${userId} AND deleted_at IS NULL
+    `
+  } catch {
+    // El soft-delete ya ocurrió; en el peor caso queda un puntero stale.
+  }
   const noun = NOUN_BY_KIND[last.kind as CaptureKind] ?? 'La última captura'
   return deleted
     ? `↩️ Hecho. ${noun} se eliminó.`
@@ -148,6 +156,9 @@ export async function readCaptureText(
       WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
   } else if (kind === 'recorte') {
     rows = await one(sql`SELECT text AS t FROM recortes
+      WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
+  } else if (kind === 'task') {
+    rows = await one(sql`SELECT title AS t FROM tasks
       WHERE id = ${id} AND user_id = ${userId} AND deleted_at IS NULL LIMIT 1`)
   }
   const t = rows[0]?.t
