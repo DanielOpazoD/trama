@@ -97,6 +97,8 @@ jobs:
       # blobs o LLM. Evita volver a parsing manual disperso en cada handler.
       - name: API request contracts
         run: npm run check:api-request-contracts
+      - name: API error shape
+        run: npm run check:api-error-shape
 
       # Contrato de servicios de dominio backend: los handlers de alto riesgo
       # pueden orquestar auth/SQL/respuesta, pero los mappers/drafts/planes

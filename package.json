@@ -9,6 +9,7 @@
     "check:legacy-fallback": "node scripts/check-legacy-fallback-prod.mjs",
     "check:runtime-api-routes": "node scripts/runtime-api-routes.mjs",
     "check:api-request-contracts": "node scripts/api-request-contracts.mjs",
+    "check:api-error-shape": "node scripts/check-api-error-shape.mjs",
     "check:backend-domain-services": "node scripts/backend-domain-services.mjs",
     "check:operational-observability": "node scripts/operational-observability-contracts.mjs",
     "check:storage-boundaries": "node scripts/storage-boundaries.mjs",
