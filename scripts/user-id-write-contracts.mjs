@@ -57,6 +57,13 @@ export const USER_ID_WRITE_WARNING_ALLOWLIST = [
     reason: 'momento merge joins owner-visible momentos before inserting links',
   },
   {
+    file: 'netlify/functions/_lib/momentos/data.ts',
+    table: 'momento_entities',
+    kind: 'insert_select_manual_review',
+    reason:
+      'momento create/patch escriben los links con user_id del owner autenticado (POST: authedUser.id; PATCH: owner del momento verificado por el chequeo de acceso antes de escribir)',
+  },
+  {
     file: 'netlify/functions/prompts.mts',
     table: 'prompts',
     kind: 'insert_select_manual_review',

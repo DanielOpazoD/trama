@@ -51,7 +51,7 @@ export const BACKEND_DOMAIN_SERVICE_CONTRACTS = [
   },
   {
     domain: 'momentos',
-    endpoint: 'netlify/functions/_lib/momentos-endpoint.ts',
+    endpoint: 'netlify/functions/_lib/momentos/handlers.ts',
     service: 'netlify/functions/_lib/momentos-service.ts',
     endpointRequires: [
       'buildMomentoCreateDraft',
