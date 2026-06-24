@@ -216,7 +216,7 @@ function AlbumTile({
           aria-label={
             photos.length === 1 ? 'Abrir foto' : `Abrir visor de ${photos.length} fotos`
           }
-          className="block h-full w-full cursor-zoom-in overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-paper-50/80"
+          className="block h-full w-full cursor-zoom-in overflow-hidden focus-ring-inset"
         >
           <AuthenticatedMomentoImage
             storageKey={storageKey}

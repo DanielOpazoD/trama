@@ -34,7 +34,7 @@ export function SelectableRecorte({
 
   return (
     <div
-      className={`relative cursor-pointer rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+      className={`relative cursor-pointer rounded-xl transition-all focus-ring ${
         selected
           ? 'ring-2 ring-offset-2'
           : 'ring-1 ring-transparent hover:ring-ink-100/80'

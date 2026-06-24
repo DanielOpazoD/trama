@@ -135,7 +135,7 @@ export function CropOverlay({
         onPointerMove={move}
         onPointerUp={end}
         onKeyDown={nudge}
-        className="absolute cursor-move focus:outline focus:outline-2 focus:outline-offset-1"
+        className="absolute cursor-move"
         style={{
           left: `${crop.xN * 100}%`,
           top: `${crop.yN * 100}%`,

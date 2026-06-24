@@ -58,7 +58,7 @@ export function FileCard({
       aria-label={`Abrir ${item.title}`}
       onClick={() => onOpen(item)}
       onKeyDown={handleKeyDown}
-      className={`card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 ${
+      className={`card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full cursor-pointer focus-ring ${
         selected ? 'ring-2 ring-[color:var(--accent-sage)]' : ''
       }`}
     >

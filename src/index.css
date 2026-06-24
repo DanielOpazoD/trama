@@ -1069,6 +1069,33 @@ html.dark .paper-grain::before {
       0 10px 24px rgb(var(--ink-900) / 0.06);
   }
 
+  /* ANILLO DE FOCO ESTÁNDAR (opt-in). La convención por defecto es el
+     `*:focus-visible` global (outline en index.css), que cubre el 95% de los
+     casos. Pero hay elementos donde un outline no encaja: tarjetas/miniaturas
+     redondeadas, controles sobre imagen, contenedores con overflow-hidden. Para
+     ESOS casos, este es el ÚNICO anillo permitido — reemplaza los ad-hoc
+     `focus-visible:ring-2 ring-offset-2 ring-<color>` que estaban dispersos con
+     colores y offsets distintos (ring-ink-300, ring-paper-50/80, ring-[var]…).
+     El color es `--accent-primary` (el mismo del outline global), así que el
+     foco se ve igual en toda la app; dentro de .pdf-studio se vuelve salvia solo
+     por el override de --accent-primary. El gate check:focus-ring exige usar
+     estas clases en vez de hornear utilidades de ring sueltas. */
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--paper-50)),
+      0 0 0 4px var(--accent-primary);
+  }
+  /* Variante INSET: para elementos con overflow-hidden o sobre imagen, donde un
+     anillo flotante se recortaría. El halo claro interior da contraste tanto
+     sobre imágenes oscuras como claras. */
+  .focus-ring-inset:focus-visible {
+    outline: none;
+    box-shadow:
+      inset 0 0 0 2px var(--accent-primary),
+      inset 0 0 0 4px rgb(var(--paper-50) / 0.7);
+  }
+
   .btn-ink {
     @apply px-4 py-2 bg-ink-700 text-paper-50 rounded-lg text-sm
       hover:bg-ink-600 active:scale-[0.97]

@@ -177,7 +177,7 @@ export function BibliotecaListView({
           aria-label={`Abrir ${item.title}`}
           onClick={() => onOpen(item)}
           onKeyDown={(e) => handleRowKeyDown(e, item)}
-          className={`group flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink-300 ${
+          className={`group flex items-center gap-3 h-14 px-2 border-b border-ink-100/40 cursor-pointer transition-colors focus-ring-inset ${
             selectedIds.has(item.id)
               ? 'bg-[color:var(--accent-sage-soft)]'
               : 'hover:bg-ink-50/60'

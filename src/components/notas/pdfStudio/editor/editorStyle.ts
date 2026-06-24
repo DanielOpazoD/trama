@@ -23,7 +23,7 @@ export const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.ma
 
 /** Botón cuadrado de control (−/+, flechas de página, deshacer/rehacer). */
 export const stepBtn =
-  'h-6 w-6 inline-flex items-center justify-center rounded text-ink-500 hover:text-ink-800 hover:bg-paper-50 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 focus-visible:ring-offset-paper-50'
+  'h-6 w-6 inline-flex items-center justify-center rounded text-ink-500 hover:text-ink-800 hover:bg-paper-50 disabled:opacity-30 transition-colors focus-ring'
 
 // Padding TRANSPARENTE alrededor del texto para agrandar el blanco clickeable (el
 // bug "a veces no se selecciona"): el margen negativo lo compensa, así el texto NO

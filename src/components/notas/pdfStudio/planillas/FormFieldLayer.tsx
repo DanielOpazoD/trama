@@ -190,7 +190,7 @@ export function FormFieldLayer({
                       event.preventDefault()
                       onStartDraftResize(event, field, handle.key)
                     }}
-                    className="absolute z-30 rounded-full border border-paper-50 bg-[color:var(--accent-sage)] p-0 text-transparent shadow-sm shadow-ink-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)]"
+                    className="absolute z-30 rounded-full border border-paper-50 bg-[color:var(--accent-sage)] p-0 text-transparent shadow-sm shadow-ink-900/20 focus-ring"
                     style={{
                       ...handle.style,
                       left:

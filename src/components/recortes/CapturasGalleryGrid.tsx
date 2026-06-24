@@ -245,7 +245,7 @@ export function CapturasGalleryGrid({
                       type="button"
                       onClick={() => setViewerIndex(imageIndex)}
                       aria-label={`Ampliar ${cell.alt || 'imagen'}`}
-                      className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-primary)] focus-visible:ring-offset-1"
+                      className="block w-full overflow-hidden rounded-md border border-ink-100/70 transition-colors hover:border-ink-200 focus-ring-inset"
                     >
                       <GalleryCell cell={cell} />
                     </button>

@@ -61,7 +61,7 @@ export function PriorityDots({
             title={`Prioridad ${meta.label}`}
             disabled={disabled}
             onClick={() => onChange(p)}
-            className="p-1 rounded-full transition-transform hover:scale-110 disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
+            className="p-1 rounded-full transition-transform hover:scale-110 disabled:opacity-50"
           >
             <span
               aria-hidden

@@ -28,7 +28,7 @@ function stop(event: MouseEvent) {
 }
 
 const BTN_BASE =
-  'inline-flex items-center justify-center size-7 rounded-md text-ink-300 transition-colors duration-150 hover:text-ink-700 hover:bg-ink-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-300 disabled:opacity-50'
+  'inline-flex items-center justify-center size-7 rounded-md text-ink-300 transition-colors duration-150 hover:text-ink-700 hover:bg-ink-100/70 focus-ring disabled:opacity-50'
 
 export function BibliotecaItemActions({
   item,

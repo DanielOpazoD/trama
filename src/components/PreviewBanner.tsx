@@ -58,7 +58,7 @@ export function PreviewBanner() {
       </span>{' '}
       <button
         onClick={handleDismiss}
-        className="ml-2 underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-primary-ring)] rounded"
+        className="ml-2 underline hover:no-underline focus-ring rounded"
         aria-label="Ocultar banner de preview"
       >
         entendido
