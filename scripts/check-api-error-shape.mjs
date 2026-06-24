@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync } from 'node:fs'
-import { relative, resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { scannedSourceFiles } from './lib/source-files.mjs'
@@ -37,7 +37,9 @@ export const API_ERROR_SHAPE_BASELINE = 0
 
 // Archivos que SÍ pueden construir la Response de error: el constructor canónico.
 // Allowlist por ARCHIVO (granularidad arquitectónica: el archivo entero ES el
-// lugar sancionado), con razón verificada — como modal-overlay / hard-delete.
+// lugar sancionado), con razón verificada — como modal-overlay / hard-delete. El
+// gate falla si una entrada queda STALE (el archivo ya no existe o ya no arma
+// Responses) para que la lista no se pudra al renombrar/refactorizar.
 export const API_ERROR_SHAPE_ALLOWLIST = new Map([
   [
     'netlify/functions/_lib/api-error.ts',
@@ -178,22 +180,40 @@ export function collectHandRolledErrors(root = process.cwd()) {
   return found
 }
 
+// Versión no-global del detector de llamadas, para `.test()` sin estado de lastIndex.
+const RESPONSE_CALL_TEST = new RegExp(RESPONSE_CALL_RE.source)
+
+// ¿La entrada del allowlist sigue siendo un constructor de Responses? (el archivo
+// existe y arma alguna `new Response`/`Response.json`). Si no, quedó stale.
+function constructsResponse(projectRoot, file) {
+  const path = join(projectRoot, file)
+  if (!existsSync(path)) return false
+  return RESPONSE_CALL_TEST.test(stripComments(readFileSync(path, 'utf8')))
+}
+
 export function checkApiErrorShape({
   root = process.cwd(),
   baseline = API_ERROR_SHAPE_BASELINE,
   allowlist = API_ERROR_SHAPE_ALLOWLIST,
 } = {}) {
+  const projectRoot = resolve(root)
   const all = collectHandRolledErrors(root)
   const offenders = all.filter((e) => !allowlist.has(e.file))
+  const staleAllowlist = [...allowlist.keys()].filter(
+    (file) => !constructsResponse(projectRoot, file),
+  )
   const failures = []
   if (offenders.length > baseline)
     failures.push({ kind: 'increase', actual: offenders.length, baseline })
+  if (staleAllowlist.length > 0)
+    failures.push({ kind: 'staleAllowlist', files: staleAllowlist })
   return {
     ok: failures.length === 0,
     count: offenders.length,
     baseline,
     offenders,
     allowlisted: all.filter((e) => allowlist.has(e.file)),
+    staleAllowlist,
     failures,
     dropped: offenders.length < baseline,
   }
@@ -210,15 +230,24 @@ if (isCli) {
   )
   console.log('-'.repeat(72))
   if (!result.ok) {
-    console.error(
-      '\nSubió la cantidad de errores de endpoint hand-rolled. Devolvé los errores ' +
-        'con `ApiErrors.*` (netlify/functions/_lib/api-error.ts) para conservar la ' +
-        'shape canónica { error: { code, message, requestId } }, en vez de un ' +
-        '`new Response(..., { status: 4xx })` / `Response.json(..., { status: 4xx })` ' +
-        'directo. Nuevos:',
-    )
-    for (const e of result.offenders.slice(0, 30))
-      console.error(`  - ${e.file}:${e.line} (status ${e.status})`)
+    if (result.count > result.baseline) {
+      console.error(
+        '\nSubió la cantidad de errores de endpoint hand-rolled. Devolvé los errores ' +
+          'con `ApiErrors.*` (netlify/functions/_lib/api-error.ts) para conservar la ' +
+          'shape canónica { error: { code, message, requestId } }, en vez de un ' +
+          '`new Response(..., { status: 4xx })` / `Response.json(..., { status: 4xx })` ' +
+          'directo. Nuevos:',
+      )
+      for (const e of result.offenders.slice(0, 30))
+        console.error(`  - ${e.file}:${e.line} (status ${e.status})`)
+    }
+    if (result.staleAllowlist.length > 0) {
+      console.error(
+        '\nEntradas de API_ERROR_SHAPE_ALLOWLIST que ya no existen o ya no arman ' +
+          'Responses (quitalas o actualizá la ruta):',
+      )
+      for (const f of result.staleAllowlist) console.error(`  - ${f}`)
+    }
     console.error('')
     process.exit(1)
   }

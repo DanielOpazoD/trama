@@ -73,6 +73,15 @@ describe('collectHandRolledErrors (detección)', () => {
     expect(collectHandRolledErrors(root)).toHaveLength(0)
   })
 
+  it('NO confunde statusText con status (statusText "404", status 200)', async () => {
+    const { root, write } = await makeRepo()
+    write(
+      'h.mts',
+      `export const a = () => new Response(null, { status: 200, statusText: '404 Not Found' })`,
+    )
+    expect(collectHandRolledErrors(root)).toHaveLength(0)
+  })
+
   it('ignora ejemplos en comentarios (// y /* */) y no rompe con https://', async () => {
     const { root, write } = await makeRepo()
     write(
@@ -144,5 +153,15 @@ describe('checkApiErrorShape (ratchet)', () => {
     expect(r.ok).toBe(true)
     expect(r.count).toBe(0)
     expect(r.allowlisted).toHaveLength(1)
+  })
+
+  it('FALLA si una entrada del allowlist quedó stale (ya no arma Responses)', async () => {
+    const { root, write } = await makeRepo()
+    write('_lib/api-error.ts', `export const noop = 1`)
+    const allowlist = new Map([['netlify/functions/_lib/api-error.ts', 'canónico']])
+    const r = checkApiErrorShape({ root, baseline: 0, allowlist })
+    expect(r.ok).toBe(false)
+    expect(r.failures.some((f) => f.kind === 'staleAllowlist')).toBe(true)
+    expect(r.staleAllowlist).toEqual(['netlify/functions/_lib/api-error.ts'])
   })
 })
