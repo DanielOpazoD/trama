@@ -33,14 +33,22 @@ export function createMarkerExemption(keyword) {
   if (typeof keyword !== 'string' || keyword.length === 0)
     throw new TypeError('createMarkerExemption requiere un keyword no vacío')
 
+  // El keyword matchea como TOKEN COMPLETO, no como subcadena: el borde izquierdo
+  // exige inicio de línea o un carácter que no sea de palabra ni guion, así
+  // `legacy-focus-ring-exempt:` o `not-icon-button-exempt:` no colarían como
+  // marcador del gate.
+  const token = escapeForRegExp(keyword)
+  const leftBoundary = String.raw`(?:^|[^\w-])`
+  const rightBoundary = String.raw`(?![\w-])`
   // Captura candidata: `<keyword>: <lo que siga>`. La razón REAL se valida tras
   // limpiar el cierre de un comentario JSX (ver `exemptMatch`): NO exigimos `\S`
   // acá porque ese cierre `*/}` aporta un no-espacio y un `{/* <keyword>: */}`
-  // pelado colaría como exención sin razón. No global: `.exec`/`.test` sin estado.
-  const captureRe = new RegExp(`${escapeForRegExp(keyword)}:\\s*(.*)$`)
+  // pelado colaría como exención sin razón. (El `:` ya cierra el token a la
+  // derecha.) No global: `.exec`/`.test` sin estado.
+  const captureRe = new RegExp(`${leftBoundary}${token}:\\s*(.*)$`)
   // Presencia del keyword (con o SIN razón). Detecta marcadores colgantes o
   // malformados (p. ej. sin razón) que igual hay que limpiar, aunque no eximan.
-  const keywordRe = new RegExp(`${escapeForRegExp(keyword)}\\b`)
+  const keywordRe = new RegExp(`${leftBoundary}${token}${rightBoundary}`)
 
   // La razón legible a partir de un match de `captureRe`: quita el cierre de un
   // comentario JSX (`*/}` o `*/`) que `(.*)$` arrastra cuando el marcador va como

@@ -78,6 +78,18 @@ describe('createMarkerExemption', () => {
     expect(dotted.keywordRe.test('// aXb-exempt presente')).toBe(false)
   })
 
+  it('matchea el keyword como TOKEN COMPLETO, no como subcadena', () => {
+    // Un keyword embebido en otro token (pegado por palabra o guion) NO cuenta:
+    // ni exime ni se detecta como colgante.
+    expect(
+      EX.markerFor(['// not-demo-exempt: intento de colarse', '<x />'], 2),
+    ).toBeNull()
+    expect(EX.markerFor(['// legacy-demo-exempt: idem', '<x />'], 2)).toBeNull()
+    expect(EX.danglingLines(['// not-demo-exempt: x'], new Set())).toEqual([])
+    // El marcador legítimo (token completo) sí cuenta.
+    expect(EX.markerFor(['// demo-exempt: válido', '<x />'], 2)).not.toBeNull()
+  })
+
   it('rechaza un keyword vacío', () => {
     expect(() => createMarkerExemption('')).toThrow()
   })
