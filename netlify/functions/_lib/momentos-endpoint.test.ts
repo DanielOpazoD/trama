@@ -535,4 +535,149 @@ describe('momentos endpoint — integration (mock SQL)', () => {
     )
     expect(res.status).toBe(405)
   })
+
+  // ----- Caracterización de ramas que la descomposición va a reubicar -----
+  // Fijan el comportamiento de las 4 variantes de listado, la validación de
+  // entidades en POST, el rechazo de viewer en PATCH y el reemplazo de
+  // vínculos en PATCH. Sin esta red, mover esas ramas a módulos sería a ciegas.
+
+  it('GET list con ?kind filtra por kind (rama validKind)', async () => {
+    mockSqlResponses.push([
+      buildMomentoRow({
+        id: 'm1',
+        kind: 'nota',
+        captured_at: '2026-05-24T12:00:00Z',
+        payload: {},
+      }),
+    ])
+    mockSqlResponses.push([]) // bulk links
+    const res = await handler(buildApiRequest('/api/momentos?kind=nota'), mockContext())
+    expect(res.status).toBe(200)
+    const listQuery = mockSqlResponses.calls[0]?.template ?? ''
+    expect(listQuery).toMatch(/m\.kind = \?/i)
+    expect(listQuery).not.toMatch(/m\.captured_at, m\.id\) </i)
+  })
+
+  it('GET list con ?cursor pagina por (captured_at, id) (rama cursor)', async () => {
+    mockSqlResponses.push([]) // list vacío
+    const res = await handler(
+      buildApiRequest(
+        '/api/momentos?cursor=2026-05-01T00:00:00Z:11111111-1111-1111-1111-111111111111',
+      ),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const listQuery = mockSqlResponses.calls[0]?.template ?? ''
+    expect(listQuery).toMatch(
+      /\(m\.captured_at, m\.id\) < \(\?::timestamptz, \?::uuid\)/i,
+    )
+    expect(listQuery).not.toMatch(/m\.kind = \?/i)
+  })
+
+  it('GET list con ?cursor + ?kind combina ambos filtros (rama cursor+kind)', async () => {
+    mockSqlResponses.push([])
+    const res = await handler(
+      buildApiRequest(
+        '/api/momentos?kind=nota&cursor=2026-05-01T00:00:00Z:11111111-1111-1111-1111-111111111111',
+      ),
+      mockContext(),
+    )
+    expect(res.status).toBe(200)
+    const listQuery = mockSqlResponses.calls[0]?.template ?? ''
+    expect(listQuery).toMatch(/m\.kind = \?/i)
+    expect(listQuery).toMatch(
+      /\(m\.captured_at, m\.id\) < \(\?::timestamptz, \?::uuid\)/i,
+    )
+  })
+
+  it('POST con entity_ids inexistentes devuelve 404 (ninguna inserción)', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ id: 'e1' }]) // ownership: solo 1 de 2 pedidas existe
+    const res = await handler(
+      buildJsonApiRequest('/api/momentos', {
+        method: 'POST',
+        json: { kind: 'nota', payload: { bodyText: 'x' }, entity_ids: ['e1', 'e2'] },
+      }),
+      mockContext(),
+    )
+    expect(res.status).toBe(404)
+    // Cortó antes del INSERT: ningún CTE de creación.
+    expect(mockSqlResponses.calls.some((c) => /WITH ins AS/i.test(c.template))).toBe(
+      false,
+    )
+  })
+
+  it('PATCH con rol viewer devuelve 404 (no edita un compartido de solo lectura)', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([
+      {
+        kind: 'nota',
+        payload: { bodyText: 'original' },
+        note: null,
+        user_id: 'owner-user',
+        access_role: 'viewer',
+      },
+    ]) // lookup
+    const res = await handler(
+      buildJsonApiRequest('/api/momentos/m-ro', {
+        method: 'PATCH',
+        json: { note: 'intento de edición' },
+      }),
+      mockContext({ id: 'm-ro' }),
+    )
+    expect(res.status).toBe(404)
+    // Viewer no dispara ningún UPDATE.
+    expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
+      false,
+    )
+  })
+
+  it('PATCH con entity_ids reemplaza el set de vínculos (soft-delete + insert)', async () => {
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([
+      {
+        kind: 'nota',
+        payload: { bodyText: 'x' },
+        note: null,
+        user_id: 'legacy-single-user',
+        access_role: 'owner',
+      },
+    ]) // lookup
+    mockSqlResponses.push([{ id: 'e9' }]) // validación de entidad (1 pedida, 1 existe)
+    mockSqlResponses.push([]) // soft-delete de links viejos
+    mockSqlResponses.push([]) // insert de links nuevos
+    mockSqlResponses.push([
+      buildMomentoRow({
+        id: 'm1',
+        kind: 'nota',
+        captured_at: '2026-05-24T12:00:00Z',
+        payload: { bodyText: 'x' },
+      }),
+    ]) // SELECT returning
+    mockSqlResponses.push([{ entity_id: 'e9' }]) // SELECT links
+    const res = await handler(
+      buildJsonApiRequest('/api/momentos/m1', {
+        method: 'PATCH',
+        json: { entity_ids: ['e9'] },
+      }),
+      mockContext({ id: 'm1' }),
+    )
+    expect(res.status).toBe(200)
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /UPDATE momento_entities\s+SET deleted_at = NOW\(\)/i.test(c.template),
+      ),
+    ).toBe(true)
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO momento_entities/i.test(c.template),
+      ),
+    ).toBe(true)
+    // entity-only: no toca la fila del momento (sin UPDATE momentos).
+    expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
+      false,
+    )
+    const body = (await res.json()) as { entity_ids: string[] }
+    expect(body.entity_ids).toEqual(['e9'])
+  })
 })
