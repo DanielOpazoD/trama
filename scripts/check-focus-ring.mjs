@@ -3,6 +3,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { createMarkerExemption } from './lib/exempt-marker.mjs'
+
 // Gate RATCHET de la CONVENCIÓN DE FOCO.
 //
 // La app tiene UNA sola convención de foco, global, en src/index.css:
@@ -46,13 +48,10 @@ export const FOCUS_RING_BASELINE = 0
 // `focus:` o `focus-visible:` seguido de una utilidad ring/outline (incluye
 // outline-none, ring-2, ring-offset-*, outline-offset-*, etc.).
 const FOCUS_RING_RE = /focus(?:-visible)?:(?:ring|outline)\b/
-// Marcador de exención inline. REQUIERE una razón no vacía tras los dos puntos:
-// un `focus-ring-exempt:` pelado NO exime (sería un bypass sin justificar). La
-// razón es el grupo capturado.
-const EXEMPT_MARKER_RE = /focus-ring-exempt:\s*(\S.*)$/
-// Keyword del marcador (con o sin razón) — solo para detectar marcadores
-// colgantes/malformados que hay que limpiar, aunque no eximan nada.
-const MARKER_KEYWORD_RE = /focus-ring-exempt\b/
+// Exención por marcador inline `focus-ring-exempt: <razón>` (razón no vacía
+// obligatoria; un marcador pelado no exime). Mecanismo compartido con la familia
+// de gates por-línea (form-control-labels, icon-button) vía scripts/lib.
+const EXEMPT = createMarkerExemption('focus-ring-exempt')
 
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir)) {
@@ -85,14 +84,12 @@ export function collectFocusRings(root = process.cwd()) {
   eachSourceFile(root, (file, lines) => {
     for (let i = 0; i < lines.length; i++) {
       if (!FOCUS_RING_RE.test(lines[i])) continue
-      const marker =
-        EXEMPT_MARKER_RE.exec(lines[i]) ||
-        (i > 0 ? EXEMPT_MARKER_RE.exec(lines[i - 1]) : null)
+      const marker = EXEMPT.markerFor(lines, i + 1)
       found.push({
         file,
         line: i + 1,
         exempt: Boolean(marker),
-        reason: marker ? marker[1].trim() : '',
+        reason: marker ? EXEMPT.reasonFrom(marker) : '',
       })
     }
   })
@@ -106,12 +103,11 @@ export function collectFocusRings(root = process.cwd()) {
 export function collectDanglingMarkers(root = process.cwd()) {
   const dangling = []
   eachSourceFile(root, (file, lines) => {
-    for (let i = 0; i < lines.length; i++) {
-      if (!MARKER_KEYWORD_RE.test(lines[i])) continue
-      const selfFocus = FOCUS_RING_RE.test(lines[i])
-      const nextFocus = i + 1 < lines.length && FOCUS_RING_RE.test(lines[i + 1])
-      if (!selfFocus && !nextFocus) dangling.push({ file, line: i + 1 })
-    }
+    const constructLines = new Set()
+    for (let i = 0; i < lines.length; i++)
+      if (FOCUS_RING_RE.test(lines[i])) constructLines.add(i + 1)
+    for (const line of EXEMPT.danglingLines(lines, constructLines))
+      dangling.push({ file, line })
   })
   return dangling
 }

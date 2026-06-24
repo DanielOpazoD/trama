@@ -29,7 +29,7 @@ describe('collectIconButtons (detección precisa)', () => {
     )
     const out = collectIconButtons(root)
     expect(out).toHaveLength(1)
-    expect(out[0]).toMatchObject({ file: 'src/A.tsx', line: 1 })
+    expect(out[0]).toMatchObject({ file: 'src/A.tsx', line: 1, exempt: false })
   })
 
   it('NO cuenta botones con texto (incluido ícono + texto dinámico)', async () => {
@@ -66,14 +66,34 @@ describe('collectIconButtons (detección precisa)', () => {
     write('src/Real.test.tsx', comp('<button aria-label="X"><XIcon /></button>'))
     expect(collectIconButtons(root).map((e) => e.file)).toEqual(['src/Real.tsx'])
   })
+
+  it('marca exempt:true + razón (sin el cierre `*/}`) con un marcador JSX arriba', async () => {
+    const { root, write } = await makeRepo()
+    write(
+      'src/A.tsx',
+      [
+        'export const C = () => (',
+        '  <div>',
+        '    {/* icon-button-exempt: render condicional, IconButton no encaja */}',
+        '    <button aria-label="X"><XIcon /></button>',
+        '  </div>',
+        ')',
+      ].join('\n'),
+    )
+    const out = collectIconButtons(root)
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatchObject({
+      exempt: true,
+      reason: 'render condicional, IconButton no encaja',
+    })
+  })
 })
 
 describe('checkIconButtons (ratchet)', () => {
-  const noExempt = new Map()
   it('FALLA si supera el baseline', async () => {
     const { root, write } = await makeRepo()
     write('src/A.tsx', comp('<button aria-label="X"><XIcon /></button>'))
-    const r = checkIconButtons({ root, baseline: 0, exempt: noExempt })
+    const r = checkIconButtons({ root, baseline: 0 })
     expect(r.ok).toBe(false)
     expect(r.failures).toContainEqual({ kind: 'increase', actual: 1, baseline: 0 })
   })
@@ -81,16 +101,46 @@ describe('checkIconButtons (ratchet)', () => {
   it('PASA en el baseline y avisa (dropped) por debajo', async () => {
     const { root, write } = await makeRepo()
     write('src/A.tsx', comp('<button aria-label="X"><XIcon /></button>'))
-    expect(checkIconButtons({ root, baseline: 1, exempt: noExempt }).ok).toBe(true)
-    expect(checkIconButtons({ root, baseline: 2, exempt: noExempt }).dropped).toBe(true)
+    expect(checkIconButtons({ root, baseline: 1 }).ok).toBe(true)
+    expect(checkIconButtons({ root, baseline: 2 }).dropped).toBe(true)
   })
 
-  it('FALLA con entrada EXEMPT stale', async () => {
+  it('un marcador icon-button-exempt en la línea de arriba exime el botón', async () => {
     const { root, write } = await makeRepo()
-    write('src/A.tsx', comp('<button aria-label="X"><XIcon /></button>'))
-    const exempt = new Map([['src/Nope.tsx:9', 'vieja']])
-    const r = checkIconButtons({ root, baseline: 1, exempt })
+    write(
+      'src/A.tsx',
+      [
+        'export const C = () => (',
+        '  <div>',
+        '    {/* icon-button-exempt: caso legítimo que no migra */}',
+        '    <button aria-label="X"><XIcon /></button>',
+        '  </div>',
+        ')',
+      ].join('\n'),
+    )
+    const r = checkIconButtons({ root, baseline: 0 })
+    expect(r.ok).toBe(true)
+    expect(r.count).toBe(0)
+    expect(r.exempt).toHaveLength(1)
+    expect(r.exempt[0].reason).toBe('caso legítimo que no migra')
+  })
+
+  it('FALLA con un marcador colgante (sin <button> de solo-ícono debajo)', async () => {
+    const { root, write } = await makeRepo()
+    write(
+      'src/A.tsx',
+      [
+        'export const C = () => (',
+        '  <div>',
+        '    {/* icon-button-exempt: quedó huérfano tras un refactor */}',
+        '    <IconButton label="X"><XIcon /></IconButton>',
+        '  </div>',
+        ')',
+      ].join('\n'),
+    )
+    const r = checkIconButtons({ root, baseline: 0 })
     expect(r.ok).toBe(false)
-    expect(r.staleExempt).toEqual(['src/Nope.tsx:9'])
+    expect(r.failures.some((f) => f.kind === 'danglingMarker')).toBe(true)
+    expect(r.dangling.map((d) => d.file)).toContain('src/A.tsx')
   })
 })

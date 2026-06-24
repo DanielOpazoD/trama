@@ -22,13 +22,13 @@ async function makeRepo() {
 
 const comp = (body) => `export const C = () => (${body})`
 
-describe('collectFormControlLabels', () => {
+describe('collectFormControlLabels (detección)', () => {
   it('marca como SIN ETIQUETA un control con solo placeholder', async () => {
     const { root, write } = await makeRepo()
     write('src/A.tsx', comp('<input placeholder="Buscar" />'))
     const out = collectFormControlLabels(root)
     expect(out).toHaveLength(1)
-    expect(out[0]).toMatchObject({ file: 'src/A.tsx', kind: 'input' })
+    expect(out[0]).toMatchObject({ file: 'src/A.tsx', kind: 'input', exempt: false })
   })
 
   it('reconoce aria-label, aria-labelledby, title y type="hidden" como etiquetados', async () => {
@@ -66,17 +66,34 @@ describe('collectFormControlLabels', () => {
     write('src/Real.test.tsx', comp('<input placeholder="solo-en-test" />'))
     expect(collectFormControlLabels(root).map((e) => e.file)).toEqual(['src/Real.tsx'])
   })
+
+  it('marca exempt:true + razón (sin el cierre `*/}`) con un marcador JSX arriba', async () => {
+    const { root, write } = await makeRepo()
+    write(
+      'src/A.tsx',
+      [
+        'export const C = () => (',
+        '  <label>',
+        '    {/* form-control-label-exempt: envuelto por <label> con el texto "x" */}',
+        '    <input type="checkbox" />',
+        '  </label>',
+        ')',
+      ].join('\n'),
+    )
+    const out = collectFormControlLabels(root)
+    expect(out).toHaveLength(1)
+    expect(out[0]).toMatchObject({
+      exempt: true,
+      reason: 'envuelto por <label> con el texto "x"',
+    })
+  })
 })
 
-// Los tests pasan `exempt: new Map()` para aislarse del FORM_CONTROL_LABEL_EXEMPT
-// real (sus entradas serían "stale" contra estos repos-fixture).
 describe('checkFormControlLabels (ratchet)', () => {
-  const noExempt = new Map()
-
   it('FALLA si el conteo supera el baseline', async () => {
     const { root, write } = await makeRepo()
     write('src/A.tsx', comp('<input placeholder="x" />'))
-    const result = checkFormControlLabels({ root, baseline: 0, exempt: noExempt })
+    const result = checkFormControlLabels({ root, baseline: 0 })
     expect(result.ok).toBe(false)
     expect(result.failures).toContainEqual({ kind: 'increase', actual: 1, baseline: 0 })
   })
@@ -84,27 +101,49 @@ describe('checkFormControlLabels (ratchet)', () => {
   it('PASA en el baseline y avisa (dropped) por debajo', async () => {
     const { root, write } = await makeRepo()
     write('src/A.tsx', comp('<input placeholder="x" />'))
-    expect(checkFormControlLabels({ root, baseline: 1, exempt: noExempt }).ok).toBe(true)
-    const below = checkFormControlLabels({ root, baseline: 2, exempt: noExempt })
+    expect(checkFormControlLabels({ root, baseline: 1 }).ok).toBe(true)
+    const below = checkFormControlLabels({ root, baseline: 2 })
     expect(below.ok).toBe(true)
     expect(below.dropped).toBe(true)
   })
 
-  it('respeta el allowlist EXEMPT por file:line', async () => {
+  it('un marcador form-control-label-exempt en la línea de arriba exime el control', async () => {
     const { root, write } = await makeRepo()
-    write('src/A.tsx', comp('<input placeholder="x" />'))
-    const exempt = new Map([['src/A.tsx:1', 'envuelto por <label> padre']])
-    const result = checkFormControlLabels({ root, baseline: 0, exempt })
-    expect(result.ok).toBe(true)
-    expect(result.count).toBe(0)
+    write(
+      'src/A.tsx',
+      [
+        'export const C = () => (',
+        '  <label>',
+        '    Llave física',
+        '    {/* form-control-label-exempt: checkbox envuelto por <label> padre */}',
+        '    <input type="checkbox" />',
+        '  </label>',
+        ')',
+      ].join('\n'),
+    )
+    const r = checkFormControlLabels({ root, baseline: 0 })
+    expect(r.ok).toBe(true)
+    expect(r.count).toBe(0)
+    expect(r.exempt).toHaveLength(1)
+    expect(r.exempt[0].reason).toBe('checkbox envuelto por <label> padre')
   })
 
-  it('FALLA con entrada EXEMPT stale (ya no corresponde)', async () => {
+  it('FALLA con un marcador colgante (sin control sin nombre debajo)', async () => {
     const { root, write } = await makeRepo()
-    write('src/A.tsx', comp('<input aria-label="ya tiene" />'))
-    const exempt = new Map([['src/A.tsx:1', 'razón vieja']])
-    const result = checkFormControlLabels({ root, baseline: 0, exempt })
-    expect(result.ok).toBe(false)
-    expect(result.staleExempt).toEqual(['src/A.tsx:1'])
+    write(
+      'src/A.tsx',
+      [
+        'export const C = () => (',
+        '  <label>',
+        '    {/* form-control-label-exempt: quedó huérfano tras un refactor */}',
+        '    <input id="n" aria-label="ya tiene nombre" />',
+        '  </label>',
+        ')',
+      ].join('\n'),
+    )
+    const r = checkFormControlLabels({ root, baseline: 0 })
+    expect(r.ok).toBe(false)
+    expect(r.failures.some((f) => f.kind === 'danglingMarker')).toBe(true)
+    expect(r.dangling.map((d) => d.file)).toContain('src/A.tsx')
   })
 })

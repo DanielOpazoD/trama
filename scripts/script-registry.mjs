@@ -197,6 +197,15 @@ const SCRIPT_ENTRIES = [
       'Ratchet de la convención de foco: prohíbe duplicar (focus:ring) o suprimir (focus:outline-none) el *:focus-visible global.',
   },
   {
+    file: 'scripts/lib/exempt-marker.mjs',
+    domain: 'frontend',
+    kind: 'support',
+    critical: false,
+    packageScripts: [],
+    summary:
+      'Primitivo compartido de exención por marcador inline para los gates ratchet por-línea (focus-ring, form-control-labels, icon-button).',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',

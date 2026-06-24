@@ -122,6 +122,7 @@ export function VaultGate({
             {!hasVault && (
               <label className="flex items-center justify-between gap-3 rounded-md border border-ink-100/70 bg-paper-50/50 px-3 py-2 text-caption text-ink-500">
                 <span>Llave física</span>
+                {/* form-control-label-exempt: Checkbox envuelto por <label> con <span>Llave física</span>. */}
                 <input
                   type="checkbox"
                   checked={usePhysicalKey}
@@ -282,6 +283,7 @@ export function SecretCard({
             className="input-paper w-full text-sm"
           />
           <label className="inline-flex items-center gap-2 text-micro uppercase tracking-eyebrow text-ink-400">
+            {/* form-control-label-exempt: Checkbox envuelto por <label> con el texto "crítica". */}
             <input
               type="checkbox"
               checked={critical}
