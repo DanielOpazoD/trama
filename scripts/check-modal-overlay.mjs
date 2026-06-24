@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import { scannedSourceFiles } from './lib/source-files.mjs'
 
 // Gate de gobernanza de la adopción del primitivo useModalOverlay.
 //
@@ -63,26 +65,11 @@ export const MODAL_OVERLAY_PENDING = new Map([
 const DIALOG_ROLE_RE = /\brole=(["'])(?:dialog|alertdialog)\1/
 const HOOK_RE = /\buseModalOverlay\b/
 
-function walk(dir, files = []) {
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    const stat = statSync(path)
-    if (stat.isDirectory()) walk(path, files)
-    else files.push(path)
-  }
-  return files
-}
-
-function isScannedFile(file) {
-  return file.endsWith('.tsx') && !file.endsWith('.test.tsx')
-}
-
 export function collectModalOverlayUsage(root = process.cwd()) {
   const projectRoot = resolve(root)
-  const srcRoot = join(projectRoot, 'src')
   const dialogs = []
 
-  for (const file of walk(srcRoot).filter(isScannedFile)) {
+  for (const file of scannedSourceFiles(root)) {
     const source = readFileSync(file, 'utf8')
     if (!DIALOG_ROLE_RE.test(source)) continue
     dialogs.push({

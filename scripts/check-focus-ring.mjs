@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { createMarkerExemption } from './lib/exempt-marker.mjs'
+import { scannedSourceFiles } from './lib/source-files.mjs'
 
 // Gate RATCHET de la CONVENCIÓN DE FOCO.
 //
@@ -53,25 +54,9 @@ const FOCUS_RING_RE = /focus(?:-visible)?:(?:ring|outline)\b/
 // de gates por-línea (form-control-labels, icon-button) vía scripts/lib.
 const EXEMPT = createMarkerExemption('focus-ring-exempt')
 
-function walk(dir, files = []) {
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    if (statSync(path).isDirectory()) walk(path, files)
-    else files.push(path)
-  }
-  return files
-}
-
-function isScannedFile(file) {
-  if (file.endsWith('.test.tsx') || file.endsWith('.test.ts')) return false
-  if (file.endsWith('.d.ts')) return false
-  return file.endsWith('.tsx') || file.endsWith('.ts')
-}
-
 function eachSourceFile(root, cb) {
   const projectRoot = resolve(root)
-  const srcRoot = join(projectRoot, 'src')
-  for (const file of walk(srcRoot).filter(isScannedFile)) {
+  for (const file of scannedSourceFiles(root, { extensions: ['.tsx', '.ts'] })) {
     const source = readFileSync(file, 'utf8')
     cb(relative(projectRoot, file), source.split('\n'))
   }
