@@ -110,6 +110,24 @@ describe('checkFocusRings (ratchet)', () => {
     expect(r.exempt[0].reason).toBe('wrapper muestra el foco vía :focus-within')
   })
 
+  it('un marcador SIN razón no exime (bypass sin justificar)', async () => {
+    const { root, write } = await makeRepo()
+    write(
+      'src/A.tsx',
+      [
+        'export const C = () => (',
+        '  <input',
+        '    // focus-ring-exempt:',
+        '    className="bg-transparent focus:outline-none"',
+        '  />',
+        ')',
+      ].join('\n'),
+    )
+    const r = checkFocusRings({ root, baseline: 0 })
+    expect(r.ok).toBe(false)
+    expect(r.count).toBe(1) // la línea NO quedó exenta por falta de razón
+  })
+
   it('FALLA con un marcador colgante (sin foco horneado debajo)', async () => {
     const { root, write } = await makeRepo()
     write(

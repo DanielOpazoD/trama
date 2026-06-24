@@ -46,8 +46,13 @@ export const FOCUS_RING_BASELINE = 0
 // `focus:` o `focus-visible:` seguido de una utilidad ring/outline (incluye
 // outline-none, ring-2, ring-offset-*, outline-offset-*, etc.).
 const FOCUS_RING_RE = /focus(?:-visible)?:(?:ring|outline)\b/
-// Marcador de exención inline. La razón es lo que sigue a los dos puntos.
-const EXEMPT_MARKER_RE = /focus-ring-exempt:?\s*(.*)$/
+// Marcador de exención inline. REQUIERE una razón no vacía tras los dos puntos:
+// un `focus-ring-exempt:` pelado NO exime (sería un bypass sin justificar). La
+// razón es el grupo capturado.
+const EXEMPT_MARKER_RE = /focus-ring-exempt:\s*(\S.*)$/
+// Keyword del marcador (con o sin razón) — solo para detectar marcadores
+// colgantes/malformados que hay que limpiar, aunque no eximan nada.
+const MARKER_KEYWORD_RE = /focus-ring-exempt\b/
 
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir)) {
@@ -102,7 +107,7 @@ export function collectDanglingMarkers(root = process.cwd()) {
   const dangling = []
   eachSourceFile(root, (file, lines) => {
     for (let i = 0; i < lines.length; i++) {
-      if (!EXEMPT_MARKER_RE.test(lines[i])) continue
+      if (!MARKER_KEYWORD_RE.test(lines[i])) continue
       const selfFocus = FOCUS_RING_RE.test(lines[i])
       const nextFocus = i + 1 < lines.length && FOCUS_RING_RE.test(lines[i + 1])
       if (!selfFocus && !nextFocus) dangling.push({ file, line: i + 1 })
