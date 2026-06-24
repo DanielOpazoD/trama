@@ -38,6 +38,15 @@ const SCRIPT_ENTRIES = [
       'Verifica contratos de method/query/body/form-data en endpoints API sensibles.',
   },
   {
+    file: 'scripts/check-api-error-shape.mjs',
+    domain: 'api',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:api-error-shape'],
+    summary:
+      'Congela el contrato de errores: prohíbe Response 4xx/5xx hand-rolled fuera de ApiErrors.',
+  },
+  {
     file: 'scripts/apply-migrations.sh',
     domain: 'database',
     kind: 'migration-runner',
@@ -689,6 +698,13 @@ export const QUALITY_GATES = [
     phase: 'api',
     required: true,
     summary: 'Parsing API en superficies privadas.',
+  },
+  {
+    command: 'npm run check:api-error-shape',
+    job: 'lint',
+    phase: 'api',
+    required: true,
+    summary: 'Errores de endpoint via ApiErrors, no Response hand-rolled.',
   },
   {
     command: 'npm run check:backend-domain-services',
