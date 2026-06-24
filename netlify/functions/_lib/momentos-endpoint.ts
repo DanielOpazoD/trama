@@ -1,23 +1,20 @@
 import type { Context } from '@netlify/functions'
-import { getSql, sqlTyped } from './db.js'
+import { getSql } from './db.js'
 import { withObservability } from './handler-wrap.js'
 import { ApiErrors } from './api-error.js'
-import { embedSafe, toPgVector } from './embeddings.js'
-import { validatePayloadForKind, type MomentoKind } from './momento-embed.js'
+import { embedSafe } from './embeddings.js'
+import { validatePayloadForKind } from './momento-embed.js'
 import { getAuthedUser } from './auth.js'
 import { parseJsonBody } from './zod-body.js'
 import { parseSearchParams, requestPath } from './request-contracts.js'
 import { MomentoCreateBody, MomentoPatchBody } from './momento-schemas.js'
 import { ensureUserRow } from './user-provisioning.js'
 import { runWithSystemRls } from './user-rls.js'
-import { parseRows } from './row-parse.js'
 import {
   buildMomentosListResponse,
   buildMomentosListParams,
   groupMomentoEntityLinks,
   MomentosListQuery,
-  type MomentoEntityLinkRow,
-  type MomentoListRow,
 } from './momentos-list.js'
 import { logOperationalEvent } from './operational-events.js'
 import {
@@ -26,9 +23,19 @@ import {
   ownerIdFromMomentoRow,
 } from './momentos-service.js'
 import {
-  MomentoEntityLinkRowSchema,
-  MomentoListRowSchema,
-} from './backend-row-schemas.js'
+  insertMomentoWithLinks,
+  listMomentosPage,
+  loadCurrentMomento,
+  loadMomentoAfterPatch,
+  loadMomentoById,
+  loadMomentoEntityLinkIds,
+  loadMomentoEntityLinkIdsAfterPatch,
+  loadMomentosEntityLinks,
+  replaceMomentoEntityLinks,
+  selectOwnedEntityIds,
+  softDeleteMomento,
+  updateMomentoContent,
+} from './momentos/data.js'
 
 /**
  * /api/momentos — la dimensión temporal de la trama.
@@ -49,19 +56,10 @@ import {
  * Embedding: extraemos texto relevante (bodyText / caption / title / note)
  * y lo embedeamos con OpenAI text-embedding-3-small. Best-effort — si falla
  * (sin key, error de red), el momento se guarda igual sin embedding.
+ *
+ * El acceso a datos vive en `./momentos/data.ts`; este handler orquesta:
+ * auth, validación de payload, errores canónicos y armado de respuestas.
  */
-
-type MomentoResponseRow = Record<string, unknown>
-type EntityIdRow = { id: string }
-type MomentoLinkIdRow = { entity_id: string }
-type CurrentMomentoRow = {
-  kind: MomentoKind
-  payload: Record<string, unknown>
-  note: string | null
-  user_id: string
-  access_role: 'owner' | 'viewer' | 'editor' | null
-}
-type DeletedMomentoRow = { id: string; deleted_at: string }
 
 export default withObservability(
   'momentos',
@@ -76,49 +74,16 @@ export default withObservability(
 
     // ---------------- GET one ----------------
     if (req.method === 'GET' && id) {
-      const rows = parseRows(
-        await runWithSystemRls(() =>
-          sqlTyped<MomentoResponseRow>(sql`
-      SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
-             m.created_at, m.updated_at,
-             m.user_id AS owner_user_id,
-             owner.display_name AS owner_display_name,
-             owner.email AS owner_email,
-             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
-             (m.user_id <> ${userId}) AS shared
-      FROM momentos m
-      LEFT JOIN momento_space_access msa
-        ON msa.owner_user_id = m.user_id
-       AND msa.member_user_id = ${userId}
-       AND msa.deleted_at IS NULL
-      LEFT JOIN users owner ON owner.id = m.user_id
-      WHERE m.id = ${id}
-        AND m.deleted_at IS NULL
-        AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
-    `),
-        ),
-        MomentoListRowSchema,
-        'momentos.get',
-      )
+      const rows = await loadMomentoById(sql, id, userId)
       if (rows.length === 0) {
         return ApiErrors.notFound(requestId, 'Momento no encontrado')
       }
       // Traemos los entityIds linkeados también, para que el cliente no haga
-      // un round-trip aparte. El JOIN a entities excluye entidades soft-borradas:
-      // el link sobrevive (restaurar la entidad lo revive), pero no se lista.
-      const links = parseRows(
-        await runWithSystemRls(() =>
-          sqlTyped<MomentoLinkIdRow>(sql`
-      SELECT me.entity_id
-      FROM momento_entities me
-      JOIN entities e ON e.id = me.entity_id AND e.deleted_at IS NULL
-      WHERE me.momento_id = ${id}
-        AND me.user_id = ${ownerIdFromMomentoRow(rows[0], userId)}
-        AND me.deleted_at IS NULL
-    `),
-        ),
-        MomentoEntityLinkRowSchema.pick({ entity_id: true }),
-        'momentos.get.links',
+      // un round-trip aparte.
+      const links = await loadMomentoEntityLinkIds(
+        sql,
+        id,
+        ownerIdFromMomentoRow(rows[0], userId),
       )
       return Response.json({
         ...rows[0],
@@ -130,147 +95,22 @@ export default withObservability(
     if (req.method === 'GET') {
       const parsedQuery = parseSearchParams(req, MomentosListQuery, requestId)
       if (!parsedQuery.ok) return parsedQuery.response
-      const { limit, validKind, cursorTs, cursorId } = buildMomentosListParams(
-        parsedQuery.data,
-      )
+      const params = buildMomentosListParams(parsedQuery.data)
+      const rows = await listMomentosPage(sql, userId, params)
 
-      let rows: MomentoListRow[]
-      if (cursorTs && cursorId && validKind) {
-        rows = parseRows(
-          await runWithSystemRls(() =>
-            sqlTyped<MomentoListRow>(sql`
-        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
-               m.created_at, m.updated_at,
-               m.user_id AS owner_user_id,
-               owner.display_name AS owner_display_name,
-               owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
-               (m.user_id <> ${userId}) AS shared
-        FROM momentos m
-        LEFT JOIN momento_space_access msa
-          ON msa.owner_user_id = m.user_id
-         AND msa.member_user_id = ${userId}
-         AND msa.deleted_at IS NULL
-        LEFT JOIN users owner ON owner.id = m.user_id
-        WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
-          AND m.kind = ${validKind}
-          AND (m.captured_at, m.id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
-        ORDER BY m.captured_at DESC, m.id DESC
-        LIMIT ${limit + 1}
-      `),
-          ),
-          MomentoListRowSchema,
-          'momentos.list.cursor.kind',
-        )
-      } else if (cursorTs && cursorId) {
-        rows = parseRows(
-          await runWithSystemRls(() =>
-            sqlTyped<MomentoListRow>(sql`
-        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
-               m.created_at, m.updated_at,
-               m.user_id AS owner_user_id,
-               owner.display_name AS owner_display_name,
-               owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
-               (m.user_id <> ${userId}) AS shared
-        FROM momentos m
-        LEFT JOIN momento_space_access msa
-          ON msa.owner_user_id = m.user_id
-         AND msa.member_user_id = ${userId}
-         AND msa.deleted_at IS NULL
-        LEFT JOIN users owner ON owner.id = m.user_id
-        WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
-          AND (m.captured_at, m.id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
-        ORDER BY m.captured_at DESC, m.id DESC
-        LIMIT ${limit + 1}
-      `),
-          ),
-          MomentoListRowSchema,
-          'momentos.list.cursor',
-        )
-      } else if (validKind) {
-        rows = parseRows(
-          await runWithSystemRls(() =>
-            sqlTyped<MomentoListRow>(sql`
-        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
-               m.created_at, m.updated_at,
-               m.user_id AS owner_user_id,
-               owner.display_name AS owner_display_name,
-               owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
-               (m.user_id <> ${userId}) AS shared
-        FROM momentos m
-        LEFT JOIN momento_space_access msa
-          ON msa.owner_user_id = m.user_id
-         AND msa.member_user_id = ${userId}
-         AND msa.deleted_at IS NULL
-        LEFT JOIN users owner ON owner.id = m.user_id
-        WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
-          AND m.kind = ${validKind}
-        ORDER BY m.captured_at DESC, m.id DESC
-        LIMIT ${limit + 1}
-      `),
-          ),
-          MomentoListRowSchema,
-          'momentos.list.kind',
-        )
-      } else {
-        rows = parseRows(
-          await runWithSystemRls(() =>
-            sqlTyped<MomentoListRow>(sql`
-        SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
-               m.created_at, m.updated_at,
-               m.user_id AS owner_user_id,
-               owner.display_name AS owner_display_name,
-               owner.email AS owner_email,
-               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
-               (m.user_id <> ${userId}) AS shared
-        FROM momentos m
-        LEFT JOIN momento_space_access msa
-          ON msa.owner_user_id = m.user_id
-         AND msa.member_user_id = ${userId}
-         AND msa.deleted_at IS NULL
-        LEFT JOIN users owner ON owner.id = m.user_id
-        WHERE m.deleted_at IS NULL
-          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
-        ORDER BY m.captured_at DESC, m.id DESC
-        LIMIT ${limit + 1}
-      `),
-          ),
-          MomentoListRowSchema,
-          'momentos.list.all',
-        )
-      }
-
-      const itemIds = rows.slice(0, limit).map((i) => i.id)
+      const itemIds = rows.slice(0, params.limit).map((i) => i.id)
 
       // Bulk-fetch de links para los items de esta página, dedupe por momento_id.
-      // El JOIN a entities excluye entidades soft-borradas (mismo criterio que
-      // el GET individual): el link queda latente hasta un eventual restore.
       let linksByMomento = new Map<string, string[]>()
       if (itemIds.length > 0) {
-        const links = parseRows(
-          await runWithSystemRls(() =>
-            sqlTyped<MomentoEntityLinkRow>(sql`
-        SELECT me.momento_id, me.entity_id
-        FROM momento_entities me
-        JOIN momentos m ON m.id = me.momento_id
-        JOIN entities e ON e.id = me.entity_id AND e.deleted_at IS NULL
-        WHERE me.momento_id = ANY(${itemIds}::uuid[])
-          AND me.user_id = m.user_id
-          AND me.deleted_at IS NULL
-      `),
-          ),
-          MomentoEntityLinkRowSchema,
-          'momentos.list.links',
+        linksByMomento = groupMomentoEntityLinks(
+          await loadMomentosEntityLinks(sql, itemIds),
         )
-        linksByMomento = groupMomentoEntityLinks(links)
       }
 
-      return Response.json(buildMomentosListResponse({ rows, limit, linksByMomento }))
+      return Response.json(
+        buildMomentosListResponse({ rows, limit: params.limit, linksByMomento }),
+      )
     }
 
     // ---------------- POST create ----------------
@@ -288,15 +128,9 @@ export default withObservability(
         return ApiErrors.validation(requestId, payloadError)
       }
 
-      const { kind, payload, note, origin, capturedAt, entityIds } = draft
+      const { entityIds } = draft
       if (entityIds.length > 0) {
-        const entityRows = await sqlTyped<EntityIdRow>(sql`
-        SELECT id
-        FROM entities
-        WHERE id = ANY(${entityIds}::uuid[])
-          AND deleted_at IS NULL
-          AND user_id = ${userId}
-      `)
+        const entityRows = await selectOwnedEntityIds(sql, entityIds, userId)
         if (new Set(entityRows.map((row) => row.id)).size !== new Set(entityIds).size) {
           return ApiErrors.notFound(requestId, 'Una o más entidades no existen')
         }
@@ -306,39 +140,7 @@ export default withObservability(
       const embedSource = draft.embedSource
       const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
 
-      // Crear el momento + linkear sus entidades en UN solo CTE (atomicidad: el
-      // momento no queda sin sus links si el Lambda muere a mitad). Las entidades
-      // ya se validaron arriba; con entity_ids vacío, `unnest` no inserta nada.
-      // Convención "mutación multi-tabla → CTE" (docs/conventions/dominios.md).
-      // Si tocás este CTE, actualizá scripts/check-cte-regression.sql.
-      const inserted = await sqlTyped<MomentoResponseRow>(sql`
-      WITH ins AS (
-        INSERT INTO momentos (
-          kind, captured_at, payload, note, origin,
-          embedding, embedding_model, embedding_at, user_id
-        ) VALUES (
-          ${kind},
-          ${capturedAt}::timestamptz,
-          ${JSON.stringify(payload)}::jsonb,
-          ${note},
-          ${JSON.stringify(origin)}::jsonb,
-          ${emb ? toPgVector(emb.vector) : null}::vector,
-          ${emb?.model ?? null},
-          ${emb ? new Date().toISOString() : null}::timestamptz,
-          ${userId}
-        )
-        RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
-      ),
-      link AS (
-        INSERT INTO momento_entities (momento_id, entity_id, user_id)
-        SELECT (SELECT id FROM ins), e_id, ${userId}
-        FROM unnest(${entityIds}::uuid[]) AS e_id
-        ON CONFLICT (momento_id, entity_id) DO UPDATE
-        SET user_id = EXCLUDED.user_id, deleted_at = NULL
-        RETURNING 1
-      )
-      SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at FROM ins
-    `)
+      const inserted = await insertMomentoWithLinks(sql, draft, emb, userId)
       const row = inserted[0]
       if (!row) {
         return ApiErrors.internal(requestId, 'No se pudo crear el momento')
@@ -356,20 +158,7 @@ export default withObservability(
 
       // Lookup actual para conocer kind + valores actuales (no permitimos
       // cambiar kind via PATCH — eso requeriría re-encoding del payload).
-      const current = await runWithSystemRls(() =>
-        sqlTyped<CurrentMomentoRow>(sql`
-      SELECT m.kind, m.payload, m.note, m.user_id,
-             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role
-      FROM momentos m
-      LEFT JOIN momento_space_access msa
-        ON msa.owner_user_id = m.user_id
-       AND msa.member_user_id = ${userId}
-       AND msa.deleted_at IS NULL
-      WHERE m.id = ${id}
-        AND m.deleted_at IS NULL
-        AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
-    `),
-      )
+      const current = await loadCurrentMomento(sql, id, userId)
       const currentRow = current[0]
       if (!currentRow || currentRow.access_role === 'viewer') {
         return ApiErrors.notFound(requestId, 'Momento no encontrado')
@@ -403,35 +192,17 @@ export default withObservability(
       const emb =
         shouldReembed && embedSource.length > 0 ? await embedSafe(embedSource) : null
 
-      // El UPDATE solo toca embedding cuando hubo cambio textual. Cambios de
-      // payload/note que no alteran el texto embebible se persisten sin gastar
-      // OpenAI ni sobreescribir el embedding actual.
       if (newCapturedAt || shouldUpdateContent) {
-        await runWithSystemRls(
-          () => sql`
-        UPDATE momentos
-        SET payload = CASE
-              WHEN ${shouldUpdateContent} THEN ${JSON.stringify(newPayload)}::jsonb
-              ELSE payload
-            END,
-            note = CASE WHEN ${shouldUpdateContent} THEN ${newNote} ELSE note END,
-            captured_at = COALESCE(${newCapturedAt}::timestamptz, captured_at),
-            embedding = CASE
-              WHEN ${shouldReembed} THEN ${emb ? toPgVector(emb.vector) : null}::vector
-              ELSE embedding
-            END,
-            embedding_model = CASE
-              WHEN ${shouldReembed} THEN ${emb?.model ?? null}
-              ELSE embedding_model
-            END,
-            embedding_at = CASE
-              WHEN ${shouldReembed} THEN ${emb ? new Date().toISOString() : null}::timestamptz
-              ELSE embedding_at
-            END,
-            updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${ownerUserId}
-      `,
-        )
+        await updateMomentoContent(sql, {
+          id,
+          ownerUserId,
+          newPayload,
+          newNote,
+          newCapturedAt,
+          shouldUpdateContent,
+          shouldReembed,
+          emb,
+        })
       }
 
       // Reemplazar set de entityIds si viene.
@@ -439,72 +210,17 @@ export default withObservability(
         const entityIds = draft.entityIds
         if (entityIds.length > 0) {
           const entityRows = await runWithSystemRls(() =>
-            sqlTyped<EntityIdRow>(sql`
-          SELECT id
-          FROM entities
-          WHERE id = ANY(${entityIds}::uuid[])
-            AND deleted_at IS NULL
-            AND user_id = ${ownerUserId}
-        `),
+            selectOwnedEntityIds(sql, entityIds, ownerUserId),
           )
           if (new Set(entityRows.map((row) => row.id)).size !== new Set(entityIds).size) {
             return ApiErrors.notFound(requestId, 'Una o más entidades no existen')
           }
         }
-        await runWithSystemRls(
-          () => sql`
-        UPDATE momento_entities
-        SET deleted_at = NOW()
-        WHERE momento_id = ${id} AND user_id = ${ownerUserId} AND deleted_at IS NULL
-      `,
-        )
-        if (entityIds.length > 0) {
-          await runWithSystemRls(
-            () => sql`
-          INSERT INTO momento_entities (momento_id, entity_id, user_id)
-          SELECT ${id}::uuid, e_id, ${ownerUserId}
-          FROM unnest(${entityIds}::uuid[]) AS e_id
-          ON CONFLICT (momento_id, entity_id) DO UPDATE
-          SET user_id = EXCLUDED.user_id,
-              deleted_at = NULL
-        `,
-          )
-        }
+        await replaceMomentoEntityLinks(sql, id, entityIds, ownerUserId)
       }
 
-      const updated = parseRows(
-        await runWithSystemRls(() =>
-          sqlTyped<MomentoResponseRow>(sql`
-      SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
-             m.created_at, m.updated_at,
-             m.user_id AS owner_user_id,
-             owner.display_name AS owner_display_name,
-             owner.email AS owner_email,
-             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role,
-             (m.user_id <> ${userId}) AS shared
-      FROM momentos m
-      LEFT JOIN momento_space_access msa
-        ON msa.owner_user_id = m.user_id
-       AND msa.member_user_id = ${userId}
-       AND msa.deleted_at IS NULL
-      LEFT JOIN users owner ON owner.id = m.user_id
-      WHERE m.id = ${id}
-    `),
-        ),
-        MomentoListRowSchema,
-        'momentos.patch.returning',
-      )
-      const links = parseRows(
-        await runWithSystemRls(() =>
-          sqlTyped<MomentoLinkIdRow>(sql`
-      SELECT entity_id
-      FROM momento_entities
-      WHERE momento_id = ${id} AND user_id = ${ownerUserId} AND deleted_at IS NULL
-    `),
-        ),
-        MomentoEntityLinkRowSchema.pick({ entity_id: true }),
-        'momentos.patch.links',
-      )
+      const updated = await loadMomentoAfterPatch(sql, id, userId)
+      const links = await loadMomentoEntityLinkIdsAfterPatch(sql, id, ownerUserId)
       return Response.json({
         ...updated[0],
         entity_ids: links.map((l) => l.entity_id),
@@ -514,12 +230,7 @@ export default withObservability(
     // ---------------- DELETE soft ----------------
     if (req.method === 'DELETE' && id) {
       await ensureUserRow(sql, authedUser)
-      const result = await sqlTyped<DeletedMomentoRow>(sql`
-      UPDATE momentos
-      SET deleted_at = NOW()
-      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-      RETURNING id, deleted_at
-    `)
+      const result = await softDeleteMomento(sql, id, userId)
       const deletedRow = result[0]
       if (!deletedRow) {
         logOperationalEvent({
