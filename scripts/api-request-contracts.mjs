@@ -27,7 +27,7 @@ export const API_REQUEST_CONTRACTS = [
   },
   {
     domain: 'momentos',
-    file: 'netlify/functions/_lib/momentos-endpoint.ts',
+    file: 'netlify/functions/_lib/momentos/handlers.ts',
     requires: ['parseSearchParams(req, MomentosListQuery, requestId)'],
     forbids: ['parseMomentosListParams(url)', 'new URL(req.url)'],
     reason: 'timeline pagination is private and should reject ambiguous cursors early',

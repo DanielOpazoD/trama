@@ -106,7 +106,7 @@ const REQUIRED_EVENT_SOURCE_SNIPPETS = [
     snippets: ['owner.mismatch', "operation: 'recortes.delete'"],
   },
   {
-    file: 'netlify/functions/_lib/momentos-endpoint.ts',
+    file: 'netlify/functions/_lib/momentos/handlers.ts',
     snippets: ['owner.mismatch', "operation: 'momentos.delete'"],
   },
   {
