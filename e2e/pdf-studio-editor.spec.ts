@@ -518,6 +518,36 @@ test.describe('Imprenta · editor PDF', () => {
       .toBe(true)
   })
 
+  test('el token .focus-ring RENDERIZA un anillo real al foco por teclado', async ({
+    page,
+  }) => {
+    await openPdfEditor(page)
+    // Tabula por el editor hasta caer en un control que usa el token .focus-ring
+    // y comprueba que el foco por teclado (:focus-visible) DIBUJA el anillo de
+    // verdad: comparamos el box-shadow enfocado vs desenfocado (así un shadow-sm
+    // de base no lo enmascara) y verificamos que el outline global quede suprimido.
+    let result = null
+    for (let i = 0; i < 30; i += 1) {
+      await page.keyboard.press('Tab')
+      result = await page.evaluate(() => {
+        const el = document.activeElement
+        const cls = el && typeof el.className === 'string' ? el.className : ''
+        if (!/\bfocus-ring(-inset)?\b/.test(cls)) return null
+        if (!el.matches(':focus-visible')) return null
+        const focused = getComputedStyle(el).boxShadow
+        const outlineStyle = getComputedStyle(el).outlineStyle
+        el.blur()
+        const blurred = getComputedStyle(el).boxShadow
+        return { focused, blurred, outlineStyle }
+      })
+      if (result) break
+    }
+    expect(result, 'no se alcanzó ningún control .focus-ring por teclado').not.toBeNull()
+    expect(result?.outlineStyle).toBe('none') // el token suprime el outline global
+    expect(result?.focused).not.toBe('none') // ...y dibuja un anillo
+    expect(result?.focused).not.toBe(result?.blurred) // el :focus-visible lo AGREGA
+  })
+
   test('permite redimensionar un resaltado arrastrando un handle', async ({ page }) => {
     await openPdfEditor(page)
 
