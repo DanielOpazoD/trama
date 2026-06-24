@@ -202,6 +202,7 @@ export function TaskItem({
               <span className="flex items-center gap-2">
                 <label className="text-micro uppercase tracking-eyebrow text-ink-400 flex items-center gap-2">
                   vence
+                  {/* form-control-label-exempt: Input date envuelto por <label> con el texto "vence". */}
                   <input
                     type="date"
                     value={due}

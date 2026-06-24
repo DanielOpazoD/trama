@@ -354,6 +354,7 @@ export function ClavesView({
             className="input-paper w-full text-sm"
           />
           <label className="inline-flex items-center gap-2 text-micro uppercase tracking-eyebrow text-ink-400">
+            {/* form-control-label-exempt: Checkbox envuelto por <label> con el texto "crítica". */}
             <input
               type="checkbox"
               checked={critical}

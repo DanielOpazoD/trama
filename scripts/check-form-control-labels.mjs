@@ -25,32 +25,19 @@ import { pathToFileURL } from 'node:url'
 //   - type="hidden" (los inputs ocultos no necesitan nombre)
 //   - un id referenciado por algún htmlFor del MISMO archivo (label asociado)
 // Si no, cuenta como SIN ETIQUETAR (deuda).
+//
+// EXENCIONES por MARCADOR INLINE (no por allowlist file:LÍNEA, que se rompe al
+// mover líneas — mismo patrón que check:focus-ring): un control sin nombre queda
+// exento si la línea inmediatamente anterior (o la misma) trae
+// `form-control-label-exempt: <razón>`. Son los casos LEGÍTIMAMENTE nombrados por
+// un <label> padre que los ENVUELVE (asociación nativa por anidamiento, que el
+// escaneo plano no detecta): el nombre accesible viene del texto del <label> y
+// agregar aria-label sería redundante y, si difiere del texto visible, violaría
+// WCAG 2.5.3 (Label in Name). Como el control vive dentro del <label>, el marcador
+// va en un comentario JSX `{/* … */}` sobre la línea del control. Un marcador sin
+// un control sin nombre debajo (dangling) hace fallar el gate, para que se limpie.
 
 export const FORM_CONTROL_LABEL_BASELINE = 0
-
-// Controles SIN etiqueta para el escaneo plano pero LEGÍTIMAMENTE nombrados por
-// un <label> padre que los envuelve (asociación nativa por anidamiento, que el
-// escaneo no detecta). El nombre accesible viene del texto del <label>; agregar
-// aria-label sería redundante y, si difiere del texto visible, viola WCAG 2.5.3
-// (Label in Name). Allowlist con razón verificada, como hard-delete.
-export const FORM_CONTROL_LABEL_EXEMPT = new Map([
-  [
-    'src/components/notas/ClavesVaultParts.tsx:125',
-    'Checkbox envuelto por <label> con <span>Llave física</span>.',
-  ],
-  [
-    'src/components/notas/ClavesVaultParts.tsx:285',
-    'Checkbox envuelto por <label> con el texto "crítica".',
-  ],
-  [
-    'src/components/notas/ClavesView.tsx:357',
-    'Checkbox envuelto por <label> con el texto "crítica".',
-  ],
-  [
-    'src/components/notas/TaskItem.tsx:205',
-    'Input date envuelto por <label> con el texto "vence".',
-  ],
-])
 
 const CONTROL_RE = /<(input|textarea|select)\b/g
 // Captura el valor de htmlFor/id en sus cuatro formas: "x", 'x', {`x`}/{'x'} y
@@ -62,6 +49,15 @@ const LABEL_ATTR_RE = /\b(aria-label|aria-labelledby|title)\b[=\s]/
 const HIDDEN_RE = /type=(?:"hidden"|'hidden'|\{\s*[`'"]hidden[`'"]\s*\})/
 const ID_RE =
   /\bid=(?:"([^"]+)"|'([^']+)'|\{\s*[`'"]([^`'"]+)[`'"]\s*\}|\{\s*([A-Za-z_$][\w$.]*)\s*\})/
+// Marcador de exención inline. La razón es lo que sigue a los dos puntos.
+const EXEMPT_MARKER_RE = /form-control-label-exempt:?\s*(.*)$/
+
+// La razón cruda. Quita el cierre de un comentario JSX (`*/}` / `*/`) que el
+// `(.*)$` arrastra cuando el marcador va como `{/* … */}` en posición de hijo
+// JSX (el caso normal acá, porque el control vive dentro del <label> padre).
+function markerReason(match) {
+  return match[1].replace(/\s*\*\/\}?\s*$/, '').trim()
+}
 
 // Extrae el tag completo desde `<` hasta el `>` de cierre a profundidad 0,
 // respetando strings y `{...}` (los arrow handlers traen `>` dentro de llaves).
@@ -96,7 +92,8 @@ function tagId(tag) {
 // Neutraliza comentarios de bloque (incluye los JSX `{/* … */}` y JSDoc) para
 // que un `<textarea>` mencionado en prosa no cuente como control. Reemplaza solo
 // los caracteres que no son saltos de línea, preservando offsets y números de
-// línea del reporte.
+// línea del reporte. Los marcadores se buscan sobre el source CRUDO, así que el
+// blanqueo del `{/* … */}` del propio marcador no lo oculta.
 function stripBlockComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
 }
@@ -121,54 +118,101 @@ function isScannedFile(file) {
   return file.endsWith('.tsx') && !file.endsWith('.test.tsx')
 }
 
+// Líneas (1-based) de `stripped` con un control de formulario SIN nombre accesible.
+function unlabeledControlLines(stripped) {
+  if (!CONTROL_RE.test(stripped)) return []
+  CONTROL_RE.lastIndex = 0
+  const htmlForTargets = collectHtmlForTargets(stripped)
+  const found = []
+  for (const m of stripped.matchAll(CONTROL_RE)) {
+    const tag = extractTag(stripped, m.index)
+    if (isLabeled(tag, htmlForTargets)) continue
+    found.push({ line: stripped.slice(0, m.index).split('\n').length, kind: m[1] })
+  }
+  return found
+}
+
+// Devuelve TODO control sin nombre accesible, marcando si está exento (por el
+// marcador inline en su línea o en la inmediatamente anterior) y con su razón.
 export function collectFormControlLabels(root = process.cwd()) {
   const projectRoot = resolve(root)
   const srcRoot = join(projectRoot, 'src')
-  const unlabeled = []
+  const controls = []
 
   for (const file of walk(srcRoot).filter(isScannedFile)) {
-    const source = stripBlockComments(readFileSync(file, 'utf8'))
-    if (!CONTROL_RE.test(source)) continue
-    CONTROL_RE.lastIndex = 0
-    const htmlForTargets = collectHtmlForTargets(source)
-    for (const m of source.matchAll(CONTROL_RE)) {
-      const tag = extractTag(source, m.index)
-      if (isLabeled(tag, htmlForTargets)) continue
-      const line = source.slice(0, m.index).split('\n').length
-      unlabeled.push({
-        file: relative(projectRoot, file),
+    const raw = readFileSync(file, 'utf8')
+    const found = unlabeledControlLines(stripBlockComments(raw))
+    if (found.length === 0) continue
+    const rel = relative(projectRoot, file)
+    const rawLines = raw.split('\n')
+    for (const { line, kind } of found) {
+      const marker =
+        EXEMPT_MARKER_RE.exec(rawLines[line - 1] ?? '') ||
+        (line > 1 ? EXEMPT_MARKER_RE.exec(rawLines[line - 2] ?? '') : null)
+      controls.push({
+        file: rel,
         line,
-        kind: m[1],
+        kind,
+        exempt: Boolean(marker),
+        reason: marker ? markerReason(marker) : '',
       })
     }
   }
 
-  unlabeled.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)
-  return unlabeled
+  controls.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line)
+  return controls
+}
+
+// Marcadores `form-control-label-exempt` que NO tienen un control sin nombre en
+// su misma línea ni en la siguiente: quedaron colgando tras un refactor y hay que
+// quitarlos (o el marcador está mal ubicado).
+export function collectDanglingFormControlMarkers(root = process.cwd()) {
+  const projectRoot = resolve(root)
+  const srcRoot = join(projectRoot, 'src')
+  const dangling = []
+
+  for (const file of walk(srcRoot).filter(isScannedFile)) {
+    const raw = readFileSync(file, 'utf8')
+    if (!raw.includes('form-control-label-exempt')) continue
+    const unlabeled = new Set(
+      unlabeledControlLines(stripBlockComments(raw)).map((c) => c.line),
+    )
+    const rel = relative(projectRoot, file)
+    const rawLines = raw.split('\n')
+    for (let i = 0; i < rawLines.length; i++) {
+      if (!EXEMPT_MARKER_RE.test(rawLines[i])) continue
+      const here = i + 1
+      if (!unlabeled.has(here) && !unlabeled.has(here + 1))
+        dangling.push({ file: rel, line: here })
+    }
+  }
+  return dangling
 }
 
 export function checkFormControlLabels({
   root = process.cwd(),
   baseline = FORM_CONTROL_LABEL_BASELINE,
-  exempt = FORM_CONTROL_LABEL_EXEMPT,
 } = {}) {
   const all = collectFormControlLabels(root)
-  const unlabeled = all.filter((entry) => !exempt.has(`${entry.file}:${entry.line}`))
-  const staleExempt = [...exempt.keys()].filter(
-    (key) => !all.some((entry) => `${entry.file}:${entry.line}` === key),
-  )
+  const unlabeled = all.filter((entry) => !entry.exempt)
+  const dangling = collectDanglingFormControlMarkers(root)
 
   const failures = []
   if (unlabeled.length > baseline)
     failures.push({ kind: 'increase', actual: unlabeled.length, baseline })
-  if (staleExempt.length > 0) failures.push({ kind: 'staleExempt', files: staleExempt })
+  if (dangling.length > 0)
+    failures.push({
+      kind: 'danglingMarker',
+      files: dangling.map((d) => `${d.file}:${d.line}`),
+    })
 
   return {
     ok: failures.length === 0,
     count: unlabeled.length,
     baseline,
     unlabeled,
-    staleExempt,
+    exempt: all.filter((entry) => entry.exempt),
+    dangling,
     failures,
     dropped: unlabeled.length < baseline,
   }
@@ -182,7 +226,8 @@ if (isCli) {
   console.log('\nForm control labels ratchet:')
   console.log('-'.repeat(72))
   console.log(
-    `  controles sin nombre accesible  ${String(result.count).padStart(4)}/${result.baseline}`,
+    `  controles sin nombre accesible  ${String(result.count).padStart(4)}/${result.baseline}` +
+      `   (exentos por marcador: ${result.exempt.length})`,
   )
   console.log('-'.repeat(72))
 
@@ -191,16 +236,21 @@ if (isCli) {
       console.error(
         '\nSubió la cantidad de controles de formulario sin nombre accesible. ' +
           'Asociá un <label htmlFor>+id, o agregá aria-label/aria-labelledby ' +
-          '(nombre conciso en español neutro). Nuevos sin etiquetar:',
+          '(nombre conciso en español neutro). Si el control va ENVUELTO por un ' +
+          '<label> padre (nombre nativo por anidamiento), poné en la línea de ' +
+          'arriba un comentario `form-control-label-exempt: <razón>`. Nuevos sin ' +
+          'etiquetar:',
       )
       for (const entry of result.unlabeled.slice(0, 30))
         console.error(`  - ${entry.file}:${entry.line} <${entry.kind}>`)
     }
-    if (result.staleExempt.length > 0) {
+    if (result.dangling.length > 0) {
       console.error(
-        '\nEntradas EXEMPT que ya no aplican (removelas de FORM_CONTROL_LABEL_EXEMPT):',
+        '\nMarcadores `form-control-label-exempt` sin un control sin nombre debajo ' +
+          '(quitalos o reubicalos):',
       )
-      for (const key of result.staleExempt) console.error(`  - ${key}`)
+      for (const key of result.failures.find((f) => f.kind === 'danglingMarker').files)
+        console.error(`  - ${key}`)
     }
     console.error('')
     process.exit(1)
