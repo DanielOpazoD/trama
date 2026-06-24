@@ -1121,6 +1121,28 @@ html.dark .paper-grain::before {
       0 0 0 4px var(--accent-gold);
   }
 
+  /* En modo de COLORES FORZADOS (alto contraste de Windows, etc.) el navegador
+     descarta `box-shadow`, así que todos los anillos de arriba desaparecerían y
+     el control quedaría sin indicador. Restauramos uno con `outline` (sí
+     respetado) y colores del sistema: foco con Highlight sólido; la selección
+     punteada para distinguirla del foco. El `:focus-visible` le gana a la
+     selección por orden/especificidad, igual que fuera de forced-colors. */
+  @media (forced-colors: active) {
+    .focus-ring:focus-visible,
+    .focus-ring-inset:focus-visible,
+    .focus-ring-within:focus-within {
+      box-shadow: none;
+      outline: 2px solid Highlight;
+      outline-offset: 2px;
+    }
+    .selection-ring,
+    .selection-ring-gold {
+      box-shadow: none;
+      outline: 2px dashed Highlight;
+      outline-offset: 2px;
+    }
+  }
+
   .btn-ink {
     @apply px-4 py-2 bg-ink-700 text-paper-50 rounded-lg text-sm
       hover:bg-ink-600 active:scale-[0.97]

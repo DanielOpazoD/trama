@@ -140,4 +140,16 @@ test.describe('convención de foco (runtime)', () => {
     })
     expect(shadow).not.toBe('none')
   })
+
+  test('en forced-colors el foco cae en un outline visible (no box-shadow)', async ({
+    page,
+  }) => {
+    // En alto contraste el navegador descarta box-shadow; el fallback de
+    // index.css restaura un outline para que el foco siga siendo visible.
+    await page.emulateMedia({ forcedColors: 'active' })
+    await openPdfEditor(page)
+    const r = await focusFirstRingControl(page)
+    expect(r, 'no se alcanzó control .focus-ring en forced-colors').not.toBeNull()
+    expect(r?.outlineStyle).toBe('solid')
+  })
 })
