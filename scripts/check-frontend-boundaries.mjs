@@ -1,21 +1,13 @@
 #!/usr/bin/env node
 
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { listFilesRecursive } from './lib/source-files.mjs'
+
 const importFromRe = /^\s*import\s+(type\s+)?[\s\S]*?\s+from\s+['"]([^'"]+)['"]/gm
 const sideEffectImportRe = /^\s*import\s+['"]([^'"]+)['"]/gm
-
-function walk(dir, files = []) {
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    const stat = statSync(path)
-    if (stat.isDirectory()) walk(path, files)
-    else files.push(path)
-  }
-  return files
-}
 
 function isComponentViewModel(file) {
   return /[Vv]iewModel\.ts$/.test(file)
@@ -50,7 +42,7 @@ export function checkFrontendBoundaries(root = process.cwd()) {
   const componentsRoot = join(projectRoot, 'src/components')
   const failures = []
 
-  for (const file of walk(componentsRoot).filter(isComponentViewModel)) {
+  for (const file of listFilesRecursive(componentsRoot).filter(isComponentViewModel)) {
     const rel = relative(projectRoot, file)
     const source = readFileSync(file, 'utf8')
     for (const { typeOnly, specifier } of readStaticImports(source)) {

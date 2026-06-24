@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, relative, resolve } from 'node:path'
+
+import { listFilesRecursive } from './lib/source-files.mjs'
 
 const SOURCE_DIRS = ['src']
 
@@ -74,25 +76,15 @@ function staticRuntimePdfLibImports(lines) {
   return issues
 }
 
-function walk(dir) {
-  const out = []
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    const stat = statSync(path)
-    if (stat.isDirectory()) {
-      out.push(...walk(path))
-      continue
-    }
-    if (/\.(?:ts|tsx)$/.test(entry) && !entry.includes('.test.')) out.push(path)
-  }
-  return out
+// `.ts`/`.tsx` salvo tests (`.test.`); incluye `.d.ts` a propósito.
+function isPdfSourceFile(file) {
+  return /\.(?:ts|tsx)$/.test(file) && !file.includes('.test.')
 }
 
 function readSourceFiles(root) {
-  return SOURCE_DIRS.flatMap((dir) => {
-    const full = join(root, dir)
-    return existsSync(full) ? walk(full) : []
-  })
+  return SOURCE_DIRS.flatMap((dir) =>
+    listFilesRecursive(join(root, dir)).filter(isPdfSourceFile),
+  )
 }
 
 /**

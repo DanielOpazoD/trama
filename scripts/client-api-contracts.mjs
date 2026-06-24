@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import { listFilesRecursive } from './lib/source-files.mjs'
 
 const DIRECT_FETCH_ALLOWLIST = [
   {
@@ -139,17 +141,6 @@ const PRIVATE_BLOB_CONTRACTS = [
   },
 ]
 
-function walk(dir, files = []) {
-  if (!existsSync(dir)) return files
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    const stat = statSync(path)
-    if (stat.isDirectory()) walk(path, files)
-    else files.push(path)
-  }
-  return files
-}
-
 function isSourceFile(file) {
   if (!/\.(ts|tsx)$/.test(file)) return false
   if (/\.test\.(ts|tsx)$/.test(file)) return false
@@ -201,7 +192,7 @@ function pushMissingTextFailures(failures, contract, source) {
 }
 
 function allSourceFiles(projectRoot) {
-  return walk(join(projectRoot, 'src')).filter(isSourceFile)
+  return listFilesRecursive(join(projectRoot, 'src')).filter(isSourceFile)
 }
 
 function sourceOrNull(projectRoot, file) {
