@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import { scannedSourceFiles } from './lib/source-files.mjs'
 
 // Gate RATCHET del contrato de design tokens (docs/conventions/design.md).
 //
@@ -38,20 +40,6 @@ function isColorArbitrary(match) {
   return match.startsWith('text-[color:')
 }
 
-function walk(dir, files = []) {
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    const stat = statSync(path)
-    if (stat.isDirectory()) walk(path, files)
-    else files.push(path)
-  }
-  return files
-}
-
-function isScannedFile(file) {
-  return file.endsWith('.tsx') && !file.endsWith('.test.tsx')
-}
-
 function countMatches(source, regex, reject) {
   let count = 0
   for (const match of source.matchAll(regex)) {
@@ -63,11 +51,10 @@ function countMatches(source, regex, reject) {
 
 export function collectDesignTokenUsage(root = process.cwd()) {
   const projectRoot = resolve(root)
-  const srcRoot = join(projectRoot, 'src')
   const perFile = []
   const totals = { arbitrary: 0, legacy: 0 }
 
-  for (const file of walk(srcRoot).filter(isScannedFile)) {
+  for (const file of scannedSourceFiles(root)) {
     const source = readFileSync(file, 'utf8')
     const arbitrary =
       countMatches(source, ARBITRARY_SIZE_RE, isColorArbitrary) +

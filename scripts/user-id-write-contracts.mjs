@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { PRIVATE_TABLE_CONTRACTS } from './auth-rls-contracts.mjs'
+import { listFilesRecursive } from './lib/source-files.mjs'
 
 const ROOT = process.cwd()
 const FUNCTIONS_DIR = join(ROOT, 'netlify/functions')
@@ -63,27 +64,19 @@ export const USER_ID_WRITE_WARNING_ALLOWLIST = [
   },
 ]
 
-function walk(dir) {
-  const out = []
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry)
-    const stat = statSync(full)
-    if (stat.isDirectory()) {
-      out.push(...walk(full))
-      continue
-    }
-    if (!/\.(mts|ts)$/.test(entry)) continue
-    if (entry.endsWith('.test.ts') || entry.endsWith('.test.mts')) continue
-    out.push(full)
-  }
-  return out
+// Funciones de producción: `.ts`/`.mts`, sin tests.
+function isProductionFunctionFile(file) {
+  if (!/\.(mts|ts)$/.test(file)) return false
+  return !file.endsWith('.test.ts') && !file.endsWith('.test.mts')
 }
 
 function productionSources() {
-  return walk(FUNCTIONS_DIR).map((file) => ({
-    file: relative(ROOT, file),
-    source: readFileSync(file, 'utf8'),
-  }))
+  return listFilesRecursive(FUNCTIONS_DIR)
+    .filter(isProductionFunctionFile)
+    .map((file) => ({
+      file: relative(ROOT, file),
+      source: readFileSync(file, 'utf8'),
+    }))
 }
 
 function parseColumns(rawColumns) {

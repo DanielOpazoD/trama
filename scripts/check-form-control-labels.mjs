@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { createMarkerExemption } from './lib/exempt-marker.mjs'
+import { scannedSourceFiles } from './lib/source-files.mjs'
 
 // Gate RATCHET de nombres accesibles en controles de formulario.
 //
@@ -104,19 +105,6 @@ function isLabeled(tag, htmlForTargets) {
   return id != null && htmlForTargets.has(id)
 }
 
-function walk(dir, files = []) {
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    if (statSync(path).isDirectory()) walk(path, files)
-    else files.push(path)
-  }
-  return files
-}
-
-function isScannedFile(file) {
-  return file.endsWith('.tsx') && !file.endsWith('.test.tsx')
-}
-
 // Líneas (1-based) de `stripped` con un control de formulario SIN nombre accesible.
 function unlabeledControlLines(stripped) {
   if (!CONTROL_RE.test(stripped)) return []
@@ -135,10 +123,9 @@ function unlabeledControlLines(stripped) {
 // marcador inline en su línea o en la inmediatamente anterior) y con su razón.
 export function collectFormControlLabels(root = process.cwd()) {
   const projectRoot = resolve(root)
-  const srcRoot = join(projectRoot, 'src')
   const controls = []
 
-  for (const file of walk(srcRoot).filter(isScannedFile)) {
+  for (const file of scannedSourceFiles(root)) {
     const raw = readFileSync(file, 'utf8')
     const found = unlabeledControlLines(stripBlockComments(raw))
     if (found.length === 0) continue
@@ -165,10 +152,9 @@ export function collectFormControlLabels(root = process.cwd()) {
 // quitarlos (o el marcador está mal ubicado).
 export function collectDanglingFormControlMarkers(root = process.cwd()) {
   const projectRoot = resolve(root)
-  const srcRoot = join(projectRoot, 'src')
   const dangling = []
 
-  for (const file of walk(srcRoot).filter(isScannedFile)) {
+  for (const file of scannedSourceFiles(root)) {
     const raw = readFileSync(file, 'utf8')
     if (!raw.includes('form-control-label-exempt')) continue
     const constructLines = new Set(

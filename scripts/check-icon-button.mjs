@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { createMarkerExemption } from './lib/exempt-marker.mjs'
+import { scannedSourceFiles } from './lib/source-files.mjs'
 
 // Gate RATCHET de adopción del primitivo IconButton.
 //
@@ -61,19 +62,6 @@ function tagEnd(src, startIdx) {
   return -1
 }
 
-function walk(dir, files = []) {
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry)
-    if (statSync(path).isDirectory()) walk(path, files)
-    else files.push(path)
-  }
-  return files
-}
-
-function isScannedFile(file) {
-  return file.endsWith('.tsx') && !file.endsWith('.test.tsx')
-}
-
 // Líneas (1-based) de `source` con un <button> de SOLO ÍCONO (un único componente
 // de ícono autocerrado como children, sin texto ni otros hijos).
 function iconButtonLines(source) {
@@ -98,10 +86,9 @@ function iconButtonLines(source) {
 // inline en su línea o en la inmediatamente anterior) y con su razón.
 export function collectIconButtons(root = process.cwd()) {
   const projectRoot = resolve(root)
-  const srcRoot = join(projectRoot, 'src')
   const found = []
 
-  for (const file of walk(srcRoot).filter(isScannedFile)) {
+  for (const file of scannedSourceFiles(root)) {
     const source = readFileSync(file, 'utf8')
     const lines = iconButtonLines(source)
     if (lines.length === 0) continue
@@ -126,10 +113,9 @@ export function collectIconButtons(root = process.cwd()) {
 // quitarlos (o el marcador está mal ubicado).
 export function collectDanglingIconButtonMarkers(root = process.cwd()) {
   const projectRoot = resolve(root)
-  const srcRoot = join(projectRoot, 'src')
   const dangling = []
 
-  for (const file of walk(srcRoot).filter(isScannedFile)) {
+  for (const file of scannedSourceFiles(root)) {
     const source = readFileSync(file, 'utf8')
     if (!source.includes('icon-button-exempt')) continue
     const constructLines = new Set(iconButtonLines(source))
