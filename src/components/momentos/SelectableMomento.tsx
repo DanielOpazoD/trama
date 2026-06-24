@@ -46,15 +46,8 @@ export function SelectableMomento({
   return (
     <div
       className={`relative rounded-xl transition-all cursor-pointer focus-ring ${
-        selected
-          ? 'ring-2 ring-offset-2'
-          : 'ring-1 ring-transparent hover:ring-ink-100/80'
+        selected ? 'selection-ring-gold' : 'ring-1 ring-transparent hover:ring-ink-100/80'
       }`}
-      style={{
-        ...(selected
-          ? { boxShadow: '0 0 0 2px var(--accent-gold), 0 0 0 4px rgb(var(--paper-50))' }
-          : {}),
-      }}
       onClick={onToggleSelect}
       onKeyDown={handleKeyDown}
       role="checkbox"

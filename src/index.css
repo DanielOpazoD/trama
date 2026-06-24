@@ -1095,6 +1095,31 @@ html.dark .paper-grain::before {
       inset 0 0 0 2px var(--accent-primary),
       inset 0 0 0 4px rgb(var(--paper-50) / 0.7);
   }
+  /* Variante CONTENEDOR: cuando el indicador de foco lo muestra un wrapper al
+     enfocarse un hijo (inputs transparentes dentro de un recuadro). Mismo glow
+     suave que `.input-paper:focus-within`, así todos los “campos que se iluminan”
+     comparten el lenguaje en vez de cada uno su `focus-within:border-*` ad-hoc. */
+  .focus-ring-within:focus-within {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-primary-ring);
+  }
+
+  /* Anillo de SELECCIÓN (estado “este ítem está elegido”, distinto del foco).
+     Mismo lenguaje que .focus-ring (anillo de 2px con gap de papel) para que el
+     sistema de anillos sea uno solo; reemplaza los `boxShadow` inline ad-hoc que
+     estaban dispersos. Dos colores semánticos: salvia por defecto, oro para la
+     selección de momentos/recortes. El foco (`.focus-ring:focus-visible`) le gana
+     por especificidad, así que un ítem seleccionado Y enfocado muestra el foco. */
+  .selection-ring {
+    box-shadow:
+      0 0 0 2px rgb(var(--paper-50)),
+      0 0 0 4px var(--accent-sage);
+  }
+  .selection-ring-gold {
+    box-shadow:
+      0 0 0 2px rgb(var(--paper-50)),
+      0 0 0 4px var(--accent-gold);
+  }
 
   .btn-ink {
     @apply px-4 py-2 bg-ink-700 text-paper-50 rounded-lg text-sm

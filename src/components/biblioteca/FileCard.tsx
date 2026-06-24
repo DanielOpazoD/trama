@@ -59,7 +59,7 @@ export function FileCard({
       onClick={() => onOpen(item)}
       onKeyDown={handleKeyDown}
       className={`card-paper-hover group relative flex flex-col gap-2.5 p-3 h-full cursor-pointer focus-ring ${
-        selected ? 'ring-2 ring-[color:var(--accent-sage)]' : ''
+        selected ? 'selection-ring' : ''
       }`}
     >
       {/* Círculo de selección — arriba a la izquierda. Visible al hover/focus o

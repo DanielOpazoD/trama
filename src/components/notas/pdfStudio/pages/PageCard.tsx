@@ -142,8 +142,7 @@ export function PageCard({
         }
       }}
       data-page-id={page.id}
-      style={isDropTarget || selected ? { boxShadow: `0 0 0 2px ${ACCENT}` } : undefined}
-      className={`group pdf-page-card flex flex-col rounded-lg border bg-paper-50 overflow-hidden ${
+      className={`${isDropTarget || selected ? 'selection-ring ' : ''}group pdf-page-card flex flex-col rounded-lg border bg-paper-50 overflow-hidden ${
         dragging
           ? 'opacity-40 scale-[0.97] border-ink-300'
           : isDropTarget || selected
