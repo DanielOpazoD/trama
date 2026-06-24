@@ -158,3 +158,9 @@ Cinco ratchets (en `scripts/`, corren en el job `lint` de CI) congelan el estado
 | `check:focus-ring`          | foco horneado que duplica (`focus:ring`) o suprime (`focus:outline-none`) el `*:focus-visible` global |
 
 Cada uno baja su baseline cuando alguien migra; el gate avisa para actualizar el piso. Para migrar un caso nuevo, seguí el primitivo/token correspondiente en vez de reintroducir el patrón hand-rolled.
+
+**Exenciones — la granularidad sigue a la detección.** Cada gate exime con el mecanismo que calza con CÓMO detecta, no con uno uniforme a la fuerza:
+
+- **Por línea → marcador inline.** `check:focus-ring`, `check:form-control-labels` y `check:icon-button` cuentan una construcción por línea (una clase de foco, un control, un `<button>` de solo-ícono); la excepción es un comentario `<gate>-exempt: <razón>` en la línea de arriba (`focus-ring-exempt:`, `form-control-label-exempt:`, `icon-button-exempt:`). La razón viaja pegada al código y sobrevive a barridos que mueven líneas; un marcador sin la construcción debajo (dangling) hace fallar el gate para que se limpie. Reemplazó al allowlist `file:LÍNEA`, que se rompía (entradas stale → CI rojo) al reordenar líneas.
+- **Por archivo → allowlist con razón.** `check:modal-overlay` clasifica la ARQUITECTURA de un archivo entero (¿su `role="dialog"` usa `useModalOverlay`?), no una línea suelta; su `MODAL_OVERLAY_EXEMPT` (popover/confirmación inline) y `MODAL_OVERLAY_PENDING` (deuda a migrar) van keyed por archivo —inmunes a mover líneas— y avisan cuando una entrada queda stale.
+- **Conteo agregado → sin excepción.** `check:design-tokens` congela un total (cientos de ocurrencias), no líneas puntuales; no tiene allowlist a propósito: una excepción por ocurrencia sería una válvula de escape para calcificar deuda en vez de migrarla. Para bajarlo, se migra a tokens y se baja el baseline.
