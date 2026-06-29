@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { ModalShell, ModalFooter } from './ModalShell'
 
 describe('<ModalShell />', () => {
@@ -86,6 +86,24 @@ describe('<ModalShell />', () => {
     )
     expect(screen.getByRole('button', { name: 'Cerrar' })).toHaveClass('z-overlay')
     expect(screen.getByRole('dialog').parentElement).toHaveClass('z-modal')
+  })
+
+  it('integra el focus-trap: al abrir, el foco entra al diálogo', async () => {
+    render(
+      <ModalShell ariaLabel="x" onClose={() => {}}>
+        <button>acción</button>
+      </ModalShell>,
+    )
+    // useFocusTrap mueve el foco al primer focusable tras un setTimeout(0).
+    // El ciclo Tab/Shift+Tab y el restore ya están cubiertos en
+    // useFocusTrap.test.tsx; acá solo verificamos la INTEGRACIÓN: que
+    // ModalShell conecta el trap a su propio diálogo (ref correcto).
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10))
+    })
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    expect(screen.getByRole('button', { name: 'acción' })).toHaveFocus()
   })
 })
 
