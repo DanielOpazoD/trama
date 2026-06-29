@@ -1,31 +1,31 @@
 import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
 import { useModalOverlay } from '../hooks/useModalOverlay'
-import { CloseButton } from './CloseButton'
 
 /**
  * Overlay + diálogo modal genérico. Generaliza el ModalShell que vivía solo en
- * `momentos/editModal/shell.tsx` para que los ~14 modales del repo dejen de
- * recopiar createPortal + backdrop + caja de diálogo + header: eran 50–110 LOC
- * de markup casi idéntico cada uno, con z-index y opacidad de backdrop que
- * habían divergido (`z-[120]/z-[130]` en momentos, `z-50` en QuoteEditModal).
+ * `momentos/editModal/shell.tsx` para que los modales con layout de diálogo
+ * estándar dejen de recopiar createPortal + backdrop + caja + header (eran
+ * 50–110 LOC casi idénticos, con z-index y opacidad de backdrop divergentes).
  *
  * Delega focus-trap, Escape-to-close, scroll-lock y restauración de foco a
- * `useModalOverlay`. Usa los tokens de z-index SEMÁNTICOS (`z-overlay` para el
- * backdrop, `z-modal` para el diálogo) en vez de valores ad-hoc, y respeta
- * `prefers-reduced-motion` en la animación de entrada.
+ * `useModalOverlay`. Usa los tokens de z-index SEMÁNTICOS (`z-overlay` backdrop,
+ * `z-modal` diálogo) y respeta `prefers-reduced-motion`.
+ *
+ * La superficie se mantiene MÍNIMA a propósito (solo lo que los call-sites usan
+ * hoy). Cuando un modal real necesite una X de cierre, un ancho mayor o clases
+ * extra en la caja, se agregan esos props EN ESE MOMENTO, con su primer uso real
+ * — no antes.
  *
  * El modal se monta SOLO cuando está visible: el call site renderiza
  * `<ModalShell>` de forma condicional (típicamente `if (!open) return null`
  * antes del return), por eso el hook recibe `open: true` mientras vive.
  */
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl'
+export type ModalSize = 'sm' | 'md'
 
 const SIZE_CLASS: Record<ModalSize, string> = {
   sm: 'max-w-md',
   md: 'max-w-xl',
-  lg: 'max-w-2xl',
-  xl: 'max-w-3xl',
 }
 
 export function ModalShell({
@@ -35,9 +35,7 @@ export function ModalShell({
   title,
   size = 'md',
   onClose,
-  showClose = false,
   lockScroll = true,
-  dialogClassName,
   children,
 }: {
   /** Nombre accesible del diálogo (`role="dialog"` + `aria-label`). */
@@ -50,25 +48,24 @@ export function ModalShell({
   title?: ReactNode
   size?: ModalSize
   onClose: () => void
-  /** Muestra una X (CloseButton) arriba a la derecha del header. */
-  showClose?: boolean
   /** Bloquea el scroll del body (default true). */
   lockScroll?: boolean
-  /** Clases extra para la caja del diálogo (p. ej. una altura fija). */
-  dialogClassName?: string
   children: ReactNode
 }) {
   const overlay = useModalOverlay({ open: true, onClose, lockScroll })
-  const hasHeader = Boolean(eyebrow || title || showClose)
+  const hasHeader = Boolean(eyebrow || title)
 
   return createPortal(
     <div data-modal-root="">
+      {/* Backdrop con opacidad /40 unificada: antes divergía (/30 en biblioteca,
+          /40 en momentos, /60 en citas). /40 es el valor del editor de momentos,
+          el que mejor equilibra atenuar el fondo sin oscurecer de más. */}
       <button
         type="button"
         onClick={onClose}
         aria-label="Cerrar"
         tabIndex={-1}
-        className="fixed inset-0 z-overlay bg-ink-900/50 backdrop-blur-sm cursor-default animate-fade-up motion-reduce:animate-none"
+        className="fixed inset-0 z-overlay bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up motion-reduce:animate-none"
       />
       <div className="fixed inset-0 z-modal flex items-center justify-center px-4 pointer-events-none animate-fade-up motion-reduce:animate-none">
         <div
@@ -76,36 +73,20 @@ export function ModalShell({
           role="dialog"
           aria-label={ariaLabel}
           aria-modal="true"
-          className={[
-            'pointer-events-auto w-full max-h-[90vh] overflow-y-auto border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25',
-            SIZE_CLASS[size],
-            dialogClassName,
-          ]
-            .filter(Boolean)
-            .join(' ')}
+          className={`pointer-events-auto w-full ${SIZE_CLASS[size]} max-h-[90vh] overflow-y-auto border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25`}
           style={{ backgroundColor: 'rgb(var(--paper-50))' }}
         >
           {hasHeader && (
-            <header className="px-5 py-3 border-b border-ink-100/60 flex items-start justify-between gap-3">
-              {(eyebrow || title) && (
-                <div className="min-w-0">
-                  {eyebrow && (
-                    <p className="section-eyebrow-serif" style={{ color: eyebrowColor }}>
-                      {eyebrow}
-                    </p>
-                  )}
-                  {title && (
-                    <h3 className="font-serif text-xl text-ink-800 leading-tight mt-1">
-                      {title}
-                    </h3>
-                  )}
-                </div>
+            <header className="px-5 py-3 border-b border-ink-100/60">
+              {eyebrow && (
+                <p className="section-eyebrow-serif" style={{ color: eyebrowColor }}>
+                  {eyebrow}
+                </p>
               )}
-              {showClose && (
-                <CloseButton
-                  onClick={onClose}
-                  className="shrink-0 -mr-1 -mt-0.5 p-1 text-ink-300 hover:text-ink-600 transition-colors"
-                />
+              {title && (
+                <h3 className="font-serif text-xl text-ink-800 leading-tight mt-1">
+                  {title}
+                </h3>
               )}
             </header>
           )}

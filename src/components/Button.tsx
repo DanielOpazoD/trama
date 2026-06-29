@@ -8,8 +8,8 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
  *   - `type="button"` por defecto (un <button> sin type dentro de un <form>
  *     envía el formulario sin querer);
  *   - cada `variant` mapea 1:1 a una clase YA existente en `src/index.css`
- *     (.btn-accent / .btn-ink / .btn-ghost) o, para 'quiet', al patrón textual
- *     de cancelar (section-eyebrow). No inventa estilos nuevos.
+ *     (.btn-accent / .btn-ink) o, para 'quiet', al patrón textual de cancelar
+ *     (section-eyebrow). No inventa estilos nuevos.
  *
  * NO hornea anillo de foco: la app ya tiene un `*:focus-visible` global; un ring
  * propio duplicaría el outline (doble indicador).
@@ -20,12 +20,11 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
  * El `className` del call site se concatena DESPUÉS de la clase de la variante,
  * así que sigue permitiendo ajustes locales (ancho, margen, `text-xs`, etc.).
  */
-export type ButtonVariant = 'accent' | 'ink' | 'ghost' | 'quiet'
+export type ButtonVariant = 'accent' | 'ink' | 'quiet'
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
   accent: 'btn-accent',
   ink: 'btn-ink',
-  ghost: 'btn-ghost',
   quiet:
     'section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed',
 }

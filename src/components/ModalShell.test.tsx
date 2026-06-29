@@ -31,7 +31,7 @@ describe('<ModalShell />', () => {
     ).toBeInTheDocument()
   })
 
-  it('no renderiza header si no hay eyebrow/title/showClose (solo el backdrop es "Cerrar")', () => {
+  it('no renderiza header si no hay eyebrow/title (solo el backdrop es "Cerrar")', () => {
     render(
       <ModalShell ariaLabel="x" onClose={() => {}}>
         <p>c</p>
@@ -39,15 +39,6 @@ describe('<ModalShell />', () => {
     )
     // Único botón "Cerrar" = el backdrop; no hay X de header.
     expect(screen.getAllByRole('button', { name: 'Cerrar' })).toHaveLength(1)
-  })
-
-  it('showClose agrega la X del header (dos disparadores de cierre: backdrop + X)', () => {
-    render(
-      <ModalShell ariaLabel="x" title="t" showClose onClose={() => {}}>
-        <p>c</p>
-      </ModalShell>,
-    )
-    expect(screen.getAllByRole('button', { name: 'Cerrar' })).toHaveLength(2)
   })
 
   it('click en el backdrop llama onClose', () => {

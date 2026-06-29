@@ -23,8 +23,6 @@ describe('<Button />', () => {
     expect(screen.getByRole('button')).toHaveClass('btn-accent')
     rerender(<Button variant="ink">x</Button>)
     expect(screen.getByRole('button')).toHaveClass('btn-ink')
-    rerender(<Button variant="ghost">x</Button>)
-    expect(screen.getByRole('button')).toHaveClass('btn-ghost')
     rerender(<Button variant="quiet">x</Button>)
     expect(screen.getByRole('button')).toHaveClass('section-eyebrow')
   })
