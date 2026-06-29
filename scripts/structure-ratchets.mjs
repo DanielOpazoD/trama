@@ -43,8 +43,13 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'notas-feed-surfaces',
-    maxLines: 700,
+    maxLines: 500,
     files: ['src/components/notas/NotasFeedView.tsx'],
+  },
+  {
+    group: 'notas-feed-components',
+    maxLines: 280,
+    files: ['src/components/notas/useNotasComposer.ts'],
   },
   {
     group: 'notas-feed-components',
