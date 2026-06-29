@@ -127,8 +127,8 @@ describe('data: entidades / links', () => {
     expect(q).toMatch(/deleted_at IS NULL/i)
   })
 
-  it('replaceMomentoEntityLinks con lista vacía solo soft-deletea (sin insert)', async () => {
-    mockSqlResponses.push([]) // soft-delete
+  it('replaceMomentoEntityLinks con lista vacía soft-deletea todos en un CTE', async () => {
+    mockSqlResponses.push([]) // un solo CTE (soft-delete; desired vacío no inserta filas)
     await replaceMomentoEntityLinks(getSql(), 'm1', [], 'owner1')
     expect(mockSqlResponses.calls).toHaveLength(1)
     expect(mockSqlResponses.calls[0].template).toMatch(
@@ -136,15 +136,24 @@ describe('data: entidades / links', () => {
     )
   })
 
-  it('replaceMomentoEntityLinks con ids soft-deletea y reinserta', async () => {
-    mockSqlResponses.push([]) // soft-delete
-    mockSqlResponses.push([]) // insert
+  it('replaceMomentoEntityLinks con ids soft-deletea y reinserta en un CTE atómico', async () => {
+    mockSqlResponses.push([]) // un solo CTE: soft-delete + upsert en el mismo statement
     await replaceMomentoEntityLinks(getSql(), 'm1', ['e1', 'e2'], 'owner1')
-    expect(mockSqlResponses.calls).toHaveLength(2)
+    expect(mockSqlResponses.calls).toHaveLength(1)
+    const tpl = mockSqlResponses.calls[0].template
+    expect(tpl).toMatch(/UPDATE momento_entities\s+SET deleted_at = NOW\(\)/i)
+    expect(tpl).toMatch(/INSERT INTO momento_entities/i)
+    // conjuntos disjuntos: el soft-delete excluye los deseados (sin doble-touch).
+    expect(tpl).toMatch(/NOT IN \(SELECT e_id FROM desired\)/i)
+  })
+
+  it('replaceMomentoEntityLinks deduplica entityIds (DISTINCT) para no tocar la misma fila dos veces', async () => {
+    mockSqlResponses.push([])
+    await replaceMomentoEntityLinks(getSql(), 'm1', ['e1', 'e1'], 'owner1')
+    expect(mockSqlResponses.calls).toHaveLength(1)
     expect(mockSqlResponses.calls[0].template).toMatch(
-      /UPDATE momento_entities\s+SET deleted_at = NOW\(\)/i,
+      /SELECT DISTINCT e_id FROM unnest/i,
     )
-    expect(mockSqlResponses.calls[1].template).toMatch(/INSERT INTO momento_entities/i)
   })
 })
 

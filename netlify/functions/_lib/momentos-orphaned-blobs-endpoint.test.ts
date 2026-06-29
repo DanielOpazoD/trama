@@ -65,7 +65,7 @@ describe('momentos-orphaned-blobs endpoint', () => {
     })
   })
 
-  it('POST adopta un blob y scopea el UPDATE de embedding por user_id', async () => {
+  it('POST adopta un blob y escribe el embedding en el INSERT, scopeado por user_id', async () => {
     mockSqlResponses.push(
       [], // ensureUserRow
       [], // collectReferencedKeys
@@ -80,8 +80,7 @@ describe('momentos-orphaned-blobs endpoint', () => {
           created_at: '2026-05-31T00:00:00.000Z',
           updated_at: '2026-05-31T00:00:00.000Z',
         },
-      ],
-      [], // UPDATE embedding
+      ], // INSERT momento (embedding incluido) RETURNING
     )
 
     const res = await handler(
@@ -96,10 +95,14 @@ describe('momentos-orphaned-blobs endpoint', () => {
     )
 
     expect(res.status).toBe(201)
-    const update = mockSqlState.calls.find((call) =>
-      /UPDATE momentos\s+SET embedding/i.test(call.template),
+    // El embedding va en el INSERT (sin UPDATE posterior): atómico y scopeado.
+    const insert = mockSqlState.calls.find((call) =>
+      /INSERT INTO momentos/i.test(call.template),
     )
-    expect(update?.template).toMatch(/user_id = \?/)
-    expect(update?.values).toContain('legacy-single-user')
+    expect(insert?.template).toMatch(/embedding/i)
+    expect(insert?.values).toContain('legacy-single-user')
+    expect(
+      mockSqlState.calls.some((c) => /UPDATE momentos\s+SET embedding/i.test(c.template)),
+    ).toBe(false)
   })
 })

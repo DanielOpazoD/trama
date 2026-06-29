@@ -644,8 +644,7 @@ describe('momentos endpoint — integration (mock SQL)', () => {
       },
     ]) // lookup
     mockSqlResponses.push([{ id: 'e9' }]) // validación de entidad (1 pedida, 1 existe)
-    mockSqlResponses.push([]) // soft-delete de links viejos
-    mockSqlResponses.push([]) // insert de links nuevos
+    mockSqlResponses.push([]) // replaceMomentoEntityLinks: soft-delete + insert en UN CTE
     mockSqlResponses.push([
       buildMomentoRow({
         id: 'm1',
@@ -663,16 +662,13 @@ describe('momentos endpoint — integration (mock SQL)', () => {
       mockContext({ id: 'm1' }),
     )
     expect(res.status).toBe(200)
-    expect(
-      mockSqlResponses.calls.some((c) =>
-        /UPDATE momento_entities\s+SET deleted_at = NOW\(\)/i.test(c.template),
-      ),
-    ).toBe(true)
-    expect(
-      mockSqlResponses.calls.some((c) =>
-        /INSERT INTO momento_entities/i.test(c.template),
-      ),
-    ).toBe(true)
+    // El reemplazo de links es UN solo CTE atómico: el mismo statement contiene
+    // el soft-delete y el upsert, no dos queries sueltas.
+    const replaceCall = mockSqlResponses.calls.find((c) =>
+      /UPDATE momento_entities\s+SET deleted_at = NOW\(\)/i.test(c.template),
+    )
+    expect(replaceCall).toBeDefined()
+    expect(replaceCall!.template).toMatch(/INSERT INTO momento_entities/i)
     // entity-only: no toca la fila del momento (sin UPDATE momentos).
     expect(mockSqlResponses.calls.some((c) => /UPDATE momentos/i.test(c.template))).toBe(
       false,

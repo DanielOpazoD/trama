@@ -562,7 +562,8 @@ describe('guardrail: backfills de embeddings no escriben filas borradas ni ajena
     { file: 'entities.mts', table: 'entities' },
     { file: 'quotes.mts', table: 'quotes' },
     { file: 'momentos.mts', table: 'momentos' },
-    { file: 'momentos-orphaned-blobs.mts', table: 'momentos' },
+    // momentos-orphaned-blobs.mts ya no hace UPDATE de embedding: el embedding va
+    // en el INSERT inicial (con user_id), atómico por construcción (Cimiento #2).
     { file: 'reindex-embeddings.mts', table: 'entities' },
     { file: 'reindex-embeddings.mts', table: 'quotes' },
   ]
