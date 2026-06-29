@@ -787,9 +787,62 @@ function migrationTablesWithUserId(sql) {
   return [...tables].sort()
 }
 
+/**
+ * Estado real de RLS por tabla en las migraciones. Aislamiento efectivo exige
+ * las tres: ENABLE (activa RLS), FORCE (la aplica también al owner de la tabla
+ * — la app conecta como owner, sin FORCE el RLS se bypassa) y al menos una
+ * POLICY QUE AÍSLE. Una policy permisiva (`USING (true)`) habilita RLS sin
+ * aislar nada, así que solo cuenta si su cuerpo engancha el contexto de
+ * usuario (`current_setting('app.current_user_id', …)`) — eso descarta las
+ * permisivas pero admite todas las formas reales del repo (patrón inline,
+ * `trama_user_isolation` multilínea, políticas por-operación `_own` y las
+ * compartidas de Momentos). Se quitan comentarios SQL antes de parsear para no
+ * contar sentencias comentadas. Devuelve un set por cada pieza.
+ */
+function migrationRlsState(sql) {
+  const executableSql = sql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
+  const enable = new Set()
+  const force = new Set()
+  const policy = new Set()
+  const enableRe =
+    /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?([a-z0-9_]+)\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/gi
+  const forceRe =
+    /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?([a-z0-9_]+)\s+FORCE\s+ROW\s+LEVEL\s+SECURITY/gi
+  // Captura el cuerpo de la policy (hasta el primer ';') para inspeccionar su
+  // predicado, no solo su existencia.
+  const policyRe = /CREATE\s+POLICY\s+[a-z0-9_]+\s+ON\s+([a-z0-9_]+)([\s\S]*?);/gi
+  let m
+  while ((m = enableRe.exec(executableSql))) enable.add(m[1])
+  while ((m = forceRe.exec(executableSql))) force.add(m[1])
+  while ((m = policyRe.exec(executableSql))) {
+    const isolatesByUser = /current_setting\s*\(\s*'app\.current_user_id'/i.test(m[2])
+    if (isolatesByUser) policy.add(m[1])
+  }
+  return { enable, force, policy }
+}
+
+/**
+ * RATCHET de implementación de RLS. Tablas `rls:'required'` cuya RLS real
+ * (ENABLE+FORCE+POLICY en migraciones) AÚN no aterriza, con el motivo. El gate
+ * (`validateAuthRlsContracts`) usa este allowlist para distinguir "backlog
+ * conocido" de "regresión". Reglas que fuerza el gate:
+ *   - una tabla required SIN RLS y que NO esté aquí ⇒ error (cierra el gap
+ *     contrato↔realidad: declarar `rls:'required'` ya no basta).
+ *   - una tabla aquí cuya RLS YA aterrizó ⇒ error (obliga a quitarla; el
+ *     ratchet solo baja).
+ *   - una tabla con RLS a medias (ENABLE sin FORCE/POLICY) ⇒ error siempre.
+ * Meta: este objeto vacío.
+ */
+export const RLS_IMPLEMENTATION_BACKLOG = {
+  // Vacío: las 44 tablas rls:'required' tienen RLS real (ENABLE+FORCE+POLICY).
+  // Cimiento #1 completo. Toda tabla nueva rls:'required' debe nacer con RLS o
+  // el gate falla — ya no hay allowlist donde esconderse.
+}
+
 export function validateAuthRlsContracts({
   migrationSql = allMigrationSql(),
   privateTableContracts = PRIVATE_TABLE_CONTRACTS,
+  rlsBacklog = RLS_IMPLEMENTATION_BACKLOG,
 } = {}) {
   const migrationTables = migrationTablesWithUserId(migrationSql)
   const contractByTable = new Map(
@@ -814,6 +867,41 @@ export function validateAuthRlsContracts({
     .map((contract) => contract.table)
     .sort()
 
+  // Verificación de la IMPLEMENTACIÓN real de RLS (no solo la declaración).
+  // Cada contrato rls:'required' debe tener ENABLE+FORCE+POLICY en migraciones,
+  // salvo que esté en el backlog (ratchet). Cierra el gap contrato↔realidad.
+  const rlsState = migrationRlsState(migrationSql)
+  const requiredContracts = privateTableContracts.filter(
+    (contract) => contract.rls === 'required',
+  )
+  const unprotectedTables = []
+  const partialRlsTables = []
+  const staleRlsBacklog = []
+  for (const contract of requiredContracts) {
+    const table = contract.table
+    const hasEnable = rlsState.enable.has(table)
+    const hasForce = rlsState.force.has(table)
+    const hasPolicy = rlsState.policy.has(table)
+    const full = hasEnable && hasForce && hasPolicy
+    const none = !hasEnable && !hasForce && !hasPolicy
+    const allowed = Object.prototype.hasOwnProperty.call(rlsBacklog, table)
+    if (full) {
+      if (allowed) staleRlsBacklog.push(table)
+      continue
+    }
+    if (none) {
+      if (allowed) continue
+      unprotectedTables.push(table)
+      continue
+    }
+    // Estado a medias: ENABLE sin FORCE o sin POLICY. Nunca aceptable, ni en
+    // backlog (deja la tabla legible por el owner o en deny-all).
+    const missing = [!hasEnable && 'ENABLE', !hasForce && 'FORCE', !hasPolicy && 'POLICY']
+      .filter(Boolean)
+      .join('+')
+    partialRlsTables.push(`${table} (falta ${missing})`)
+  }
+
   const messages = [
     ...missingPrivateTables.map(
       (table) => `${table} tiene user_id pero no está en PRIVATE_TABLE_CONTRACTS.`,
@@ -822,12 +910,27 @@ export function validateAuthRlsContracts({
       (table) =>
         `${table} está en PRIVATE_TABLE_CONTRACTS pero le falta lifecycle, ownership o razón operacional.`,
     ),
+    ...unprotectedTables.map(
+      (table) =>
+        `${table} declara rls:'required' pero no tiene ENABLE+FORCE+POLICY ROW LEVEL SECURITY en migraciones (ni está en RLS_IMPLEMENTATION_BACKLOG).`,
+    ),
+    ...partialRlsTables.map(
+      (entry) =>
+        `${entry} tiene RLS a medias en migraciones; debe ser ENABLE+FORCE+POLICY.`,
+    ),
+    ...staleRlsBacklog.map(
+      (table) =>
+        `${table} ya tiene RLS implementada; quítala de RLS_IMPLEMENTATION_BACKLOG (el ratchet solo baja).`,
+    ),
   ]
 
   return {
     ok: messages.length === 0,
     missingPrivateTables,
     malformedPrivateTables,
+    unprotectedTables,
+    partialRlsTables,
+    staleRlsBacklog,
     messages,
   }
 }
