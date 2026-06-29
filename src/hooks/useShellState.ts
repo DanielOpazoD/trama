@@ -9,7 +9,12 @@ const FOCUS_MODE_KEY = 'trama:focus-mode'
 
 function readInitialFocusMode(): boolean {
   if (typeof window === 'undefined') return false
-  return window.localStorage.getItem(FOCUS_MODE_KEY) === '1'
+  try {
+    return window.localStorage.getItem(FOCUS_MODE_KEY) === '1'
+  } catch {
+    // Storage bloqueado (incógnito estricto, etc.): no crashear el arranque.
+    return false
+  }
 }
 
 function readInitialSidebarCollapsed(): boolean {

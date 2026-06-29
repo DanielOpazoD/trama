@@ -162,14 +162,22 @@ export function useNotasComposer() {
     }
   }
 
-  /** Soltar imágenes sobre el composer las captura como recortes. */
+  /** Soltar imágenes/videos sobre el composer las captura como recortes. */
   function onComposerDrop(e: React.DragEvent) {
-    const media = Array.from(e.dataTransfer.files).filter(
+    const files = Array.from(e.dataTransfer.files)
+    // Prevenir el default del browser ante CUALQUIER archivo soltado: si solo se
+    // previene para media, soltar un archivo no soportado cae al default del
+    // navegador (abre el archivo / navega fuera) y se pierde el borrador.
+    if (files.length > 0) e.preventDefault()
+    const media = files.filter(
       (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
     )
     if (media.length > 0) {
-      e.preventDefault()
       captureMediaFiles(media)
+    } else if (files.length > 0) {
+      // Feedback explícito: sin esto, soltar un archivo no soportado quedaba
+      // silencioso tras prevenir el default.
+      toast.show({ message: 'Solo se pueden soltar imágenes o videos.', tone: 'default' })
     }
     setDragging(false)
   }
@@ -219,6 +227,11 @@ export function useNotasComposer() {
             })
           }
         },
+        onError: (e) =>
+          toast.show({
+            message: e instanceof Error ? e.message : 'No se pudo guardar la nota',
+            tone: 'error',
+          }),
       },
     )
   }
