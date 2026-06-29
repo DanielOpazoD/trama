@@ -182,32 +182,99 @@ describe('Auth/RLS contracts inventory', () => {
     )
   })
 
-  it('acepta una tabla privada nueva solo cuando viene clasificada con lifecycle y razón', () => {
+  const FUTURE_CONTRACT = {
+    table: 'future_private_rows',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership: 'owner scoped future private rows',
+    reason: 'Synthetic regression fixture for future private tables.',
+  }
+  const futureRlsSql = `
+    CREATE TABLE future_private_rows (
+      id UUID PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      payload JSONB NOT NULL
+    );
+    ALTER TABLE future_private_rows ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE future_private_rows FORCE ROW LEVEL SECURITY;
+    CREATE POLICY future_private_rows_isolation ON future_private_rows
+      USING (current_setting('app.rls_bypass', true) = 'system' OR user_id = NULLIF(current_setting('app.current_user_id', true), ''));
+  `
+
+  it('acepta una tabla privada nueva clasificada y con RLS real (enable+force+policy)', () => {
     const result = validateAuthRlsContracts({
-      migrationSql: `
-        CREATE TABLE future_private_rows (
-          id UUID PRIMARY KEY,
-          user_id TEXT NOT NULL REFERENCES users(id),
-          payload JSONB NOT NULL
-        );
-      `,
-      privateTableContracts: [
-        {
-          table: 'future_private_rows',
-          lifecycle: 'soft-delete',
-          userId: 'required',
-          rls: 'required',
-          ownership: 'owner scoped future private rows',
-          reason: 'Synthetic regression fixture for future private tables.',
-        },
-      ],
+      migrationSql: futureRlsSql,
+      privateTableContracts: [FUTURE_CONTRACT],
+      rlsBacklog: {},
     })
 
     expect(result).toEqual({
       ok: true,
       missingPrivateTables: [],
       malformedPrivateTables: [],
+      unprotectedTables: [],
+      partialRlsTables: [],
+      staleRlsBacklog: [],
       messages: [],
     })
+  })
+
+  it("exige RLS real: falla si una tabla rls:'required' no la tiene ni está en el backlog", () => {
+    const result = validateAuthRlsContracts({
+      migrationSql: `CREATE TABLE future_private_rows (id UUID PRIMARY KEY, user_id TEXT);`,
+      privateTableContracts: [FUTURE_CONTRACT],
+      rlsBacklog: {},
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.unprotectedTables).toEqual(['future_private_rows'])
+    expect(result.messages.join('\n')).toContain(
+      "future_private_rows declara rls:'required' pero no tiene ENABLE+FORCE+POLICY",
+    )
+  })
+
+  it('ratchet: permite una tabla del backlog que aún no tiene RLS', () => {
+    const result = validateAuthRlsContracts({
+      migrationSql: `CREATE TABLE future_private_rows (id UUID PRIMARY KEY, user_id TEXT);`,
+      privateTableContracts: [FUTURE_CONTRACT],
+      rlsBacklog: { future_private_rows: 'pendiente fase futura' },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.unprotectedTables).toEqual([])
+  })
+
+  it('ratchet solo baja: exige quitar del backlog una tabla cuya RLS ya aterrizó', () => {
+    const result = validateAuthRlsContracts({
+      migrationSql: futureRlsSql,
+      privateTableContracts: [FUTURE_CONTRACT],
+      rlsBacklog: { future_private_rows: 'allowlist obsoleto' },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.staleRlsBacklog).toEqual(['future_private_rows'])
+    expect(result.messages.join('\n')).toContain('quítala de RLS_IMPLEMENTATION_BACKLOG')
+  })
+
+  it('rechaza RLS a medias (enable sin force/policy) aunque esté en el backlog', () => {
+    const result = validateAuthRlsContracts({
+      migrationSql: `
+        CREATE TABLE future_private_rows (id UUID PRIMARY KEY, user_id TEXT);
+        ALTER TABLE future_private_rows ENABLE ROW LEVEL SECURITY;
+      `,
+      privateTableContracts: [FUTURE_CONTRACT],
+      rlsBacklog: { future_private_rows: 'pendiente' },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.partialRlsTables.join('\n')).toContain(
+      'future_private_rows (falta FORCE+POLICY)',
+    )
+  })
+
+  it('el repo real cumple el contrato de implementación RLS con el backlog vigente', () => {
+    const result = validateAuthRlsContracts()
+    expect(result.ok).toBe(true)
   })
 })
