@@ -1,10 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
-import { useSearchParamState } from './hooks/useSearchParamState'
 import { useInitialView } from './hooks/useInitialView'
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts'
 import { startViewTransition } from './lib/viewTransition'
-import { readOAuthReturn, clearOAuthReturn, type OAuthReturn } from './lib/oauthReturn'
+import { clearOAuthReturn } from './lib/oauthReturn'
 import {
   Provider,
   readUserPrefsMirror,
@@ -22,13 +21,14 @@ import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
 import { useAchievements } from './hooks/useAchievements'
 import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
 import { useAppModals } from './hooks/useAppModals'
+import { useShellState } from './hooks/useShellState'
 import { Sidebar } from './components/Sidebar'
 import { Onboarding } from './components/Onboarding'
 import { ToastHost } from './components/ToastHost'
 import { PreviewBanner } from './components/PreviewBanner'
 import { Splash } from './components/Splash'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { RightPanel, type PendingProposal } from './components/RightPanel'
+import { RightPanel } from './components/RightPanel'
 import { ViewRouter } from './components/ViewRouter'
 import { AuthGate } from './components/AuthGate'
 import { AppPinGate } from './components/AppPinGate'
@@ -36,7 +36,7 @@ import { ShellOverlays } from './components/ShellOverlays'
 import { MomentoNotificationsCenter } from './components/momentos/MomentoNotificationsCenter'
 import { ShellTopChrome } from './components/appShell/ShellTopChrome'
 import { ShellAttentionLayer } from './components/appShell/ShellAttentionLayer'
-import { buildShellVisibility, type EntityTab } from './components/appShell/appShellModel'
+import { buildShellVisibility } from './components/appShell/appShellModel'
 import { WorldLoadingFallback } from './components/appShell/WorldLoadingFallback'
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
@@ -108,50 +108,31 @@ function Shell({
   const handleWorldIntent = useCallback((targetWorld: World) => {
     preloadWorldBundle(targetWorld)
   }, [])
-  // En mobile arrancamos con el sidebar colapsado; el usuario lo expande
-  // con el ícono del menú.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') return window.innerWidth < 768
-    return false
-  })
-  // Sincronizado con `?entity=uuid` de la URL — permite copiar el link de
-  // una entidad y compartirlo, o recargar la página manteniendo el panel
-  // abierto. Internamente sigue siendo un state, pero ahora también vive
-  // en la URL.
-  const [selectedEntityId, _setSelectedEntityId] = useSearchParamState('entity')
-
-  // Wrapper que pasa por la View Transitions API — el EntityRow en la
-  // lista y el EntityHeader del panel tienen el mismo viewTransitionName,
-  // así que el browser anima del card al header automáticamente. Si el
-  // browser no soporta la API, el state cambia sin animación.
-  const setSelectedEntityId = useCallback(
-    (id: string | null) => {
-      startViewTransition(() => _setSelectedEntityId(id))
-    },
-    [_setSelectedEntityId],
-  )
-  const [pendingProposal, setPendingProposal] = useState<PendingProposal | null>(null)
-  // Cuando el AskBar deep-linkea a chat con un thread específico.
-  const [pendingChatThreadId, setPendingChatThreadId] = useState<string | null>(null)
-  // ρ-struct: tab activo de Entidades — vive en App para que TopBar
-  // pueda exponerlo como tabs contextuales. Antes era state local de
-  // EntitiesWorkbench; ahora controlado desde acá.
-  const [entitiesTab, setEntitiesTab] = useState<EntityTab>('listado')
+  // Estado de UI del Shell (selección, propuesta, thread, tab, focus mode,
+  // sidebar, retorno OAuth + derivados de visibilidad del panel) en un hook
+  // cohesivo. La vista solo lo cablea a sus piezas.
+  const {
+    sidebarCollapsed,
+    setSidebarCollapsed,
+    selectedEntityId,
+    setSelectedEntityId,
+    pendingProposal,
+    setPendingProposal,
+    pendingChatThreadId,
+    setPendingChatThreadId,
+    entitiesTab,
+    setEntitiesTab,
+    oauthReturn,
+    setOauthReturn,
+    focusMode,
+    toggleFocusMode,
+    exitFocusMode,
+    showProposal,
+    showDetail,
+    rightPanelOpen,
+  } = useShellState()
   const modals = useAppModals()
   const { openModal } = modals
-  // Retorno de un OAuth (X / Spotify): el callback redirige acá con
-  // `?x=connected` o `?x_error=...`. Lo leemos una vez al montar, abrimos
-  // Settings en el panel correcto y limpiamos la URL. Antes esto era invisible.
-  const [oauthReturn, setOauthReturn] = useState<OAuthReturn | null>(() =>
-    readOAuthReturn(),
-  )
-  // Focus mode — esconde sidebar, topbar y askbar. Solo queda el
-  // contenido. Persiste en localStorage para que el usuario que
-  // prefiere modo zen no tenga que activarlo cada sesión.
-  const [focusMode, setFocusMode] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem('trama:focus-mode') === '1'
-  })
 
   // κ2: nudge semanal cuando hay sugerencias proactivas pendientes y
   // ya pasaron 7+ días desde el último toast. La declaración va aquí
@@ -171,25 +152,6 @@ function Shell({
     }
   }, [oauthReturn, openModal])
 
-  const toggleFocusMode = useCallback(() => {
-    setFocusMode((on) => {
-      const next = !on
-      try {
-        window.localStorage.setItem('trama:focus-mode', next ? '1' : '0')
-      } catch {
-        /* storage disabled */
-      }
-      return next
-    })
-  }, [])
-  const exitFocusMode = useCallback(() => {
-    setFocusMode(false)
-    try {
-      window.localStorage.setItem('trama:focus-mode', '0')
-    } catch {
-      /* storage disabled */
-    }
-  }, [])
   useGlobalShortcuts({
     onTogglePalette: () => modals.toggleModal('palette'),
     onOpenPalette: () => modals.openModal('palette'),
@@ -197,11 +159,6 @@ function Shell({
     onToggleFocusMode: toggleFocusMode,
   })
 
-  const showProposal = pendingProposal !== null
-  // El panel de detalle se puede abrir desde cualquier vista (graph, entidades,
-  // citas) — no es exclusivo del grafo.
-  const showDetail = !showProposal && selectedEntityId !== null
-  const rightPanelOpen = showProposal || showDetail
   const shareInvitations = shareInvitationsQuery.data?.items ?? []
   const shellVisibility = buildShellVisibility({
     focusMode,

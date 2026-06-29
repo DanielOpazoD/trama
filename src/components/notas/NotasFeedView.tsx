@@ -2,18 +2,14 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import {
   useNotasFeed,
   useNotesQuery,
-  useCreateNote,
   useUpdateNote,
   useDeleteNote,
   usePromoteNote,
-  useUploadNotasAttachment,
-  useCreateRecorte,
   useUpdateRecorte,
   useDeleteRecorte,
   useToast,
 } from '../../state'
 import type { Recorte, RecorteTarget } from '../../api'
-import { extractUrl, hostLabel } from '../../lib/captureIntent'
 import { useRecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useRecorteFeedView } from '../../hooks/useRecorteFeedView'
 import { ViewHeader } from '../ViewHeader'
@@ -21,7 +17,6 @@ import { RecorteSelectionBar } from '../recortes/RecorteSelectionBar'
 import { CapturasGalleryGrid } from '../recortes/CapturasGalleryGrid'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { FavoritosPanel } from '../recortes/FavoritosPanel'
-import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { useFeedKeyboardNav } from '../../hooks/useFeedKeyboardNav'
 import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
@@ -30,6 +25,7 @@ import { NotasFeedControls } from './NotasFeedControls'
 import { NotasFeedComposer } from './NotasFeedComposer'
 import { NotasFeedVirtualList } from './NotasFeedVirtualList'
 import { useMeasuredVirtualFeed } from './useMeasuredVirtualFeed'
+import { useNotasComposer } from './useNotasComposer'
 import {
   buildAllNoteTags,
   buildCalendarStats,
@@ -43,7 +39,6 @@ import {
   type NotasFeedSegment,
   type RecorteStatusFilter,
 } from './notasFeedViewModel'
-import { compressImage } from '../momentos/helpers'
 
 // Lazy: la escritura enfocada (overlay fullscreen) se baja solo al abrirla.
 const FocusedWriting = lazy(() =>
@@ -65,57 +60,23 @@ const ACCENT = 'var(--accent-sage)'
  * La vista depende SOLO de la costura `useNotasFeed` (nunca de los dos hooks de
  * query crudos por separado): así la UI nunca ramifica nota-vs-recorte ad hoc.
  *
- * La creación de notas (composer) se conserva igual. El triage de recortes
- * (promover / archivar / eliminar) se cablea completo con sus mutaciones propias
- * + PromoteModal.
+ * La lógica de captura del composer (nota · enlace · imagen, con sus mutaciones
+ * y heurísticas) vive en `useNotasComposer`. Esta vista orquesta filtros, feed,
+ * virtualización y el triage de recortes (promover / archivar / eliminar +
+ * PromoteModal).
  */
 export function NotasFeedView({
   onSendImagesToPdf,
 }: {
   onSendImagesToPdf?: (selected: Recorte[]) => void
 }) {
-  // --- Composer (captura unificada: nota · enlace · imagen) ---------------
-  const createNote = useCreateNote()
-  const uploadAttachment = useUploadNotasAttachment()
-  const createRecorte = useCreateRecorte()
   const toast = useToast()
-
-  const [draft, setDraft] = useState('')
-  const [title, setTitle] = useState('')
-  const composerRef = useAutosizeTextarea(draft, { minRows: 3, maxRows: 12 })
-  const [pendingFiles, setPendingFiles] = useState<File[]>([])
-  // El usuario pegó un enlace solo; el composer ofrece guardarlo como recorte.
-  // `forceNote` deja anular esa heurística y guardarlo igual como nota.
-  const [forceNote, setForceNote] = useState(false)
-  // Resalte del composer mientras se arrastra una imagen encima.
-  const [dragging, setDragging] = useState(false)
-  // Cuántas imágenes se están subiendo ahora (para tarjetas «subiendo…»).
-  const [uploadingImages, setUploadingImages] = useState(0)
-  // Foco editorial del composer: ilumina el borde + anillo tintado mientras se
-  // escribe, y revela las afordancias del pie (no están siempre a la vista).
-  const [composerFocused, setComposerFocused] = useState(false)
-  // Escritura enfocada del cuerpo del composer (overlay fullscreen).
-  const [focusMode, setFocusMode] = useState(false)
-  // Micro-confirmación al guardar una nota: una onda + ✓ silenciosos sobre el
-  // botón guardar (check-pop + saved-ripple). La app no celebra; hace lugar.
-  const [justSaved, setJustSaved] = useState(false)
-  const savedTimer = useRef<number | null>(null)
-
   const reducedMotion = usePrefersReducedMotion()
 
-  // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
-  const linkUrl = forceNote ? null : extractUrl(draft)
-  const isLinkDraft = linkUrl !== null
-
-  // El composer está "activo" si tiene foco o algún contenido. Las afordancias
-  // del pie (tip de imagen + guardar) solo aparecen entonces — en reposo el
-  // composer es una hoja limpia. Con contenido sigue visible aunque pierda el
-  // foco, así el click en «guardar» nunca se desmonta antes de registrar.
-  const composerActive =
-    composerFocused ||
-    draft.trim() !== '' ||
-    title.trim() !== '' ||
-    pendingFiles.length > 0
+  // --- Composer (captura unificada: nota · enlace · imagen) ---------------
+  // Todo el estado y la lógica de captura viven en el hook; la vista solo
+  // cablea sus valores al pie de captura y al overlay de escritura enfocada.
+  const composer = useNotasComposer()
 
   // --- Filtro del feed ----------------------------------------------------
   const [segment, setSegment] = useState<NotasFeedSegment>(getInitialNotasFeedSegment)
@@ -196,10 +157,9 @@ export function NotasFeedView({
 
   // El universo de tags se calcula sobre TODAS las notas (bounded, client-side)
   // SIN filtrar por etiqueta — así elegir una etiqueta no hace desaparecer las
-  // demás de la lista sugerida. Antes esto disparaba un segundo feed infinito;
-  // ahora deriva de `useNotesQuery` (la fuente del calendario), que ya es la
-  // colección completa de notas. Las etiquetas solo existen en notas, así que
-  // el segmento "capturas" no aporta tags.
+  // demás de la lista sugerida. Deriva de `useNotesQuery` (la fuente del
+  // calendario), que ya es la colección completa de notas. Las etiquetas solo
+  // existen en notas, así que el segmento "capturas" no aporta tags.
   const tagCounts = useMemo(() => {
     return buildTagCounts(notes, { segment, search })
   }, [notes, segment, search])
@@ -261,9 +221,6 @@ export function NotasFeedView({
     setActiveTag(null)
   }
 
-  /** Foco al composer (afordancia de teclado `n` + empty state). */
-  const focusComposer = useCallback(() => composerRef.current?.focus(), [composerRef])
-
   // --- Navegación por teclado scopeada al feed ----------------------------
   // n → composer · / → buscador · j/k → seleccionar tarjeta · Enter → activar.
   // El feed solo está "activo" fuera de Favoritos (que es otro panel).
@@ -271,18 +228,18 @@ export function NotasFeedView({
   const { selected, setSelected } = useFeedKeyboardNav({
     enabled: navEnabled,
     itemCount: items.length,
-    onFocusComposer: focusComposer,
+    onFocusComposer: composer.focusComposer,
     onOpenSearch: openSearch,
   })
 
   // --- Virtualización de la lista -----------------------------------------
-  // El feed puede ser largo (notas + recortes de meses) y ahora pagina
-  // server-side: montamos solo la ventana visible + overscan. `measureElement`
-  // corrige la altura real de cada tarjeta (las notas se expanden, los recortes
-  // varían). Las tarjetas viven en el scroller principal (#main-scroll), así
-  // que usamos el virtualizer atado a él (mismo patrón que Citas/Entidades).
-  // El estimate inicial es generoso (tarjeta típica ~200px) para que el salto
-  // al medir sea mínimo.
+  // El feed puede ser largo (notas + recortes de meses) y pagina server-side:
+  // montamos solo la ventana visible + overscan. `measureElement` corrige la
+  // altura real de cada tarjeta (las notas se expanden, los recortes varían).
+  // Las tarjetas viven en el scroller principal (#main-scroll), así que usamos
+  // el virtualizer atado a él (mismo patrón que Citas/Entidades). El estimate
+  // inicial es generoso (tarjeta típica ~200px) para que el salto al medir sea
+  // mínimo.
   const { listRef, virtualizer } = useMainScrollVirtualizer({
     count: items.length,
     estimateSize: 200,
@@ -315,171 +272,6 @@ export function NotasFeedView({
     })
   }, [selected, reducedMotion, virtualizer])
 
-  useEffect(() => {
-    return () => {
-      if (savedTimer.current) window.clearTimeout(savedTimer.current)
-    }
-  }, [])
-
-  /** Dispara la micro-confirmación de guardado (callada). */
-  function flashSaved() {
-    if (reducedMotion) return
-    setJustSaved(true)
-    if (savedTimer.current) window.clearTimeout(savedTimer.current)
-    savedTimer.current = window.setTimeout(() => setJustSaved(false), 700)
-  }
-
-  /** Guarda el borrador-enlace como recorte web (captura de 1 paso). */
-  function saveLink(url: string) {
-    if (createRecorte.isPending) return
-    createRecorte.mutate(
-      { kind: 'link', url, title: title.trim() || hostLabel(url) },
-      {
-        onSuccess: () => {
-          setDraft('')
-          setTitle('')
-          setForceNote(false)
-          flashSaved()
-          toast.show({
-            message: 'Enlace guardado en tus capturas para curar.',
-            tone: 'success',
-          })
-        },
-        onError: (e) =>
-          toast.show({
-            message: e instanceof Error ? e.message : 'No se pudo guardar el enlace',
-            tone: 'error',
-          }),
-      },
-    )
-  }
-
-  /** Sube y captura imágenes/videos como recortes visuales.
-   *  Las comprime client-side (downscale + JPEG) antes de subir, igual que el
-   *  composer de Momentos — evita subir un screenshot de 8 MB tal cual. */
-  async function captureMediaFiles(files: File[]) {
-    const media = files.filter(
-      (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
-    )
-    if (media.length === 0) return
-    // Mostramos las tarjetas «subiendo…» desde ya (incluye la compresión).
-    setUploadingImages((n) => n + media.length)
-    let done = 0
-    for (const original of media) {
-      const isVideo = original.type.startsWith('video/')
-      const file = isVideo
-        ? original
-        : await compressImage(original).catch(() => original)
-      createRecorte.mutate(
-        { kind: isVideo ? 'video' : 'image', file },
-        {
-          onSuccess: () => {
-            done += 1
-            if (done === media.length) {
-              toast.show({
-                message:
-                  media.length === 1
-                    ? isVideo
-                      ? 'Video guardado en tus capturas.'
-                      : 'Imagen guardada en tus capturas.'
-                    : `${media.length} archivos guardados en tus capturas.`,
-                tone: 'success',
-              })
-            }
-          },
-          onError: (e) =>
-            toast.show({
-              message: e instanceof Error ? e.message : 'No se pudo guardar la imagen',
-              tone: 'error',
-            }),
-          onSettled: () => setUploadingImages((n) => Math.max(0, n - 1)),
-        },
-      )
-    }
-  }
-
-  /** Pegar imagen(es) las adjunta a la nota en curso (anexos pendientes), no
-   *  las captura como recorte suelto — el pegado acompaña lo que se escribe.
-   *  (Soltar una imagen sí crea un recorte; ver onComposerDrop.) */
-  function onComposerPaste(e: React.ClipboardEvent) {
-    const images = Array.from(e.clipboardData.files).filter((f) =>
-      f.type.startsWith('image/'),
-    )
-    if (images.length > 0) {
-      e.preventDefault()
-      setPendingFiles((prev) => [...prev, ...images])
-    }
-  }
-
-  /** Soltar imágenes sobre el composer las captura como recortes. */
-  function onComposerDrop(e: React.DragEvent) {
-    const media = Array.from(e.dataTransfer.files).filter(
-      (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
-    )
-    if (media.length > 0) {
-      e.preventDefault()
-      captureMediaFiles(media)
-    }
-    setDragging(false)
-  }
-
-  function onCaptureMediaInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.currentTarget.files ?? [])
-    if (files.length > 0) void captureMediaFiles(files)
-    e.currentTarget.value = ''
-  }
-
-  function save() {
-    if (isLinkDraft && linkUrl) {
-      saveLink(linkUrl)
-      return
-    }
-    const content = draft.trim()
-    if (!content || createNote.isPending) return
-    const files = pendingFiles
-    createNote.mutate(
-      { content, title: title.trim() || null },
-      {
-        onSuccess: async (note) => {
-          setDraft('')
-          setTitle('')
-          setForceNote(false)
-          setPendingFiles([])
-          flashSaved()
-          if (files.length === 0) return
-          try {
-            await Promise.all(
-              files.map((file) =>
-                uploadAttachment.mutateAsync({
-                  ownerType: 'note',
-                  ownerId: note.id,
-                  file,
-                }),
-              ),
-            )
-            toast.show({ message: 'Nota y anexos guardados.', tone: 'success' })
-          } catch (err) {
-            toast.show({
-              message:
-                err instanceof Error
-                  ? err.message
-                  : 'La nota se guardó, pero algún anexo falló.',
-              tone: 'error',
-            })
-          }
-        },
-      },
-    )
-  }
-
-  function onComposerKey(e: React.KeyboardEvent) {
-    // ⌘/Ctrl + Enter guarda (como en chat/markdown editors).
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault()
-      save()
-    }
-  }
-
   return (
     <>
       <ViewHeader
@@ -495,38 +287,38 @@ export function NotasFeedView({
       {segment !== 'favoritos' && (
         <NotasFeedComposer
           accent={ACCENT}
-          title={title}
-          draft={draft}
-          pendingFiles={pendingFiles}
+          title={composer.title}
+          draft={composer.draft}
+          pendingFiles={composer.pendingFiles}
           allNoteTags={allNoteTags}
-          textareaRef={composerRef}
-          dragging={dragging}
-          composerFocused={composerFocused}
-          composerActive={composerActive}
-          isLinkDraft={isLinkDraft}
-          justSaved={justSaved}
-          createNoteBusy={createNote.isPending}
-          uploadAttachmentBusy={uploadAttachment.isPending}
-          createRecorteBusy={createRecorte.isPending}
-          onTitleChange={setTitle}
-          onDraftChange={setDraft}
-          onPendingFilesChange={setPendingFiles}
-          onComposerFocus={() => setComposerFocused(true)}
-          onComposerBlur={() => setComposerFocused(false)}
+          textareaRef={composer.composerRef}
+          dragging={composer.dragging}
+          composerFocused={composer.composerFocused}
+          composerActive={composer.composerActive}
+          isLinkDraft={composer.isLinkDraft}
+          justSaved={composer.justSaved}
+          createNoteBusy={composer.createNoteBusy}
+          uploadAttachmentBusy={composer.uploadAttachmentBusy}
+          createRecorteBusy={composer.createRecorteBusy}
+          onTitleChange={composer.setTitle}
+          onDraftChange={composer.setDraft}
+          onPendingFilesChange={composer.setPendingFiles}
+          onComposerFocus={() => composer.setComposerFocused(true)}
+          onComposerBlur={() => composer.setComposerFocused(false)}
           onComposerDragOver={(e) => {
             if (e.dataTransfer.types.includes('Files')) {
               e.preventDefault()
-              setDragging(true)
+              composer.setDragging(true)
             }
           }}
-          onComposerDragLeave={() => setDragging(false)}
-          onComposerDrop={onComposerDrop}
-          onComposerPaste={onComposerPaste}
-          onComposerKeyDown={onComposerKey}
-          onCaptureMediaInput={onCaptureMediaInput}
-          onRequestFocusMode={() => setFocusMode(true)}
-          onForceNote={() => setForceNote(true)}
-          onSave={save}
+          onComposerDragLeave={() => composer.setDragging(false)}
+          onComposerDrop={composer.onComposerDrop}
+          onComposerPaste={composer.onComposerPaste}
+          onComposerKeyDown={composer.onComposerKey}
+          onCaptureMediaInput={composer.onCaptureMediaInput}
+          onRequestFocusMode={() => composer.setFocusMode(true)}
+          onForceNote={() => composer.setForceNote(true)}
+          onSave={composer.save}
         />
       )}
 
@@ -565,7 +357,7 @@ export function NotasFeedView({
 
       <NotasFeedContent
         segment={segment}
-        uploadingImages={uploadingImages}
+        uploadingImages={composer.uploadingImages}
         isLoading={isLoading}
         isError={isError}
         everythingEmpty={everythingEmpty}
@@ -573,7 +365,7 @@ export function NotasFeedView({
         hasContentFilter={hasContentFilter}
         galleryMode={galleryMode}
         isFetchingNextPage={isFetchingNextPage}
-        onFocusComposer={focusComposer}
+        onFocusComposer={composer.focusComposer}
         onClearFilters={clearFilters}
         favoritosPanel={<FavoritosPanel />}
         gallery={
@@ -661,15 +453,15 @@ export function NotasFeedView({
       )}
 
       {/* Escritura enfocada del composer: edita el MISMO borrador (draft/title). */}
-      {focusMode && (
+      {composer.focusMode && (
         <Suspense fallback={null}>
           <FocusedWriting
-            value={draft}
-            onChange={setDraft}
-            title={title}
-            onTitleChange={setTitle}
+            value={composer.draft}
+            onChange={composer.setDraft}
+            title={composer.title}
+            onTitleChange={composer.setTitle}
             bodyPlaceholder="Escribe tu nota sin distracciones… usa #etiquetas"
-            onClose={() => setFocusMode(false)}
+            onClose={() => composer.setFocusMode(false)}
           />
         </Suspense>
       )}
