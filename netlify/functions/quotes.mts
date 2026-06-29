@@ -18,28 +18,8 @@ import {
 
 import { normalizeOrigin } from './_lib/origin.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
-
-// Shape devuelto por los SELECT/RETURNING de citas (snake_case, raw).
-// El cliente lo transforma vía quoteFromRow.
-type QuoteRow = {
-  id: string
-  entity_id: string
-  text: string
-  source: string | null
-  context: string | null
-  link: string | null
-  user_reflection: string | null
-  ai_reflection: string | null
-  ai_reflection_provider: string | null
-  ai_reflection_model: string | null
-  ai_reflection_at: string | null
-  linked_quote_ids: string[]
-  pinned_at: string | null
-  resonance: number | null
-  origin: unknown
-  created_at: string
-  updated_at: string
-}
+import { parseRows } from './_lib/row-parse.js'
+import { QuoteRowSchema, type QuoteRow } from './_lib/backend-row-schemas.js'
 
 function normalizeLinkedQuoteIds(value: string[] | null | undefined): string[] {
   if (!Array.isArray(value)) return []
@@ -86,7 +66,8 @@ export default withObservability('quotes', async (req: Request, context: Context
     // (the historical shape, used by hooks that still need every quote).
     // With ?limit we switch to cursor pagination, returning { items, nextCursor }.
     if (!limitParam) {
-      const rows = await sql`
+      const rows = parseRows(
+        await sqlTyped<QuoteRow>(sql`
         SELECT id, entity_id, text, source, context, link,
                user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                linked_quote_ids, pinned_at, resonance,
@@ -94,7 +75,10 @@ export default withObservability('quotes', async (req: Request, context: Context
         FROM quotes
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
-      `
+      `),
+        QuoteRowSchema,
+        'quotes.list.wholesale',
+      )
       return Response.json(rows)
     }
 
@@ -121,7 +105,8 @@ export default withObservability('quotes', async (req: Request, context: Context
     // pinned_at primero (DESC, nulls al final), después created_at DESC,
     // después id DESC para tie-break. Las favoritas suben al tope.
     const rows = cursorTs && cursorId
-      ? await sqlTyped<QuoteRow>(sql`
+      ? parseRows(
+          await sqlTyped<QuoteRow>(sql`
           SELECT id, entity_id, text, source, context, link,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
@@ -131,8 +116,12 @@ export default withObservability('quotes', async (req: Request, context: Context
             AND (created_at, id) < (${cursorTs}::timestamptz, ${cursorId}::uuid)
           ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `)
-      : await sqlTyped<QuoteRow>(sql`
+        `),
+          QuoteRowSchema,
+          'quotes.list.paginated.cursor',
+        )
+      : parseRows(
+          await sqlTyped<QuoteRow>(sql`
           SELECT id, entity_id, text, source, context, link,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
@@ -141,7 +130,10 @@ export default withObservability('quotes', async (req: Request, context: Context
           WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
-        `)
+        `),
+          QuoteRowSchema,
+          'quotes.list.paginated.first',
+        )
 
     // Ver entities.mts para el contexto: Neon HTTP devuelve created_at como
     // Date, y la stringificación default rompe el parser de Postgres. Forzamos
@@ -190,7 +182,8 @@ export default withObservability('quotes', async (req: Request, context: Context
       }),
     )
 
-    const rows = await sqlTyped<QuoteRow>(sql`
+    const rows = parseRows(
+      await sqlTyped<QuoteRow>(sql`
       INSERT INTO quotes (
         entity_id, text, source, context, link, user_reflection, linked_quote_ids, origin,
         embedding, embedding_model, embedding_at, user_id
@@ -212,7 +205,10 @@ export default withObservability('quotes', async (req: Request, context: Context
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
-    `)
+    `),
+      QuoteRowSchema,
+      'quotes.create.returning',
+    )
     return Response.json(rows[0], { status: 201 })
   }
 
@@ -272,7 +268,8 @@ export default withObservability('quotes', async (req: Request, context: Context
     // side effect of stamping ai_reflection_at when it changes. entity_id
     // can move the quote to a different entity (useful for fixing quotes
     // that ended up attached to a book instead of its author).
-    const rows = await sqlTyped<QuoteRow>(sql`
+    const rows = parseRows(
+      await sqlTyped<QuoteRow>(sql`
       UPDATE quotes
       SET
         text                   = COALESCE(${body.text ?? null}, text),
@@ -301,7 +298,10 @@ export default withObservability('quotes', async (req: Request, context: Context
                 user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
-    `)
+    `),
+      QuoteRowSchema,
+      'quotes.patch.returning',
+    )
     if (rows.length === 0) {
       return ApiErrors.notFound(requestId, 'Cita no encontrada')
     }

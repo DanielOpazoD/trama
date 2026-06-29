@@ -45,6 +45,27 @@ export const NoteRowSchema = z.object({
 })
 export type NoteRow = z.infer<typeof NoteRowSchema>
 
+export const QuoteRowSchema = z.object({
+  id: z.string(),
+  entity_id: z.string(),
+  text: z.string(),
+  source: z.string().nullable(),
+  context: z.string().nullable(),
+  link: z.string().nullable(),
+  user_reflection: z.string().nullable(),
+  ai_reflection: z.string().nullable(),
+  ai_reflection_provider: z.string().nullable(),
+  ai_reflection_model: z.string().nullable(),
+  ai_reflection_at: DbTimestampSchema.nullable(),
+  linked_quote_ids: z.array(z.string()),
+  pinned_at: DbTimestampSchema.nullable(),
+  resonance: z.number().nullable(),
+  origin: OriginRowSchema,
+  created_at: DbTimestampSchema,
+  updated_at: DbTimestampSchema,
+})
+export type QuoteRow = z.infer<typeof QuoteRowSchema>
+
 export const MomentoListRowSchema = z.object({
   id: z.string(),
   kind: z.string(),

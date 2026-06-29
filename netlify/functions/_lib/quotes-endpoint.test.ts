@@ -63,12 +63,15 @@ describe('quotes endpoint — integration', () => {
         text: 'cita test',
         source: null,
         context: null,
+        link: null,
         user_reflection: null,
         ai_reflection: null,
         ai_reflection_provider: null,
         ai_reflection_model: null,
         ai_reflection_at: null,
         linked_quote_ids: [],
+        pinned_at: null,
+        resonance: null,
         origin: { kind: 'manual' },
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
@@ -85,6 +88,36 @@ describe('quotes endpoint — integration', () => {
     )
     expect(listQuery?.template).toMatch(/\blink\b/)
     expect(listQuery?.template).toMatch(/\bpinned_at\b/)
+  })
+
+  it('GET falla cerrado si una fila no trae la proyección canónica', async () => {
+    mockSqlResponses.push([
+      {
+        id: 'q1',
+        entity_id: 'e1',
+        text: 'cita test',
+        source: null,
+        context: null,
+        user_reflection: null,
+        ai_reflection: null,
+        ai_reflection_provider: null,
+        ai_reflection_model: null,
+        ai_reflection_at: null,
+        linked_quote_ids: [],
+        pinned_at: null,
+        resonance: null,
+        origin: { kind: 'manual' },
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ])
+
+    const res = await handler(new Request('http://localhost/api/quotes'), mockContext())
+
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toMatchObject({
+      error: { code: 'INTERNAL' },
+    })
   })
 
   it('PATCH con mismo texto fuente no re-embedea', async () => {
