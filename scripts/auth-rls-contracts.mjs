@@ -822,14 +822,9 @@ function migrationRlsState(sql) {
  * Meta: este objeto vacío.
  */
 export const RLS_IMPLEMENTATION_BACKLOG = {
-  ai_task_providers:
-    'per-user (PK user_id,task); consumidores con contexto. RLS pendiente — Cimiento #1 fase 2.',
-  error_log:
-    'append-only con user_id; persistError best-effort en contexto/bypass. RLS pendiente — fase 2.',
-  extraction_log:
-    'append-only con user_id; writers en contexto + cron cost-alert con bypass. RLS pendiente — fase 2.',
-  web_vitals_samples:
-    'telemetría per-user (solo persiste autenticado, sin lector global). RLS pendiente — fase 2.',
+  // Vacío: las 44 tablas rls:'required' tienen RLS real (ENABLE+FORCE+POLICY).
+  // Cimiento #1 completo. Toda tabla nueva rls:'required' debe nacer con RLS o
+  // el gate falla — ya no hay allowlist donde esconderse.
 }
 
 export function validateAuthRlsContracts({
