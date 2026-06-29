@@ -12,7 +12,8 @@ import { CloseButton } from './CloseButton'
  *
  * Delega focus-trap, Escape-to-close, scroll-lock y restauración de foco a
  * `useModalOverlay`. Usa los tokens de z-index SEMÁNTICOS (`z-overlay` para el
- * backdrop, `z-modal` para el diálogo) en vez de valores ad-hoc.
+ * backdrop, `z-modal` para el diálogo) en vez de valores ad-hoc, y respeta
+ * `prefers-reduced-motion` en la animación de entrada.
  *
  * El modal se monta SOLO cuando está visible: el call site renderiza
  * `<ModalShell>` de forma condicional (típicamente `if (!open) return null`
@@ -30,6 +31,7 @@ const SIZE_CLASS: Record<ModalSize, string> = {
 export function ModalShell({
   ariaLabel,
   eyebrow,
+  eyebrowColor = 'var(--accent-gold)',
   title,
   size = 'md',
   onClose,
@@ -40,8 +42,10 @@ export function ModalShell({
 }: {
   /** Nombre accesible del diálogo (`role="dialog"` + `aria-label`). */
   ariaLabel: string
-  /** Línea superior en small-caps doradas. Opcional. */
+  /** Línea superior en small-caps. Opcional. */
   eyebrow?: string
+  /** Color del eyebrow (default oro). Permite conservar el acento de sección. */
+  eyebrowColor?: string
   /** Título serif. Opcional (algunos modales traen su propio header interno). */
   title?: ReactNode
   size?: ModalSize
@@ -64,9 +68,9 @@ export function ModalShell({
         onClick={onClose}
         aria-label="Cerrar"
         tabIndex={-1}
-        className="fixed inset-0 z-overlay bg-ink-900/50 backdrop-blur-sm cursor-default animate-fade-up"
+        className="fixed inset-0 z-overlay bg-ink-900/50 backdrop-blur-sm cursor-default animate-fade-up motion-reduce:animate-none"
       />
-      <div className="fixed inset-0 z-modal flex items-center justify-center px-4 pointer-events-none animate-fade-up">
+      <div className="fixed inset-0 z-modal flex items-center justify-center px-4 pointer-events-none animate-fade-up motion-reduce:animate-none">
         <div
           ref={overlay.dialogRef}
           role="dialog"
@@ -86,7 +90,7 @@ export function ModalShell({
               {(eyebrow || title) && (
                 <div className="min-w-0">
                   {eyebrow && (
-                    <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
+                    <p className="section-eyebrow-serif" style={{ color: eyebrowColor }}>
                       {eyebrow}
                     </p>
                   )}

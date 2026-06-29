@@ -98,7 +98,7 @@ describe('<FotoEditModal />', () => {
 
     const modalRoot = screen
       .getByRole('dialog', { name: /editar momento/i })
-      .closest('[data-momento-modal-root]')
+      .closest('[data-modal-root]')
     expect(modalRoot).not.toBeNull()
     expect(modalRoot?.parentElement).toBe(document.body)
   })
