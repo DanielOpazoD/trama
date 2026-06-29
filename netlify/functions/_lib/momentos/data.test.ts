@@ -146,6 +146,15 @@ describe('data: entidades / links', () => {
     // conjuntos disjuntos: el soft-delete excluye los deseados (sin doble-touch).
     expect(tpl).toMatch(/NOT IN \(SELECT e_id FROM desired\)/i)
   })
+
+  it('replaceMomentoEntityLinks deduplica entityIds (DISTINCT) para no tocar la misma fila dos veces', async () => {
+    mockSqlResponses.push([])
+    await replaceMomentoEntityLinks(getSql(), 'm1', ['e1', 'e1'], 'owner1')
+    expect(mockSqlResponses.calls).toHaveLength(1)
+    expect(mockSqlResponses.calls[0].template).toMatch(
+      /SELECT DISTINCT e_id FROM unnest/i,
+    )
+  })
 })
 
 describe('data: POST create', () => {

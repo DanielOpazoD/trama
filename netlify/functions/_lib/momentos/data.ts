@@ -292,7 +292,7 @@ export async function replaceMomentoEntityLinks(
   await runWithSystemRls(
     () => sql`
       WITH desired AS (
-        SELECT e_id FROM unnest(${entityIds}::uuid[]) AS e_id
+        SELECT DISTINCT e_id FROM unnest(${entityIds}::uuid[]) AS e_id
       ),
       soft_deleted AS (
         UPDATE momento_entities

@@ -75,22 +75,30 @@ export default withObservability(
       const payload = { bodyText: note.content }
       const embedSource = momentoEmbedText('nota', payload, null)
       const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
-      // Promoción atómica: crear el Momento y marcar la nota en UN solo CTE, para
-      // que el Lambda no pueda morir entre ambos y dejar un Momento huérfano (la
-      // nota sin su promoted_momento_id). El INSERT se condiciona a que la nota
-      // siga válida y sin promover, cerrando la ventana de carrera contra el
-      // SELECT previo. Si nada se insertó, otra request la promovió en paralelo.
+      // Promoción atómica y a prueba de concurrencia: se reclama la nota con
+      // FOR UPDATE (lock de fila) ANTES de insertar, y el INSERT se alimenta de
+      // esa reclamación. Dos promotes simultáneos se serializan en el lock: el
+      // segundo, al despertar, ya no cumple `promoted_momento_id IS NULL`, así que
+      // `note_to_promote` queda vacío y NO crea un Momento huérfano. El `mark`
+      // devuelve el id, de modo que solo se reporta un Momento por nota.
       // (mutación multi-tabla → CTE, docs/conventions/dominios.md; regresión en
       //  scripts/check-cte-regression.sql)
       const promoted = await sqlTyped<{ momento_id: string | null }>(sql`
-        WITH new_momento AS (
+        WITH note_to_promote AS (
+          SELECT created_at
+          FROM notes
+          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+            AND promoted_momento_id IS NULL
+          FOR UPDATE
+        ),
+        new_momento AS (
           INSERT INTO momentos (
             kind, captured_at, payload, note, origin,
             embedding, embedding_model, embedding_at, user_id
           )
           SELECT
             'nota',
-            ${note.created_at}::timestamptz,
+            note_to_promote.created_at,
             ${JSON.stringify(payload)}::jsonb,
             ${null},
             ${JSON.stringify({ kind: 'manual' })}::jsonb,
@@ -98,20 +106,18 @@ export default withObservability(
             ${emb?.model ?? null},
             ${emb ? new Date().toISOString() : null}::timestamptz,
             ${userId}
-          WHERE EXISTS (
-            SELECT 1 FROM notes
-            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-              AND promoted_momento_id IS NULL
-          )
+          FROM note_to_promote
           RETURNING id
         ),
         mark AS (
           UPDATE notes
-          SET promoted_momento_id = (SELECT id FROM new_momento), updated_at = NOW()
-          WHERE id = ${id} AND user_id = ${userId} AND EXISTS (SELECT 1 FROM new_momento)
-          RETURNING id
+          SET promoted_momento_id = new_momento.id, updated_at = NOW()
+          FROM new_momento
+          WHERE notes.id = ${id} AND notes.user_id = ${userId}
+            AND notes.deleted_at IS NULL AND notes.promoted_momento_id IS NULL
+          RETURNING notes.promoted_momento_id
         )
-        SELECT (SELECT id FROM new_momento) AS momento_id
+        SELECT promoted_momento_id AS momento_id FROM mark
       `)
       const momentoId = promoted[0]?.momento_id
       if (!momentoId) {
