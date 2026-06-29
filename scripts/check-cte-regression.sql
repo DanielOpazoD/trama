@@ -11,7 +11,8 @@
 --   netlify/functions/entities-merge.mts
 --   netlify/functions/entities.mts        (DELETE + restore)
 --   netlify/functions/momentos.mts        (POST)
---   netlify/functions/notes.mts           (DELETE + restore — patrón compartido con tasks/prompts)
+--   netlify/functions/_lib/momentos/data.ts (replaceMomentoEntityLinks — PATCH momentos)
+--   netlify/functions/notes.mts           (DELETE + restore — patrón compartido con tasks/prompts; y /promote)
 --   netlify/functions/_lib/whatsapp/persist-media.ts (persistImageRecorteEvent)
 --   netlify/functions/_lib/whatsapp/album.ts          (appendImagesToRecorteEvent)
 --   netlify/functions/_lib/whatsapp/description.ts    (consumeAwaitingDescription)
@@ -187,7 +188,8 @@ END $$;
 --    el owner_type); validar uno valida la forma de los tres.
 -- ============================================================================
 CREATE TABLE notes (
-  id uuid PRIMARY KEY, content text, updated_at timestamptz DEFAULT now(),
+  id uuid PRIMARY KEY, content text, created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(), promoted_momento_id uuid,
   deleted_at timestamptz, user_id text NOT NULL REFERENCES users(id));
 CREATE TABLE notas_attachments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), owner_type text, owner_id text,
@@ -260,6 +262,171 @@ BEGIN
     RAISE EXCEPTION 'note-restore: los anexos no se restauraron';
   END IF;
   RAISE NOTICE 'OK note restore (mismo deleted_at revertido, anexos incluidos)';
+END $$;
+
+-- ============================================================================
+-- 4b) notes.mts /promote — crea el Momento y marca la nota en UN solo CTE. El
+--     INSERT se condiciona a que la nota siga válida y sin promover (cierra la
+--     ventana de carrera con el SELECT previo del handler). Valida atomicidad
+--     (Momento creado ⇔ nota marcada) e idempotencia (re-promover no duplica).
+-- ============================================================================
+INSERT INTO notes (id, content, user_id)
+VALUES ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', 'nota a promover', 'u1');
+
+-- promote (copiado de notes.mts; embedding va NULL como en el resto del archivo):
+WITH new_momento AS (
+  INSERT INTO momentos (kind, captured_at, payload, note, origin, embedding, embedding_model, embedding_at, user_id)
+  SELECT 'nota',
+    (SELECT created_at FROM notes WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+    '{"bodyText":"nota a promover"}'::jsonb, NULL, '{"kind":"manual"}'::jsonb, NULL, NULL, NULL, 'u1'
+  WHERE EXISTS (
+    SELECT 1 FROM notes
+    WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' AND deleted_at IS NULL AND user_id = 'u1'
+      AND promoted_momento_id IS NULL
+  )
+  RETURNING id
+),
+mark AS (
+  UPDATE notes
+  SET promoted_momento_id = (SELECT id FROM new_momento), updated_at = NOW()
+  WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' AND user_id = 'u1'
+    AND EXISTS (SELECT 1 FROM new_momento)
+  RETURNING id
+)
+SELECT (SELECT id FROM new_momento) AS momento_id;
+
+DO $$
+DECLARE pm uuid;
+BEGIN
+  SELECT promoted_momento_id INTO pm FROM notes WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  IF pm IS NULL THEN RAISE EXCEPTION 'note-promote: la nota no quedó marcada'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM momentos WHERE id = pm AND kind = 'nota' AND user_id = 'u1') THEN
+    RAISE EXCEPTION 'note-promote: el Momento no se creó o no coincide con el link';
+  END IF;
+  RAISE NOTICE 'OK note promote (Momento creado + nota marcada, atómico)';
+END $$;
+
+-- Idempotencia/carrera: re-promover una nota ya promovida NO crea otro Momento
+-- ni cambia el link (el INSERT condicionado no dispara).
+DO $$
+DECLARE pm_before uuid; pm_after uuid; new_id uuid;
+BEGIN
+  SELECT promoted_momento_id INTO pm_before FROM notes WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  WITH new_momento AS (
+    INSERT INTO momentos (kind, captured_at, payload, note, origin, embedding, embedding_model, embedding_at, user_id)
+    SELECT 'nota', NOW(), '{}'::jsonb, NULL, '{"kind":"manual"}'::jsonb, NULL, NULL, NULL, 'u1'
+    WHERE EXISTS (
+      SELECT 1 FROM notes
+      WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' AND deleted_at IS NULL AND user_id = 'u1'
+        AND promoted_momento_id IS NULL
+    )
+    RETURNING id
+  ),
+  mark AS (
+    UPDATE notes SET promoted_momento_id = (SELECT id FROM new_momento), updated_at = NOW()
+    WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' AND user_id = 'u1'
+      AND EXISTS (SELECT 1 FROM new_momento)
+    RETURNING id
+  )
+  SELECT (SELECT id FROM new_momento) INTO new_id;
+  SELECT promoted_momento_id INTO pm_after FROM notes WHERE id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  IF new_id IS NOT NULL THEN RAISE EXCEPTION 'note-promote: re-promovió una nota ya promovida'; END IF;
+  IF pm_after <> pm_before THEN RAISE EXCEPTION 'note-promote: el link cambió al re-promover'; END IF;
+  RAISE NOTICE 'OK note promote idempotente (nota ya promovida no crea otro Momento)';
+END $$;
+
+-- ============================================================================
+-- 4c) momentos/data.ts replaceMomentoEntityLinks — reemplazo de links en UN
+--     CTE: soft-delete de los que ya no están (entity_id NOT IN desired) +
+--     upsert de los deseados, conjuntos DISJUNTOS (ninguna fila se toca dos
+--     veces, lo que Postgres rechazaría). Valida: quitar/conservar/añadir,
+--     reactivación de un link borrado, y replace vacío (borra todos).
+-- ============================================================================
+INSERT INTO momento_entities (momento_id, entity_id, user_id) VALUES
+  ('f0000000-0000-4000-8000-000000000001', 'fa000000-0000-4000-8000-00000000000a', 'u1'),
+  ('f0000000-0000-4000-8000-000000000001', 'fb000000-0000-4000-8000-00000000000b', 'u1'),
+  ('f0000000-0000-4000-8000-000000000001', 'fc000000-0000-4000-8000-00000000000c', 'u1');
+
+-- replace [B,C,D] (copiado de data.ts): quita A, conserva B/C, agrega D.
+WITH desired AS (
+  SELECT e_id FROM unnest(ARRAY[
+    'fb000000-0000-4000-8000-00000000000b',
+    'fc000000-0000-4000-8000-00000000000c',
+    'fd000000-0000-4000-8000-00000000000d'
+  ]::uuid[]) AS e_id
+),
+soft_deleted AS (
+  UPDATE momento_entities SET deleted_at = NOW()
+  WHERE momento_id = 'f0000000-0000-4000-8000-000000000001'::uuid AND user_id = 'u1'
+    AND deleted_at IS NULL
+    AND entity_id NOT IN (SELECT e_id FROM desired)
+  RETURNING 1
+)
+INSERT INTO momento_entities (momento_id, entity_id, user_id)
+SELECT 'f0000000-0000-4000-8000-000000000001'::uuid, e_id, 'u1' FROM desired
+ON CONFLICT (momento_id, entity_id) DO UPDATE
+SET user_id = EXCLUDED.user_id, deleted_at = NULL;
+
+DO $$
+BEGIN
+  IF (SELECT deleted_at FROM momento_entities WHERE momento_id='f0000000-0000-4000-8000-000000000001' AND entity_id='fa000000-0000-4000-8000-00000000000a') IS NULL THEN
+    RAISE EXCEPTION 'replace-links: A (removido) no se soft-deleteó'; END IF;
+  IF (SELECT deleted_at FROM momento_entities WHERE momento_id='f0000000-0000-4000-8000-000000000001' AND entity_id='fb000000-0000-4000-8000-00000000000b') IS NOT NULL THEN
+    RAISE EXCEPTION 'replace-links: B (conservado) quedó borrado'; END IF;
+  IF (SELECT deleted_at FROM momento_entities WHERE momento_id='f0000000-0000-4000-8000-000000000001' AND entity_id='fc000000-0000-4000-8000-00000000000c') IS NOT NULL THEN
+    RAISE EXCEPTION 'replace-links: C (conservado) quedó borrado'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM momento_entities WHERE momento_id='f0000000-0000-4000-8000-000000000001' AND entity_id='fd000000-0000-4000-8000-00000000000d' AND deleted_at IS NULL) THEN
+    RAISE EXCEPTION 'replace-links: D (nuevo) no se insertó activo'; END IF;
+  RAISE NOTICE 'OK replace links (quita A, conserva B/C sin doble-touch, agrega D)';
+END $$;
+
+-- replace [A]: reactiva A (soft-deleted antes) y soft-borra B/C/D.
+WITH desired AS (
+  SELECT e_id FROM unnest(ARRAY['fa000000-0000-4000-8000-00000000000a']::uuid[]) AS e_id
+),
+soft_deleted AS (
+  UPDATE momento_entities SET deleted_at = NOW()
+  WHERE momento_id = 'f0000000-0000-4000-8000-000000000001'::uuid AND user_id = 'u1'
+    AND deleted_at IS NULL
+    AND entity_id NOT IN (SELECT e_id FROM desired)
+  RETURNING 1
+)
+INSERT INTO momento_entities (momento_id, entity_id, user_id)
+SELECT 'f0000000-0000-4000-8000-000000000001'::uuid, e_id, 'u1' FROM desired
+ON CONFLICT (momento_id, entity_id) DO UPDATE
+SET user_id = EXCLUDED.user_id, deleted_at = NULL;
+
+DO $$
+BEGIN
+  IF (SELECT deleted_at FROM momento_entities WHERE momento_id='f0000000-0000-4000-8000-000000000001' AND entity_id='fa000000-0000-4000-8000-00000000000a') IS NOT NULL THEN
+    RAISE EXCEPTION 'replace-links: A no se reactivó'; END IF;
+  IF (SELECT deleted_at FROM momento_entities WHERE momento_id='f0000000-0000-4000-8000-000000000001' AND entity_id='fb000000-0000-4000-8000-00000000000b') IS NULL THEN
+    RAISE EXCEPTION 'replace-links: B no se soft-deleteó al reemplazar por [A]'; END IF;
+  RAISE NOTICE 'OK replace links reactivación (A vuelve, B/C/D se borran)';
+END $$;
+
+-- replace [] (lista vacía): borra todos los activos.
+WITH desired AS (
+  SELECT e_id FROM unnest(ARRAY[]::uuid[]) AS e_id
+),
+soft_deleted AS (
+  UPDATE momento_entities SET deleted_at = NOW()
+  WHERE momento_id = 'f0000000-0000-4000-8000-000000000001'::uuid AND user_id = 'u1'
+    AND deleted_at IS NULL
+    AND entity_id NOT IN (SELECT e_id FROM desired)
+  RETURNING 1
+)
+INSERT INTO momento_entities (momento_id, entity_id, user_id)
+SELECT 'f0000000-0000-4000-8000-000000000001'::uuid, e_id, 'u1' FROM desired
+ON CONFLICT (momento_id, entity_id) DO UPDATE
+SET user_id = EXCLUDED.user_id, deleted_at = NULL;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM momento_entities WHERE momento_id='f0000000-0000-4000-8000-000000000001' AND deleted_at IS NULL) THEN
+    RAISE EXCEPTION 'replace-links: replace vacío dejó links activos';
+  END IF;
+  RAISE NOTICE 'OK replace links vacío (todos soft-deleted)';
 END $$;
 
 -- ============================================================================

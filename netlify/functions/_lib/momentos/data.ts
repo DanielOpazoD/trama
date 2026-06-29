@@ -282,25 +282,33 @@ export async function replaceMomentoEntityLinks(
   entityIds: string[],
   ownerUserId: string,
 ): Promise<void> {
+  // Reemplazo atómico en UN solo CTE: soft-delete de los links que ya no están +
+  // upsert (reactivación) de los deseados. Los dos conjuntos son DISJUNTOS por
+  // `entity_id NOT IN desired`, así ninguna fila se toca dos veces (lo que
+  // Postgres rechazaría) y el momento nunca queda sin links si el Lambda muere a
+  // media operación. Con entityIds vacío, `desired` queda vacío y se soft-borran
+  // todos. (mutación multi-tabla → CTE, docs/conventions/dominios.md; regresión
+  // en scripts/check-cte-regression.sql)
   await runWithSystemRls(
     () => sql`
-      UPDATE momento_entities
-      SET deleted_at = NOW()
-      WHERE momento_id = ${momentoId} AND user_id = ${ownerUserId} AND deleted_at IS NULL
+      WITH desired AS (
+        SELECT e_id FROM unnest(${entityIds}::uuid[]) AS e_id
+      ),
+      soft_deleted AS (
+        UPDATE momento_entities
+        SET deleted_at = NOW()
+        WHERE momento_id = ${momentoId}::uuid AND user_id = ${ownerUserId}
+          AND deleted_at IS NULL
+          AND entity_id NOT IN (SELECT e_id FROM desired)
+        RETURNING 1
+      )
+      INSERT INTO momento_entities (momento_id, entity_id, user_id)
+      SELECT ${momentoId}::uuid, e_id, ${ownerUserId} FROM desired
+      ON CONFLICT (momento_id, entity_id) DO UPDATE
+      SET user_id = EXCLUDED.user_id,
+          deleted_at = NULL
     `,
   )
-  if (entityIds.length > 0) {
-    await runWithSystemRls(
-      () => sql`
-        INSERT INTO momento_entities (momento_id, entity_id, user_id)
-        SELECT ${momentoId}::uuid, e_id, ${ownerUserId}
-        FROM unnest(${entityIds}::uuid[]) AS e_id
-        ON CONFLICT (momento_id, entity_id) DO UPDATE
-        SET user_id = EXCLUDED.user_id,
-            deleted_at = NULL
-      `,
-    )
-  }
 }
 
 // ----------------------------------------------------------- POST create ----

@@ -56,7 +56,10 @@ function addStorageKey(set: Set<string>, storageKey: unknown): void {
  * multi (`items[]`). Soft-deletados se INCLUYEN para no resucitar fotos
  * que el usuario borró a propósito.
  */
-async function collectReferencedKeys(sql: ReturnType<typeof getSql>, userId: string): Promise<Set<string>> {
+async function collectReferencedKeys(
+  sql: ReturnType<typeof getSql>,
+  userId: string,
+): Promise<Set<string>> {
   const rows = await sqlTyped<ReferencedMomentoPayloadRow>(sql`
     SELECT payload
     FROM momentos
@@ -82,101 +85,99 @@ async function collectReferencedKeys(sql: ReturnType<typeof getSql>, userId: str
   return set
 }
 
-export default withObservability('momentos-orphaned-blobs', async (req: Request, _ctx, { requestId }) => {
-  const sql = getSql()
-  const authedUser = await getAuthedUser(req)
-  const userId = authedUser.id
-  const store = createNetlifyBlobStorageAdapter('momentos-media')
+export default withObservability(
+  'momentos-orphaned-blobs',
+  async (req: Request, _ctx, { requestId }) => {
+    const sql = getSql()
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const store = createNetlifyBlobStorageAdapter('momentos-media')
 
-  // GET: listar las keys huérfanas + algún metadata útil (mime) para que
-  // el cliente pueda renderizar thumbs apuntando al endpoint /file/:key.
-  if (req.method === 'GET') {
-    const { blobs } = await store.list()
-    const referenced = await collectReferencedKeys(sql, userId)
-    const orphans = blobs
-      .map((b) => b.key)
-      .filter((k) => !referenced.has(k))
-      .sort() // estable para que el cliente pueda asumir orden
-    return Response.json({
-      orphans,
-      totalInStore: blobs.length,
-      referenced: referenced.size,
-    })
-  }
-
-  // POST: adoptar un blob. El body trae { storageKey, note?, capturedAt? }.
-  // El servidor verifica que el blob exista en el store (no aceptamos keys
-  // arbitrarias) y crea un Momento kind='foto' apuntando a esa key.
-  if (req.method === 'POST') {
-    await ensureUserRow(sql, authedUser)
-    const parsed = await parseJsonBody(req, OrphanedBlobRescueBody, requestId)
-    if (!parsed.ok) return parsed.response
-    const body = parsed.data
-    const storageKey = body.storageKey.trim()
-
-    // Verificar que el blob existe — evita crear Momentos apuntando a keys
-    // inventadas. También recupera el mime original.
-    const meta = await store.getMetadata(storageKey)
-    if (!meta) {
-      return ApiErrors.notFound(requestId, 'Blob no encontrado en el store')
+    // GET: listar las keys huérfanas + algún metadata útil (mime) para que
+    // el cliente pueda renderizar thumbs apuntando al endpoint /file/:key.
+    if (req.method === 'GET') {
+      const { blobs } = await store.list()
+      const referenced = await collectReferencedKeys(sql, userId)
+      const orphans = blobs
+        .map((b) => b.key)
+        .filter((k) => !referenced.has(k))
+        .sort() // estable para que el cliente pueda asumir orden
+      return Response.json({
+        orphans,
+        totalInStore: blobs.length,
+        referenced: referenced.size,
+      })
     }
 
-    // Verificar que no esté ya referenciado (idempotencia).
-    const referenced = await collectReferencedKeys(sql, userId)
-    if (referenced.has(storageKey)) {
-      return ApiErrors.conflict(requestId, 'Blob ya está referenciado por otro Momento')
-    }
+    // POST: adoptar un blob. El body trae { storageKey, note?, capturedAt? }.
+    // El servidor verifica que el blob exista en el store (no aceptamos keys
+    // arbitrarias) y crea un Momento kind='foto' apuntando a esa key.
+    if (req.method === 'POST') {
+      await ensureUserRow(sql, authedUser)
+      const parsed = await parseJsonBody(req, OrphanedBlobRescueBody, requestId)
+      if (!parsed.ok) return parsed.response
+      const body = parsed.data
+      const storageKey = body.storageKey.trim()
 
-    const capturedAt = body.capturedAt ?? new Date().toISOString()
-    const note = body.note?.trim() || null
-    const payload: FotoPayload = {
-      items: [{ storageKey }],
-      // legacy back-compat: también guardamos como single
-      storageKey,
-    }
-    const origin = JSON.stringify({
-      kind: 'imported',
-      importedFrom: 'orphaned-blob-rescue',
-    })
+      // Verificar que el blob existe — evita crear Momentos apuntando a keys
+      // inventadas. También recupera el mime original.
+      const meta = await store.getMetadata(storageKey)
+      if (!meta) {
+        return ApiErrors.notFound(requestId, 'Blob no encontrado en el store')
+      }
 
-    const result = await sqlTyped<CreatedMomentoRow>(sql`
-      INSERT INTO momentos (kind, captured_at, payload, note, origin, user_id)
+      // Verificar que no esté ya referenciado (idempotencia).
+      const referenced = await collectReferencedKeys(sql, userId)
+      if (referenced.has(storageKey)) {
+        return ApiErrors.conflict(requestId, 'Blob ya está referenciado por otro Momento')
+      }
+
+      const capturedAt = body.capturedAt ?? new Date().toISOString()
+      const note = body.note?.trim() || null
+      const payload: FotoPayload = {
+        items: [{ storageKey }],
+        // legacy back-compat: también guardamos como single
+        storageKey,
+      }
+      const origin = JSON.stringify({
+        kind: 'imported',
+        importedFrom: 'orphaned-blob-rescue',
+      })
+
+      // Embedding best-effort calculado ANTES del INSERT, para crear el Momento en
+      // UN solo statement (sin UPDATE posterior que pudiera quedar a medias si el
+      // Lambda muere). embedSafe nunca lanza: si falla, el Momento se crea sin
+      // embedding y se puede reindexar luego (dato derivado).
+      const embText = momentoEmbedText('foto', payload as Record<string, unknown>, note)
+      const emb = embText ? await embedSafe(embText) : null
+
+      const result = await sqlTyped<CreatedMomentoRow>(sql`
+      INSERT INTO momentos (
+        kind, captured_at, payload, note, origin,
+        embedding, embedding_model, embedding_at, user_id
+      )
       VALUES (
         'foto',
         ${capturedAt}::timestamptz,
         ${JSON.stringify(payload)}::jsonb,
         ${note},
         ${origin}::jsonb,
+        ${emb ? toPgVector(emb.vector) : null}::vector,
+        ${emb?.model ?? null},
+        ${emb ? new Date().toISOString() : null}::timestamptz,
         ${userId}
       )
       RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
     `)
 
-    const created = result[0]
+      const created = result[0]
 
-    // Embedding best-effort, igual que en POST normal de momentos.
-    if (created?.id) {
-      const text = momentoEmbedText('foto', payload as Record<string, unknown>, note)
-      if (text) {
-        const emb = await embedSafe(text)
-        if (emb) {
-          const vec = toPgVector(emb.vector)
-          await sql`
-            UPDATE momentos
-            SET embedding = ${vec}::vector
-            WHERE id = ${created.id as string}
-              AND deleted_at IS NULL
-              AND user_id = ${userId}
-          `
-        }
-      }
+      return Response.json({ ...created, entity_ids: [] }, { status: 201 })
     }
 
-    return Response.json({ ...created, entity_ids: [] }, { status: 201 })
-  }
-
-  return ApiErrors.methodNotAllowed(requestId)
-})
+    return ApiErrors.methodNotAllowed(requestId)
+  },
+)
 
 export const config: Config = {
   path: '/api/momentos-orphaned-blobs',

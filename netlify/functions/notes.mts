@@ -22,13 +22,13 @@ import { z } from 'zod'
  * — sin ellos devuelve todas las notas del usuario, fijadas primero.
  */
 const NoteListQuery = z.object({
-  q: z.preprocess(
-    QueryParam.trimmedString({ max: 500 }).normalize,
-    z.string().max(500),
-  ),
+  q: z.preprocess(QueryParam.trimmedString({ max: 500 }).normalize, z.string().max(500)),
   tag: z.preprocess(
     QueryParam.trimmedString({ max: 100 }).normalize,
-    z.string().max(100).transform((value) => value.toLowerCase()),
+    z
+      .string()
+      .max(100)
+      .transform((value) => value.toLowerCase()),
   ),
 })
 
@@ -75,31 +75,48 @@ export default withObservability(
       const payload = { bodyText: note.content }
       const embedSource = momentoEmbedText('nota', payload, null)
       const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
-      const inserted = await sqlTyped<{ id: string }>(sql`
-        INSERT INTO momentos (
-          kind, captured_at, payload, note, origin,
-          embedding, embedding_model, embedding_at, user_id
-        ) VALUES (
-          'nota',
-          ${note.created_at}::timestamptz,
-          ${JSON.stringify(payload)}::jsonb,
-          ${null},
-          ${JSON.stringify({ kind: 'manual' })}::jsonb,
-          ${emb ? toPgVector(emb.vector) : null}::vector,
-          ${emb?.model ?? null},
-          ${emb ? new Date().toISOString() : null}::timestamptz,
-          ${userId}
+      // Promoción atómica: crear el Momento y marcar la nota en UN solo CTE, para
+      // que el Lambda no pueda morir entre ambos y dejar un Momento huérfano (la
+      // nota sin su promoted_momento_id). El INSERT se condiciona a que la nota
+      // siga válida y sin promover, cerrando la ventana de carrera contra el
+      // SELECT previo. Si nada se insertó, otra request la promovió en paralelo.
+      // (mutación multi-tabla → CTE, docs/conventions/dominios.md; regresión en
+      //  scripts/check-cte-regression.sql)
+      const promoted = await sqlTyped<{ momento_id: string | null }>(sql`
+        WITH new_momento AS (
+          INSERT INTO momentos (
+            kind, captured_at, payload, note, origin,
+            embedding, embedding_model, embedding_at, user_id
+          )
+          SELECT
+            'nota',
+            ${note.created_at}::timestamptz,
+            ${JSON.stringify(payload)}::jsonb,
+            ${null},
+            ${JSON.stringify({ kind: 'manual' })}::jsonb,
+            ${emb ? toPgVector(emb.vector) : null}::vector,
+            ${emb?.model ?? null},
+            ${emb ? new Date().toISOString() : null}::timestamptz,
+            ${userId}
+          WHERE EXISTS (
+            SELECT 1 FROM notes
+            WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+              AND promoted_momento_id IS NULL
+          )
+          RETURNING id
+        ),
+        mark AS (
+          UPDATE notes
+          SET promoted_momento_id = (SELECT id FROM new_momento), updated_at = NOW()
+          WHERE id = ${id} AND user_id = ${userId} AND EXISTS (SELECT 1 FROM new_momento)
+          RETURNING id
         )
-        RETURNING id
+        SELECT (SELECT id FROM new_momento) AS momento_id
       `)
-      const momentoId = inserted[0]?.id
-      if (!momentoId) return ApiErrors.internal(requestId, 'No se pudo crear el Momento')
-
-      await sql`
-        UPDATE notes
-        SET promoted_momento_id = ${momentoId}, updated_at = NOW()
-        WHERE id = ${id} AND user_id = ${userId}
-      `
+      const momentoId = promoted[0]?.momento_id
+      if (!momentoId) {
+        return ApiErrors.validation(requestId, 'Esta nota ya fue promovida a un Momento')
+      }
       return Response.json({ momentoId }, { status: 201 })
     }
 

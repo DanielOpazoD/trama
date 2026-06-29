@@ -317,8 +317,7 @@ describe('notes endpoint — integration', () => {
     mockSqlResponses.push(
       [{ content: 'idea', promoted: null, created_at: '2026-05-01T00:00:00Z' }], // SELECT
       [], // ensureUserRow
-      [{ id: 'm-nuevo' }], // INSERT momento RETURNING id
-      [], // UPDATE notes
+      [{ momento_id: 'm-nuevo' }], // CTE: INSERT momento + marca la nota, RETURNING momento_id
     )
     const res = await handler(
       new Request('http://localhost/api/notes/n1/promote', { method: 'POST' }),
