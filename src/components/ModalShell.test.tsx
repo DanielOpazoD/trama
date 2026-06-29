@@ -16,12 +16,19 @@ describe('<ModalShell />', () => {
 
   it('muestra eyebrow + title cuando se pasan', () => {
     render(
-      <ModalShell ariaLabel="x" eyebrow="editar cita" title="Refinar el fragmento" onClose={() => {}}>
+      <ModalShell
+        ariaLabel="x"
+        eyebrow="editar cita"
+        title="Refinar el fragmento"
+        onClose={() => {}}
+      >
         <p>c</p>
       </ModalShell>,
     )
     expect(screen.getByText('editar cita')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Refinar el fragmento' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Refinar el fragmento' }),
+    ).toBeInTheDocument()
   })
 
   it('no renderiza header si no hay eyebrow/title/showClose (solo el backdrop es "Cerrar")', () => {

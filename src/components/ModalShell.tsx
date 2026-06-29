@@ -95,7 +95,9 @@ export function ModalShell({
                     </p>
                   )}
                   {title && (
-                    <h3 className="font-serif text-xl text-ink-800 leading-tight mt-1">{title}</h3>
+                    <h3 className="font-serif text-xl text-ink-800 leading-tight mt-1">
+                      {title}
+                    </h3>
                   )}
                 </div>
               )}
@@ -118,6 +120,8 @@ export function ModalShell({
 /** Pie de modal: separador superior + acciones alineadas a la derecha. */
 export function ModalFooter({ children }: { children: ReactNode }) {
   return (
-    <div className="px-5 py-3 border-t border-ink-100/60 flex justify-end gap-3">{children}</div>
+    <div className="px-5 py-3 border-t border-ink-100/60 flex justify-end gap-3">
+      {children}
+    </div>
   )
 }

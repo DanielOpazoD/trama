@@ -103,7 +103,10 @@ export function RenameModal({
           disabled={rename.isPending}
         />
         {error && (
-          <p id="rename-error" className="mt-1.5 text-caption text-[color:var(--accent-clay)]">
+          <p
+            id="rename-error"
+            className="mt-1.5 text-caption text-[color:var(--accent-clay)]"
+          >
             {error}
           </p>
         )}
@@ -113,7 +116,11 @@ export function RenameModal({
         <Button variant="quiet" onClick={onClose} disabled={rename.isPending}>
           cancelar
         </Button>
-        <Button variant="ink" onClick={handleSubmit} disabled={rename.isPending || !value.trim()}>
+        <Button
+          variant="ink"
+          onClick={handleSubmit}
+          disabled={rename.isPending || !value.trim()}
+        >
           Renombrar
         </Button>
       </ModalFooter>

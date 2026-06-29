@@ -1,4 +1,7 @@
-import { ModalShell as BaseModalShell, ModalFooter as BaseModalFooter } from '../../ModalShell'
+import {
+  ModalShell as BaseModalShell,
+  ModalFooter as BaseModalFooter,
+} from '../../ModalShell'
 import { Button } from '../../Button'
 
 /**
@@ -27,7 +30,12 @@ export function ModalShell({
   onClose: () => void
 }) {
   return (
-    <BaseModalShell ariaLabel={ariaLabel} eyebrow={eyebrow} title={title} onClose={onClose}>
+    <BaseModalShell
+      ariaLabel={ariaLabel}
+      eyebrow={eyebrow}
+      title={title}
+      onClose={onClose}
+    >
       {children}
     </BaseModalShell>
   )
