@@ -791,9 +791,16 @@ function migrationTablesWithUserId(sql) {
  * Estado real de RLS por tabla en las migraciones. Aislamiento efectivo exige
  * las tres: ENABLE (activa RLS), FORCE (la aplica también al owner de la tabla
  * — la app conecta como owner, sin FORCE el RLS se bypassa) y al menos una
- * POLICY (sin policy, ENABLE es deny-all). Devuelve un set por cada pieza.
+ * POLICY QUE AÍSLE. Una policy permisiva (`USING (true)`) habilita RLS sin
+ * aislar nada, así que solo cuenta si su cuerpo engancha el contexto de
+ * usuario (`current_setting('app.current_user_id', …)`) — eso descarta las
+ * permisivas pero admite todas las formas reales del repo (patrón inline,
+ * `trama_user_isolation` multilínea, políticas por-operación `_own` y las
+ * compartidas de Momentos). Se quitan comentarios SQL antes de parsear para no
+ * contar sentencias comentadas. Devuelve un set por cada pieza.
  */
 function migrationRlsState(sql) {
+  const executableSql = sql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
   const enable = new Set()
   const force = new Set()
   const policy = new Set()
@@ -801,11 +808,16 @@ function migrationRlsState(sql) {
     /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?([a-z0-9_]+)\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/gi
   const forceRe =
     /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?([a-z0-9_]+)\s+FORCE\s+ROW\s+LEVEL\s+SECURITY/gi
-  const policyRe = /CREATE\s+POLICY\s+[a-z0-9_]+\s+ON\s+([a-z0-9_]+)/gi
+  // Captura el cuerpo de la policy (hasta el primer ';') para inspeccionar su
+  // predicado, no solo su existencia.
+  const policyRe = /CREATE\s+POLICY\s+[a-z0-9_]+\s+ON\s+([a-z0-9_]+)([\s\S]*?);/gi
   let m
-  while ((m = enableRe.exec(sql))) enable.add(m[1])
-  while ((m = forceRe.exec(sql))) force.add(m[1])
-  while ((m = policyRe.exec(sql))) policy.add(m[1])
+  while ((m = enableRe.exec(executableSql))) enable.add(m[1])
+  while ((m = forceRe.exec(executableSql))) force.add(m[1])
+  while ((m = policyRe.exec(executableSql))) {
+    const isolatesByUser = /current_setting\s*\(\s*'app\.current_user_id'/i.test(m[2])
+    if (isolatesByUser) policy.add(m[1])
+  }
   return { enable, force, policy }
 }
 

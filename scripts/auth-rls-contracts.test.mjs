@@ -273,6 +273,40 @@ describe('Auth/RLS contracts inventory', () => {
     )
   })
 
+  it('no cuenta una policy permisiva USING (true) como aislamiento', () => {
+    const result = validateAuthRlsContracts({
+      migrationSql: `
+        CREATE TABLE future_private_rows (id UUID PRIMARY KEY, user_id TEXT);
+        ALTER TABLE future_private_rows ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE future_private_rows FORCE ROW LEVEL SECURITY;
+        CREATE POLICY future_private_rows_open ON future_private_rows USING (true);
+      `,
+      privateTableContracts: [FUTURE_CONTRACT],
+      rlsBacklog: {},
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.partialRlsTables.join('\n')).toContain(
+      'future_private_rows (falta POLICY)',
+    )
+  })
+
+  it('cuenta una policy real (con current_user_id) aunque no use el patrón inline exacto', () => {
+    const result = validateAuthRlsContracts({
+      migrationSql: `
+        CREATE TABLE future_private_rows (id UUID PRIMARY KEY, user_id TEXT);
+        ALTER TABLE future_private_rows ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE future_private_rows FORCE ROW LEVEL SECURITY;
+        CREATE POLICY future_private_rows_select_own ON future_private_rows
+          FOR SELECT USING (user_id = current_setting('app.current_user_id', true));
+      `,
+      privateTableContracts: [FUTURE_CONTRACT],
+      rlsBacklog: {},
+    })
+
+    expect(result.ok).toBe(true)
+  })
+
   it('el repo real cumple el contrato de implementación RLS con el backlog vigente', () => {
     const result = validateAuthRlsContracts()
     expect(result.ok).toBe(true)
