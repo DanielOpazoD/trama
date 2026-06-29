@@ -6,8 +6,13 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 600,
+    maxLines: 560,
     files: ['src/App.tsx'],
+  },
+  {
+    group: 'app-shell-components',
+    maxLines: 130,
+    files: ['src/hooks/useShellState.ts'],
   },
   {
     group: 'app-large-surfaces',
