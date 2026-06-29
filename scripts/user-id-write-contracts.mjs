@@ -64,6 +64,13 @@ export const USER_ID_WRITE_WARNING_ALLOWLIST = [
       'momento create/patch escriben los links con user_id del owner autenticado (POST: authedUser.id; PATCH: owner del momento verificado por el chequeo de acceso antes de escribir)',
   },
   {
+    file: 'netlify/functions/notes.mts',
+    table: 'momentos',
+    kind: 'insert_select_manual_review',
+    reason:
+      'notes /promote crea el Momento con user_id del owner autenticado y condiciona el INSERT (WHERE EXISTS) a que la nota pertenezca al mismo user_id',
+  },
+  {
     file: 'netlify/functions/prompts.mts',
     table: 'prompts',
     kind: 'insert_select_manual_review',
