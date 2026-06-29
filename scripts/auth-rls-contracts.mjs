@@ -828,12 +828,8 @@ export const RLS_IMPLEMENTATION_BACKLOG = {
     'append-only con user_id; persistError best-effort en contexto/bypass. RLS pendiente — fase 2.',
   extraction_log:
     'append-only con user_id; writers en contexto + cron cost-alert con bypass. RLS pendiente — fase 2.',
-  spotify_tokens:
-    'OAuth per-user; cron scheduled-sync ya con bypass. RLS pendiente — fase 2.',
   web_vitals_samples:
     'telemetría per-user (solo persiste autenticado, sin lector global). RLS pendiente — fase 2.',
-  x_tokens:
-    'OAuth per-user (PK user_id); cron scheduled-sync ya con bypass. RLS pendiente — fase 2.',
 }
 
 export function validateAuthRlsContracts({
