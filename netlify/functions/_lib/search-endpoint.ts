@@ -209,71 +209,70 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
 
   // Semantic: embed the query, rank by cosine distance. embedSafe returns
   // null on any failure so we degrade to lexical instead of erroring.
-  type SemanticEntity = SearchSemanticEntityRow
-  type SemanticQuote = SearchSemanticQuoteRow
-  type SemanticMomento = SearchSemanticMomentoRow
-
-  let semanticEntities: SemanticEntity[] = []
-  let semanticQuotes: SemanticQuote[] = []
-  let semanticMomentos: SemanticMomento[] = []
+  let semanticEntities: SearchSemanticEntityRow[] = []
+  let semanticQuotes: SearchSemanticQuoteRow[] = []
+  let semanticMomentos: SearchSemanticMomentoRow[] = []
   if (wantsSemantic) {
     const emb = await embedSafe(q)
     if (emb) {
       const pgVec = toPgVector(emb.vector)
       const [er, qr, mr] = await Promise.all([
-        sqlTyped<SemanticEntity>(sql`
-          SELECT id, name, type, description, year,
-                 0 AS rank,
-                 (embedding <=> ${pgVec}::vector) AS distance
-          FROM entities
-          WHERE deleted_at IS NULL AND embedding IS NOT NULL
-            AND user_id = ${userId}
-          ORDER BY embedding <=> ${pgVec}::vector
-          LIMIT ${limit * 2}
-        `),
-        sqlTyped<SemanticQuote>(sql`
-          SELECT q.id, q.entity_id, e.name AS entity_name,
-                 q.text, q.source,
-                 0 AS rank,
-                 (q.embedding <=> ${pgVec}::vector) AS distance
-          FROM quotes q
-          JOIN entities e ON e.id = q.entity_id
-            AND e.deleted_at IS NULL
-            AND e.user_id = ${userId}
-          WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL
-            AND q.user_id = ${userId}
-          ORDER BY q.embedding <=> ${pgVec}::vector
-          LIMIT ${limit * 2}
-        `),
-        sqlTyped<SemanticMomento>(sql`
-          SELECT m.id, m.kind, m.captured_at,
-                 COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
-                          NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
-                          m.note, '') AS text,
-                 0 AS rank,
-                 (m.embedding <=> ${pgVec}::vector) AS distance
-          FROM momentos m
-          WHERE m.deleted_at IS NULL AND m.embedding IS NOT NULL
-            AND m.user_id = ${userId}
-          ORDER BY m.embedding <=> ${pgVec}::vector
-          LIMIT ${limit * 2}
-        `),
+        (async () =>
+          parseRows(
+            await sqlTyped<SearchSemanticEntityRow>(sql`
+              SELECT id, name, type, description, year,
+                     0 AS rank,
+                     (embedding <=> ${pgVec}::vector) AS distance
+              FROM entities
+              WHERE deleted_at IS NULL AND embedding IS NOT NULL
+                AND user_id = ${userId}
+              ORDER BY embedding <=> ${pgVec}::vector
+              LIMIT ${limit * 2}
+            `),
+            SearchSemanticEntityRowSchema,
+            'search.semantic.entities',
+          ))(),
+        (async () =>
+          parseRows(
+            await sqlTyped<SearchSemanticQuoteRow>(sql`
+              SELECT q.id, q.entity_id, e.name AS entity_name,
+                     q.text, q.source,
+                     0 AS rank,
+                     (q.embedding <=> ${pgVec}::vector) AS distance
+              FROM quotes q
+              JOIN entities e ON e.id = q.entity_id
+                AND e.deleted_at IS NULL
+                AND e.user_id = ${userId}
+              WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL
+                AND q.user_id = ${userId}
+              ORDER BY q.embedding <=> ${pgVec}::vector
+              LIMIT ${limit * 2}
+            `),
+            SearchSemanticQuoteRowSchema,
+            'search.semantic.quotes',
+          ))(),
+        (async () =>
+          parseRows(
+            await sqlTyped<SearchSemanticMomentoRow>(sql`
+              SELECT m.id, m.kind, m.captured_at,
+                     COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
+                              NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
+                              m.note, '') AS text,
+                     0 AS rank,
+                     (m.embedding <=> ${pgVec}::vector) AS distance
+              FROM momentos m
+              WHERE m.deleted_at IS NULL AND m.embedding IS NOT NULL
+                AND m.user_id = ${userId}
+              ORDER BY m.embedding <=> ${pgVec}::vector
+              LIMIT ${limit * 2}
+            `),
+            SearchSemanticMomentoRowSchema,
+            'search.semantic.momentos',
+          ))(),
       ])
-      semanticEntities = parseRows(
-        er,
-        SearchSemanticEntityRowSchema,
-        'search.semantic.entities',
-      )
-      semanticQuotes = parseRows(
-        qr,
-        SearchSemanticQuoteRowSchema,
-        'search.semantic.quotes',
-      )
-      semanticMomentos = parseRows(
-        mr,
-        SearchSemanticMomentoRowSchema,
-        'search.semantic.momentos',
-      )
+      semanticEntities = er
+      semanticQuotes = qr
+      semanticMomentos = mr
     }
   }
 

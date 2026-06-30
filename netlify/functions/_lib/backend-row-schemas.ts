@@ -45,6 +45,27 @@ export const NoteRowSchema = z.object({
 })
 export type NoteRow = z.infer<typeof NoteRowSchema>
 
+export const QuoteRowSchema = z.object({
+  id: z.string(),
+  entity_id: z.string(),
+  text: z.string(),
+  source: z.string().nullable(),
+  context: z.string().nullable(),
+  link: z.string().nullable(),
+  user_reflection: z.string().nullable(),
+  ai_reflection: z.string().nullable(),
+  ai_reflection_provider: z.string().nullable(),
+  ai_reflection_model: z.string().nullable(),
+  ai_reflection_at: DbTimestampSchema.nullable(),
+  linked_quote_ids: z.array(z.string()),
+  pinned_at: DbTimestampSchema.nullable(),
+  resonance: z.number().nullable(),
+  origin: OriginRowSchema,
+  created_at: DbTimestampSchema,
+  updated_at: DbTimestampSchema,
+})
+export type QuoteRow = z.infer<typeof QuoteRowSchema>
+
 export const MomentoListRowSchema = z.object({
   id: z.string(),
   kind: z.string(),
@@ -61,6 +82,33 @@ export const MomentoListRowSchema = z.object({
   shared: z.boolean(),
 })
 export type MomentoListRow = z.infer<typeof MomentoListRowSchema>
+
+export const MomentoResponseRowSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['nota', 'recorte', 'foto']),
+  captured_at: DbTimestampSchema,
+  payload: z.record(z.string(), z.unknown()),
+  note: z.string().nullable(),
+  origin: OriginRowSchema,
+  created_at: DbTimestampSchema,
+  updated_at: DbTimestampSchema,
+})
+export type MomentoResponseRow = z.infer<typeof MomentoResponseRowSchema>
+
+export const CurrentMomentoRowSchema = z.object({
+  kind: z.enum(['nota', 'recorte', 'foto']),
+  payload: z.record(z.string(), z.unknown()),
+  note: z.string().nullable(),
+  user_id: z.string(),
+  access_role: z.enum(['owner', 'viewer', 'editor']).nullable(),
+})
+export type CurrentMomentoRow = z.infer<typeof CurrentMomentoRowSchema>
+
+export const DeletedMomentoRowSchema = z.object({
+  id: z.string(),
+  deleted_at: DbTimestampSchema,
+})
+export type DeletedMomentoRow = z.infer<typeof DeletedMomentoRowSchema>
 
 export const MomentoEntityLinkRowSchema = z.object({
   momento_id: z.string(),
