@@ -445,8 +445,6 @@ describe('guardrail: endpoints públicos declaran contexto RLS explícito', () =
 
 describe('guardrail: JOINs a tablas per-user scopean también el alias unido', () => {
   const expectations = [
-    { file: 'search.mts', table: 'entities', alias: 'e', min: 2 },
-    { file: 'search.mts', table: 'chat_threads', alias: 't', min: 1 },
     { file: 'cronologia.mts', table: 'entities', alias: 'e', min: 1 },
     { file: 'quote-echoes.mts', table: 'entities', alias: 'e', min: 1 },
     { file: 'quote-reflect.mts', table: 'entities', alias: 'e', min: 2 },
@@ -472,6 +470,8 @@ describe('guardrail: JOINs a tablas per-user scopean también el alias unido', (
 
 describe('guardrail: helpers _lib con SQL de contexto también scopean JOINs', () => {
   const expectations = [
+    { file: 'search-endpoint-queries.ts', table: 'entities', alias: 'e', min: 2 },
+    { file: 'search-endpoint-queries.ts', table: 'chat_threads', alias: 't', min: 1 },
     { file: 'rag-context.ts', table: 'entities', alias: 'e', min: 2 },
     { file: 'rag-context.ts', table: 'entities', alias: 'ef', min: 1 },
     { file: 'rag-context.ts', table: 'entities', alias: 'et', min: 1 },
