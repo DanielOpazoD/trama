@@ -9,74 +9,9 @@ const ROOT = process.cwd()
 const FUNCTIONS_DIR = join(ROOT, 'netlify/functions')
 
 const INSERT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\s*\(([^)]*)\)/gi
-const INSERT_STATEMENT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\b([\s\S]*?)(?=;|$)/gi
+const INSERT_STATEMENT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\b([\s\S]*?)(?=;|`|$)/gi
 
-export const USER_ID_WRITE_WARNING_ALLOWLIST = [
-  {
-    file: 'netlify/functions/_lib/recortes-endpoint.ts',
-    table: 'quotes',
-    kind: 'insert_select_manual_review',
-    reason:
-      'recorte owner and target entity are both constrained by authenticated user_id',
-  },
-  {
-    file: 'netlify/functions/_lib/recortes-endpoint.ts',
-    table: 'momentos',
-    kind: 'insert_select_manual_review',
-    reason: 'recorte owner gates the promotion CTE before writing momentos.user_id',
-  },
-  {
-    file: 'netlify/functions/_lib/whatsapp/album.ts',
-    table: 'recorte_images',
-    kind: 'insert_select_manual_review',
-    reason: 'album append selects the owner-visible recorte before writing image user_id',
-  },
-  {
-    file: 'netlify/functions/_lib/whatsapp/pending-media.ts',
-    table: 'whatsapp_pending_media',
-    kind: 'insert_select_manual_review',
-    reason:
-      'pending media writes user_id from the authenticated userId parameter before unnesting uploaded image metadata',
-  },
-  {
-    file: 'netlify/functions/entities-merge.mts',
-    table: 'momento_entities',
-    kind: 'insert_select_manual_review',
-    reason: 'merge writes only through owner-visible source and destination entities',
-  },
-  {
-    file: 'netlify/functions/favoritos.mts',
-    table: 'favoritos',
-    kind: 'insert_select_manual_review',
-    reason: 'favorite upsert selects from the authenticated owner surface',
-  },
-  {
-    file: 'netlify/functions/momentos-merge.mts',
-    table: 'momento_entities',
-    kind: 'insert_select_manual_review',
-    reason: 'momento merge joins owner-visible momentos before inserting links',
-  },
-  {
-    file: 'netlify/functions/_lib/momentos/data.ts',
-    table: 'momento_entities',
-    kind: 'insert_select_manual_review',
-    reason:
-      'momento create/patch escriben los links con user_id del owner autenticado (POST: authedUser.id; PATCH: owner del momento verificado por el chequeo de acceso antes de escribir)',
-  },
-  {
-    file: 'netlify/functions/notes.mts',
-    table: 'momentos',
-    kind: 'insert_select_manual_review',
-    reason:
-      'notes /promote crea el Momento con user_id del owner autenticado y condiciona el INSERT (WHERE EXISTS) a que la nota pertenezca al mismo user_id',
-  },
-  {
-    file: 'netlify/functions/prompts.mts',
-    table: 'prompts',
-    kind: 'insert_select_manual_review',
-    reason: 'prompt duplication carries the authenticated owner user_id explicitly',
-  },
-]
+export const USER_ID_WRITE_WARNING_ALLOWLIST = []
 
 // Funciones de producción: `.ts`/`.mts`, sin tests.
 function isProductionFunctionFile(file) {
@@ -102,6 +37,119 @@ function parseColumns(rawColumns) {
 
 function stripComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--.*$/gm, '')
+}
+
+function enclosingTemplateLiteral(source, index) {
+  const start = source.lastIndexOf('`', index)
+  if (start < 0) return source
+
+  const end = source.indexOf('`', index)
+  if (end < 0) return source.slice(start + 1)
+
+  return source.slice(start + 1, end)
+}
+
+function splitTopLevelCsv(value) {
+  const parts = []
+  let current = ''
+  let depth = 0
+  let inSingleQuote = false
+  for (let i = 0; i < value.length; i += 1) {
+    const char = value[i]
+    const next = value[i + 1]
+    if (char === "'" && next === "'") {
+      current += char + next
+      i += 1
+      continue
+    }
+    if (char === "'") inSingleQuote = !inSingleQuote
+    if (!inSingleQuote) {
+      if (char === '(') depth += 1
+      if (char === ')' && depth > 0) depth -= 1
+      if (char === ',' && depth === 0) {
+        parts.push(current.trim())
+        current = ''
+        continue
+      }
+    }
+    current += char
+  }
+  if (current.trim()) parts.push(current.trim())
+  return parts
+}
+
+function leadingSelectList(sqlFragment) {
+  const selectMatch = /^\s*SELECT\b/i.exec(sqlFragment)
+  if (!selectMatch) return null
+
+  let depth = 0
+  let inSingleQuote = false
+  for (let i = selectMatch[0].length; i < sqlFragment.length; i += 1) {
+    const char = sqlFragment[i]
+    const next = sqlFragment[i + 1]
+    if (char === "'" && next === "'") {
+      i += 1
+      continue
+    }
+    if (char === "'") inSingleQuote = !inSingleQuote
+    if (inSingleQuote) continue
+
+    if (char === '(') depth += 1
+    else if (char === ')' && depth > 0) depth -= 1
+    else if (
+      depth === 0 &&
+      /^(?:FROM|WHERE|RETURNING|ON\s+CONFLICT)\b/i.test(sqlFragment.slice(i).trimStart())
+    ) {
+      return sqlFragment.slice(selectMatch[0].length, i).trim()
+    }
+  }
+  return null
+}
+
+function compactSqlExpression(expression) {
+  return expression.replace(/\s+/g, ' ').trim()
+}
+
+function isAuthenticatedUserParameter(expression) {
+  return /^\$\{(?:userId|ownerUserId)\}(?:::[a-z_][a-z0-9_]*(?:\[\])?)?$/i.test(
+    compactSqlExpression(expression),
+  )
+}
+
+function isAliasOwnerGated(source, alias) {
+  const aliasBodyRe = new RegExp(`\\b${alias}\\s+AS\\s*\\(([\\s\\S]*?)\\)\\s*,`, 'i')
+  const body = aliasBodyRe.exec(source)?.[1]
+  return Boolean(body && /\buser_id\s*=\s*\$\{(?:userId|ownerUserId)\}/i.test(body))
+}
+
+function isSelectedUserIdOwnerGated(afterColumnList) {
+  return /\bFROM\b[\s\S]*?\bWHERE\b[\s\S]*?\buser_id\s*=\s*\$\{(?:userId|ownerUserId)\}/i.test(
+    afterColumnList,
+  )
+}
+
+function isProvableInsertSelectUserId({ columns, source, afterColumnList }) {
+  const userIdIndex = columns.indexOf('user_id')
+  if (userIdIndex < 0) return false
+
+  const selectList = leadingSelectList(afterColumnList)
+  if (!selectList) return false
+
+  const selectExpressions = splitTopLevelCsv(selectList)
+  const userIdExpression = selectExpressions[userIdIndex]
+  if (!userIdExpression) return false
+
+  if (isAuthenticatedUserParameter(userIdExpression)) return true
+
+  const compactExpression = compactSqlExpression(userIdExpression)
+  const aliasMatch = /^([a-z_][a-z0-9_]*)\.user_id$/i.exec(compactExpression)
+  if (aliasMatch) return isAliasOwnerGated(source, aliasMatch[1])
+
+  if (/^user_id$/i.test(compactExpression)) {
+    return isSelectedUserIdOwnerGated(afterColumnList)
+  }
+
+  return false
 }
 
 export function findUserIdWriteContractIssues({
@@ -162,10 +210,24 @@ export function findUserIdWriteContractWarnings({
         continue
       }
 
-      const closeColumnList = afterTable.indexOf(')')
+      const openColumnList = afterTable.indexOf('(')
+      const closeColumnList = afterTable.indexOf(')', openColumnList + 1)
       const afterColumnList =
         closeColumnList >= 0 ? afterTable.slice(closeColumnList + 1).trimStart() : ''
       if (/^SELECT\b/i.test(afterColumnList)) {
+        const columns = parseColumns(
+          afterTable.slice(openColumnList + 1, closeColumnList),
+        )
+        const statementScope = enclosingTemplateLiteral(searchableSource, match.index)
+        if (
+          isProvableInsertSelectUserId({
+            columns,
+            source: statementScope,
+            afterColumnList,
+          })
+        ) {
+          continue
+        }
         warnings.push({
           file,
           table,
