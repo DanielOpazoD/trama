@@ -5,22 +5,30 @@ import {
   useEntitiesQuery,
   useToast,
 } from '../state'
-import type { Entity, MomentoKind } from '../types'
-import { Paginator } from './Paginator'
-import { EmptyMessage } from './EmptyMessage'
+import type { MomentoKind } from '../types'
 import { ErrorState } from './ErrorState'
 import { AlbumGrid } from './momentos/AlbumGrid'
 import { MomentoComposer } from './momentos/MomentoComposer'
-import { MomentosFilters } from './momentos/MomentosFilters'
 import { MergeMomentosBar } from './momentos/MergeMomentosBar'
-import { SelectableMomento } from './momentos/SelectableMomento'
 import { ConfirmDestroy } from './ConfirmDestroy'
-import { ShareIcon } from './Icons'
 import { MomentoSkeleton, SkeletonList } from './Skeleton'
-import { formatDateHeading, groupByDay } from './momentos/helpers'
+import { groupByDay } from './momentos/helpers'
 import { useMomentoComposer } from './momentos/useMomentoComposer'
 import { ViewHeader } from './ViewHeader'
 import { MomentoShareModal } from './momentos/MomentoShareModal'
+import {
+  MomentosDayFilterBanner,
+  MomentosEmptyState,
+  MomentosTimeline,
+  MomentosToolbar,
+} from './momentos/MomentosViewSections'
+import {
+  buildEntitiesById,
+  filterMomentosByDay,
+  readDayParamFromSearch,
+  readInitialComposeFromSearch,
+  shouldUseAlbumView,
+} from './momentos/momentosViewModel'
 
 /**
  * Vista Momentos — orquestador.
@@ -70,20 +78,10 @@ export function MomentosView() {
 
   const items = useMemo(() => {
     const all = momentosQuery.data?.pages.flatMap((p) => p.items) ?? []
-    if (!dayFilter) return all
-    return all.filter((m) => {
-      const d = new Date(m.capturedAt)
-      if (Number.isNaN(d.getTime())) return false
-      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      return iso === dayFilter
-    })
+    return filterMomentosByDay(all, dayFilter)
   }, [momentosQuery.data, dayFilter])
   const groups = useMemo(() => groupByDay(items), [items])
-  const entitiesById = useMemo(() => {
-    const map = new Map<string, Entity>()
-    for (const e of entities) map.set(e.id, e)
-    return map
-  }, [entities])
+  const entitiesById = useMemo(() => buildEntitiesById(entities), [entities])
 
   // Confirmación de borrado: el botón "eliminar" del MomentoEntry sólo
   // marca el id como pendiente; la mutación corre cuando el usuario
@@ -130,6 +128,14 @@ export function MomentosView() {
     setSelectionMode(false)
     setSelectedIds(new Set())
   }
+  function toggleSelectionMode(): void {
+    if (selectionMode) exitSelection()
+    else setSelectionMode(true)
+  }
+  function showAllMomentos(): void {
+    if (dayFilter) clearDayFilter()
+    if (filterKind) setFilterKind(null)
+  }
 
   // EE: si el usuario cambia a vista álbum mientras selectionMode=true,
   // limpiar para no dejar la barra flotante huérfana. AlbumGrid no
@@ -156,60 +162,19 @@ export function MomentosView() {
 
       {/* ω-D: banner del filtro por día cuando viene del heatmap. */}
       {dayFilter && (
-        <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2 bg-paper-100/50 border border-ink-100/60 rounded-lg">
-          <span className="text-caption text-ink-500">
-            Mostrando momentos del{' '}
-            <span className="text-ink-700 font-medium tabular-nums">
-              {formatDayLabel(dayFilter)}
-            </span>
-          </span>
-          <button
-            type="button"
-            onClick={clearDayFilter}
-            className="section-eyebrow hover:text-ink-700 transition-colors"
-          >
-            ver todos
-          </button>
-        </div>
+        <MomentosDayFilterBanner dayFilter={dayFilter} onClear={clearDayFilter} />
       )}
 
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <MomentosFilters
-          filterKind={filterKind}
-          onChangeFilterKind={setFilterKind}
-          viewMode={viewMode}
-          onChangeViewMode={setViewMode}
-        />
-        <button
-          type="button"
-          aria-label="compartir momentos"
-          onClick={() => setShareOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-ink-100/70 bg-paper-50/80 px-3 py-2 text-caption uppercase tracking-eyebrow text-ink-400 shadow-sm transition-colors hover:text-ink-700"
-        >
-          <ShareIcon size={13} />
-          compartir
-        </button>
-        {/* EE: toggle del modo selección. Solo aparece cuando hay >1 item
-            cargado Y la vista es timeline — AlbumGrid no soporta selección
-            todavía (TODO: si hay demanda, hacer el wrapping ahí también).
-            Si el usuario está en selectionMode y cambia a álbum, el
-            useEffect de abajo limpia la selección automáticamente. */}
-        {items.length > 1 && viewMode === 'timeline' && (
-          <button
-            type="button"
-            onClick={() => {
-              if (selectionMode) exitSelection()
-              else setSelectionMode(true)
-            }}
-            className={`text-micro uppercase tracking-eyebrow transition-colors shrink-0 ${
-              selectionMode ? 'text-ink-700' : 'text-ink-400 hover:text-ink-700'
-            }`}
-            aria-pressed={selectionMode}
-          >
-            {selectionMode ? 'salir selección' : 'seleccionar'}
-          </button>
-        )}
-      </div>
+      <MomentosToolbar
+        filterKind={filterKind}
+        viewMode={viewMode}
+        itemCount={items.length}
+        selectionMode={selectionMode}
+        onChangeFilterKind={setFilterKind}
+        onChangeViewMode={setViewMode}
+        onShare={() => setShareOpen(true)}
+        onToggleSelectionMode={toggleSelectionMode}
+      />
 
       {momentosQuery.isLoading ? (
         <ul className="space-y-4">
@@ -222,91 +187,28 @@ export function MomentosView() {
           retrying={momentosQuery.isFetching}
         />
       ) : items.length === 0 ? (
-        filterKind || dayFilter ? (
-          // Hay momentos en general, pero el filtro actual no devuelve nada.
-          <EmptyMessage
-            illustration="pair"
-            title={
-              dayFilter ? 'Ese día está vacío.' : `Ningún momento de tipo ${filterKind}.`
-            }
-            body={
-              dayFilter ? (
-                <>No registraste nada ese día. Prueba con otro o limpia el filtro.</>
-              ) : (
-                <>
-                  Cambia el tipo en la barra de arriba o crea una entrada nueva de este
-                  tipo.
-                </>
-              )
-            }
-            hint={
-              <button
-                onClick={() => {
-                  if (dayFilter) clearDayFilter()
-                  if (filterKind) setFilterKind(null)
-                }}
-                className="underline hover:text-ink-700 transition-colors"
-              >
-                Mostrar todos
-              </button>
-            }
-          />
-        ) : (
-          <EmptyMessage
-            illustration="thread"
-            title="Todavía no hay momentos"
-            body={
-              <>
-                Las entradas que crees aquí quedan en una línea de tiempo. Pega tweets,
-                links, screenshots y fotos — o simplemente escribe una nota del día.
-              </>
-            }
-          />
-        )
-      ) : viewMode === 'album' && (filterKind === 'foto' || filterKind === null) ? (
+        <MomentosEmptyState
+          filterKind={filterKind}
+          dayFilter={dayFilter}
+          onShowAll={showAllMomentos}
+        />
+      ) : shouldUseAlbumView({ viewMode, filterKind }) ? (
         // AA-D: álbum visible también en "Todos" — AlbumGrid filtra
         // internamente a kind=foto, así que el usuario ve solo las
         // fotos en grid sin tener que cambiar de pestaña antes.
         <AlbumGrid items={items} entitiesById={entitiesById} onDelete={handleDelete} />
       ) : (
-        <div className="space-y-6">
-          {groups.map(({ dayKey, entries }) => (
-            <section key={dayKey} className="animate-fade-up">
-              <div className="mb-2.5 flex items-baseline gap-3">
-                <h3
-                  className="section-eyebrow-serif"
-                  style={{ color: 'var(--accent-gold)' }}
-                >
-                  {formatDateHeading(entries[0]!.capturedAt)}
-                </h3>
-                <span className="flex-1 h-px bg-ink-100/40" />
-                <span className="text-caption text-ink-300 tabular-nums">
-                  {entries.length} {entries.length === 1 ? 'entrada' : 'entradas'}
-                </span>
-              </div>
-              <ul className="space-y-4">
-                {entries.map((m) => (
-                  <SelectableMomento
-                    key={m.id}
-                    momento={m}
-                    entitiesById={entitiesById}
-                    selectionMode={selectionMode}
-                    selected={selectedIds.has(m.id)}
-                    onToggleSelect={() => toggleSelect(m.id)}
-                    onDelete={() => handleDelete(m.id)}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
-
-          <Paginator
-            hasNext={momentosQuery.hasNextPage ?? false}
-            loading={momentosQuery.isFetchingNextPage}
-            onLoadMore={() => momentosQuery.fetchNextPage()}
-            showEndMark={items.length >= 5}
-          />
-        </div>
+        <MomentosTimeline
+          groups={groups}
+          entitiesById={entitiesById}
+          selectionMode={selectionMode}
+          selectedIds={selectedIds}
+          hasNext={momentosQuery.hasNextPage ?? false}
+          loadingNext={momentosQuery.isFetchingNextPage}
+          onToggleSelect={toggleSelect}
+          onDelete={handleDelete}
+          onLoadMore={() => momentosQuery.fetchNextPage()}
+        />
       )}
 
       {/* EE: barra flotante al fondo cuando hay 2+ seleccionados. */}
@@ -339,15 +241,7 @@ export function MomentosView() {
  */
 function readInitialCompose(): MomentoKind | undefined {
   if (typeof window === 'undefined') return undefined
-  try {
-    const param = new URLSearchParams(window.location.search).get('compose')
-    if (param === 'nota' || param === 'recorte' || param === 'foto') {
-      return param
-    }
-  } catch {
-    /* malformed URL — fallback al default del composer */
-  }
-  return undefined
+  return readInitialComposeFromSearch(window.location.search)
 }
 
 /**
@@ -369,32 +263,7 @@ function useDayFilter(): string | null {
 
 function readDayParam(): string | null {
   if (typeof window === 'undefined') return null
-  const raw = new URLSearchParams(window.location.search).get('day')
-  if (!raw) return null
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null
-  return raw
-}
-
-function formatDayLabel(iso: string): string {
-  // YYYY-MM-DD → "viernes 23 de mayo 2026" en español, capitalizado.
-  const [y, m, d] = iso.split('-').map(Number)
-  if (
-    y === undefined ||
-    m === undefined ||
-    d === undefined ||
-    !Number.isFinite(y) ||
-    !Number.isFinite(m) ||
-    !Number.isFinite(d)
-  )
-    return iso
-  const date = new Date(y, m - 1, d)
-  const raw = date.toLocaleDateString('es', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-  return raw.charAt(0).toUpperCase() + raw.slice(1)
+  return readDayParamFromSearch(window.location.search)
 }
 
 function clearDayFilter() {
