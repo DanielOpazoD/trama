@@ -54,6 +54,39 @@ Para `INSERT ... SELECT`, solo acepta proof patterns estáticos y acotados:
 debe quedar como warning bloqueante hasta reescribir el CTE o justificar una
 allowlist temporal.
 
+### `check:query-plans`
+
+Este gate corre `EXPLAIN (FORMAT JSON)` sobre un catalogo auditable de feeds y
+busquedas calientes con fixtures transaccionales. El catalogo cubre
+`entities`, `quotes`, `recortes`, `momentos`, `notes` y `search`, incluyendo el
+feed unificado de Notas (`objects`) y busquedas lexicales reales donde existen.
+Usa, en orden, `DATABASE_URL`, `NETLIFY_DB_URL` o la Postgres local
+`postgresql://localhost:5433/trama`; las credenciales nunca se imprimen
+completas.
+
+Receta local:
+
+```bash
+npm run db:up
+npm run check:query-plans
+```
+
+Para depurar sin correr todo el paquete:
+
+```bash
+QUERY_PLAN_LIST=1 npm run check:query-plans
+QUERY_PLAN_ONLY=search.quotes.lexical npm run check:query-plans
+```
+
+Si la DB local quedo vieja, usa `npm run db:reset` o aplica migraciones con
+`scripts/apply-migrations.sh`. `QUERY_PLAN_FIXTURE_SIZE` ajusta la cantidad de
+fixtures por tabla y `QUERY_PLAN_MAX_SEQ_SCAN_ROWS` ajusta el umbral bloqueante
+de seq scans grandes. Cada corrida imprime fuente/URL saneada, tamaño de
+fixtures, umbral de seq scans y cantidad de checks seleccionados. Una corrida
+exitosa termina con un resumen `query-plan OK: <n>/<n> checks`; si agregas un
+dominio caliente nuevo, agrega su fixture/catalog entry y el test de cobertura
+debe fallar hasta que quede representado.
+
 ## Reglas para scripts nuevos
 
 1. Agrega el archivo bajo `scripts/`.

@@ -62,9 +62,15 @@ vi.mock('pg', () => ({
 }))
 
 import {
+  EXPECTED_QUERY_PLAN_DOMAINS,
+  QUERY_PLAN_CHECKS,
+  QUERY_PLAN_FIXTURES,
   assertNoLargeSeqScans,
   collectPlanNodes,
+  formatQueryPlanList,
   formatQueryPlanCheckFailure,
+  resolveQueryPlanDbConfig,
+  runQueryPlanCli,
   runQueryPlanCheck,
   sanitizeDbUrlForLog,
   setQueryPlanRlsContext,
@@ -77,6 +83,100 @@ function plan(node) {
 describe('check-query-plans', () => {
   beforeEach(() => {
     pgMock.reset()
+  })
+
+  it('declara un catalogo auditable con labels unicos y dominios calientes cubiertos', () => {
+    const labels = QUERY_PLAN_CHECKS.map((check) => check.label)
+    expect(new Set(labels).size).toBe(labels.length)
+    expect(labels).toEqual([
+      'entities.paginated',
+      'quotes.paginated',
+      'recortes.feed',
+      'momentos.kind-feed',
+      'notes.feed',
+      'notes.search',
+      'recortes.objects-search',
+      'notes.unified-feed',
+      'search.entities.lexical',
+      'search.quotes.lexical',
+      'search.momentos.lexical',
+    ])
+
+    const domains = new Set(QUERY_PLAN_CHECKS.map((check) => check.domain))
+    for (const domain of EXPECTED_QUERY_PLAN_DOMAINS) {
+      expect(domains.has(domain)).toBe(true)
+    }
+  })
+
+  it('declara fixtures por dominio para que la cobertura no dependa de setup inline', () => {
+    expect(QUERY_PLAN_FIXTURES).toEqual([
+      { domain: 'entities', table: 'entities' },
+      { domain: 'quotes', table: 'quotes' },
+      { domain: 'recortes', table: 'recortes' },
+      { domain: 'momentos', table: 'momentos' },
+      { domain: 'notes', table: 'notes' },
+    ])
+  })
+
+  it('lista el catalogo sin abrir conexion a Postgres', async () => {
+    const stdout = vi.fn()
+    const stderr = vi.fn()
+
+    const status = await runQueryPlanCli({
+      env: { QUERY_PLAN_LIST: '1' },
+      stdout,
+      stderr,
+    })
+
+    expect(status).toBe(0)
+    expect(pgMock.Pool).not.toHaveBeenCalled()
+    expect(stderr).not.toHaveBeenCalled()
+    expect(stdout).toHaveBeenCalledWith(formatQueryPlanList())
+    for (const check of QUERY_PLAN_CHECKS) {
+      expect(stdout.mock.calls.join('\n')).toContain(check.label)
+    }
+  })
+
+  it('filtra la corrida a un label con QUERY_PLAN_ONLY y muestra contexto de debug', async () => {
+    const stdout = vi.fn()
+
+    const result = await runQueryPlanCheck({
+      dbConfig: {
+        dbUrl: 'postgresql://trama:secret@localhost:5433/trama',
+        source: 'DATABASE_URL',
+      },
+      only: 'search.quotes.lexical',
+      stdout,
+    })
+
+    const explainQueries = pgMock.queryTexts.filter((text) =>
+      String(text).startsWith('EXPLAIN'),
+    )
+    expect(result).toEqual({ checked: 1 })
+    expect(explainQueries).toHaveLength(1)
+    expect(explainQueries[0]).toContain('FROM quotes q')
+    expect(stdout).toHaveBeenCalledWith(
+      `query-plan context: db=DATABASE_URL postgresql://localhost:5433/trama; fixtures=1500; maxSeqScanRows=100; checks=1/${QUERY_PLAN_CHECKS.length}`,
+    )
+    expect(stdout).toHaveBeenLastCalledWith('query-plan OK: 1/1 checks')
+    expect(stdout.mock.calls.join('\n')).not.toContain('secret')
+  })
+
+  it('falla rapido si QUERY_PLAN_ONLY referencia un label inexistente', async () => {
+    const stdout = vi.fn()
+    const stderr = vi.fn()
+
+    const status = await runQueryPlanCli({
+      env: { QUERY_PLAN_ONLY: 'search.nope' },
+      stdout,
+      stderr,
+    })
+
+    expect(status).toBe(1)
+    expect(pgMock.Pool).not.toHaveBeenCalled()
+    expect(stdout).not.toHaveBeenCalled()
+    expect(stderr.mock.calls.join('\n')).toContain('QUERY_PLAN_ONLY desconocido')
+    expect(stderr.mock.calls.join('\n')).toContain('search.quotes.lexical')
   })
 
   it('recorre nodos anidados de un EXPLAIN JSON', () => {
@@ -185,11 +285,53 @@ describe('check-query-plans', () => {
 
     expect(message).toContain('check:query-plans no pudo conectar a Postgres')
     expect(message).toContain('npm run db:up')
+    expect(message).toContain('npm run db:reset')
     expect(message).toContain('npm run local:db-confidence')
     expect(message).toContain('DATABASE_URL')
+    expect(message).toContain('NETLIFY_DB_URL')
+    expect(message).not.toContain('NETLIFY_DATABASE_URL')
     expect(message).toContain('postgresql://localhost:5433/trama')
     expect(message).not.toContain('trama_local_dev')
     expect(message).not.toContain('AggregateError')
+  })
+
+  it('explica como aplicar migraciones cuando la DB existe pero falta schema', () => {
+    const message = formatQueryPlanCheckFailure({
+      dbUrl: 'postgresql://trama:secret@localhost:5433/trama',
+      error: Object.assign(new Error('relation "entities" does not exist'), {
+        code: '42P01',
+      }),
+    })
+
+    expect(message).toContain('check:query-plans encontro una DB sin schema migrado')
+    expect(message).toContain('scripts/apply-migrations.sh')
+    expect(message).toContain('npm run db:reset')
+    expect(message).toContain('postgresql://localhost:5433/trama')
+    expect(message).not.toContain('secret')
+  })
+
+  it('declara prioridad de URL runtime para el check local', () => {
+    expect(resolveQueryPlanDbConfig({})).toEqual({
+      dbUrl: 'postgresql://trama:trama_local_dev@localhost:5433/trama',
+      source: 'default local Postgres',
+    })
+    expect(
+      resolveQueryPlanDbConfig({
+        NETLIFY_DB_URL: 'postgresql://netlify@example.test/trama',
+      }),
+    ).toEqual({
+      dbUrl: 'postgresql://netlify@example.test/trama',
+      source: 'NETLIFY_DB_URL',
+    })
+    expect(
+      resolveQueryPlanDbConfig({
+        DATABASE_URL: 'postgresql://database@example.test/trama',
+        NETLIFY_DB_URL: 'postgresql://netlify@example.test/trama',
+      }),
+    ).toEqual({
+      dbUrl: 'postgresql://database@example.test/trama',
+      source: 'DATABASE_URL',
+    })
   })
 
   it('setea contexto RLS de fixture antes de sembrar datos privados', async () => {
@@ -208,13 +350,43 @@ describe('check-query-plans', () => {
     ])
   })
 
-  it('hace rollback en una corrida exitosa para no persistir fixtures de query plans', async () => {
-    await runQueryPlanCheck({ dbUrl: 'postgresql://trama:secret@localhost:5433/trama' })
+  it('hace rollback y reporta un resumen agregado en una corrida exitosa', async () => {
+    const stdout = vi.fn()
+    const result = await runQueryPlanCheck({
+      dbUrl: 'postgresql://trama:secret@localhost:5433/trama',
+      stdout,
+    })
 
     expect(pgMock.queryTexts).toContain('BEGIN')
     expect(pgMock.queryTexts).toContain('ROLLBACK')
     expect(pgMock.queryTexts).not.toContain('COMMIT')
     expect(pgMock.client.release).toHaveBeenCalledTimes(1)
     expect(pgMock.pool.end).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({ checked: QUERY_PLAN_CHECKS.length })
+    expect(stdout).toHaveBeenLastCalledWith(
+      `query-plan OK: ${QUERY_PLAN_CHECKS.length}/${QUERY_PLAN_CHECKS.length} checks`,
+    )
+  })
+
+  it('alinea el contexto de debug con dbUrl cuando sobreescribe dbConfig', async () => {
+    const stdout = vi.fn()
+
+    await runQueryPlanCheck({
+      dbConfig: {
+        dbUrl: 'postgresql://trama:ignored@localhost:5433/trama',
+        source: 'DATABASE_URL',
+      },
+      dbUrl: 'postgresql://trama:override@example.test:5432/trama',
+      checks: [QUERY_PLAN_CHECKS[0]],
+      stdout,
+    })
+
+    expect(pgMock.Pool).toHaveBeenCalledWith({
+      connectionString: 'postgresql://trama:override@example.test:5432/trama',
+    })
+    expect(stdout).toHaveBeenCalledWith(
+      `query-plan context: db=dbUrl option postgresql://example.test:5432/trama; fixtures=1500; maxSeqScanRows=100; checks=1/${QUERY_PLAN_CHECKS.length}`,
+    )
+    expect(stdout.mock.calls.join('\n')).not.toContain('ignored')
   })
 })
