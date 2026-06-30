@@ -125,16 +125,98 @@ describe('user_id write contracts', () => {
     ])
   })
 
+  it('acepta INSERT ... SELECT cuando user_id viene directamente del parámetro autenticado', () => {
+    const warnings = findUserIdWriteContractWarnings({
+      privateTables: ['whatsapp_pending_media'],
+      sources: [
+        {
+          file: 'netlify/functions/_lib/whatsapp/pending-media.ts',
+          source: `
+            await sql\`
+              INSERT INTO whatsapp_pending_media (
+                user_id, phone_e164, group_id, storage_key, mime, captured_at, caption
+              )
+              SELECT \${userId}, \${phone}, \${groupId}::uuid, x.key, x.mime,
+                x.captured_at::timestamptz, \${caption}
+              FROM unnest(\${keys}::text[], \${mimes}::text[], \${capturedAts}::text[])
+                AS x(key, mime, captured_at)
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(warnings).toEqual([])
+  })
+
+  it('acepta INSERT ... SELECT sin FROM cuando user_id viene del parámetro autenticado', () => {
+    const warnings = findUserIdWriteContractWarnings({
+      privateTables: ['favoritos'],
+      sources: [
+        {
+          file: 'netlify/functions/favoritos.mts',
+          source: `
+            await sql\`
+              INSERT INTO favoritos (url, title, note, user_id)
+              SELECT \${url}, \${title ?? null}, \${note ?? null}, \${userId}
+              WHERE NOT EXISTS (SELECT 1 FROM existing)
+              RETURNING id, url, title, note, created_at, updated_at
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(warnings).toEqual([])
+  })
+
+  it('acepta INSERT ... SELECT cuando user_id viene de un alias owner-gated', () => {
+    const warnings = findUserIdWriteContractWarnings({
+      privateTables: ['recorte_images'],
+      sources: [
+        {
+          file: 'netlify/functions/_lib/whatsapp/album.ts',
+          source: `
+            await sql\`
+              WITH rec AS (
+                SELECT id, image_key, user_id FROM recortes
+                WHERE id = \${recorteId} AND user_id = \${userId} AND deleted_at IS NULL
+              ),
+              appended AS (
+                INSERT INTO recorte_images (recorte_id, user_id, storage_key, mime, position)
+                SELECT rec.id, rec.user_id, x.key, x.mime, x.ord::int
+                FROM rec,
+                  unnest(\${keys}::text[], \${mimes}::text[]) WITH ORDINALITY AS x(key, mime, ord)
+                RETURNING 1
+              )
+              SELECT 1
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(warnings).toEqual([])
+  })
+
   it('separa warnings aceptados con razón explícita de warnings pendientes', () => {
     const report = buildUserIdWriteContractReport({
       privateTables: ['quotes', 'notes'],
+      warningAllowlist: [
+        {
+          file: 'netlify/functions/_lib/recortes-endpoint.ts',
+          table: 'quotes',
+          kind: 'insert_select_manual_review',
+          reason: 'fixture aceptado para probar el split de warnings',
+        },
+      ],
       sources: [
         {
           file: 'netlify/functions/_lib/recortes-endpoint.ts',
           source: `
             await sql\`
               INSERT INTO quotes (text, user_id)
-              SELECT text, \${userId} FROM current_recorte
+              SELECT text, owner_id FROM imported_quotes
             \`
           `,
         },
@@ -156,7 +238,7 @@ describe('user_id write contracts', () => {
       expect.objectContaining({
         file: 'netlify/functions/_lib/recortes-endpoint.ts',
         table: 'quotes',
-        reason: expect.stringContaining('recorte owner'),
+        reason: 'fixture aceptado para probar el split de warnings',
       }),
     ])
   })
@@ -183,12 +265,8 @@ describe('user_id write contracts', () => {
     })
 
     expect(report.warnings).toBe(0)
-    expect(report.acceptedWarnings).toBe(1)
-    expect(report.acceptedWarningDetails[0]).toMatchObject({
-      file: 'netlify/functions/_lib/whatsapp/pending-media.ts',
-      table: 'whatsapp_pending_media',
-      reason: expect.stringContaining('authenticated userId parameter'),
-    })
+    expect(report.acceptedWarnings).toBe(0)
+    expect(report.acceptedWarningDetails).toEqual([])
   })
 
   it('trata warnings no aceptados como findings bloqueantes', () => {
