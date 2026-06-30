@@ -107,6 +107,12 @@ jobs:
       - name: Backend domain services contract
         run: npm run check:backend-domain-services
 
+      # Contrato runtime de rows calientes: SELECT/RETURNING de entities,
+      # quotes, notes, momentos y search deben estar envueltos en parseRows
+      # con schema y contexto, salvo rows operacionales pequeñas allowlisteadas.
+      - name: Row runtime contracts
+        run: npm run check:row-runtime-contracts
+
       # Contrato operacional multiusuario: vocabulario de eventos, redacción,
       # health productivo y smoke reportable deben quedar documentados y
       # conectados a auth/wrapper antes de mergear.
