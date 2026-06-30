@@ -209,13 +209,9 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
 
   // Semantic: embed the query, rank by cosine distance. embedSafe returns
   // null on any failure so we degrade to lexical instead of erroring.
-  type SemanticEntity = SearchSemanticEntityRow
-  type SemanticQuote = SearchSemanticQuoteRow
-  type SemanticMomento = SearchSemanticMomentoRow
-
-  let semanticEntities: SemanticEntity[] = []
-  let semanticQuotes: SemanticQuote[] = []
-  let semanticMomentos: SemanticMomento[] = []
+  let semanticEntities: SearchSemanticEntityRow[] = []
+  let semanticQuotes: SearchSemanticQuoteRow[] = []
+  let semanticMomentos: SearchSemanticMomentoRow[] = []
   if (wantsSemantic) {
     const emb = await embedSafe(q)
     if (emb) {
@@ -223,7 +219,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
       const [er, qr, mr] = await Promise.all([
         (async () =>
           parseRows(
-            await sqlTyped<SemanticEntity>(sql`
+            await sqlTyped<SearchSemanticEntityRow>(sql`
               SELECT id, name, type, description, year,
                      0 AS rank,
                      (embedding <=> ${pgVec}::vector) AS distance
@@ -238,7 +234,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           ))(),
         (async () =>
           parseRows(
-            await sqlTyped<SemanticQuote>(sql`
+            await sqlTyped<SearchSemanticQuoteRow>(sql`
               SELECT q.id, q.entity_id, e.name AS entity_name,
                      q.text, q.source,
                      0 AS rank,
@@ -257,7 +253,7 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
           ))(),
         (async () =>
           parseRows(
-            await sqlTyped<SemanticMomento>(sql`
+            await sqlTyped<SearchSemanticMomentoRow>(sql`
               SELECT m.id, m.kind, m.captured_at,
                      COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
                               NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
