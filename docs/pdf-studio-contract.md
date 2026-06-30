@@ -115,6 +115,11 @@ Si aparece una duplicacion nueva, primero revisa `npm run
 check:pdf-runtime-boundaries`. Si el guardrail esta verde, el siguiente paso es
 leer el grafo de Vite/worker antes de intentar consolidar chunks a mano.
 
+`bundle:check` tambien ratchea las duplicaciones aceptadas de vendors PDF
+pesados. Esos limites (`vendor-pdf-lib`, `vendor-pdfjs`, `vendor-ocr`) congelan
+count y gzip total observado; si uno crece, el PR debe demostrar si el aumento
+viene de una capacidad real o de un import que se salio de `pdfRuntime`.
+
 ## Contrato de navegacion del editor
 
 Al abrir una miniatura o saltar de pagina, la pagina solicitada manda hasta que
