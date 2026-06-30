@@ -367,4 +367,26 @@ describe('check-query-plans', () => {
       `query-plan OK: ${QUERY_PLAN_CHECKS.length}/${QUERY_PLAN_CHECKS.length} checks`,
     )
   })
+
+  it('alinea el contexto de debug con dbUrl cuando sobreescribe dbConfig', async () => {
+    const stdout = vi.fn()
+
+    await runQueryPlanCheck({
+      dbConfig: {
+        dbUrl: 'postgresql://trama:ignored@localhost:5433/trama',
+        source: 'DATABASE_URL',
+      },
+      dbUrl: 'postgresql://trama:override@example.test:5432/trama',
+      checks: [QUERY_PLAN_CHECKS[0]],
+      stdout,
+    })
+
+    expect(pgMock.Pool).toHaveBeenCalledWith({
+      connectionString: 'postgresql://trama:override@example.test:5432/trama',
+    })
+    expect(stdout).toHaveBeenCalledWith(
+      'query-plan context: db=dbUrl option postgresql://example.test:5432/trama; fixtures=1500; maxSeqScanRows=100; checks=1/11',
+    )
+    expect(stdout.mock.calls.join('\n')).not.toContain('ignored')
+  })
 })

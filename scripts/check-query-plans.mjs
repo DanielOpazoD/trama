@@ -414,11 +414,13 @@ export async function runQueryPlanCheck({
   only,
   stdout = console.log,
 } = {}) {
-  const resolvedDbConfig = dbConfig ?? {
-    ...DB_CONFIG,
-    dbUrl: dbUrl ?? DB_CONFIG.dbUrl,
+  const baseDbConfig = dbConfig ?? DB_CONFIG
+  const resolvedDbUrl = dbUrl ?? baseDbConfig.dbUrl
+  const resolvedDbConfig = {
+    ...baseDbConfig,
+    dbUrl: resolvedDbUrl,
+    source: dbUrl ? 'dbUrl option' : baseDbConfig.source,
   }
-  const resolvedDbUrl = dbUrl ?? resolvedDbConfig.dbUrl
   const selectedChecks = only
     ? selectQueryPlanChecks({ only, checks: checks ?? QUERY_PLAN_CHECKS })
     : (checks ?? QUERY_PLAN_CHECKS)
