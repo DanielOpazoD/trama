@@ -1,7 +1,7 @@
 import type { CommandAction } from '../../hooks/useCommandSearch'
 import type { ViewMode } from '../../types/view'
 
-export type ShellModalAction = 'settings' | 'shortcuts' | 'sortes' | 'espejo' | 'careo'
+type ShellModalAction = 'settings' | 'shortcuts' | 'sortes' | 'espejo' | 'careo'
 export type ShellPaletteIntent =
   | { kind: 'modal'; modal: ShellModalAction }
   | { kind: 'view'; view: ViewMode }
