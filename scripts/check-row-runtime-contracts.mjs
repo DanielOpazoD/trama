@@ -12,6 +12,9 @@ export const HOT_ROW_CONTRACT_FILES = [
 ]
 
 const OPERATIONAL_ROW_ALLOWLIST = new Set([
+  '{content:string;promoted:string|null;created_at:string}',
+  '{name:string;type:string;year:number|null;description:string|null}',
+  '{text:string;source:string|null;context:string|null;entity_id:string}',
   '{deleted_at:string}',
   '{id:string}',
   '{momento_id:string|null}',
@@ -112,7 +115,23 @@ function lineAt(source, index) {
 }
 
 function compactType(typeText) {
-  return typeText.replace(/\s+/g, '').replace(/;(?=})/g, '')
+  const trimmed = typeText.trim().replace(/\r\n/g, '\n')
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    const body = trimmed.slice(1, -1)
+    const fields = body
+      .split(/[\n;]/)
+      .map((field) =>
+        field
+          .trim()
+          .replace(/,$/, '')
+          .replace(/\s*:\s*/g, ':')
+          .replace(/\s*\|\s*/g, '|')
+          .replace(/\s+/g, ''),
+      )
+      .filter(Boolean)
+    return `{${fields.join(';')}}`
+  }
+  return trimmed.replace(/\s+/g, '')
 }
 
 function readSqlTypedCall(source, start) {
@@ -170,10 +189,6 @@ function findCoveringParseRows(spans, index) {
   return spans.find((span) => span.start <= index && index < span.end)
 }
 
-function shouldCheckRowType(rowType) {
-  return /\b[A-Za-z0-9_]*Row\b/.test(rowType)
-}
-
 function isOperationalRow(rowType) {
   return (
     OPERATIONAL_ROW_ALLOWLIST.has(compactType(rowType)) ||
@@ -201,7 +216,6 @@ function scanFile({ root, relFile }) {
       allowed.push({ file: relFile, line: lineAt(source, call.start), rowType })
       continue
     }
-    if (!shouldCheckRowType(rowType)) continue
     violations.push({
       file: relFile,
       line: lineAt(source, call.start),

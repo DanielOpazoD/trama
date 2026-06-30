@@ -61,6 +61,54 @@ describe('checkRowRuntimeContracts', () => {
     ])
   })
 
+  it('falla si un archivo hot usa un genérico no allowlisteado aunque no termine en Row', async () => {
+    const root = await makeRepo({
+      [HOT_QUOTES_FILE]: `
+        const rows = await sqlTyped<MyQuote>(sql\`
+          SELECT id, text
+          FROM quotes
+        \`)
+      `,
+    })
+
+    const result = checkRowRuntimeContracts({ root })
+
+    expect(result.ok).toBe(false)
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        file: HOT_QUOTES_FILE,
+        rowType: 'MyQuote',
+        message: expect.stringContaining('parseRows'),
+      }),
+    ])
+  })
+
+  it('falla con objetos inline no allowlisteados en archivos hot', async () => {
+    const root = await makeRepo({
+      [HOT_QUOTES_FILE]: `
+        const rows = await sqlTyped<{
+          text: string
+          source: string | null
+          context: string | null
+        }>(sql\`
+          SELECT text, source, context
+          FROM quotes
+        \`)
+      `,
+    })
+
+    const result = checkRowRuntimeContracts({ root })
+
+    expect(result.ok).toBe(false)
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        file: HOT_QUOTES_FILE,
+        rowType: expect.stringContaining('text: string'),
+        message: expect.stringContaining('parseRows'),
+      }),
+    ])
+  })
+
   it('permite rows operacionales pequeñas allowlisteadas', async () => {
     const root = await makeRepo({
       [HOT_QUOTES_FILE]: `
