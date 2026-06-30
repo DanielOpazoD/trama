@@ -251,6 +251,50 @@ describe('user_id write contracts', () => {
     ])
   })
 
+  it('no reutiliza un alias owner-gated de otro statement del mismo source', () => {
+    const warnings = findUserIdWriteContractWarnings({
+      privateTables: ['recorte_images'],
+      sources: [
+        {
+          file: 'netlify/functions/_lib/whatsapp/album.ts',
+          source: `
+            await sql\`
+              WITH rec AS (
+                SELECT id, image_key, user_id FROM recortes
+                WHERE id = \${recorteId} AND user_id = \${userId} AND deleted_at IS NULL
+              ),
+              appended AS (
+                INSERT INTO recorte_images (recorte_id, user_id, storage_key)
+                SELECT rec.id, rec.user_id, x.key
+                FROM rec, unnest(\${keys}::text[]) AS x(key)
+                RETURNING 1
+              )
+              SELECT 1
+            \`
+
+            await sql\`
+              WITH rec AS (
+                SELECT id, image_key, user_id FROM recortes
+                WHERE id = \${otherRecorteId} AND deleted_at IS NULL
+              ),
+              appended AS (
+                INSERT INTO recorte_images (recorte_id, user_id, storage_key)
+                SELECT rec.id, rec.user_id, x.key
+                FROM rec, unnest(\${keys}::text[]) AS x(key)
+                RETURNING 1
+              )
+              SELECT 1
+            \`
+          `,
+        },
+      ],
+    })
+
+    expect(warnings).toEqual([
+      insertSelectWarning('netlify/functions/_lib/whatsapp/album.ts', 'recorte_images'),
+    ])
+  })
+
   it('advierte cuando el owner-gate pertenece a otro alias', () => {
     const warnings = findUserIdWriteContractWarnings({
       privateTables: ['recorte_images'],

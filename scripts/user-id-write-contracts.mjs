@@ -9,7 +9,7 @@ const ROOT = process.cwd()
 const FUNCTIONS_DIR = join(ROOT, 'netlify/functions')
 
 const INSERT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\s*\(([^)]*)\)/gi
-const INSERT_STATEMENT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\b([\s\S]*?)(?=;|$)/gi
+const INSERT_STATEMENT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\b([\s\S]*?)(?=;|`|$)/gi
 
 export const USER_ID_WRITE_WARNING_ALLOWLIST = []
 
@@ -37,6 +37,16 @@ function parseColumns(rawColumns) {
 
 function stripComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--.*$/gm, '')
+}
+
+function enclosingTemplateLiteral(source, index) {
+  const start = source.lastIndexOf('`', index)
+  if (start < 0) return source
+
+  const end = source.indexOf('`', index)
+  if (end < 0) return source.slice(start + 1)
+
+  return source.slice(start + 1, end)
 }
 
 function splitTopLevelCsv(value) {
@@ -208,10 +218,11 @@ export function findUserIdWriteContractWarnings({
         const columns = parseColumns(
           afterTable.slice(openColumnList + 1, closeColumnList),
         )
+        const statementScope = enclosingTemplateLiteral(searchableSource, match.index)
         if (
           isProvableInsertSelectUserId({
             columns,
-            source: searchableSource,
+            source: statementScope,
             afterColumnList,
           })
         ) {
