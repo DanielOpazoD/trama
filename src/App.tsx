@@ -1,22 +1,17 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useInitialView } from './hooks/useInitialView'
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts'
-import { startViewTransition } from './lib/viewTransition'
 import { clearOAuthReturn } from './lib/oauthReturn'
 import {
   Provider,
-  readUserPrefsMirror,
-  clearUserPrefsMirror,
   useCountsQuery,
   useMomentoShareInvitationsQuery,
   useOffline,
   useRespondMomentoShareInvitation,
   useToast,
 } from './state'
-import { useCurrentClientUserId } from './lib/clientIdentity'
 import { useTheme } from './hooks/useTheme'
-import { useWorldThemeClass } from './hooks/useWorldThemeClass'
 import { useTimeOfDayAccent } from './hooks/useTimeOfDayAccent'
 import { useAchievements } from './hooks/useAchievements'
 import { useWeeklyProactiveNudge } from './hooks/useWeeklyProactiveNudge'
@@ -37,7 +32,9 @@ import { MomentoNotificationsCenter } from './components/momentos/MomentoNotific
 import { ShellTopChrome } from './components/appShell/ShellTopChrome'
 import { ShellAttentionLayer } from './components/appShell/ShellAttentionLayer'
 import { buildShellVisibility } from './components/appShell/appShellModel'
+import { resolveShellPaletteAction } from './components/appShell/shellPaletteModel'
 import { WorldLoadingFallback } from './components/appShell/WorldLoadingFallback'
+import { useWorldShellController } from './components/appShell/useWorldShellController'
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
@@ -45,14 +42,9 @@ const loadNotasWorld = () =>
   import('./components/notas/NotasWorld').then((m) => ({ default: m.NotasWorld }))
 const NotasWorld = lazy(loadNotasWorld)
 import { type NotasSection } from './types/notas'
-import {
-  readNotasSectionDeepLinkFromSearch,
-  readWorldDeepLinkFromSearch,
-  resolveRecortesRedirectSearch,
-} from './lib/worldShellRouting'
 import type { CommandAction } from './components/CommandPalette'
 
-import { DEFAULT_WORLD, WORLD_STORAGE_KEY, type World } from './types/world'
+import { type World } from './types/world'
 
 function preloadWorldBundle(world: World): void {
   if (world === 'notas') void loadNotasWorld()
@@ -186,35 +178,9 @@ function Shell({
   }
   const handlePaletteAction = useCallback(
     (action: CommandAction) => {
-      // Las acciones rápidas del palette se traducen en navigations
-      // + modal openings. "Nueva X" navega a la vista correspondiente;
-      // el form se abrirá manualmente o vía un futuro hint.
-      switch (action) {
-        case 'open-settings':
-          modals.openModal('settings')
-          break
-        case 'open-shortcuts':
-          modals.openModal('shortcuts')
-          break
-        case 'open-sortes':
-          modals.openModal('sortes')
-          break
-        case 'open-espejo':
-          modals.openModal('espejo')
-          break
-        case 'open-careo':
-          modals.openModal('careo')
-          break
-        case 'new-entity':
-          setView('entidades')
-          break
-        case 'new-quote':
-          setView('citas')
-          break
-        case 'new-momento':
-          setView('momentos')
-          break
-      }
+      const intent = resolveShellPaletteAction(action)
+      if (intent.kind === 'modal') modals.openModal(intent.modal)
+      else setView(intent.view)
     },
     [modals, setView],
   )
@@ -385,121 +351,9 @@ function Shell({
  * Notas. El mundo activo persiste en localStorage. Es el único nivel por
  * encima del Shell — todo lo de la Trama sigue intacto adentro de Shell.
  */
-/**
- * τ-recortes-merge: los enlaces viejos `?view=recortes` apuntaban a la vista
- * top-level Recortes (ya removida). Antes de resolver mundo/sección iniciales,
- * reescribimos la URL al feed unificado `?world=notas&section=notas` (mapeando
- * tab=favoritos → segment=favoritos) para que el resto del arranque lea los
- * params nuevos — sin flash del mundo
- * trama. Corre UNA sola vez (guard de módulo): el redirect depende solo de la
- * URL de arranque, así que no debe re-evaluarse en cada render de WorldShell.
- */
-let recortesRedirectApplied = false
-function applyRecortesRedirectOnce() {
-  if (recortesRedirectApplied || typeof window === 'undefined') return
-  recortesRedirectApplied = true
-  const search = resolveRecortesRedirectSearch(window.location.search)
-  if (!search) return
-  try {
-    window.history.replaceState(
-      window.history.state,
-      '',
-      `${window.location.pathname}${search}${window.location.hash}`,
-    )
-  } catch {
-    /* replaceState no disponible (entorno raro) — el deep-link viejo no rompe nada */
-  }
-}
-
 function WorldShell() {
-  applyRecortesRedirectOnce()
-  const initialWorldFromUrl =
-    typeof window === 'undefined'
-      ? null
-      : readWorldDeepLinkFromSearch(window.location.search)
-  const [world, setWorld] = useState<World>(() => {
-    if (typeof window === 'undefined') return DEFAULT_WORLD
-    if (initialWorldFromUrl) return initialWorldFromUrl
-    // El ÚLTIMO mundo usado gana (continuidad). Si no hay (navegador fresco),
-    // siembra con el mundo default configurado (espejo localStorage, sin red).
-    const saved = window.localStorage.getItem(WORLD_STORAGE_KEY)
-    if (saved === 'notas' || saved === 'trama') return saved as World
-    const def = readUserPrefsMirror().defaultWorld
-    return def === 'notas' || def === 'trama' ? def : DEFAULT_WORLD
-  })
-  const changeWorld = useCallback((w: World) => {
-    // Cambiar de mundo es la navegación más grande de la app: cruza con la
-    // misma transición suave que el cambio de vista.
-    startViewTransition(() => setWorld(w))
-    try {
-      window.localStorage.setItem(WORLD_STORAGE_KEY, w)
-    } catch {
-      /* storage deshabilitado */
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!initialWorldFromUrl) return
-    try {
-      window.localStorage.setItem(WORLD_STORAGE_KEY, initialWorldFromUrl)
-    } catch {
-      /* storage deshabilitado */
-    }
-  }, [initialWorldFromUrl])
-  // Precarga el bundle (lazy) de Notas tras el arranque: cambiar de mundo no espera el chunk.
-  useEffect(() => {
-    const t = window.setTimeout(() => preloadWorldBundle('notas'), 1200)
-    return () => window.clearTimeout(t)
-  }, [])
-
-  // Multiusuario en navegador compartido: si cambia el usuario autenticado, no
-  // hereda el último mundo / espejo de prefs del anterior — los descarta y
-  // resetea al mundo default. Sin Clerk el id es null → nunca dispara.
-  const clientUserId = useCurrentClientUserId()
-  useEffect(() => {
-    if (!clientUserId) return
-    let last: string | null = null
-    try {
-      last = window.localStorage.getItem('trama:auth-user')
-    } catch {
-      return
-    }
-    if (last === clientUserId) return
-    if (last !== null) {
-      clearUserPrefsMirror()
-      try {
-        window.localStorage.removeItem(WORLD_STORAGE_KEY)
-      } catch {
-        /* ignore */
-      }
-      setWorld(DEFAULT_WORLD)
-    }
-    try {
-      window.localStorage.setItem('trama:auth-user', clientUserId)
-    } catch {
-      /* ignore */
-    }
-  }, [clientUserId])
-
-  // Identidad de acento por mundo (Notas = salvia) vía clase en <html>.
-  useWorldThemeClass(world)
-
-  // Revelar un módulo del mundo Notas desde el ⌘K del mundo principal: lo
-  // des-oculta, agenda abrir esa sección, y cruza al mundo Notas.
-
-  const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
-    () =>
-      initialWorldFromUrl === 'notas' && typeof window !== 'undefined'
-        ? readNotasSectionDeepLinkFromSearch(window.location.search)
-        : null,
-  )
-  const revealNotasModule = useCallback(
-    (moduleId: NotasSection) => {
-      setPendingNotasSection(moduleId)
-      changeWorld('notas')
-    },
-    [changeWorld],
-  )
+  const { world, changeWorld, pendingNotasSection, revealNotasModule } =
+    useWorldShellController({ preloadWorldBundle })
 
   // El conmutador de mundos vive en el logo (WorldSwitcher), dentro del header
   // de cada mundo — por eso acá no hay riel: se monta el mundo activo a pantalla
