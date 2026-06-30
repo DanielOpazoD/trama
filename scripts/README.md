@@ -56,10 +56,13 @@ allowlist temporal.
 
 ### `check:query-plans`
 
-Este gate corre `EXPLAIN (FORMAT JSON)` sobre feeds y busquedas calientes con
-fixtures transaccionales. Usa, en orden, `DATABASE_URL`, `NETLIFY_DB_URL` o la
-Postgres local `postgresql://localhost:5433/trama`; las credenciales nunca se
-imprimen completas.
+Este gate corre `EXPLAIN (FORMAT JSON)` sobre un catalogo auditable de feeds y
+busquedas calientes con fixtures transaccionales. El catalogo cubre
+`entities`, `quotes`, `recortes`, `momentos`, `notes` y `search`, incluyendo el
+feed unificado de Notas (`objects`) y busquedas lexicales reales donde existen.
+Usa, en orden, `DATABASE_URL`, `NETLIFY_DB_URL` o la Postgres local
+`postgresql://localhost:5433/trama`; las credenciales nunca se imprimen
+completas.
 
 Receta local:
 
@@ -71,7 +74,10 @@ npm run check:query-plans
 Si la DB local quedo vieja, usa `npm run db:reset` o aplica migraciones con
 `scripts/apply-migrations.sh`. `QUERY_PLAN_FIXTURE_SIZE` ajusta la cantidad de
 fixtures por tabla y `QUERY_PLAN_MAX_SEQ_SCAN_ROWS` ajusta el umbral bloqueante
-de seq scans grandes.
+de seq scans grandes. Una corrida exitosa termina con un resumen
+`query-plan OK: <n>/<n> checks`; si agregas un dominio caliente nuevo, agrega su
+fixture/catalog entry y el test de cobertura debe fallar hasta que quede
+representado.
 
 ## Reglas para scripts nuevos
 

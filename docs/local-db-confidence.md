@@ -39,11 +39,13 @@ Los logs redaccionan usuario y password antes de imprimir cualquier URL.
    fixtures.
 
 2. `npm run check:query-plans`
-   Siembra fixtures por `user_id`, setea `app.current_user_id` dentro de una
-   transacción y ejecuta `EXPLAIN (FORMAT JSON)` sobre feeds y búsquedas
-   calientes. La transacción termina con `ROLLBACK`, así que la corrida no deja
-   fixtures nuevos en la DB local. Falla ante seq scans grandes no
-   allowlisteados.
+   Siembra fixtures declarados por dominio (`entities`, `quotes`, `recortes`,
+   `momentos`, `notes`), setea `app.current_user_id` dentro de una transacción y
+   ejecuta `EXPLAIN (FORMAT JSON)` sobre el catálogo de feeds y búsquedas
+   calientes. Cubre listados paginados, feed unificado de Notas (`objects`) y
+   búsqueda lexical representativa. La transacción termina con `ROLLBACK`, así
+   que la corrida no deja fixtures nuevos en la DB local. Falla ante seq scans
+   grandes no allowlisteados y termina con `query-plan OK: <n>/<n> checks`.
 
 3. `npm run test:query-it:local`
    Wrapper anti-skip del motor de queries. Siempre inyecta una URL real para

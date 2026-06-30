@@ -62,6 +62,9 @@ vi.mock('pg', () => ({
 }))
 
 import {
+  EXPECTED_QUERY_PLAN_DOMAINS,
+  QUERY_PLAN_CHECKS,
+  QUERY_PLAN_FIXTURES,
   assertNoLargeSeqScans,
   collectPlanNodes,
   formatQueryPlanCheckFailure,
@@ -78,6 +81,46 @@ function plan(node) {
 describe('check-query-plans', () => {
   beforeEach(() => {
     pgMock.reset()
+  })
+
+  it('declara un catalogo auditable con labels unicos y dominios calientes cubiertos', () => {
+    const labels = QUERY_PLAN_CHECKS.map((check) => check.label)
+    expect(new Set(labels).size).toBe(labels.length)
+    expect(labels).toEqual([
+      'entities.paginated',
+      'quotes.paginated',
+      'recortes.feed',
+      'momentos.kind-feed',
+      'notes.feed',
+      'notes.search',
+      'recortes.objects-search',
+      'notes.unified-feed',
+      'search.entities.lexical',
+      'search.quotes.lexical',
+      'search.momentos.lexical',
+    ])
+
+    const domains = new Set(QUERY_PLAN_CHECKS.map((check) => check.domain))
+    for (const domain of EXPECTED_QUERY_PLAN_DOMAINS) {
+      expect(domains.has(domain)).toBe(true)
+    }
+  })
+
+  it('declara fixtures por dominio para que la cobertura no dependa de setup inline', () => {
+    expect(QUERY_PLAN_FIXTURES.map((fixture) => fixture.domain)).toEqual([
+      'entities',
+      'quotes',
+      'recortes',
+      'momentos',
+      'notes',
+    ])
+    expect(QUERY_PLAN_FIXTURES.map((fixture) => fixture.table)).toEqual([
+      'entities',
+      'quotes',
+      'recortes',
+      'momentos',
+      'notes',
+    ])
   })
 
   it('recorre nodos anidados de un EXPLAIN JSON', () => {
@@ -251,13 +294,21 @@ describe('check-query-plans', () => {
     ])
   })
 
-  it('hace rollback en una corrida exitosa para no persistir fixtures de query plans', async () => {
-    await runQueryPlanCheck({ dbUrl: 'postgresql://trama:secret@localhost:5433/trama' })
+  it('hace rollback y reporta un resumen agregado en una corrida exitosa', async () => {
+    const stdout = vi.fn()
+    const result = await runQueryPlanCheck({
+      dbUrl: 'postgresql://trama:secret@localhost:5433/trama',
+      stdout,
+    })
 
     expect(pgMock.queryTexts).toContain('BEGIN')
     expect(pgMock.queryTexts).toContain('ROLLBACK')
     expect(pgMock.queryTexts).not.toContain('COMMIT')
     expect(pgMock.client.release).toHaveBeenCalledTimes(1)
     expect(pgMock.pool.end).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({ checked: QUERY_PLAN_CHECKS.length })
+    expect(stdout).toHaveBeenLastCalledWith(
+      `query-plan OK: ${QUERY_PLAN_CHECKS.length}/${QUERY_PLAN_CHECKS.length} checks`,
+    )
   })
 })
