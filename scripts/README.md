@@ -44,6 +44,16 @@ agregalo a `QUALITY_GATES`.
 | `test`      | Runners y normalizacion de argumentos de Vitest.                        | `run-vitest`, `vitest-runner-args`.                                                                                                                                                |
 | `whatsapp`  | Schema y persistencia del puente WhatsApp.                              | `check-whatsapp-schema`, `gen-whatsapp-cheatsheet`.                                                                                                                                |
 
+### `check:user-id-writes`
+
+Este gate bloquea escrituras a tablas privadas que no declaran `user_id`.
+Para `INSERT ... SELECT`, solo acepta proof patterns estáticos y acotados:
+`${userId}`/`${ownerUserId}` en la posición de la columna `user_id`,
+`alias.user_id` si el CTE del alias está filtrado por el usuario autenticado, o
+`SELECT user_id FROM ... WHERE user_id = ${userId}`. Si el patrón no calza,
+debe quedar como warning bloqueante hasta reescribir el CTE o justificar una
+allowlist temporal.
+
 ## Reglas para scripts nuevos
 
 1. Agrega el archivo bajo `scripts/`.
