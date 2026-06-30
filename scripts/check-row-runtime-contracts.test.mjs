@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { checkRowRuntimeContracts } from './check-row-runtime-contracts.mjs'
+import {
+  HOT_ROW_CONTRACT_FILES,
+  checkRowRuntimeContracts,
+} from './check-row-runtime-contracts.mjs'
 
 async function makeRepo(files) {
   const root = await mkdtemp(join(tmpdir(), 'trama-row-contracts-'))
@@ -19,6 +22,12 @@ async function makeRepo(files) {
 const HOT_QUOTES_FILE = 'netlify/functions/quotes.mts'
 
 describe('checkRowRuntimeContracts', () => {
+  it('incluye helpers splitteados de endpoints hot para no perder cobertura', () => {
+    expect(HOT_ROW_CONTRACT_FILES).toContain(
+      'netlify/functions/_lib/search-endpoint-queries.ts',
+    )
+  })
+
   it('acepta sqlTyped<Row> crítico cuando está envuelto por parseRows con schema y context', async () => {
     const root = await makeRepo({
       [HOT_QUOTES_FILE]: `

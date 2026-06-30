@@ -9,6 +9,7 @@ export const HOT_ROW_CONTRACT_FILES = [
   'netlify/functions/notes.mts',
   'netlify/functions/_lib/momentos/data.ts',
   'netlify/functions/_lib/search-endpoint.ts',
+  'netlify/functions/_lib/search-endpoint-queries.ts',
 ]
 
 const OPERATIONAL_ROW_ALLOWLIST = new Set([

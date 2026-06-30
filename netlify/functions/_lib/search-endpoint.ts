@@ -1,12 +1,10 @@
-import { getSql, sqlTyped } from './db.js'
-import { embedSafe, toPgVector } from './embeddings.js'
+import { getSql } from './db.js'
 import { describeEntity, describeQuote, llmRerank } from './llm-rerank.js'
 import { resolveAIInvocation } from './ai-mode.js'
 import { withObservability } from './handler-wrap.js'
 import { getAuthedUser } from './auth.js'
 import { parseSearchParams, QueryParam, requireMethod } from './request-contracts.js'
 import { z } from 'zod'
-import { parseRows } from './row-parse.js'
 import {
   buildEmptySearchPayload,
   buildSearchModePlan,
@@ -15,24 +13,7 @@ import {
   fuseSingleSearchBranch,
   type SearchMode,
 } from './search-service.js'
-import {
-  SearchChatRowSchema,
-  SearchCronicaRowSchema,
-  SearchEntityRowSchema,
-  SearchMomentoRowSchema,
-  SearchQuoteRowSchema,
-  SearchSemanticEntityRowSchema,
-  SearchSemanticMomentoRowSchema,
-  SearchSemanticQuoteRowSchema,
-  type SearchChatRow,
-  type SearchCronicaRow,
-  type SearchEntityRow,
-  type SearchMomentoRow,
-  type SearchQuoteRow,
-  type SearchSemanticEntityRow,
-  type SearchSemanticMomentoRow,
-  type SearchSemanticQuoteRow,
-} from './backend-row-schemas.js'
+import { runLexicalSearch, runSemanticSearch } from './search-endpoint-queries.js'
 
 /**
  * Hybrid search across entities (name + description) and quotes (text +
@@ -96,191 +77,10 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
     wantsRerank,
   )
 
-  // Lexical: tsvector match + trigram-similarity boost on name.
-  type EntityLex = SearchEntityRow
-  type QuoteLex = SearchQuoteRow
-  type MomentoLex = SearchMomentoRow
-  type CronicaLex = SearchCronicaRow
-  type ChatLex = SearchChatRow
-
-  // Texto representativo de un momento: el cuerpo si lo hay, si no el
-  // caption/título/fuente, si no la nota. NULLIF descarta strings vacías del
-  // payload para que el COALESCE caiga al siguiente campo con texto. Se
-  // inlinea en cada query (en vez de un fragmento sql compartido) porque el
-  // tagged template de Neon HTTP no compone fragmentos anidados.
-
-  const lexicalEntities = wantsLexical
-    ? parseRows(
-        await sqlTyped<EntityLex>(sql`
-        SELECT e.id, e.name, e.type, e.description, e.year,
-               ts_rank(e.search_vector, websearch_to_tsquery('simple', ${q}))
-                 + similarity(e.name, ${q}) * 0.5 AS rank
-        FROM entities e
-        WHERE e.deleted_at IS NULL
-          AND e.user_id = ${userId}
-          AND (e.search_vector @@ websearch_to_tsquery('simple', ${q})
-               OR e.name % ${q})
-        ORDER BY rank DESC
-        LIMIT ${limit * 2}
-      `),
-        SearchEntityRowSchema,
-        'search.lexical.entities',
-      )
-    : ([] as EntityLex[])
-
-  const lexicalQuotes = wantsLexical
-    ? parseRows(
-        await sqlTyped<QuoteLex>(sql`
-        SELECT q.id, q.entity_id, e.name AS entity_name, q.text, q.source,
-               ts_rank(q.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
-        FROM quotes q
-        JOIN entities e ON e.id = q.entity_id
-          AND e.deleted_at IS NULL
-          AND e.user_id = ${userId}
-        WHERE q.deleted_at IS NULL
-          AND q.user_id = ${userId}
-          AND q.search_vector @@ websearch_to_tsquery('simple', ${q})
-        ORDER BY rank DESC
-        LIMIT ${limit * 2}
-      `),
-        SearchQuoteRowSchema,
-        'search.lexical.quotes',
-      )
-    : ([] as QuoteLex[])
-
-  const lexicalMomentos = wantsLexical
-    ? parseRows(
-        await sqlTyped<MomentoLex>(sql`
-        SELECT m.id, m.kind, m.captured_at,
-               COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
-                        NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
-                        m.note, '') AS text,
-               ts_rank(m.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
-        FROM momentos m
-        WHERE m.deleted_at IS NULL
-          AND m.user_id = ${userId}
-          AND m.search_vector @@ websearch_to_tsquery('simple', ${q})
-        ORDER BY rank DESC
-        LIMIT ${limit * 2}
-      `),
-        SearchMomentoRowSchema,
-        'search.lexical.momentos',
-      )
-    : ([] as MomentoLex[])
-
-  // Crónicas y chat: lexical-only (no tienen embedding). En modo 'semantic'
-  // puro no aparecen; en 'hybrid' fluyen por la rama léxica.
-  const lexicalCronicas = wantsLexical
-    ? parseRows(
-        await sqlTyped<CronicaLex>(sql`
-        SELECT c.id, c.year, c.month, left(c.text, 220) AS text,
-               ts_rank(c.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
-        FROM cronicas c
-        WHERE c.user_id = ${userId}
-          AND c.search_vector @@ websearch_to_tsquery('simple', ${q})
-        ORDER BY rank DESC
-        LIMIT ${limit * 2}
-      `),
-        SearchCronicaRowSchema,
-        'search.lexical.cronicas',
-      )
-    : ([] as CronicaLex[])
-
-  const lexicalChat = wantsLexical
-    ? parseRows(
-        await sqlTyped<ChatLex>(sql`
-        SELECT cm.id, cm.thread_id, t.title AS thread_title, cm.role,
-               left(cm.content, 200) AS text,
-               ts_rank(cm.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
-        FROM chat_messages cm
-        JOIN chat_threads t ON t.id = cm.thread_id
-          AND t.deleted_at IS NULL
-          AND t.user_id = ${userId}
-        WHERE t.deleted_at IS NULL
-          AND cm.user_id = ${userId}
-          AND cm.search_vector @@ websearch_to_tsquery('simple', ${q})
-        ORDER BY rank DESC
-        LIMIT ${limit * 2}
-      `),
-        SearchChatRowSchema,
-        'search.lexical.chat',
-      )
-    : ([] as ChatLex[])
-
-  // Semantic: embed the query, rank by cosine distance. embedSafe returns
-  // null on any failure so we degrade to lexical instead of erroring.
-  let semanticEntities: SearchSemanticEntityRow[] = []
-  let semanticQuotes: SearchSemanticQuoteRow[] = []
-  let semanticMomentos: SearchSemanticMomentoRow[] = []
-  if (wantsSemantic) {
-    const emb = await embedSafe(q)
-    if (emb) {
-      const pgVec = toPgVector(emb.vector)
-      const [er, qr, mr] = await Promise.all([
-        (async () =>
-          parseRows(
-            await sqlTyped<SearchSemanticEntityRow>(sql`
-              SELECT id, name, type, description, year,
-                     0 AS rank,
-                     (embedding <=> ${pgVec}::vector) AS distance
-              FROM entities
-              WHERE deleted_at IS NULL AND embedding IS NOT NULL
-                AND user_id = ${userId}
-              ORDER BY embedding <=> ${pgVec}::vector
-              LIMIT ${limit * 2}
-            `),
-            SearchSemanticEntityRowSchema,
-            'search.semantic.entities',
-          ))(),
-        (async () =>
-          parseRows(
-            await sqlTyped<SearchSemanticQuoteRow>(sql`
-              SELECT q.id, q.entity_id, e.name AS entity_name,
-                     q.text, q.source,
-                     0 AS rank,
-                     (q.embedding <=> ${pgVec}::vector) AS distance
-              FROM quotes q
-              JOIN entities e ON e.id = q.entity_id
-                AND e.deleted_at IS NULL
-                AND e.user_id = ${userId}
-              WHERE q.deleted_at IS NULL AND q.embedding IS NOT NULL
-                AND q.user_id = ${userId}
-              ORDER BY q.embedding <=> ${pgVec}::vector
-              LIMIT ${limit * 2}
-            `),
-            SearchSemanticQuoteRowSchema,
-            'search.semantic.quotes',
-          ))(),
-        (async () =>
-          parseRows(
-            await sqlTyped<SearchSemanticMomentoRow>(sql`
-              SELECT m.id, m.kind, m.captured_at,
-                     COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
-                              NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
-                              m.note, '') AS text,
-                     0 AS rank,
-                     (m.embedding <=> ${pgVec}::vector) AS distance
-              FROM momentos m
-              WHERE m.deleted_at IS NULL AND m.embedding IS NOT NULL
-                AND m.user_id = ${userId}
-              ORDER BY m.embedding <=> ${pgVec}::vector
-              LIMIT ${limit * 2}
-            `),
-            SearchSemanticMomentoRowSchema,
-            'search.semantic.momentos',
-          ))(),
-      ])
-      semanticEntities = er
-      semanticQuotes = qr
-      semanticMomentos = mr
-    }
-  }
-
-  const lex = await lexicalEntities
-  const lexQ = await lexicalQuotes
-  const lexM = await lexicalMomentos
-  const lexC = await lexicalCronicas
-  const lexChat = await lexicalChat
+  const [lexical, semantic] = await Promise.all([
+    runLexicalSearch({ sql, q, userId, limit, enabled: wantsLexical }),
+    runSemanticSearch({ sql, q, userId, limit, enabled: wantsSemantic }),
+  ])
 
   // ---------- Merge via Reciprocal Rank Fusion ----------
   // Antes sumábamos scores de escalas distintas (ts_rank vs cosine sim).
@@ -288,13 +88,17 @@ export default withObservability('search', async (req: Request, _ctx, { requestI
   // cuando una rama trae noise, mejor combinación cuando ambas tienen señal.
   // Ver _lib/rrf.ts para el detalle.
 
-  const entitiesFusedFull = fuseSearchBranches(lex, semanticEntities, fusedWidth)
-  const quotesFusedFull = fuseSearchBranches(lexQ, semanticQuotes, fusedWidth)
+  const entitiesFusedFull = fuseSearchBranches(
+    lexical.entities,
+    semantic.entities,
+    fusedWidth,
+  )
+  const quotesFusedFull = fuseSearchBranches(lexical.quotes, semantic.quotes, fusedWidth)
   // Momentos: léxico + semántico. Crónicas y chat: una sola rama léxica
   // (fuseRanked de una lista = ranking por esa lista, mismo shape de salida).
-  const momentosFused = fuseSearchBranches(lexM, semanticMomentos, limit)
-  const cronicasFused = fuseSingleSearchBranch(lexC, limit)
-  const chatFused = fuseSingleSearchBranch(lexChat, limit)
+  const momentosFused = fuseSearchBranches(lexical.momentos, semantic.momentos, limit)
+  const cronicasFused = fuseSingleSearchBranch(lexical.cronicas, limit)
+  const chatFused = fuseSingleSearchBranch(lexical.chat, limit)
 
   // ---------- Rerank opcional vía LLM ----------
   // Solo si el caller lo pidió (?rerank=true). El LLM-as-reranker reordena
