@@ -71,13 +71,21 @@ npm run db:up
 npm run check:query-plans
 ```
 
+Para depurar sin correr todo el paquete:
+
+```bash
+QUERY_PLAN_LIST=1 npm run check:query-plans
+QUERY_PLAN_ONLY=search.quotes.lexical npm run check:query-plans
+```
+
 Si la DB local quedo vieja, usa `npm run db:reset` o aplica migraciones con
 `scripts/apply-migrations.sh`. `QUERY_PLAN_FIXTURE_SIZE` ajusta la cantidad de
 fixtures por tabla y `QUERY_PLAN_MAX_SEQ_SCAN_ROWS` ajusta el umbral bloqueante
-de seq scans grandes. Una corrida exitosa termina con un resumen
-`query-plan OK: <n>/<n> checks`; si agregas un dominio caliente nuevo, agrega su
-fixture/catalog entry y el test de cobertura debe fallar hasta que quede
-representado.
+de seq scans grandes. Cada corrida imprime fuente/URL saneada, tamaño de
+fixtures, umbral de seq scans y cantidad de checks seleccionados. Una corrida
+exitosa termina con un resumen `query-plan OK: <n>/<n> checks`; si agregas un
+dominio caliente nuevo, agrega su fixture/catalog entry y el test de cobertura
+debe fallar hasta que quede representado.
 
 ## Reglas para scripts nuevos
 

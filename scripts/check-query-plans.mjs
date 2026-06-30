@@ -181,6 +181,50 @@ export function sanitizeDbUrlForLog(dbUrl) {
   }
 }
 
+export function formatQueryPlanList(checks = QUERY_PLAN_CHECKS) {
+  return [
+    'Query plan catalog:',
+    ...checks.map((check) => `- ${check.label} [${check.domain}]`),
+  ].join('\n')
+}
+
+export function selectQueryPlanChecks({ only, checks = QUERY_PLAN_CHECKS } = {}) {
+  if (!only) return checks
+  const requestedLabels = String(only)
+    .split(',')
+    .map((label) => label.trim())
+    .filter(Boolean)
+  if (requestedLabels.length === 0) return checks
+
+  const byLabel = new Map(checks.map((check) => [check.label, check]))
+  const missing = requestedLabels.filter((label) => !byLabel.has(label))
+  if (missing.length > 0) {
+    throw new Error(
+      [
+        `QUERY_PLAN_ONLY desconocido: ${missing.join(', ')}`,
+        'Labels disponibles:',
+        ...checks.map((check) => `- ${check.label}`),
+      ].join('\n'),
+    )
+  }
+  return requestedLabels.map((label) => byLabel.get(label))
+}
+
+export function formatQueryPlanRunContext({
+  dbConfig = DB_CONFIG,
+  checks = QUERY_PLAN_CHECKS,
+  totalChecks = QUERY_PLAN_CHECKS.length,
+  fixtureSize = FIXTURE_SIZE,
+  maxSeqScanRows = MAX_SEQ_SCAN_ROWS,
+} = {}) {
+  return [
+    `db=${dbConfig.source} ${sanitizeDbUrlForLog(dbConfig.dbUrl)}`,
+    `fixtures=${fixtureSize}`,
+    `maxSeqScanRows=${maxSeqScanRows}`,
+    `checks=${checks.length}/${totalChecks}`,
+  ].join('; ')
+}
+
 function connectionRefused(error) {
   if (!error || typeof error !== 'object') return false
   if (error.code === 'ECONNREFUSED') return true
@@ -364,10 +408,25 @@ async function explain(pool, label, text, values = [], opts = {}) {
 }
 
 export async function runQueryPlanCheck({
-  dbUrl = DB_CONFIG.dbUrl,
+  dbUrl,
+  dbConfig,
+  checks,
+  only,
   stdout = console.log,
 } = {}) {
-  const pool = new pg.Pool({ connectionString: dbUrl })
+  const resolvedDbConfig = dbConfig ?? {
+    ...DB_CONFIG,
+    dbUrl: dbUrl ?? DB_CONFIG.dbUrl,
+  }
+  const resolvedDbUrl = dbUrl ?? resolvedDbConfig.dbUrl
+  const selectedChecks = only
+    ? selectQueryPlanChecks({ only, checks: checks ?? QUERY_PLAN_CHECKS })
+    : (checks ?? QUERY_PLAN_CHECKS)
+  stdout(
+    `query-plan context: ${formatQueryPlanRunContext({ dbConfig: resolvedDbConfig, checks: selectedChecks })}`,
+  )
+
+  const pool = new pg.Pool({ connectionString: resolvedDbUrl })
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
@@ -379,13 +438,13 @@ export async function runQueryPlanCheck({
       searchTerm: SEARCH_TERM,
       searchLike: SEARCH_LIKE,
     }
-    for (const check of QUERY_PLAN_CHECKS) {
+    for (const check of selectedChecks) {
       const values = check.values(context)
       await explain(client, check.label, check.text, values, check.opts)
       checked += 1
       stdout(`query-plan OK: ${check.label}`)
     }
-    stdout(`query-plan OK: ${checked}/${QUERY_PLAN_CHECKS.length} checks`)
+    stdout(`query-plan OK: ${checked}/${selectedChecks.length} checks`)
     await client.query('ROLLBACK')
     return { checked }
   } catch (error) {
@@ -397,10 +456,34 @@ export async function runQueryPlanCheck({
   }
 }
 
+export async function runQueryPlanCli({
+  env = process.env,
+  stdout = console.log,
+  stderr = console.error,
+} = {}) {
+  const dbConfig = resolveQueryPlanDbConfig(env)
+  if (env.QUERY_PLAN_LIST === '1' || env.QUERY_PLAN_LIST === 'true') {
+    stdout(formatQueryPlanList())
+    return 0
+  }
+
+  try {
+    selectQueryPlanChecks({ only: env.QUERY_PLAN_ONLY })
+    await runQueryPlanCheck({
+      dbConfig,
+      only: env.QUERY_PLAN_ONLY,
+      stdout,
+    })
+    return 0
+  } catch (err) {
+    stderr(formatQueryPlanCheckFailure({ dbUrl: dbConfig.dbUrl, error: err }))
+    return 1
+  }
+}
+
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 if (isMain) {
-  runQueryPlanCheck().catch((err) => {
-    console.error(formatQueryPlanCheckFailure({ dbUrl: DB_CONFIG.dbUrl, error: err }))
-    process.exitCode = 1
+  runQueryPlanCli().then((status) => {
+    process.exitCode = status
   })
 }

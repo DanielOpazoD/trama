@@ -125,7 +125,9 @@ dominio y cobertura minima de `entities`, `quotes`, `recortes`, `momentos`,
 `notes` y `search`; el test focalizado falla si se pierde uno de esos dominios.
 Si falla con `relation ... does not exist`, la instancia existe pero no esta
 migrada: corre `scripts/apply-migrations.sh` o `npm run db:reset`. Sus perillas
-locales son `QUERY_PLAN_FIXTURE_SIZE` y `QUERY_PLAN_MAX_SEQ_SCAN_ROWS`.
+locales son `QUERY_PLAN_FIXTURE_SIZE`, `QUERY_PLAN_MAX_SEQ_SCAN_ROWS`,
+`QUERY_PLAN_LIST=1` para inspeccionar labels sin DB y `QUERY_PLAN_ONLY=<label>`
+para depurar un plan aislado.
 
 `test:query-it:local` y `test:backend-data-it` crean roles temporales
 no-superusuario para probar RLS real. Si tu URL migrada local no tiene permiso

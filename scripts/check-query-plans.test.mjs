@@ -67,8 +67,10 @@ import {
   QUERY_PLAN_FIXTURES,
   assertNoLargeSeqScans,
   collectPlanNodes,
+  formatQueryPlanList,
   formatQueryPlanCheckFailure,
   resolveQueryPlanDbConfig,
+  runQueryPlanCli,
   runQueryPlanCheck,
   sanitizeDbUrlForLog,
   setQueryPlanRlsContext,
@@ -107,20 +109,74 @@ describe('check-query-plans', () => {
   })
 
   it('declara fixtures por dominio para que la cobertura no dependa de setup inline', () => {
-    expect(QUERY_PLAN_FIXTURES.map((fixture) => fixture.domain)).toEqual([
-      'entities',
-      'quotes',
-      'recortes',
-      'momentos',
-      'notes',
+    expect(QUERY_PLAN_FIXTURES).toEqual([
+      { domain: 'entities', table: 'entities' },
+      { domain: 'quotes', table: 'quotes' },
+      { domain: 'recortes', table: 'recortes' },
+      { domain: 'momentos', table: 'momentos' },
+      { domain: 'notes', table: 'notes' },
     ])
-    expect(QUERY_PLAN_FIXTURES.map((fixture) => fixture.table)).toEqual([
-      'entities',
-      'quotes',
-      'recortes',
-      'momentos',
-      'notes',
-    ])
+  })
+
+  it('lista el catalogo sin abrir conexion a Postgres', async () => {
+    const stdout = vi.fn()
+    const stderr = vi.fn()
+
+    const status = await runQueryPlanCli({
+      env: { QUERY_PLAN_LIST: '1' },
+      stdout,
+      stderr,
+    })
+
+    expect(status).toBe(0)
+    expect(pgMock.Pool).not.toHaveBeenCalled()
+    expect(stderr).not.toHaveBeenCalled()
+    expect(stdout).toHaveBeenCalledWith(formatQueryPlanList())
+    for (const check of QUERY_PLAN_CHECKS) {
+      expect(stdout.mock.calls.join('\n')).toContain(check.label)
+    }
+  })
+
+  it('filtra la corrida a un label con QUERY_PLAN_ONLY y muestra contexto de debug', async () => {
+    const stdout = vi.fn()
+
+    const result = await runQueryPlanCheck({
+      dbConfig: {
+        dbUrl: 'postgresql://trama:secret@localhost:5433/trama',
+        source: 'DATABASE_URL',
+      },
+      only: 'search.quotes.lexical',
+      stdout,
+    })
+
+    const explainQueries = pgMock.queryTexts.filter((text) =>
+      String(text).startsWith('EXPLAIN'),
+    )
+    expect(result).toEqual({ checked: 1 })
+    expect(explainQueries).toHaveLength(1)
+    expect(explainQueries[0]).toContain('FROM quotes q')
+    expect(stdout).toHaveBeenCalledWith(
+      'query-plan context: db=DATABASE_URL postgresql://localhost:5433/trama; fixtures=1500; maxSeqScanRows=100; checks=1/11',
+    )
+    expect(stdout).toHaveBeenLastCalledWith('query-plan OK: 1/1 checks')
+    expect(stdout.mock.calls.join('\n')).not.toContain('secret')
+  })
+
+  it('falla rapido si QUERY_PLAN_ONLY referencia un label inexistente', async () => {
+    const stdout = vi.fn()
+    const stderr = vi.fn()
+
+    const status = await runQueryPlanCli({
+      env: { QUERY_PLAN_ONLY: 'search.nope' },
+      stdout,
+      stderr,
+    })
+
+    expect(status).toBe(1)
+    expect(pgMock.Pool).not.toHaveBeenCalled()
+    expect(stdout).not.toHaveBeenCalled()
+    expect(stderr.mock.calls.join('\n')).toContain('QUERY_PLAN_ONLY desconocido')
+    expect(stderr.mock.calls.join('\n')).toContain('search.quotes.lexical')
   })
 
   it('recorre nodos anidados de un EXPLAIN JSON', () => {
