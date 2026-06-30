@@ -470,7 +470,6 @@ export async function runQueryPlanCli({
   }
 
   try {
-    selectQueryPlanChecks({ only: env.QUERY_PLAN_ONLY })
     await runQueryPlanCheck({
       dbConfig,
       only: env.QUERY_PLAN_ONLY,

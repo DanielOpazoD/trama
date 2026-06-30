@@ -156,7 +156,7 @@ describe('check-query-plans', () => {
     expect(explainQueries).toHaveLength(1)
     expect(explainQueries[0]).toContain('FROM quotes q')
     expect(stdout).toHaveBeenCalledWith(
-      'query-plan context: db=DATABASE_URL postgresql://localhost:5433/trama; fixtures=1500; maxSeqScanRows=100; checks=1/11',
+      `query-plan context: db=DATABASE_URL postgresql://localhost:5433/trama; fixtures=1500; maxSeqScanRows=100; checks=1/${QUERY_PLAN_CHECKS.length}`,
     )
     expect(stdout).toHaveBeenLastCalledWith('query-plan OK: 1/1 checks')
     expect(stdout.mock.calls.join('\n')).not.toContain('secret')
@@ -385,7 +385,7 @@ describe('check-query-plans', () => {
       connectionString: 'postgresql://trama:override@example.test:5432/trama',
     })
     expect(stdout).toHaveBeenCalledWith(
-      'query-plan context: db=dbUrl option postgresql://example.test:5432/trama; fixtures=1500; maxSeqScanRows=100; checks=1/11',
+      `query-plan context: db=dbUrl option postgresql://example.test:5432/trama; fixtures=1500; maxSeqScanRows=100; checks=1/${QUERY_PLAN_CHECKS.length}`,
     )
     expect(stdout.mock.calls.join('\n')).not.toContain('ignored')
   })
