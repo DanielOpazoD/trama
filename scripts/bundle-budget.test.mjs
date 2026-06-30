@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   chunkBaseName,
   classifyBundleEntry,
+  evaluateDuplicateBudgets,
   summarizeBundleEntries,
 } from './bundle-budget.mjs'
 
@@ -93,5 +94,29 @@ describe('bundle budget helpers', () => {
         },
       ],
     })
+  })
+
+  it('falla ratchets de duplicados cuando vendors pesados crecen o se multiplican', () => {
+    expect(
+      evaluateDuplicateBudgets(
+        [
+          { file: 'vendor-pdf-lib', count: 2, gzKb: 745 },
+          { file: 'vendor-pdfjs', count: 2, gzKb: 248 },
+        ],
+        {
+          'vendor-pdf-lib': { maxCount: 2, maxGzKb: 750 },
+          'vendor-pdfjs': { maxCount: 1, maxGzKb: 130 },
+        },
+      ),
+    ).toEqual([
+      {
+        file: 'vendor-pdfjs',
+        count: 2,
+        gzKb: 248,
+        maxCount: 1,
+        maxGzKb: 130,
+        status: 'duplicate-over-budget',
+      },
+    ])
   })
 })

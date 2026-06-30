@@ -20,6 +20,7 @@ import { join } from 'node:path'
 import {
   chunkBaseName,
   classifyBundleEntry,
+  evaluateDuplicateBudgets,
   summarizeBundleEntries,
 } from './bundle-budget.mjs'
 import { PDF_AGGREGATE_BUDGETS } from './pdf-bundle-families.mjs'
@@ -76,6 +77,11 @@ const BUDGETS = {
 }
 
 const AGGREGATE_BUDGETS = [...PDF_AGGREGATE_BUDGETS]
+const DUPLICATE_BUDGETS = {
+  'vendor-pdf-lib': { maxCount: 4, maxGzKb: 1500 },
+  'vendor-pdfjs': { maxCount: 2, maxGzKb: 250 },
+  'vendor-ocr': { maxCount: 2, maxGzKb: 15 },
+}
 
 const DIST = 'dist/assets'
 const MAX_UNBUDGETED_KB = 10
@@ -133,6 +139,17 @@ for (const family of summary.families) {
     })
   }
 }
+const duplicateFailures = evaluateDuplicateBudgets(summary.duplicates, DUPLICATE_BUDGETS)
+for (const duplicate of duplicateFailures) {
+  failures.push({
+    file: `${duplicate.file} duplicates`,
+    gzKb: duplicate.gzKb,
+    budget: duplicate.maxGzKb,
+    status: 'duplicate-over-budget',
+    count: duplicate.count,
+    maxCount: duplicate.maxCount,
+  })
+}
 
 // Tabla resumen.
 console.log('\nBundle size report (gzip):')
@@ -142,7 +159,12 @@ for (const p of passes) {
   console.log(`  ${p.file.padEnd(20)} ${String(p.gzKb).padStart(4)} KB${tag}`)
 }
 for (const f of failures) {
-  const label = f.status === 'missing-budget' ? 'SIN budget >' : 'EXCEDE budget'
+  const label =
+    f.status === 'missing-budget'
+      ? 'SIN budget >'
+      : f.status === 'duplicate-over-budget'
+        ? `DUPLICADO x${f.count}/${f.maxCount} >`
+        : 'EXCEDE budget'
   console.log(
     `  ${f.file.padEnd(20)} ${String(f.gzKb).padStart(4)} KB   ❌ ${label} ${f.budget} KB`,
   )

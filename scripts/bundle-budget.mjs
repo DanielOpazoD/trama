@@ -62,3 +62,21 @@ export function summarizeBundleEntries(entries, familyBudgets = []) {
 
   return { duplicates, families }
 }
+
+export function evaluateDuplicateBudgets(duplicates, duplicateBudgets = {}) {
+  const failures = []
+  for (const duplicate of duplicates) {
+    const budget = duplicateBudgets[duplicate.file]
+    if (!budget) continue
+    if (duplicate.count <= budget.maxCount && duplicate.gzKb <= budget.maxGzKb) continue
+    failures.push({
+      file: duplicate.file,
+      count: duplicate.count,
+      gzKb: duplicate.gzKb,
+      maxCount: budget.maxCount,
+      maxGzKb: budget.maxGzKb,
+      status: 'duplicate-over-budget',
+    })
+  }
+  return failures
+}
