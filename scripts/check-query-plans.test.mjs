@@ -65,6 +65,7 @@ import {
   assertNoLargeSeqScans,
   collectPlanNodes,
   formatQueryPlanCheckFailure,
+  resolveQueryPlanDbConfig,
   runQueryPlanCheck,
   sanitizeDbUrlForLog,
   setQueryPlanRlsContext,
@@ -185,11 +186,53 @@ describe('check-query-plans', () => {
 
     expect(message).toContain('check:query-plans no pudo conectar a Postgres')
     expect(message).toContain('npm run db:up')
+    expect(message).toContain('npm run db:reset')
     expect(message).toContain('npm run local:db-confidence')
     expect(message).toContain('DATABASE_URL')
+    expect(message).toContain('NETLIFY_DB_URL')
+    expect(message).not.toContain('NETLIFY_DATABASE_URL')
     expect(message).toContain('postgresql://localhost:5433/trama')
     expect(message).not.toContain('trama_local_dev')
     expect(message).not.toContain('AggregateError')
+  })
+
+  it('explica como aplicar migraciones cuando la DB existe pero falta schema', () => {
+    const message = formatQueryPlanCheckFailure({
+      dbUrl: 'postgresql://trama:secret@localhost:5433/trama',
+      error: Object.assign(new Error('relation "entities" does not exist'), {
+        code: '42P01',
+      }),
+    })
+
+    expect(message).toContain('check:query-plans encontro una DB sin schema migrado')
+    expect(message).toContain('scripts/apply-migrations.sh')
+    expect(message).toContain('npm run db:reset')
+    expect(message).toContain('postgresql://localhost:5433/trama')
+    expect(message).not.toContain('secret')
+  })
+
+  it('declara prioridad de URL runtime para el check local', () => {
+    expect(resolveQueryPlanDbConfig({})).toEqual({
+      dbUrl: 'postgresql://trama:trama_local_dev@localhost:5433/trama',
+      source: 'default local Postgres',
+    })
+    expect(
+      resolveQueryPlanDbConfig({
+        NETLIFY_DB_URL: 'postgresql://netlify@example.test/trama',
+      }),
+    ).toEqual({
+      dbUrl: 'postgresql://netlify@example.test/trama',
+      source: 'NETLIFY_DB_URL',
+    })
+    expect(
+      resolveQueryPlanDbConfig({
+        DATABASE_URL: 'postgresql://database@example.test/trama',
+        NETLIFY_DB_URL: 'postgresql://netlify@example.test/trama',
+      }),
+    ).toEqual({
+      dbUrl: 'postgresql://database@example.test/trama',
+      source: 'DATABASE_URL',
+    })
   })
 
   it('setea contexto RLS de fixture antes de sembrar datos privados', async () => {

@@ -18,14 +18,16 @@ manual exige que la instancia tenga `pgvector` instalado.
 
 ## Variables
 
-| Variable                               | Uso                                                                 |
-| -------------------------------------- | ------------------------------------------------------------------- |
-| `NETLIFY_DB_URL`                       | URL runtime/migrada para query plans y comandos de app.             |
-| `DATABASE_URL`                         | Compatibilidad con scripts existentes; también apunta a DB migrada. |
-| `QUERY_IT_DB_URL`                      | URL explícita para `test:query-it:local`.                           |
-| `BACKEND_DATA_IT_DB_URL`               | URL explícita para `test:backend-data-it`.                          |
-| `LOCAL_DB_CONFIDENCE_ADMIN_DB_URL`     | URL admin throwaway para integraciones que crean roles RLS.         |
-| `LOCAL_DB_CONFIDENCE_CTE_DATABASE_URL` | Opt-in para correr CTE regression contra una DB throwaway propia.   |
+| Variable                               | Uso                                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `NETLIFY_DB_URL`                       | URL runtime/migrada para query plans y comandos de app.                |
+| `DATABASE_URL`                         | Compatibilidad con scripts existentes; también apunta a DB migrada.    |
+| `QUERY_IT_DB_URL`                      | URL explícita para `test:query-it:local`.                              |
+| `BACKEND_DATA_IT_DB_URL`               | URL explícita para `test:backend-data-it`.                             |
+| `QUERY_PLAN_FIXTURE_SIZE`              | Cantidad de fixtures por tabla para `check:query-plans`; default 1500. |
+| `QUERY_PLAN_MAX_SEQ_SCAN_ROWS`         | Umbral de `Plan Rows` para bloquear seq scans grandes; default 100.    |
+| `LOCAL_DB_CONFIDENCE_ADMIN_DB_URL`     | URL admin throwaway para integraciones que crean roles RLS.            |
+| `LOCAL_DB_CONFIDENCE_CTE_DATABASE_URL` | Opt-in para correr CTE regression contra una DB throwaway propia.      |
 
 Los logs redaccionan usuario y password antes de imprimir cualquier URL.
 
@@ -74,14 +76,15 @@ throwaway o de CI.
 
 ## Diagnóstico rápido
 
-| Síntoma                                    | Acción                                                                              |
-| ------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `ECONNREFUSED` en `check:query-plans`      | Levanta la DB migrada con `npm run db:up` o define `NETLIFY_DB_URL`.                |
-| `permission denied to create role`         | Define `LOCAL_DB_CONFIDENCE_ADMIN_DB_URL` apuntando a una DB throwaway.             |
-| `extension "vector" is not available`      | Usa la imagen `pgvector/pgvector:pg16` de Docker o instala pgvector local.          |
-| `Seq Scan on <tabla>` con muchos plan rows | Revisa índice por `user_id`/orden/búsqueda antes de allowlistear.                   |
-| Tests aparecen como `skipped`              | Usa los wrappers `test:query-it:local` y `test:backend-data-it`, no Vitest directo. |
-| Warning nuevo en `check:user-id-writes`    | Simplifica el INSERT o agrega allowlist con razón de ownership autenticado.         |
+| Síntoma                                      | Acción                                                                              |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `ECONNREFUSED` en `check:query-plans`        | Levanta la DB migrada con `npm run db:up` o define `NETLIFY_DB_URL`.                |
+| `relation ... does not exist` en query plans | Aplica `scripts/apply-migrations.sh` o recrea la DB con `npm run db:reset`.         |
+| `permission denied to create role`           | Define `LOCAL_DB_CONFIDENCE_ADMIN_DB_URL` apuntando a una DB throwaway.             |
+| `extension "vector" is not available`        | Usa la imagen `pgvector/pgvector:pg16` de Docker o instala pgvector local.          |
+| `Seq Scan on <tabla>` con muchos plan rows   | Revisa índice por `user_id`/orden/búsqueda antes de allowlistear.                   |
+| Tests aparecen como `skipped`                | Usa los wrappers `test:query-it:local` y `test:backend-data-it`, no Vitest directo. |
+| Warning nuevo en `check:user-id-writes`      | Simplifica el INSERT o agrega allowlist con razón de ownership autenticado.         |
 
 ## Qué no prueba
 

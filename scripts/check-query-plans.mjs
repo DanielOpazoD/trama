@@ -2,7 +2,7 @@ import pg from 'pg'
 import { fileURLToPath, URL } from 'node:url'
 
 const DEFAULT_DB_URL = 'postgresql://trama:trama_local_dev@localhost:5433/trama'
-const DB_URL = process.env.DATABASE_URL || process.env.NETLIFY_DB_URL || DEFAULT_DB_URL
+const DB_CONFIG = resolveQueryPlanDbConfig(process.env)
 const FIXTURE_USER_ID = 'query-plan-it-user'
 const FIXTURE_SIZE = readEnvInteger('QUERY_PLAN_FIXTURE_SIZE', 1500, { min: 1 })
 const MAX_SEQ_SCAN_ROWS = readEnvInteger('QUERY_PLAN_MAX_SEQ_SCAN_ROWS', 100, {
@@ -19,6 +19,12 @@ function readEnvInteger(name, fallback, { min }) {
     )
   }
   return value
+}
+
+export function resolveQueryPlanDbConfig(env = process.env) {
+  if (env.DATABASE_URL) return { dbUrl: env.DATABASE_URL, source: 'DATABASE_URL' }
+  if (env.NETLIFY_DB_URL) return { dbUrl: env.NETLIFY_DB_URL, source: 'NETLIFY_DB_URL' }
+  return { dbUrl: DEFAULT_DB_URL, source: 'default local Postgres' }
 }
 
 export function sanitizeDbUrlForLog(dbUrl) {
@@ -39,15 +45,47 @@ function connectionRefused(error) {
   return false
 }
 
+function missingMigratedSchema(error) {
+  if (!error || typeof error !== 'object') return false
+  if (error.code === '42P01' || error.code === '42703' || error.code === '42883') {
+    return true
+  }
+  if (Array.isArray(error.errors)) return error.errors.some(missingMigratedSchema)
+  const message = error instanceof Error ? error.message : String(error)
+  return /relation ".+" does not exist|column ".+" does not exist|function .+ does not exist/i.test(
+    message,
+  )
+}
+
+function localDbRunbookLines() {
+  return [
+    'Runbook local recomendado:',
+    '  1. `npm run db:up` para levantar Postgres y aplicar migraciones.',
+    '  2. Si la DB quedo vieja o inconsistente, `npm run db:reset`.',
+    '  3. `npm run check:query-plans` o `npm run local:db-confidence`.',
+    '',
+    'Tambien puedes definir DATABASE_URL o NETLIFY_DB_URL apuntando a una Postgres migrada.',
+  ]
+}
+
 export function formatQueryPlanCheckFailure({ dbUrl, error }) {
   const safeDbUrl = sanitizeDbUrlForLog(dbUrl)
   if (connectionRefused(error)) {
     return [
       `check:query-plans no pudo conectar a Postgres (${safeDbUrl}).`,
       '',
-      'Levanta la DB local migrada con `npm run db:up` y vuelve a correr `npm run check:query-plans`.',
-      'Para correr todo el paquete backend/data local, usa `npm run local:db-confidence`.',
-      'También puedes definir DATABASE_URL o NETLIFY_DB_URL apuntando a una Postgres migrada.',
+      ...localDbRunbookLines(),
+    ].join('\n')
+  }
+
+  if (missingMigratedSchema(error)) {
+    return [
+      `check:query-plans encontro una DB sin schema migrado (${safeDbUrl}).`,
+      '',
+      'Aplica migraciones con `scripts/apply-migrations.sh` o recrea la DB local con `npm run db:reset`.',
+      'Este check necesita las tablas, indices y columnas actuales de main antes de sembrar fixtures.',
+      '',
+      ...localDbRunbookLines(),
     ].join('\n')
   }
 
@@ -182,7 +220,7 @@ async function explain(pool, label, text, values = [], opts = {}) {
   return plan
 }
 
-export async function runQueryPlanCheck({ dbUrl = DB_URL } = {}) {
+export async function runQueryPlanCheck({ dbUrl = DB_CONFIG.dbUrl } = {}) {
   const pool = new pg.Pool({ connectionString: dbUrl })
   const client = await pool.connect()
   try {
@@ -279,7 +317,7 @@ export async function runQueryPlanCheck({ dbUrl = DB_URL } = {}) {
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]
 if (isMain) {
   runQueryPlanCheck().catch((err) => {
-    console.error(formatQueryPlanCheckFailure({ dbUrl: DB_URL, error: err }))
+    console.error(formatQueryPlanCheckFailure({ dbUrl: DB_CONFIG.dbUrl, error: err }))
     process.exitCode = 1
   })
 }
