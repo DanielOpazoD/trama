@@ -4,10 +4,17 @@ import { parseRows } from '../row-parse.js'
 import { toPgVector } from '../embeddings.js'
 import type { Origin } from '../origin.js'
 import type { MomentoKind } from '../momento-embed.js'
-import type { MomentoEntityLinkRow, MomentoListRow } from '../momentos-list.js'
 import {
+  CurrentMomentoRowSchema,
+  DeletedMomentoRowSchema,
   MomentoEntityLinkRowSchema,
   MomentoListRowSchema,
+  MomentoResponseRowSchema,
+  type CurrentMomentoRow,
+  type DeletedMomentoRow,
+  type MomentoEntityLinkRow,
+  type MomentoListRow,
+  type MomentoResponseRow,
 } from '../backend-row-schemas.js'
 
 /**
@@ -27,17 +34,8 @@ type Sql = ReturnType<typeof getSql>
 /** Embedding ya calculado por `embedSafe` (o null si no se generó). */
 type Embedding = { vector: number[]; model: string } | null
 
-export type MomentoResponseRow = Record<string, unknown>
 export type EntityIdRow = { id: string }
 export type MomentoLinkIdRow = { entity_id: string }
-export type CurrentMomentoRow = {
-  kind: MomentoKind
-  payload: Record<string, unknown>
-  note: string | null
-  user_id: string
-  access_role: 'owner' | 'viewer' | 'editor' | null
-}
-export type DeletedMomentoRow = { id: string; deleted_at: string }
 
 export type MomentosPageParams = {
   limit: number
@@ -56,7 +54,7 @@ export async function loadMomentoById(
 ): Promise<MomentoListRow[]> {
   return parseRows(
     await runWithSystemRls(() =>
-      sqlTyped<MomentoResponseRow>(sql`
+      sqlTyped<MomentoListRow>(sql`
         SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
                m.created_at, m.updated_at,
                m.user_id AS owner_user_id,
@@ -336,34 +334,38 @@ export async function insertMomentoWithLinks(
   userId: string,
 ): Promise<MomentoResponseRow[]> {
   const { kind, payload, note, origin, capturedAt, entityIds } = draft
-  return sqlTyped<MomentoResponseRow>(sql`
-    WITH ins AS (
-      INSERT INTO momentos (
-        kind, captured_at, payload, note, origin,
-        embedding, embedding_model, embedding_at, user_id
-      ) VALUES (
-        ${kind},
-        ${capturedAt}::timestamptz,
-        ${JSON.stringify(payload)}::jsonb,
-        ${note},
-        ${JSON.stringify(origin)}::jsonb,
-        ${emb ? toPgVector(emb.vector) : null}::vector,
-        ${emb?.model ?? null},
-        ${emb ? new Date().toISOString() : null}::timestamptz,
-        ${userId}
+  return parseRows(
+    await sqlTyped<MomentoResponseRow>(sql`
+      WITH ins AS (
+        INSERT INTO momentos (
+          kind, captured_at, payload, note, origin,
+          embedding, embedding_model, embedding_at, user_id
+        ) VALUES (
+          ${kind},
+          ${capturedAt}::timestamptz,
+          ${JSON.stringify(payload)}::jsonb,
+          ${note},
+          ${JSON.stringify(origin)}::jsonb,
+          ${emb ? toPgVector(emb.vector) : null}::vector,
+          ${emb?.model ?? null},
+          ${emb ? new Date().toISOString() : null}::timestamptz,
+          ${userId}
+        )
+        RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
+      ),
+      link AS (
+        INSERT INTO momento_entities (momento_id, entity_id, user_id)
+        SELECT (SELECT id FROM ins), e_id, ${userId}
+        FROM unnest(${entityIds}::uuid[]) AS e_id
+        ON CONFLICT (momento_id, entity_id) DO UPDATE
+        SET user_id = EXCLUDED.user_id, deleted_at = NULL
+        RETURNING 1
       )
-      RETURNING id, kind, captured_at, payload, note, origin, created_at, updated_at
-    ),
-    link AS (
-      INSERT INTO momento_entities (momento_id, entity_id, user_id)
-      SELECT (SELECT id FROM ins), e_id, ${userId}
-      FROM unnest(${entityIds}::uuid[]) AS e_id
-      ON CONFLICT (momento_id, entity_id) DO UPDATE
-      SET user_id = EXCLUDED.user_id, deleted_at = NULL
-      RETURNING 1
-    )
-    SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at FROM ins
-  `)
+      SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at FROM ins
+    `),
+    MomentoResponseRowSchema,
+    'momentos.create.returning',
+  )
 }
 
 // ---------------------------------------------------------- PATCH update ----
@@ -377,19 +379,23 @@ export async function loadCurrentMomento(
   id: string,
   userId: string,
 ): Promise<CurrentMomentoRow[]> {
-  return runWithSystemRls(() =>
-    sqlTyped<CurrentMomentoRow>(sql`
-      SELECT m.kind, m.payload, m.note, m.user_id,
-             CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role
-      FROM momentos m
-      LEFT JOIN momento_space_access msa
-        ON msa.owner_user_id = m.user_id
-       AND msa.member_user_id = ${userId}
-       AND msa.deleted_at IS NULL
-      WHERE m.id = ${id}
-        AND m.deleted_at IS NULL
-        AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
-    `),
+  return parseRows(
+    await runWithSystemRls(() =>
+      sqlTyped<CurrentMomentoRow>(sql`
+        SELECT m.kind, m.payload, m.note, m.user_id,
+               CASE WHEN m.user_id = ${userId} THEN 'owner' ELSE msa.role END AS access_role
+        FROM momentos m
+        LEFT JOIN momento_space_access msa
+          ON msa.owner_user_id = m.user_id
+         AND msa.member_user_id = ${userId}
+         AND msa.deleted_at IS NULL
+        WHERE m.id = ${id}
+          AND m.deleted_at IS NULL
+          AND (m.user_id = ${userId} OR msa.member_user_id IS NOT NULL)
+      `),
+    ),
+    CurrentMomentoRowSchema,
+    'momentos.patch.current',
   )
 }
 
@@ -457,7 +463,7 @@ export async function loadMomentoAfterPatch(
 ): Promise<MomentoListRow[]> {
   return parseRows(
     await runWithSystemRls(() =>
-      sqlTyped<MomentoResponseRow>(sql`
+      sqlTyped<MomentoListRow>(sql`
         SELECT m.id, m.kind, m.captured_at, m.payload, m.note, m.origin,
                m.created_at, m.updated_at,
                m.user_id AS owner_user_id,
@@ -506,10 +512,14 @@ export async function softDeleteMomento(
   id: string,
   userId: string,
 ): Promise<DeletedMomentoRow[]> {
-  return sqlTyped<DeletedMomentoRow>(sql`
-    UPDATE momentos
-    SET deleted_at = NOW()
-    WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-    RETURNING id, deleted_at
-  `)
+  return parseRows(
+    await sqlTyped<DeletedMomentoRow>(sql`
+      UPDATE momentos
+      SET deleted_at = NOW()
+      WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
+      RETURNING id, deleted_at
+    `),
+    DeletedMomentoRowSchema,
+    'momentos.delete.returning',
+  )
 }

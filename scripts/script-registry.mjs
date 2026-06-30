@@ -72,6 +72,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Evita que handlers backend vuelvan a concentrar mappers y lógica pura.',
   },
   {
+    file: 'scripts/check-row-runtime-contracts.mjs',
+    domain: 'backend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:row-runtime-contracts'],
+    summary:
+      'Congela parseRows + schemas en SELECT/RETURNING rows calientes de endpoints backend.',
+  },
+  {
     file: 'scripts/bundle-budget.mjs',
     domain: 'bundle',
     kind: 'support',
@@ -712,6 +721,13 @@ export const QUALITY_GATES = [
     phase: 'backend',
     required: true,
     summary: 'Servicios de dominio backend.',
+  },
+  {
+    command: 'npm run check:row-runtime-contracts',
+    job: 'lint',
+    phase: 'backend',
+    required: true,
+    summary: 'Rows calientes de backend validadas por parseRows en runtime.',
   },
   {
     command: 'npm run check:operational-observability',

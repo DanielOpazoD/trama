@@ -168,7 +168,7 @@ describe('data: POST create', () => {
   }
 
   it('insertMomentoWithLinks crea momento + links en un CTE; sin emb no formatea vector', async () => {
-    mockSqlResponses.push([{ id: 'new1', kind: 'nota' }])
+    mockSqlResponses.push([buildMomentoRow({ id: 'new1', kind: 'nota' })])
     const rows = await insertMomentoWithLinks(getSql(), draft, null, 'u1')
     expect(rows[0].id).toBe('new1')
     const q = lastTemplate()
@@ -179,7 +179,7 @@ describe('data: POST create', () => {
   })
 
   it('insertMomentoWithLinks formatea el vector cuando hay embedding', async () => {
-    mockSqlResponses.push([{ id: 'new2' }])
+    mockSqlResponses.push([buildMomentoRow({ id: 'new2' })])
     await insertMomentoWithLinks(
       getSql(),
       draft,
