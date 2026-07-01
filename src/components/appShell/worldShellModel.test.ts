@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_WORLD } from '../../types/world'
 import {
   resolveInitialNotasSection,
   resolveInitialWorld,
@@ -30,6 +31,14 @@ describe('worldShellModel', () => {
         defaultWorld: 'notas',
       }),
     ).toBe('notas')
+
+    expect(
+      resolveInitialWorld({
+        initialWorldFromUrl: null,
+        savedWorld: 'biblioteca',
+        defaultWorld: 'invalid',
+      }),
+    ).toBe(DEFAULT_WORLD)
   })
 
   it('solo lee deep-link de seccion cuando el mundo inicial es Notas', () => {

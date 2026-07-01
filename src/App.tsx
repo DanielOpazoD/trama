@@ -180,9 +180,12 @@ function Shell({
     (action: CommandAction) => {
       const intent = resolveShellPaletteAction(action)
       if (intent.kind === 'modal') modals.openModal(intent.modal)
-      else setView(intent.view)
+      else {
+        if (intent.view !== 'grafo') setSelectedEntityId(null)
+        setView(intent.view)
+      }
     },
-    [modals, setView],
+    [modals, setSelectedEntityId, setView],
   )
 
   return (

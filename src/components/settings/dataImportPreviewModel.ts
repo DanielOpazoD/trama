@@ -50,11 +50,16 @@ export function buildPreview(
 }
 
 function countBucket(items: Array<{ id?: string }>, existing: Set<string>): BucketCount {
+  const seen = new Set(existing)
   let news = 0
   let duplicates = 0
   for (const item of items) {
-    if (item.id && !existing.has(item.id)) news++
-    else duplicates++
+    if (item.id && !seen.has(item.id)) {
+      news++
+      seen.add(item.id)
+    } else {
+      duplicates++
+    }
   }
   return { incoming: items.length, news, duplicates }
 }

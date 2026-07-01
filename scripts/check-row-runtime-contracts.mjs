@@ -162,11 +162,12 @@ function collectSqlTypedCalls(source) {
 
 function isValidParseRowsCall(source, openParen) {
   const closeParen = closeIndex(source, openParen, '(', ')')
-  if (closeParen === -1) return { end: source.length, valid: false }
+  if (closeParen === -1) return { args: [], end: source.length, valid: false }
   const args = splitTopLevel(source.slice(openParen + 1, closeParen))
   const hasSchema = /\b[A-Z][A-Za-z0-9]*(?:Row)?Schema\b/.test(args[1] ?? '')
   const hasContext = /['"][a-z0-9_.:-]+['"]/.test(args[2] ?? '')
   return {
+    args,
     end: closeParen + 1,
     valid: args.length >= 3 && hasSchema && hasContext,
   }
@@ -180,6 +181,7 @@ function collectParseRowsSpans(source) {
     spans.push({
       start: match.index,
       end: call.end,
+      args: call.args,
       valid: call.valid,
     })
   }
@@ -188,6 +190,30 @@ function collectParseRowsSpans(source) {
 
 function findCoveringParseRows(spans, index) {
   return spans.find((span) => span.start <= index && index < span.end)
+}
+
+function readThenCallbackParam(callbackSource) {
+  const match =
+    callbackSource.match(/^\s*\(?\s*([A-Za-z_$][\w$]*)\s*\)?\s*=>/) ??
+    callbackSource.match(/^\s*function\s*\(\s*([A-Za-z_$][\w$]*)/)
+  return match?.[1] ?? null
+}
+
+function findThenParseRows(source, callEnd) {
+  const thenMatch = source.slice(callEnd).match(/^\s*\.then\s*\(/)
+  if (!thenMatch) return null
+  const thenOpen = callEnd + thenMatch[0].length - 1
+  const thenClose = closeIndex(source, thenOpen, '(', ')')
+  if (thenClose === -1) return null
+  const thenArgs = splitTopLevel(source.slice(thenOpen + 1, thenClose))
+  const callbackSource = thenArgs[0] ?? ''
+  const rowsParam = readThenCallbackParam(callbackSource)
+  if (!rowsParam) return null
+  const parseRowsSpan = collectParseRowsSpans(callbackSource).find(
+    (span) => span.valid && span.args[0]?.trim() === rowsParam,
+  )
+  if (!parseRowsSpan) return null
+  return { valid: true }
 }
 
 function isOperationalRow(rowType) {
@@ -210,6 +236,10 @@ function scanFile({ root, relFile }) {
     const rowType = call.rowType
     const covering = findCoveringParseRows(parseRowsSpans, call.start)
     if (covering?.valid) {
+      covered.push({ file: relFile, line: lineAt(source, call.start), rowType })
+      continue
+    }
+    if (findThenParseRows(source, call.end)?.valid) {
       covered.push({ file: relFile, line: lineAt(source, call.start), rowType })
       continue
     }

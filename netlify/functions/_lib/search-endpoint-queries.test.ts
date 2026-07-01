@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mockSqlResponses, setupMockSql } from './test-utils'
+import { mockSqlResponses, mockSqlState, setupMockSql } from './test-utils'
 
 vi.mock('./db.js', () => setupMockSql())
 
@@ -86,6 +86,35 @@ describe('search-endpoint-queries', () => {
       expect(call.values).toContain('u1')
       expect(call.values.at(-1)).toBe(6)
     }
+  })
+
+  it('arranca las ramas lexicales en paralelo antes de esperar resultados', async () => {
+    const deferred = Array.from({ length: 5 }, () => {
+      let resolve!: (rows: unknown[]) => void
+      const promise = new Promise<unknown[]>((done) => {
+        resolve = done
+      })
+      return { promise, resolve }
+    })
+    mockSqlState.responses.push(...deferred.map((entry) => entry.promise))
+
+    const pending = runLexicalSearch({
+      sql: getSql(),
+      q: 'borges',
+      userId: 'u1',
+      limit: 3,
+      enabled: true,
+    })
+
+    await vi.waitFor(() => expect(mockSqlResponses.calls).toHaveLength(5))
+    for (const entry of deferred) entry.resolve([])
+    await expect(pending).resolves.toEqual({
+      entities: [],
+      quotes: [],
+      momentos: [],
+      cronicas: [],
+      chat: [],
+    })
   })
 
   it('omite queries lexicales cuando la rama no está habilitada', async () => {

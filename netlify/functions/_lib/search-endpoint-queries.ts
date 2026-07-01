@@ -55,8 +55,7 @@ export async function runLexicalSearch({
   }
   const width = limit * 2
   const [entities, quotes, momentos, cronicas, chat] = await Promise.all([
-    parseRows(
-      await sqlTyped<SearchEntityRow>(sql`
+    sqlTyped<SearchEntityRow>(sql`
         SELECT e.id, e.name, e.type, e.description, e.year,
                ts_rank(e.search_vector, websearch_to_tsquery('simple', ${q}))
                  + similarity(e.name, ${q}) * 0.5 AS rank
@@ -67,12 +66,10 @@ export async function runLexicalSearch({
                OR e.name % ${q})
         ORDER BY rank DESC
         LIMIT ${width}
-      `),
-      SearchEntityRowSchema,
-      'search.lexical.entities',
+      `).then((rows) =>
+      parseRows(rows, SearchEntityRowSchema, 'search.lexical.entities'),
     ),
-    parseRows(
-      await sqlTyped<SearchQuoteRow>(sql`
+    sqlTyped<SearchQuoteRow>(sql`
         SELECT q.id, q.entity_id, e.name AS entity_name, q.text, q.source,
                ts_rank(q.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
         FROM quotes q
@@ -84,12 +81,8 @@ export async function runLexicalSearch({
           AND q.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${width}
-      `),
-      SearchQuoteRowSchema,
-      'search.lexical.quotes',
-    ),
-    parseRows(
-      await sqlTyped<SearchMomentoRow>(sql`
+      `).then((rows) => parseRows(rows, SearchQuoteRowSchema, 'search.lexical.quotes')),
+    sqlTyped<SearchMomentoRow>(sql`
         SELECT m.id, m.kind, m.captured_at,
                COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
                         NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
@@ -101,12 +94,10 @@ export async function runLexicalSearch({
           AND m.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${width}
-      `),
-      SearchMomentoRowSchema,
-      'search.lexical.momentos',
+      `).then((rows) =>
+      parseRows(rows, SearchMomentoRowSchema, 'search.lexical.momentos'),
     ),
-    parseRows(
-      await sqlTyped<SearchCronicaRow>(sql`
+    sqlTyped<SearchCronicaRow>(sql`
         SELECT c.id, c.year, c.month, left(c.text, 220) AS text,
                ts_rank(c.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
         FROM cronicas c
@@ -114,12 +105,10 @@ export async function runLexicalSearch({
           AND c.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${width}
-      `),
-      SearchCronicaRowSchema,
-      'search.lexical.cronicas',
+      `).then((rows) =>
+      parseRows(rows, SearchCronicaRowSchema, 'search.lexical.cronicas'),
     ),
-    parseRows(
-      await sqlTyped<SearchChatRow>(sql`
+    sqlTyped<SearchChatRow>(sql`
         SELECT cm.id, cm.thread_id, t.title AS thread_title, cm.role,
                left(cm.content, 200) AS text,
                ts_rank(cm.search_vector, websearch_to_tsquery('simple', ${q})) AS rank
@@ -132,10 +121,7 @@ export async function runLexicalSearch({
           AND cm.search_vector @@ websearch_to_tsquery('simple', ${q})
         ORDER BY rank DESC
         LIMIT ${width}
-      `),
-      SearchChatRowSchema,
-      'search.lexical.chat',
-    ),
+      `).then((rows) => parseRows(rows, SearchChatRowSchema, 'search.lexical.chat')),
   ])
   return { entities, quotes, momentos, cronicas, chat }
 }
@@ -159,8 +145,7 @@ export async function runSemanticSearch({
   const pgVec = toPgVector(emb.vector)
   const width = limit * 2
   const [entities, quotes, momentos] = await Promise.all([
-    parseRows(
-      await sqlTyped<SearchSemanticEntityRow>(sql`
+    sqlTyped<SearchSemanticEntityRow>(sql`
         SELECT id, name, type, description, year,
                0 AS rank,
                (embedding <=> ${pgVec}::vector) AS distance
@@ -169,12 +154,10 @@ export async function runSemanticSearch({
           AND user_id = ${userId}
         ORDER BY embedding <=> ${pgVec}::vector
         LIMIT ${width}
-      `),
-      SearchSemanticEntityRowSchema,
-      'search.semantic.entities',
+      `).then((rows) =>
+      parseRows(rows, SearchSemanticEntityRowSchema, 'search.semantic.entities'),
     ),
-    parseRows(
-      await sqlTyped<SearchSemanticQuoteRow>(sql`
+    sqlTyped<SearchSemanticQuoteRow>(sql`
         SELECT q.id, q.entity_id, e.name AS entity_name,
                q.text, q.source,
                0 AS rank,
@@ -187,12 +170,10 @@ export async function runSemanticSearch({
           AND q.user_id = ${userId}
         ORDER BY q.embedding <=> ${pgVec}::vector
         LIMIT ${width}
-      `),
-      SearchSemanticQuoteRowSchema,
-      'search.semantic.quotes',
+      `).then((rows) =>
+      parseRows(rows, SearchSemanticQuoteRowSchema, 'search.semantic.quotes'),
     ),
-    parseRows(
-      await sqlTyped<SearchSemanticMomentoRow>(sql`
+    sqlTyped<SearchSemanticMomentoRow>(sql`
         SELECT m.id, m.kind, m.captured_at,
                COALESCE(NULLIF(m.payload->>'bodyText', ''), NULLIF(m.payload->>'caption', ''),
                         NULLIF(m.payload->>'title', ''), NULLIF(m.payload->>'source', ''),
@@ -204,9 +185,8 @@ export async function runSemanticSearch({
           AND m.user_id = ${userId}
         ORDER BY m.embedding <=> ${pgVec}::vector
         LIMIT ${width}
-      `),
-      SearchSemanticMomentoRowSchema,
-      'search.semantic.momentos',
+      `).then((rows) =>
+      parseRows(rows, SearchSemanticMomentoRowSchema, 'search.semantic.momentos'),
     ),
   ])
   return { entities, quotes, momentos }

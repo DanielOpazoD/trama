@@ -23,7 +23,8 @@ export function dedupErrorEntries(entries: ErrorLogEntry[]): GroupedErrorEntry[]
     }
     groups.set(key, { representative: entry, count: 1 })
   }
-  return Array.from(groups.values()).sort((a, b) =>
-    a.representative.createdAt < b.representative.createdAt ? 1 : -1,
-  )
+  return Array.from(groups.values()).sort((a, b) => {
+    if (a.representative.createdAt === b.representative.createdAt) return 0
+    return a.representative.createdAt < b.representative.createdAt ? 1 : -1
+  })
 }

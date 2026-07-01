@@ -77,6 +77,29 @@ describe('healthPanelModel', () => {
     ])
   })
 
+  it('no fusiona errores con prefijo largo compartido si el mensaje completo difiere', () => {
+    const sharedPrefix = 'x'.repeat(220)
+
+    expect(
+      dedupHealthErrors([
+        {
+          id: 'first',
+          functionName: 'extract',
+          statusCode: 500,
+          message: `${sharedPrefix} A`,
+          createdAt: '2026-05-31T10:00:00Z',
+        },
+        {
+          id: 'second',
+          functionName: 'extract',
+          statusCode: 500,
+          message: `${sharedPrefix} B`,
+          createdAt: '2026-05-31T11:00:00Z',
+        },
+      ]),
+    ).toHaveLength(2)
+  })
+
   it('resuelve tono de presupuesto por umbrales', () => {
     expect(resolveBudgetTone(0.1).fg).toBe('var(--accent-sage)')
     expect(resolveBudgetTone(0.7).fg).toBe('var(--accent-gold)')

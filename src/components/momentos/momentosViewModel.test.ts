@@ -31,14 +31,15 @@ describe('momentosViewModel', () => {
   it('lee filtro day solo en formato ISO simple', () => {
     expect(readDayParamFromSearch('?day=2026-05-31')).toBe('2026-05-31')
     expect(readDayParamFromSearch('?day=31-05-2026')).toBeNull()
+    expect(readDayParamFromSearch('?day=2026-02-31')).toBeNull()
   })
 
   it('filtra momentos por dia local y descarta fechas invalidas', () => {
     expect(
       filterMomentosByDay(
         [
-          momento('same', '2026-05-31T10:00:00.000Z'),
-          momento('other', '2026-06-01T10:00:00.000Z'),
+          momento('same', '2026-05-31T12:00:00'),
+          momento('other', '2026-06-01T12:00:00'),
           momento('bad', 'not-a-date'),
         ],
         '2026-05-31',

@@ -69,12 +69,16 @@ export function evaluateDuplicateBudgets(duplicates, duplicateBudgets = {}) {
     const budget = duplicateBudgets[duplicate.file]
     if (!budget) continue
     if (duplicate.count <= budget.maxCount && duplicate.gzKb <= budget.maxGzKb) continue
+    const exceeded = []
+    if (duplicate.count > budget.maxCount) exceeded.push('count')
+    if (duplicate.gzKb > budget.maxGzKb) exceeded.push('gzKb')
     failures.push({
       file: duplicate.file,
       count: duplicate.count,
       gzKb: duplicate.gzKb,
       maxCount: budget.maxCount,
       maxGzKb: budget.maxGzKb,
+      exceeded,
       status: 'duplicate-over-budget',
     })
   }

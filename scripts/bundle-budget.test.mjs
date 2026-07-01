@@ -115,6 +115,39 @@ describe('bundle budget helpers', () => {
         gzKb: 248,
         maxCount: 1,
         maxGzKb: 130,
+        exceeded: ['count', 'gzKb'],
+        status: 'duplicate-over-budget',
+      },
+    ])
+
+    expect(
+      evaluateDuplicateBudgets([{ file: 'vendor-pdfjs', count: 2, gzKb: 120 }], {
+        'vendor-pdfjs': { maxCount: 1, maxGzKb: 130 },
+      }),
+    ).toEqual([
+      {
+        file: 'vendor-pdfjs',
+        count: 2,
+        gzKb: 120,
+        maxCount: 1,
+        maxGzKb: 130,
+        exceeded: ['count'],
+        status: 'duplicate-over-budget',
+      },
+    ])
+
+    expect(
+      evaluateDuplicateBudgets([{ file: 'vendor-pdfjs', count: 1, gzKb: 140 }], {
+        'vendor-pdfjs': { maxCount: 1, maxGzKb: 130 },
+      }),
+    ).toEqual([
+      {
+        file: 'vendor-pdfjs',
+        count: 1,
+        gzKb: 140,
+        maxCount: 1,
+        maxGzKb: 130,
+        exceeded: ['gzKb'],
         status: 'duplicate-over-budget',
       },
     ])

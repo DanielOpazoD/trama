@@ -148,6 +148,7 @@ for (const duplicate of duplicateFailures) {
     status: 'duplicate-over-budget',
     count: duplicate.count,
     maxCount: duplicate.maxCount,
+    exceeded: duplicate.exceeded,
   })
 }
 
@@ -163,7 +164,7 @@ for (const f of failures) {
     f.status === 'missing-budget'
       ? 'SIN budget >'
       : f.status === 'duplicate-over-budget'
-        ? `DUPLICADO x${f.count}/${f.maxCount} >`
+        ? `DUPLICADO ${f.exceeded?.join('+') ?? 'count+gzKb'} x${f.count}/${f.maxCount} >`
         : 'EXCEDE budget'
   console.log(
     `  ${f.file.padEnd(20)} ${String(f.gzKb).padStart(4)} KB   ❌ ${label} ${f.budget} KB`,

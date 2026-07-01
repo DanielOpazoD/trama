@@ -33,6 +33,15 @@ function applyRecortesRedirectOnce() {
   }
 }
 
+function readStoredWorld(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return window.localStorage.getItem(WORLD_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
 export function useWorldShellController({
   preloadWorldBundle,
 }: {
@@ -46,12 +55,16 @@ export function useWorldShellController({
     if (typeof window === 'undefined') return DEFAULT_WORLD
     return resolveInitialWorld({
       initialWorldFromUrl,
-      savedWorld: window.localStorage.getItem(WORLD_STORAGE_KEY),
+      savedWorld: readStoredWorld(),
       defaultWorld: readUserPrefsMirror().defaultWorld,
     })
   })
+  const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
+    () => resolveInitialNotasSection({ initialWorldFromUrl, search: initialSearch }),
+  )
 
   const changeWorld = useCallback((w: World) => {
+    if (w !== 'notas') setPendingNotasSection(null)
     startViewTransition(() => setWorld(w))
     try {
       window.localStorage.setItem(WORLD_STORAGE_KEY, w)
@@ -95,6 +108,7 @@ export function useWorldShellController({
       } catch {
         /* ignore */
       }
+      setPendingNotasSection(null)
       setWorld(DEFAULT_WORLD)
     }
     try {
@@ -106,9 +120,6 @@ export function useWorldShellController({
 
   useWorldThemeClass(world)
 
-  const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
-    () => resolveInitialNotasSection({ initialWorldFromUrl, search: initialSearch }),
-  )
   const revealNotasModule = useCallback(
     (moduleId: NotasSection) => {
       setPendingNotasSection(moduleId)

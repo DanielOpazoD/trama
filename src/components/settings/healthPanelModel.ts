@@ -53,7 +53,7 @@ export function dedupHealthErrors(
 ): HealthErrorGroup[] {
   const groups = new Map<string, HealthErrorGroup>()
   for (const error of errors) {
-    const key = `${error.functionName}|${error.statusCode ?? 'NA'}|${error.message.slice(0, 200)}`
+    const key = `${error.functionName}|${error.statusCode ?? 'NA'}|${error.message}`
     const existing = groups.get(key)
     if (existing) {
       existing.count += 1
@@ -68,5 +68,8 @@ export function dedupHealthErrors(
       count: 1,
     })
   }
-  return Array.from(groups.values()).sort((a, b) => (a.latestAt < b.latestAt ? 1 : -1))
+  return Array.from(groups.values()).sort((a, b) => {
+    if (a.latestAt === b.latestAt) return 0
+    return a.latestAt < b.latestAt ? 1 : -1
+  })
 }

@@ -220,7 +220,7 @@ export function HealthRecentErrorsSection({
         <ul className="space-y-1.5">
           {groups.map((group) => (
             <RecentErrorRow
-              key={`${group.functionName}-${group.message.slice(0, 80)}`}
+              key={`${group.functionName}|${group.statusCode ?? 'NA'}|${group.message}`}
               group={group}
             />
           ))}

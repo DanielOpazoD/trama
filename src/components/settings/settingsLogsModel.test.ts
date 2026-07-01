@@ -44,4 +44,13 @@ describe('settingsLogsModel', () => {
       },
     ])
   })
+
+  it('mantiene orden relativo cuando dos representantes tienen el mismo timestamp', () => {
+    const result = dedupErrorEntries([
+      errorEntry({ id: 'first', functionName: 'extract' }),
+      errorEntry({ id: 'second', functionName: 'ask' }),
+    ])
+
+    expect(result.map((group) => group.representative.id)).toEqual(['first', 'second'])
+  })
 })
