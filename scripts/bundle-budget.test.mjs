@@ -160,22 +160,22 @@ describe('bundle budget helpers', () => {
   it('describe duplicados aceptados y regresiones por eje', () => {
     expect(
       describeDuplicateBudget(
-        { file: 'vendor-pdf-lib', count: 4, gzKb: 1498 },
-        { 'vendor-pdf-lib': { maxCount: 4, maxGzKb: 1500 } },
+        { file: 'vendor-pdf-lib', count: 2, gzKb: 1086 },
+        { 'vendor-pdf-lib': { maxCount: 2, maxGzKb: 1100 } },
       ),
     ).toEqual({
-      detail: 'count 4/4, gzip 1498/1500 KB',
+      detail: 'count 2/2, gzip 1086/1100 KB',
       exceeded: [],
       status: 'accepted',
     })
 
     expect(
       describeDuplicateBudget(
-        { file: 'vendor-pdf-lib', count: 5, gzKb: 1510 },
-        { 'vendor-pdf-lib': { maxCount: 4, maxGzKb: 1500 } },
+        { file: 'vendor-pdf-lib', count: 3, gzKb: 1110 },
+        { 'vendor-pdf-lib': { maxCount: 2, maxGzKb: 1100 } },
       ),
     ).toEqual({
-      detail: 'count 5/4, gzip 1510/1500 KB',
+      detail: 'count 3/2, gzip 1110/1100 KB',
       exceeded: ['count', 'gzKb'],
       status: 'over-budget',
     })
