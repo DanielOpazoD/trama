@@ -35,7 +35,7 @@ const QUOTE_ROW = {
   text: 'En el centro del invierno...',
   source: 'El verano',
   context: null,
-  origin: 'manual', // legacy string shape, must be normalized
+  origin: { kind: 'manual' },
   created_at: '2026-05-18T12:00:00Z',
   updated_at: '2026-05-18T12:00:00Z',
 }
@@ -118,16 +118,16 @@ describe('api.listQuotes', () => {
     expect(quote!.context).toBeUndefined()
   })
 
-  it('normalizes legacy origin string to object', async () => {
+  it('preserves canonical origin object', async () => {
     vi.stubGlobal('fetch', mockFetchJson([QUOTE_ROW]))
     const [quote] = await api.listQuotes()
     expect(quote!.origin).toEqual({ kind: 'manual' })
   })
 
-  it('normalizes legacy "ai" string to ai object', async () => {
+  it('does not reinterpret legacy "ai" string responses as canonical origin', async () => {
     vi.stubGlobal('fetch', mockFetchJson([{ ...QUOTE_ROW, origin: 'ai' }]))
     const [quote] = await api.listQuotes()
-    expect(quote!.origin).toEqual({ kind: 'ai' })
+    expect(quote!.origin).toEqual({ kind: 'manual' })
   })
 
   it('falls back to manual when origin is missing', async () => {

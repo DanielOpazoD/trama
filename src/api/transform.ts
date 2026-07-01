@@ -30,7 +30,7 @@ export type EntityRow = {
   essay: string | null
   position_x: number | null
   position_y: number | null
-  origin: Origin | string
+  origin: Origin
   spotify_url: string | null
   wikipedia_url: string | null
   grokipedia_url: string | null
@@ -46,7 +46,7 @@ export type RelationshipRow = {
   to_name?: string | null
   type: string
   notes: string | null
-  origin: Origin | string
+  origin: Origin
   created_at: string
   updated_at: string
 }
@@ -69,7 +69,7 @@ export type QuoteRow = {
   context: string | null
   /** ρ-citas: hipervínculo opcional a la fuente. */
   link?: string | null
-  origin: Origin | string
+  origin: Origin
   created_at: string
   updated_at: string
 }
@@ -80,7 +80,7 @@ export type MomentoRow = {
   captured_at: string
   payload: Record<string, unknown> | null
   note: string | null
-  origin: unknown
+  origin: Origin | null
   entity_ids?: string[]
   owner_user_id?: string | null
   owner_display_name?: string | null
@@ -93,9 +93,8 @@ export type MomentoRow = {
 
 // ---------- Transforms ----------
 
-function asOrigin(value: Origin | string | null | undefined): Origin {
+function asOrigin(value: Origin | null | undefined): Origin {
   if (value && typeof value === 'object' && 'kind' in value) return value
-  if (typeof value === 'string') return { kind: value === 'ai' ? 'ai' : 'manual' }
   return { kind: 'manual' }
 }
 
@@ -164,9 +163,7 @@ export function momentoFromRow(row: MomentoRow): Momento {
     capturedAt: row.captured_at,
     payload: (row.payload ?? {}) as MomentoPayload,
     note: row.note ?? undefined,
-    origin: (row.origin && typeof row.origin === 'object'
-      ? row.origin
-      : { kind: 'manual' }) as Origin,
+    origin: asOrigin(row.origin),
     entityIds: row.entity_ids ?? [],
     ownerUserId: row.owner_user_id ?? undefined,
     ownerDisplayName: row.owner_display_name ?? undefined,
