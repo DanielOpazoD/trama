@@ -82,6 +82,28 @@ describe('commandSearchModel', () => {
     )
   })
 
+  it('normaliza acentos en búsquedas locales', () => {
+    const items = buildCommandSearchItems({
+      query: 'jose nunez',
+      actionsEnabled: false,
+      localSearchEnabled: true,
+      entities: [
+        entity({
+          id: 'entity-jose',
+          name: 'José Núñez',
+          description: 'Ensayos y diarios',
+        }),
+      ],
+      quotes: [],
+      savedQueries: [],
+      serverResults: null,
+      sectionAliases: {},
+      visibility: DEFAULT_VISIBILITY,
+    })
+
+    expect(items[0]).toMatchObject({ kind: 'entity', id: 'entity-jose' })
+  })
+
   it('dedupea hits de servidor contra resultados locales y mantiene dominios server-only', () => {
     const items = buildCommandSearchItems({
       query: 'borges',

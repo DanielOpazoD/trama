@@ -33,8 +33,11 @@ export function useCommandServerSearch({
       return
     }
 
-    setSearching(true)
+    setServerResults(null)
+    setSearching(false)
     const timeout = window.setTimeout(() => {
+      if (requestIdRef.current !== requestId) return
+      setSearching(true)
       search(q, { limit: 8, mode: 'lexical' })
         .then((res) => {
           if (requestIdRef.current === requestId) setServerResults(res)

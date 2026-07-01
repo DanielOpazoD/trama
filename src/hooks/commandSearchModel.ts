@@ -485,7 +485,11 @@ function hasWordPrefix(text: string, q: string): boolean {
 }
 
 function normalizeQuery(value: string): string {
-  return value.trim().toLowerCase()
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
 }
 
 function describeVisibilityStatus({

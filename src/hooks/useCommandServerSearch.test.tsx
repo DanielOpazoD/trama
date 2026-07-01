@@ -51,7 +51,7 @@ describe('useCommandServerSearch', () => {
       useCommandServerSearch({ open: true, query: 'borges', search, debounceMs: 180 }),
     )
 
-    expect(result.current.searching).toBe(true)
+    expect(result.current.searching).toBe(false)
     expect(search).not.toHaveBeenCalled()
 
     await act(async () => {
@@ -65,6 +65,44 @@ describe('useCommandServerSearch', () => {
     })
     expect(result.current.searching).toBe(false)
     expect(result.current.serverResults?.entities[0]?.id).toBe('borges')
+  })
+
+  it('limpia resultados remotos al iniciar una nueva query válida', async () => {
+    let resolveSecond: ((value: ReturnType<typeof response>) => void) | undefined
+    const search = vi
+      .fn()
+      .mockResolvedValueOnce(response('borges'))
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveSecond = resolve)))
+
+    const { result, rerender } = renderHook(
+      ({ query }) =>
+        useCommandServerSearch({ open: true, query, search, debounceMs: 10 }),
+      { initialProps: { query: 'borges' } },
+    )
+
+    await act(async () => {
+      vi.advanceTimersByTime(10)
+      await Promise.resolve()
+    })
+    expect(result.current.serverResults?.entities[0]?.id).toBe('borges')
+
+    rerender({ query: 'cortazar' })
+
+    expect(result.current.serverResults).toBeNull()
+    expect(result.current.searching).toBe(false)
+
+    await act(async () => {
+      vi.advanceTimersByTime(10)
+      await Promise.resolve()
+    })
+    expect(result.current.searching).toBe(true)
+
+    await act(async () => {
+      resolveSecond?.(response('cortazar'))
+      await Promise.resolve()
+    })
+    expect(result.current.searching).toBe(false)
+    expect(result.current.serverResults?.entities[0]?.id).toBe('cortazar')
   })
 
   it('ignora respuestas viejas cuando cambia la query antes de resolver', async () => {

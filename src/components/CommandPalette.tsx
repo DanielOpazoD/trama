@@ -12,10 +12,10 @@ import type { QueryHit, QueryInput } from '../api/query'
 import type { NotasSection } from '../types/notas'
 import { CommandPaletteSearchMode } from './commandPalette/CommandPaletteSearchMode'
 import {
-  clampCommandPaletteFocusIndex,
   getCommandPaletteActiveLength,
   type CommandPaletteMode,
 } from './commandPalette/commandPaletteModel'
+import { useCommandPaletteKeyboard } from './commandPalette/useCommandPaletteKeyboard'
 
 // El modo "resultados" (motor de consultas) se carga on-demand: el camino
 // común buscar/navegar no necesita su código, así el bundle del palette no
@@ -253,35 +253,17 @@ export function CommandPalette({
     ],
   )
 
-  useEffect(() => {
-    if (!open) return
-    // Escape lo maneja useModalOverlay (ver handleEscape). Acá solo navegación
-    // por teclado: flechas para mover el resaltado y Enter para seleccionar.
-    function handler(e: KeyboardEvent) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setFocusIdx((i) => Math.min(activeLen - 1, i + 1))
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setFocusIdx((i) => Math.max(0, i - 1))
-      } else if (e.key === 'Enter') {
-        e.preventDefault()
-        if (mode === 'results') {
-          const hit = results?.hits[focusIdx]
-          if (hit) selectHit(hit)
-        } else {
-          const item = items[focusIdx]
-          if (item) selectItem(item)
-        }
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [activeLen, open, items, focusIdx, selectItem, mode, results, selectHit])
-
-  useEffect(() => {
-    setFocusIdx((idx) => clampCommandPaletteFocusIndex({ focusIdx: idx, activeLen }))
-  }, [activeLen])
+  useCommandPaletteKeyboard({
+    open,
+    activeLen,
+    focusIdx,
+    setFocusIdx,
+    mode,
+    items,
+    results,
+    selectItem,
+    selectHit,
+  })
 
   if (!open) return null
 
