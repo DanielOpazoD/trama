@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import {
   useNotasFeed,
   useNotesQuery,
@@ -19,13 +19,13 @@ import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { FavoritosPanel } from '../recortes/FavoritosPanel'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { useFeedKeyboardNav } from '../../hooks/useFeedKeyboardNav'
-import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { NotasFeedContent } from './NotasFeedContent'
 import { NotasFeedControls } from './NotasFeedControls'
 import { NotasFeedComposer } from './NotasFeedComposer'
 import { NotasFeedVirtualList } from './NotasFeedVirtualList'
-import { useMeasuredVirtualFeed } from './useMeasuredVirtualFeed'
 import { useNotasComposer } from './useNotasComposer'
+import { useNotasFeedSelection } from './useNotasFeedSelection'
+import { useNotasFeedVirtualWindow } from './useNotasFeedVirtualWindow'
 import {
   buildAllNoteTags,
   buildCalendarStats,
@@ -34,8 +34,6 @@ import {
   getInitialNotasFeedSegment,
   hasNotasFeedContentFilter,
   isNotasFeedEverythingEmpty,
-  isNotasFeedGalleryMode,
-  selectedRecortesFromItems,
   type NotasFeedSegment,
   type RecorteStatusFilter,
 } from './notasFeedViewModel'
@@ -96,9 +94,6 @@ export function NotasFeedView({
   const [recorteThumb, setRecorteThumb] = useRecorteThumbSize()
   // Modo de vista del feed: lista (hilo) o galería (grilla de imágenes).
   const [feedView, setFeedView] = useRecorteFeedView()
-  // Triage en lote: modo selección + ids elegidos (solo en el segmento Capturas).
-  const [selectionMode, setSelectionMode] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const filter = useMemo(
     () =>
@@ -116,33 +111,15 @@ export function NotasFeedView({
     useNotasFeed(filter)
 
   // --- Triage en lote -----------------------------------------------------
-  // Las capturas elegidas, resueltas desde los ítems cargados del feed.
-  const selectedRecortes = useMemo(
-    () => selectedRecortesFromItems(items, selectedIds),
-    [items, selectedIds],
-  )
-  const exitSelection = useCallback(() => {
-    setSelectionMode(false)
-    setSelectedIds(new Set())
-  }, [])
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
-  // Salir del modo selección al cambiar de segmento (solo vive en Capturas).
-  useEffect(() => {
-    if (segment !== 'capturas') exitSelection()
-  }, [segment, exitSelection])
-  // Galería: grilla de imágenes en Todo/Capturas. La selección (triage) es una
-  // afordancia de la lista, así que al pasar a galería se sale de selección.
-  const galleryMode = isNotasFeedGalleryMode({ feedView, segment })
-  useEffect(() => {
-    if (galleryMode) exitSelection()
-  }, [galleryMode, exitSelection])
+  const {
+    exitSelection,
+    galleryMode,
+    selectedIds,
+    selectedRecortes,
+    selectionMode,
+    toggleSelect,
+    toggleSelectionMode,
+  } = useNotasFeedSelection({ feedView, items, segment })
 
   // --- Calendario de actividad (heatmap) ----------------------------------
   // El heatmap cuenta SOLO notas (los recortes no contribuyen), así que lee la
@@ -232,45 +209,19 @@ export function NotasFeedView({
     onOpenSearch: openSearch,
   })
 
-  // --- Virtualización de la lista -----------------------------------------
-  // El feed puede ser largo (notas + recortes de meses) y pagina server-side:
-  // montamos solo la ventana visible + overscan. `measureElement` corrige la
-  // altura real de cada tarjeta (las notas se expanden, los recortes varían).
-  // Las tarjetas viven en el scroller principal (#main-scroll), así que usamos
-  // el virtualizer atado a él (mismo patrón que Citas/Entidades). El estimate
-  // inicial es generoso (tarjeta típica ~200px) para que el salto al medir sea
-  // mínimo.
-  const { listRef, virtualizer } = useMainScrollVirtualizer({
-    count: items.length,
-    estimateSize: 200,
-    overscan: 6,
-    deps: [segment, searchOpen, calendarOpen, capturaStatus, recorteThumb, items.length],
+  const { listRef, virtualItems, virtualizer } = useNotasFeedVirtualWindow({
+    calendarOpen,
+    capturaStatus,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    items,
+    recorteThumb,
+    reducedMotion,
+    searchOpen,
+    segment,
+    selected,
   })
-  const virtualItems = virtualizer.getVirtualItems()
-  useMeasuredVirtualFeed({ items, recorteThumb, virtualizer })
-
-  // Carga incremental: cuando la ventana visible llega a los últimos ítems,
-  // pedimos la próxima página. Leemos el índice virtual más alto (atado al
-  // estado del virtualizer) en vez de un sentinel suelto.
-  const lastVisibleIndex =
-    virtualItems.length > 0 ? virtualItems[virtualItems.length - 1]!.index : 0
-  useEffect(() => {
-    if (!hasNextPage || isFetchingNextPage) return
-    if (items.length === 0) return
-    if (lastVisibleIndex >= items.length - 5) fetchNextPage()
-  }, [lastVisibleIndex, items.length, hasNextPage, isFetchingNextPage, fetchNextPage])
-
-  // Scroll la tarjeta seleccionada a la vista al moverse con j/k. Con la lista
-  // virtualizada, la tarjeta puede no estar montada: pedimos al virtualizer que
-  // la traiga a la ventana (monta + scrollea) en lugar de un scrollIntoView que
-  // fallaría sobre un ref nulo.
-  useEffect(() => {
-    if (selected === null) return
-    virtualizer.scrollToIndex(selected, {
-      align: 'auto',
-      behavior: reducedMotion ? 'auto' : 'smooth',
-    })
-  }, [selected, reducedMotion, virtualizer])
 
   return (
     <>
@@ -350,9 +301,7 @@ export function NotasFeedView({
         onCapturaStatusChange={setCapturaStatus}
         onRecorteThumbChange={setRecorteThumb}
         onFeedViewChange={setFeedView}
-        onToggleSelection={() =>
-          selectionMode ? exitSelection() : setSelectionMode(true)
-        }
+        onToggleSelection={toggleSelectionMode}
       />
 
       <NotasFeedContent
