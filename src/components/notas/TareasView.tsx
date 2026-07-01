@@ -32,6 +32,7 @@ import {
   rawTaskWeek,
   filterByCategory,
   countPendingByCategory,
+  rolloverAnchorForVisibleWeeks,
   DEFAULT_CATEGORY,
   type SortMode,
 } from './weekModel'
@@ -55,7 +56,7 @@ const CATEGORY_TABS: { key: TaskCategory; label: string }[] = [
  * un mes se muestran TODAS sus semanas. Cada semana es un cuadro (una hoja
  * semanal) cuyo título es el rango de fechas; dentro, cada recordatorio es una
  * línea con su color de prioridad, signo de hecho y un icono de detalle. Los
- * pendientes no completados se arrastran a la semana actual.
+ * pendientes no completados se arrastran al período visible hasta resolverse.
  *
  * Datos: la lista se carga ACOTADA al mes visible (`useTasksRange`, + arrastre);
  * los pendientes globales (livianos) alimentan los puntos del navegador. La
@@ -101,16 +102,23 @@ export function TareasView() {
     if (!weekKeys.includes(todayWeek)) return weekKeys
     return [todayWeek, ...weekKeys.filter((week) => week !== todayWeek)]
   }, [todayWeek, weekKeys])
-  const isCurrentMonth = navYear === now.getFullYear() && navMonth === now.getMonth()
   const weekFrom = weekKeys[0] ?? todayWeek
   const weekTo = weekKeys[weekKeys.length - 1] ?? todayWeek
-  // En el mes en curso traemos también los pendientes anteriores (se arrastran
-  // a la semana actual); en otros meses no hace falta.
-  const carryBefore = isCurrentMonth ? todayWeek : null
+  // Anchor de arrastre: semana actual si está visible, primer lunes del mes si
+  // navegamos al futuro, o null si estamos mirando historial.
+  const rolloverAnchor = useMemo(
+    () => rolloverAnchorForVisibleWeeks(weekKeys, todayWeek),
+    [todayWeek, weekKeys],
+  )
+  const carryBefore = rolloverAnchor
+  const effectiveWeekAnchor = rolloverAnchor ?? todayWeek
 
   const rangeQuery = useTasksRange({ weekFrom, weekTo, carryBefore })
   const tasks = useMemo(() => rangeQuery.data ?? [], [rangeQuery.data])
-  const byWeek = useMemo(() => groupTasksByWeek(tasks, todayWeek), [tasks, todayWeek])
+  const byWeek = useMemo(
+    () => groupTasksByWeek(tasks, effectiveWeekAnchor),
+    [tasks, effectiveWeekAnchor],
+  )
 
   // Pendientes globales (livianos) — solo para los puntos del navegador.
   const pendingQuery = usePendingTasks()
@@ -147,11 +155,11 @@ export function TareasView() {
         busy={busy}
         onToggle={() => {
           const completing = !task.done
-          // Al completar un pendiente arrastrado, lo fijamos en la semana actual
-          // (queda registrado como hecho esta semana, no en su semana vieja).
+          // Al completar un pendiente arrastrado, lo fijamos en la semana del
+          // cuadro visible (queda registrado como hecho donde se resolvió).
           const patch =
-            completing && rawTaskWeek(task) < todayWeek
-              ? { done: true, weekStart: todayWeek }
+            completing && rawTaskWeek(task) < week
+              ? { done: true, weekStart: week }
               : { done: !task.done }
           updateTask.mutate({ id: task.id, patch })
         }}
@@ -295,7 +303,7 @@ export function TareasView() {
         title="Tareas"
         eyebrow="recordatorios de la semana"
         accent={ACCENT}
-        subtitle="Cada semana es una hoja. Lo pendiente se arrastra a la semana en curso."
+        subtitle="Cada semana es una hoja. Lo pendiente se arrastra hasta resolverse."
       />
 
       {/* Media página: navegador a la izquierda, notas del mes a la derecha.

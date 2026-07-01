@@ -4,9 +4,9 @@ import { weekStartLocal, weekYearMonth } from './notasUtils'
 /**
  * Dominio "semana" de Tareas — fuente única de la lógica que antes estaba
  * repetida en TareasView y NotasHomeView (y a medias en el servidor): a qué
- * semana pertenece un recordatorio, el arrastre de pendientes a la semana
- * actual, y el orden dentro de la semana. Todo son funciones puras, así que se
- * testean sin DOM ni red.
+ * semana pertenece un recordatorio, el arrastre de pendientes al anchor visible,
+ * y el orden dentro de la semana. Todo son funciones puras, así que se testean
+ * sin DOM ni red.
  */
 
 const PRIORITY_RANK: Record<TaskPriority, number> = { alta: 0, media: 1, baja: 2 }
@@ -19,11 +19,31 @@ export function rawTaskWeek(task: Pick<Task, 'weekStart' | 'createdAt'>): string
   return weekStartLocal(Number.isNaN(d.getTime()) ? new Date() : d)
 }
 
-/** Semana EFECTIVA: un pendiente de una semana anterior se arrastra a la semana
- *  actual (`todayWeek`) hasta completarse; las hechas quedan en su semana. */
-export function effectiveWeek(task: Task, todayWeek: string): string {
+/** Semana EFECTIVA: un pendiente de una semana anterior se arrastra al anchor
+ * visible (`anchorWeek`) hasta completarse; las hechas quedan en su semana. */
+export function effectiveWeek(task: Task, anchorWeek: string): string {
   const wk = rawTaskWeek(task)
-  return !task.done && wk < todayWeek ? todayWeek : wk
+  return !task.done && wk < anchorWeek ? anchorWeek : wk
+}
+
+/** Semana visible que debe recibir los pendientes antiguos.
+ *
+ * - Mes actual: la semana actual.
+ * - Mes futuro: el primer lunes visible de ese mes/año.
+ * - Mes pasado: null, para no reinyectar pendientes hacia el historial.
+ */
+export function rolloverAnchorForVisibleWeeks(
+  weekKeys: string[],
+  todayWeek: string,
+): string | null {
+  if (weekKeys.length === 0) return null
+  const ordered = [...weekKeys].sort()
+  const first = ordered[0]!
+  const last = ordered[ordered.length - 1]!
+
+  if (todayWeek < first) return first
+  if (todayWeek <= last) return weekKeys.includes(todayWeek) ? todayWeek : first
+  return null
 }
 
 /** Orden de pendientes: prioridad (alta→media→baja), luego más recientes. */
@@ -40,10 +60,10 @@ function byCompletion(a: Task, b: Task): number {
 }
 
 /** Agrupa tareas por su semana efectiva (con el arrastre ya aplicado). */
-export function groupTasksByWeek(tasks: Task[], todayWeek: string): Map<string, Task[]> {
+export function groupTasksByWeek(tasks: Task[], anchorWeek: string): Map<string, Task[]> {
   const map = new Map<string, Task[]>()
   for (const t of tasks) {
-    const wk = effectiveWeek(t, todayWeek)
+    const wk = effectiveWeek(t, anchorWeek)
     const arr = map.get(wk) ?? []
     arr.push(t)
     map.set(wk, arr)
