@@ -37,13 +37,6 @@
     "playwright-report/**",
     "test-results/**"
   ],
-  "ignoreFiles": [
-    "src/api/objectProperties.ts",
-    "src/components/notas/pdfStudio/shell/DocSettingsMenu.tsx",
-    "src/components/recortes/RecortesFilterChips.tsx",
-    "src/lib/tagAutocomplete.ts",
-    "src/schemas/proposal.test-d.ts"
-  ],
   "ignoreDependencies": ["dependency-cruiser", "pg", "playwright"],
   "ignoreBinaries": ["psql", "scripts/apply-migrations.sh"],
   "ignoreIssues": {

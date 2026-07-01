@@ -2,7 +2,7 @@ export const QUALITY_GATE_BASELINE = {
   knip: {
     ignoreIssueFiles: 62,
     ignoreIssueKinds: 70,
-    ignoreFiles: 5,
+    ignoreFiles: 0,
     ignoreDependencies: 3,
     ignoreBinaries: 2,
   },
