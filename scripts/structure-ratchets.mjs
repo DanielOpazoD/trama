@@ -217,7 +217,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 387,
+    maxLines: 385,
     files: ['src/components/notas/pdfStudio/PdfStudioView.tsx'],
   },
   {
@@ -227,8 +227,13 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 282,
+    maxLines: 165,
     files: ['src/components/notas/pdfStudio/editor/EditorToolbar.tsx'],
+  },
+  {
+    group: 'pdf-studio-core',
+    maxLines: 270,
+    files: ['src/components/notas/pdfStudio/editor/EditorToolbarGroups.tsx'],
   },
   {
     group: 'pdf-studio-core-models',
@@ -238,6 +243,7 @@ export const STRUCTURE_RATCHETS = [
       'src/components/notas/pdfStudio/PdfStudioTextEditorOverlay.tsx',
       'src/components/notas/pdfStudio/editor/EditorToolbarModel.ts',
       'src/components/notas/pdfStudio/editor/PdfTextEditorLazy.tsx',
+      'src/components/notas/pdfStudio/editor/PdfTextEditorPageSurfaceModel.ts',
     ],
   },
   {
@@ -272,7 +278,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-forms',
-    maxLines: 300,
+    maxLines: 285,
     files: [
       'src/lib/pdfStudio/model/modelForms.ts',
       'src/components/notas/pdfStudio/planillas/FormFieldLayer.tsx',
@@ -281,6 +287,7 @@ export const STRUCTURE_RATCHETS = [
       'src/components/notas/pdfStudio/planillas/FormFieldInspector.tsx',
       'src/components/notas/pdfStudio/editor/PdfTextEditorFormSurface.tsx',
       'src/components/notas/pdfStudio/editor/PdfTextEditorPageSurface.tsx',
+      'src/components/notas/pdfStudio/editor/PdfTextEditorPageFormLayer.tsx',
       'src/components/notas/pdfStudio/planillas/pdfFormVisualMapping.ts',
       'src/components/notas/pdfStudio/editor/pdfEditorZoomScroll.ts',
       'src/components/notas/pdfStudio/editor/usePdfEditorZoomScroll.ts',
