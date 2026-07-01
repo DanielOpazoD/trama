@@ -37,14 +37,28 @@ uses `--allow-remove-files` en un PR de calidad gates.
 ### Baseline
 
 `knip.json` contiene excepciones exactas para deuda historica detectada al
-activar el gate: archivos sin uso confirmado, exports/tipos publicos que hoy no
-tienen consumidor visible, binarios externos (`psql`) y dependencias usadas por
-scripts operacionales (`pg`, `playwright`). Esas excepciones no significan que
+activar el gate: tipos publicos que hoy no tienen consumidor visible, binarios
+externos (`psql`) y dependencias usadas por scripts operacionales (`pg`,
+`playwright`). No debe contener archivos muertos confirmados ni exports locales
+que se puedan convertir a helpers privados. Esas excepciones no significan que
 la deuda este resuelta; significan que el check bloquea deuda nueva sin mezclar
 este PR con una poda funcional.
 
+Las excepciones restantes caen en cuatro grupos:
+
+- contratos API y barrels (`src/api/**`, `src/state/index.ts`) que mantienen una
+  superficie de importacion estable aunque Knip no vea cada consumidor;
+- contratos cross-boundary de PDF Studio: workers, IndexedDB, preflight y
+  modelos serializados que cruzan browser/worker/storage;
+- tipos de dominio compartidos (`src/types/**`, `src/lib/season.ts`,
+  `src/lib/oauthReturn.ts`) que sirven como contrato aunque hoy no tengan un
+  import runtime;
+- escapes operacionales pequenos, como `requestResponse`, permitido por
+  `scripts/client-api-contracts.mjs` para endpoints que necesitan leer headers o
+  blobs antes de parsear JSON.
+
 El baseline actual queda ratcheado en `scripts/developer-quality-gates.test.mjs`:
-como maximo 62 archivos con `ignoreIssues`, 70 tipos de issue ignorados, 5
+como maximo 35 archivos con `ignoreIssues`, 36 tipos de issue ignorados, 0
 `ignoreFiles`, 3 `ignoreDependencies` y 2 `ignoreBinaries`. Si una excepcion
 nueva es inevitable, el mismo commit debe explicar por que no hay entrypoint real
 mejor y actualizar el ratchet deliberadamente.

@@ -31,28 +31,8 @@ export function isSafari(nav: BrowserLike): boolean {
   )
 }
 
-/**
- * Decide si "Guardar PDF" descarga el archivo DIRECTAMENTE en vez de abrirlo en
- * una pestaña nueva con el visor del navegador.
- *
- * Safari (iOS y escritorio) NO logra navegar de forma confiable una pestaña
- * recién abierta hacia un `blob:` PDF: la pestaña queda colgada en "Preparando
- * tu PDF…" y el visor nunca aparece (sin error ni aviso). Para esos navegadores
- * descargamos el PDF, que SÍ funciona siempre. Chrome/Firefox/Edge mantienen el
- * visor en pestaña nueva.
- */
-export function shouldDownloadPdfDirectly(): boolean {
-  if (typeof navigator === 'undefined') return false
-  const nav = {
-    userAgent: navigator.userAgent,
-    platform: navigator.platform,
-    maxTouchPoints: navigator.maxTouchPoints,
-  }
-  return isIosLike(nav) || isSafari(nav)
-}
-
 /** Slug seguro para nombre de archivo (sin acentos ni símbolos). */
-export function pdfFileSlug(name: string): string {
+function pdfFileSlug(name: string): string {
   return name
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

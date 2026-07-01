@@ -59,7 +59,7 @@ export const ProposedQuoteSchema = z.object({
 
 /** El id apunta a la entidad/cita/relación existente. El patch lleva
  *  SOLO los campos que la IA quiere cambiar. Checkbox per-row. */
-export const ProposedEntityEditSchema = z.object({
+const ProposedEntityEditSchema = z.object({
   kind: z.literal('entity'),
   id: z.string(),
   /** Nombre para mostrar en la UI como contexto — no es parte del patch. */
@@ -74,7 +74,7 @@ export const ProposedEntityEditSchema = z.object({
   reason: z.string().optional(),
 })
 
-export const ProposedQuoteEditSchema = z.object({
+const ProposedQuoteEditSchema = z.object({
   kind: z.literal('quote'),
   id: z.string(),
   /** Texto truncado + entityName para contexto. */
@@ -90,7 +90,7 @@ export const ProposedQuoteEditSchema = z.object({
   reason: z.string().optional(),
 })
 
-export const ProposedRelationshipEditSchema = z.object({
+const ProposedRelationshipEditSchema = z.object({
   kind: z.literal('relationship'),
   id: z.string(),
   preview: z.string(),

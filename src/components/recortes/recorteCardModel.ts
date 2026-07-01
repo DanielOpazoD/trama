@@ -44,7 +44,7 @@ export function looksLikePlaceholder(text: string, recorte: Recorte): boolean {
   return false
 }
 
-export function recorteHasMediaPreview(recorte: Recorte): boolean {
+function recorteHasMediaPreview(recorte: Recorte): boolean {
   return (
     !!recorte.imageKey ||
     !!recorte.imageUrl ||

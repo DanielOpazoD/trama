@@ -70,8 +70,6 @@ export {
   addPdfFormField,
   clearPdfFormFieldValues,
   clonePdfFormField,
-  deletePdfFormField,
-  emptyPdfFormValue,
   isPdfTemplate,
   makePdfFormFieldDraft,
   renamePdfFormField,

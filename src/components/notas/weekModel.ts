@@ -47,7 +47,7 @@ export function rolloverAnchorForVisibleWeeks(
 }
 
 /** Orden de pendientes: prioridad (alta→media→baja), luego más recientes. */
-export function byPriorityThenRecency(a: Task, b: Task): number {
+function byPriorityThenRecency(a: Task, b: Task): number {
   return (
     (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1) ||
     b.createdAt.localeCompare(a.createdAt)

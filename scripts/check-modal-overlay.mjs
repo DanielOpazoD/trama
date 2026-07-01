@@ -33,11 +33,6 @@ import { scannedSourceFiles } from './lib/source-files.mjs'
 // modales overlay. Cada entrada va con la razón verificada en el componente.
 export const MODAL_OVERLAY_EXEMPT = new Map([
   [
-    'src/components/notas/pdfStudio/shell/DocSettingsMenu.tsx',
-    'Popover anclado al botón (aria-haspopup="dialog", posición absolute, sin ' +
-      'backdrop; cierra por click-afuera), no un modal overlay.',
-  ],
-  [
     'src/components/momentos/MergeMomentosBar.tsx',
     'Confirmación inline dentro de la barra role="toolbar": sustituye el header ' +
       'de la barra (sin backdrop ni overlay), no es un diálogo modal.',

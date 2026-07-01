@@ -19,5 +19,3 @@ export type Origin = {
   /** e.g. 'json-export', 'obsidian' — solo para kind='imported'. */
   importedFrom?: string
 }
-
-export const MANUAL_ORIGIN: Origin = { kind: 'manual' }

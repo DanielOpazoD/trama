@@ -5,7 +5,7 @@ export type PdfOcrBackendAdapter = {
   run: (file: File, options: PdfOcrOptions) => Promise<PdfOcrResult>
 }
 
-export class PdfOcrBackendUnavailableError extends Error {
+class PdfOcrBackendUnavailableError extends Error {
   readonly name = 'PdfOcrBackendUnavailableError'
   readonly code = 'OCR_BACKEND_UNAVAILABLE'
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { EmptyIllustration, SparkleIcon } from './Icons'
+import { EmptyIllustration } from './Icons'
 
 /**
  * Designed empty state. The plain "Aún sin citas." pattern that lived in every
@@ -69,11 +69,4 @@ export function EmptyMessage({
       {action && <div className="mt-5 flex justify-center gap-2">{action}</div>}
     </div>
   )
-}
-
-/** Pre-baked variant with the AI sparkle, for views where the next step is the IA. */
-export function EmptyMessageWithSparkle(
-  props: Omit<Parameters<typeof EmptyMessage>[0], 'icon'>,
-) {
-  return <EmptyMessage icon={<SparkleIcon size={18} />} {...props} />
 }

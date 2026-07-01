@@ -4,7 +4,7 @@ import type { NotasFeedPage } from '../../api/notasFeed'
 import type { Note, Recorte } from '../../api'
 import type { Momento } from '../../types/momento'
 
-export const TEST_TIMESTAMP = '2026-06-10T12:00:00.000Z'
+const TEST_TIMESTAMP = '2026-06-10T12:00:00.000Z'
 
 export function buildNota(overrides: Partial<Note> = {}): Note {
   return {

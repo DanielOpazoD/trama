@@ -1,11 +1,23 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 import {
   ProposedDeleteSchema,
   ProposedEditSchema,
   ProposedEntitySchema,
   ProposedQuoteSchema,
   ProposedRelationshipSchema,
+  type ProposedEntity,
+  type ProposedQuote,
+  type ProposedRelationship,
+  type ProposedEdit,
+  type ProposedEntityEdit,
+  type ProposedQuoteEdit,
+  type ProposedRelationshipEdit,
 } from './proposal'
+import type {
+  ProposedEntity as TypeProposedEntity,
+  ProposedQuote as TypeProposedQuote,
+  ProposedEdit as TypeProposedEdit,
+} from '../types'
 
 describe('proposal schemas', () => {
   it('valida propuestas de creación', () => {
@@ -57,5 +69,56 @@ describe('proposal schemas', () => {
     expect(
       ProposedDeleteSchema.safeParse({ kind: 'moment', id: 'm1', preview: 'x' }).success,
     ).toBe(false)
+  })
+})
+
+describe('proposal schema types', () => {
+  it('ProposedEntity inferido == re-exportado desde types', () => {
+    expectTypeOf<ProposedEntity>().toEqualTypeOf<TypeProposedEntity>()
+  })
+
+  it('ProposedQuote inferido == re-exportado desde types', () => {
+    expectTypeOf<ProposedQuote>().toEqualTypeOf<TypeProposedQuote>()
+  })
+
+  it('ProposedEdit es discriminated union por kind', () => {
+    type Kinds = ProposedEdit['kind']
+    expectTypeOf<Kinds>().toEqualTypeOf<'entity' | 'quote' | 'relationship'>()
+  })
+
+  it('ProposedEdit narrowing por kind', () => {
+    const edit: ProposedEdit = {} as ProposedEdit
+    if (edit.kind === 'entity') {
+      expectTypeOf(edit).toEqualTypeOf<ProposedEntityEdit>()
+    }
+    if (edit.kind === 'quote') {
+      expectTypeOf(edit).toEqualTypeOf<ProposedQuoteEdit>()
+    }
+    if (edit.kind === 'relationship') {
+      expectTypeOf(edit).toEqualTypeOf<ProposedRelationshipEdit>()
+    }
+  })
+
+  it('ProposedEntity tiene los campos canónicos', () => {
+    expectTypeOf<ProposedEntity>().toHaveProperty('type').toBeString()
+    expectTypeOf<ProposedEntity>().toHaveProperty('name').toBeString()
+    expectTypeOf<ProposedEntity>()
+      .toHaveProperty('matchedId')
+      .toEqualTypeOf<string | undefined>()
+  })
+
+  it('ProposedRelationship.verification es optional', () => {
+    expectTypeOf<ProposedRelationship>().toHaveProperty('verification').toEqualTypeOf<
+      | {
+          agreed: boolean
+          note?: string
+          verifier: string
+        }
+      | undefined
+    >()
+  })
+
+  it('TypeProposedEdit shape == schema-inferida', () => {
+    expectTypeOf<TypeProposedEdit>().toEqualTypeOf<ProposedEdit>()
   })
 })

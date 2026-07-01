@@ -27,7 +27,7 @@ export type ReadingTableRow = {
   updated_at: string
 }
 
-export function readingTableFromRow(r: ReadingTableRow): ReadingTable {
+function readingTableFromRow(r: ReadingTableRow): ReadingTable {
   return {
     id: r.id,
     title: r.title,

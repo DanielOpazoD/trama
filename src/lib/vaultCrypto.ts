@@ -108,7 +108,7 @@ async function decryptWithKey(envelope: VaultEnvelope, key: CryptoKey): Promise<
   return new TextDecoder().decode(decrypted)
 }
 
-export function readVaultConfig(scope?: VaultScope): VaultConfig | null {
+function readVaultConfig(scope?: VaultScope): VaultConfig | null {
   if (typeof window === 'undefined') return null
   const raw = window.localStorage.getItem(vaultConfigKey(scope))
   if (!raw) return null
