@@ -7,9 +7,11 @@ describe('PDF bundle families', () => {
     expect(PDF_AGGREGATE_BUDGETS.map((family) => family.name)).toEqual([
       'PDF lazy payload total',
       'PDF viewer',
+      'PDF editor',
       'PDF assemble/export',
-      'PDF OCR',
       'PDF forms',
+      'PDF OCR',
+      'PDF stamps',
       'PDF libro',
     ])
   })

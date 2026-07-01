@@ -1,7 +1,10 @@
 export const PDF_BUNDLE_SNAPSHOT = {
-  source: 'PR 254 baseline, npm run build + node scripts/check-bundle-size.mjs',
+  source:
+    'PR 314 baseline, npm run build + node scripts/check-bundle-size.mjs after PdfTextEditor lazy split',
   entries: [
-    { file: 'PdfStudioView', gzKb: 69, status: 'ok' },
+    { file: 'PdfStudioView', gzKb: 33, status: 'ok' },
+    { file: 'PdfTextEditor', gzKb: 37, status: 'ok' },
+    { file: 'StampAssetMenuHost', gzKb: 5, status: 'no-budget' },
     { file: 'assemble', gzKb: 5, status: 'no-budget' },
     { file: 'buildLibro', gzKb: 2, status: 'no-budget' },
     { file: 'html2canvas.esm', gzKb: 46, status: 'ok' },
@@ -32,11 +35,13 @@ export const PDF_BUNDLE_SNAPSHOT = {
   },
   workers: ['pdf.worker.min', 'pdfExport.worker', 'pdfForm.worker', 'pdfOcr.worker'],
   families: {
-    'PDF lazy payload total': { gzKb: 2383, budget: 2450 },
-    'PDF viewer': { gzKb: 678, budget: 760 },
+    'PDF lazy payload total': { gzKb: 2389, budget: 2450 },
+    'PDF viewer': { gzKb: 642, budget: 720 },
+    'PDF editor': { gzKb: 37, budget: 80 },
     'PDF assemble/export': { gzKb: 1678, budget: 1900 },
-    'PDF OCR': { gzKb: 20, budget: 180 },
     'PDF forms': { gzKb: 4, budget: 150 },
+    'PDF OCR': { gzKb: 20, budget: 180 },
+    'PDF stamps': { gzKb: 5, budget: 40 },
     'PDF libro': { gzKb: 3, budget: 90 },
   },
 }

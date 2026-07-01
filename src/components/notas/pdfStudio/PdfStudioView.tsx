@@ -11,7 +11,8 @@ import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
 import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
 import { PdfStudioOcrPanel } from './ocr/PdfStudioOcrPanel'
 import { PdfStudioWorkspacePanelHost } from './shell/PdfStudioWorkspacePanelHost'
-import { PdfTextEditor } from './editor/PdfTextEditor'
+import { usePdfTextEditorLoader } from './editor/PdfTextEditorLazy'
+import { PdfStudioTextEditorOverlay } from './PdfStudioTextEditorOverlay'
 import {
   applyPdfTextEditorResult,
   type PdfTextEditorResult,
@@ -36,6 +37,7 @@ import { usePdfStudioExternalFiles } from './shell/usePdfStudioExternalFiles'
 import { usePdfStudioKeyboardRefs } from './shell/usePdfStudioKeyboardRefs'
 import { useToast } from '../../../state'
 import { usePdfStudioTemplateSaveAction } from './shell/usePdfStudioTemplateSaveAction'
+import { canCropPdfStudioSelection, pdfStudioHasVisibleSaved } from './PdfStudioViewModel'
 
 export type PdfStudioMode = 'editor' | 'templates'
 type PdfStudioViewProps = {
@@ -150,6 +152,9 @@ export function PdfStudioView({
     selectedIndices,
     userKey: workspace.userKey,
   })
+  const total = doc.pages.length,
+    empty = total === 0
+  const openTextEditor = usePdfTextEditorLoader(!empty, setTextPage)
   useEffect(() => () => disposePdfStudio(), [])
   usePdfStudioPageKeyboard({
     textPage,
@@ -176,8 +181,6 @@ export function PdfStudioView({
     if (edits) commit((d) => applyPdfTextEditorResult(d, edits))
     setTextPage(null)
   }
-  const total = doc.pages.length
-  const empty = total === 0
   const startTemplateSave = usePdfStudioTemplateSaveAction({
     doc,
     empty,
@@ -189,11 +192,15 @@ export function PdfStudioView({
   const preflightReport = buildPdfStudioPreflight(doc, { action: 'export' })
   const undoable = canUndo(history)
   const redoable = canRedo(history)
-  const hasVisibleSaved = templatesEnabled
-    ? workspace.saved.length > 0
-    : workspace.saved.some((s) => !isPdfTemplate(s.doc))
-  const canCropSelectedPage =
-    selectedCount === 1 && selectedIndices[0] != null && !!doc.pages[selectedIndices[0]]
+  const hasVisibleSaved = pdfStudioHasVisibleSaved({
+    saved: workspace.saved,
+    templatesEnabled,
+  })
+  const canCropSelectedPage = canCropPdfStudioSelection({
+    doc,
+    selectedCount,
+    selectedIndices,
+  })
   const showPanel = !empty || hasVisibleSaved
   const editBar = !empty && effectiveTemplateMode !== 'fill' && (
     <BulkBar
@@ -347,7 +354,7 @@ export function PdfStudioView({
               selectedIds={selectedIds}
               onDropFiles={onDropFiles}
               onNudge={nudge}
-              onOpenText={setTextPage}
+              onOpenText={openTextEditor}
               onPickFiles={() => fileInputRef.current?.click()}
               onReorder={reorder}
               onToggleSelect={toggleSelect}
@@ -355,24 +362,22 @@ export function PdfStudioView({
           </div>
         </div>
       </div>
-      {textPage !== null && (
-        <PdfTextEditor
-          doc={doc}
-          pageIndex={textPage}
-          detectedForms={forms}
-          mode={effectiveTemplateMode === 'fill' ? 'fill' : 'edit'}
-          templateToolsEnabled={templatesEnabled}
-          onFormValueChange={updateFormValue}
-          onInspectForms={templatesEnabled ? () => void inspectForms() : undefined}
-          onClose={closeTextEditor}
-          onDisplayZoomChange={setEditorSessionZoom}
-          onPrint={printFilledTemplate}
-          onMailMerge={templatesEnabled ? printMailMergeTemplate : undefined}
-          onSaveCopy={templatesEnabled ? saveFilledTemplateCopy : undefined}
-          sessionZoom={editorSessionZoom}
-          stampAssetUserKey={workspace.userKey}
-        />
-      )}
+      <PdfStudioTextEditorOverlay
+        doc={doc}
+        pageIndex={textPage}
+        detectedForms={forms}
+        templateMode={effectiveTemplateMode}
+        templateToolsEnabled={templatesEnabled}
+        onFormValueChange={updateFormValue}
+        onInspectForms={templatesEnabled ? () => void inspectForms() : undefined}
+        onClose={closeTextEditor}
+        onDisplayZoomChange={setEditorSessionZoom}
+        onPrint={printFilledTemplate}
+        onMailMerge={templatesEnabled ? printMailMergeTemplate : undefined}
+        onSaveCopy={templatesEnabled ? saveFilledTemplateCopy : undefined}
+        sessionZoom={editorSessionZoom}
+        stampAssetUserKey={workspace.userKey}
+      />
       {previewModal}
     </section>
   )

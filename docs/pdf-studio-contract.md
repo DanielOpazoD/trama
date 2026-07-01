@@ -68,6 +68,26 @@ Ese check lee `dist/index.html` y el grafo de imports estaticos desde los
 assets iniciales. Los imports dinamicos a PDF se permiten; los imports
 estaticos o modulepreloads PDF desde el entrypoint inicial fallan.
 
+Tambien valida el borde de fuente `PdfStudioView -> PdfTextEditor`: el shell de
+PDF Studio no puede importar el editor de texto de forma estatica. El editor se
+carga con `React.lazy` cuando una pagina entra a edicion, de modo que el shell
+lazy de PDF Studio no arrastre toda la superficie de anotaciones antes de que el
+usuario la pida.
+
+## Inventario ejecutable de entrypoints
+
+La fuente de verdad de entrypoints PDF vive en
+`scripts/pdf-entrypoint-inventory.mjs`. Ese inventario alimenta:
+
+- `scripts/pdf-bundle-families.mjs`: familias y bases del payload PDF.
+- `scripts/pdf-lazy-entrypoints.mjs`: chunks prohibidos en el shell inicial.
+- `scripts/check-bundle-size.mjs`: duplicados aceptados de vendors PDF.
+
+Las superficies inventariadas son `viewer`, `editor`, `assembleExport`,
+`forms`, `ocr`, `stamps` y `libro`. Si aparece una nueva forma de leer,
+escribir o decorar PDF, debe agregarse ahi primero y despues ajustar tests/docs;
+no dupliques listas en scripts sueltos.
+
 ## Contrato de payload PDF
 
 El peso PDF se mide como lazy payload, no como bundle inicial. El objetivo no es
@@ -79,9 +99,11 @@ accidental de fronteras.
 | ------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------- |
 | `PDF lazy payload total` | todas las bases PDF lazy                                           | Techo global para Imprenta/Planillas/Libro/OCR.            |
 | `PDF viewer`             | `PdfStudioView`, `pdf.worker.min`, `vendor-pdfjs`                  | Render y preview; owns PDF.js compartido.                  |
+| `PDF editor`             | `PdfTextEditor`                                                    | Anotaciones y texto solo al abrir una pagina para editar.  |
 | `PDF assemble/export`    | `assemble`, `assembleImages`, `pdfExport.worker`, `vendor-pdf-lib` | Exportacion, redacciones, imagenes y vendors de escritura. |
 | `PDF OCR`                | `pdfOcr*`, `vendor-ocr`                                            | Reconocimiento local y armado buscable.                    |
 | `PDF forms`              | `pdfForms`, `pdfForm.worker`                                       | Inspeccion/relleno de AcroForms.                           |
+| `PDF stamps`             | `StampAssetMenuHost`                                               | Biblioteca de firmas/timbres cargada desde el editor.      |
 | `PDF libro`              | `buildLibro`, `libroPreview`                                       | Florilegio imprimible y preview del libro.                 |
 
 Antes de subir un budget, corre:
@@ -117,7 +139,9 @@ leer el grafo de Vite/worker antes de intentar consolidar chunks a mano.
 
 `bundle:check` tambien ratchea las duplicaciones aceptadas de vendors PDF
 pesados. Esos limites (`vendor-pdf-lib`, `vendor-pdfjs`, `vendor-ocr`) congelan
-count y gzip total observado; si uno crece, el PR debe demostrar si el aumento
+count y gzip total observado; el reporte marca duplicados aceptados como
+`aceptado: count actual/max, gzip actual/max KB` y regresiones por eje
+(`count`, `gzKb` o ambos). Si uno crece, el PR debe demostrar si el aumento
 viene de una capacidad real o de un import que se salio de `pdfRuntime`.
 
 ## Contrato de navegacion del editor

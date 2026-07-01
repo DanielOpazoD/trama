@@ -237,10 +237,12 @@ describe('<PdfStudioView />', () => {
     // Se entra al diseño con doble clic en la hoja (ya no hay botón "Agregar
     // casilleros": era redundante con este gesto).
     await user.dblClick(screen.getByAltText('Página 1'))
-    expect(
-      await screen.findByRole('dialog', { name: /Crear plantilla/i }),
-    ).toBeInTheDocument()
-    const designHeader = screen.getByRole('banner', { name: /Crear plantilla/i })
+    const designHeader = await screen.findByRole(
+      'banner',
+      { name: /Crear plantilla/i },
+      { timeout: 5000 },
+    )
+    expect(screen.getByRole('dialog', { name: /Crear plantilla/i })).toBeInTheDocument()
     expect(designHeader).toHaveTextContent('0 casilleros')
     expect(
       within(designHeader).getByRole('button', { name: /Crear casillero/i }),

@@ -202,7 +202,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 390,
+    maxLines: 387,
     files: ['src/components/notas/pdfStudio/PdfStudioView.tsx'],
   },
   {
@@ -212,8 +212,18 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 290,
+    maxLines: 282,
     files: ['src/components/notas/pdfStudio/editor/EditorToolbar.tsx'],
+  },
+  {
+    group: 'pdf-studio-core-models',
+    maxLines: 90,
+    files: [
+      'src/components/notas/pdfStudio/PdfStudioViewModel.ts',
+      'src/components/notas/pdfStudio/PdfStudioTextEditorOverlay.tsx',
+      'src/components/notas/pdfStudio/editor/EditorToolbarModel.ts',
+      'src/components/notas/pdfStudio/editor/PdfTextEditorLazy.tsx',
+    ],
   },
   {
     group: 'pdf-studio-core',
