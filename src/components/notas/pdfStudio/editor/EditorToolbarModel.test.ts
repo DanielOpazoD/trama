@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  editorToolbarContextCapabilities,
   editorToolbarPrimaryInsertAction,
   isMacLikeUserAgent,
 } from './EditorToolbarModel'
@@ -23,6 +24,19 @@ describe('EditorToolbarModel', () => {
       fieldKind: 'text',
       hint: 'Crear un casillero rellenable',
       label: 'Crear casillero de texto',
+    })
+  })
+
+  it('deriva capacidades visibles de toolbar segun contexto', () => {
+    expect(editorToolbarContextCapabilities('editor')).toEqual({
+      canShowPdfMarkupTools: true,
+      canShowShapeTools: true,
+      canStampImage: true,
+    })
+    expect(editorToolbarContextCapabilities('templateDesign')).toEqual({
+      canShowPdfMarkupTools: false,
+      canShowShapeTools: false,
+      canStampImage: false,
     })
   })
 })

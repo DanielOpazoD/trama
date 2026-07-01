@@ -25,3 +25,12 @@ export function editorToolbarPrimaryInsertAction(context: EditorToolbarContext):
     label: 'Agregar cuadro de texto',
   }
 }
+
+export function editorToolbarContextCapabilities(context: EditorToolbarContext) {
+  const canUsePdfMarkupTools = context !== 'templateDesign'
+  return {
+    canShowPdfMarkupTools: canUsePdfMarkupTools,
+    canShowShapeTools: canUsePdfMarkupTools,
+    canStampImage: canUsePdfMarkupTools,
+  }
+}
