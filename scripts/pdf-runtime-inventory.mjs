@@ -50,24 +50,40 @@ function recordImport({ imports, file, line, text, specifier, typeOnly = false }
   })
 }
 
+function isStaticReExportStart(trimmed) {
+  return /^export\s+(?:\*|(?:type\s+)?\{)/.test(trimmed)
+}
+
+function collectStaticBlock({ lines, index, isReExport }) {
+  const block = [lines[index]]
+  while (
+    index + 1 < lines.length &&
+    !/\sfrom\s+['"][^'"]+['"]/.test(block.join('\n')) &&
+    !/import\s+['"][^'"]+['"]/.test(block.join('\n')) &&
+    (!isReExport || !/}/.test(block.join('\n')))
+  ) {
+    index += 1
+    block.push(lines[index])
+  }
+  return { block, nextIndex: index }
+}
+
 function collectStaticImports({ imports, file, lines }) {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
     const trimmed = line.trimStart()
-    if (!trimmed.startsWith('import ')) continue
+    const isImport = trimmed.startsWith('import ')
+    const isReExport = isStaticReExportStart(trimmed)
+    if (!isImport && !isReExport) continue
 
-    const block = [line]
-    while (
-      index + 1 < lines.length &&
-      !/\sfrom\s+['"][^'"]+['"]/.test(block.join('\n')) &&
-      !/import\s+['"][^'"]+['"]/.test(block.join('\n'))
-    ) {
-      index += 1
-      block.push(lines[index])
-    }
+    const startLine = index + 1
+    const { block, nextIndex } = collectStaticBlock({ lines, index, isReExport })
+    index = nextIndex
 
     const joined = block.join('\n')
-    const typeOnly = joined.trimStart().startsWith('import type ')
+    const normalized = joined.trimStart()
+    const typeOnly =
+      normalized.startsWith('import type ') || normalized.startsWith('export type ')
     const fromMatch = joined.match(/\sfrom\s+['"]([^'"]+)['"]/)
     const sideEffectMatch = joined.match(/^import\s+['"]([^'"]+)['"]/m)
     const specifier = fromMatch?.[1] ?? sideEffectMatch?.[1]
@@ -75,7 +91,7 @@ function collectStaticImports({ imports, file, lines }) {
     recordImport({
       imports,
       file,
-      line: index + 1 - block.length + 1,
+      line: startLine,
       specifier,
       text: joined,
       typeOnly,

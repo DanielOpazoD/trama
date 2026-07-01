@@ -76,13 +76,24 @@ describe('pdf worker clients', () => {
     }
   })
 
-  it('centraliza cancelacion de export/OCR y cancelacion cooperativa de formularios', () => {
+  it('centraliza cancelacion de operaciones pesadas con AbortController', () => {
     const source = readFileSync(resolve(process.cwd(), SHARED_HEAVY_WORKER), 'utf8')
 
     expect(source).toContain('const controllers = new Map<string, AbortController>()')
-    expect(source).toContain('const cancelled = new Set<string>()')
     expect(source).toContain("controllers.get(message.id)?.abort('cancelled')")
-    expect(source).toContain('cancelled.add(message.id)')
-    expect(source).toContain('throwIfCancelled(message.id)')
+    expect(source).toContain('throwIfCancelled(controller.signal)')
+    expect(source).toContain('controllers.delete(message.id)')
+    expect(source).not.toContain('cancelled.add(message.id)')
+  })
+
+  it('emite progreso de carga de formularios antes del import lazy', () => {
+    const source = readFileSync(resolve(process.cwd(), SHARED_HEAVY_WORKER), 'utf8')
+    const loadStartIndex = source.indexOf("progress(message.id, 'load', 'start')")
+    const importIndex = source.indexOf("import('../forms/pdfForms')")
+    const loadCompleteIndex = source.indexOf("progress(message.id, 'load', 'complete')")
+
+    expect(loadStartIndex).toBeGreaterThanOrEqual(0)
+    expect(importIndex).toBeGreaterThan(loadStartIndex)
+    expect(loadCompleteIndex).toBeGreaterThan(importIndex)
   })
 })

@@ -27,6 +27,12 @@ async function formPdfFile(name = 'formulario.pdf'): Promise<File> {
   return new File([bytes as BlobPart], name, { type: 'application/pdf' })
 }
 
+function abortedSignal() {
+  const controller = new AbortController()
+  controller.abort('test')
+  return controller.signal
+}
+
 describe('pdfStudio/pdfForms', () => {
   it('inspecciona campos AcroForm existentes con nombre, tipo, valor y geometría de widgets', async () => {
     const result = await inspectPdfForm(await formPdfFile())
@@ -262,5 +268,20 @@ describe('pdfStudio/pdfForms', () => {
     expect(form.getButton('firma').getName()).toBe('firma')
     expect(() => form.getTextField('firma')).toThrow()
     expect(form.getFields()).toHaveLength(1)
+  })
+
+  it('corta operaciones cuando el signal ya viene abortado', async () => {
+    const file = await formPdfFile()
+    const signal = abortedSignal()
+
+    await expect(inspectPdfForm(file, { signal })).rejects.toMatchObject({
+      code: 'CANCELLED',
+    })
+    await expect(fillPdfForm(file, {}, {}, { signal })).rejects.toMatchObject({
+      code: 'CANCELLED',
+    })
+    await expect(writePdfFormFields(file, [], [], {}, { signal })).rejects.toMatchObject({
+      code: 'CANCELLED',
+    })
   })
 })

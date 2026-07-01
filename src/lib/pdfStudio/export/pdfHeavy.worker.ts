@@ -23,7 +23,6 @@ import {
 } from '../ocr/pdfOcrWorkerContract'
 
 const controllers = new Map<string, AbortController>()
-const cancelled = new Set<string>()
 
 const workerScope = self as unknown as {
   postMessage: (message: PdfHeavyOperationWorkerMessage) => void
@@ -87,25 +86,31 @@ function progress(
   })
 }
 
-function throwIfCancelled(id: string) {
-  if (!cancelled.has(id)) return
+function throwIfCancelled(signal: AbortSignal) {
+  if (!signal.aborted) return
   const err = new Error('Operación cancelada.')
   Object.assign(err, { code: 'CANCELLED' })
   throw err
 }
 
 async function runForm(message: PdfHeavyOperationRunMessage<PdfFormWorkerPayload>) {
+  const controller = new AbortController()
+  controllers.set(message.id, controller)
+
   try {
+    progress(message.id, 'load', 'start')
+    throwIfCancelled(controller.signal)
     const { fillPdfForm, inspectPdfForm, writePdfFormFields } =
       await import('../forms/pdfForms')
-    progress(message.id, 'load', 'start')
-    throwIfCancelled(message.id)
+    throwIfCancelled(controller.signal)
     progress(message.id, 'load', 'complete')
 
     if (message.payload.action === 'inspect') {
       progress(message.id, 'inspect', 'start')
-      const result = await inspectPdfForm(message.payload.file)
-      throwIfCancelled(message.id)
+      const result = await inspectPdfForm(message.payload.file, {
+        signal: controller.signal,
+      })
+      throwIfCancelled(controller.signal)
       progress(message.id, 'inspect', 'complete')
       post({
         type: 'complete',
@@ -122,8 +127,9 @@ async function runForm(message: PdfHeavyOperationRunMessage<PdfFormWorkerPayload
         message.payload.file,
         message.payload.values,
         message.payload.options,
+        { signal: controller.signal },
       )
-      throwIfCancelled(message.id)
+      throwIfCancelled(controller.signal)
       progress(message.id, 'fill', 'complete')
       progress(message.id, 'save', 'complete')
       post({
@@ -141,8 +147,9 @@ async function runForm(message: PdfHeavyOperationRunMessage<PdfFormWorkerPayload
       message.payload.fields,
       message.payload.pageIds,
       message.payload.options,
+      { signal: controller.signal },
     )
-    throwIfCancelled(message.id)
+    throwIfCancelled(controller.signal)
     progress(message.id, 'write', 'complete')
     progress(message.id, 'save', 'complete')
     post({
@@ -159,7 +166,7 @@ async function runForm(message: PdfHeavyOperationRunMessage<PdfFormWorkerPayload
       error: serializePdfHeavyOperationError(err),
     })
   } finally {
-    cancelled.delete(message.id)
+    controllers.delete(message.id)
   }
 }
 
@@ -204,7 +211,6 @@ workerScope.addEventListener('message', (event) => {
   const message = event.data
   if (message.type === 'cancel') {
     controllers.get(message.id)?.abort('cancelled')
-    cancelled.add(message.id)
     return
   }
 

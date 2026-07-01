@@ -101,4 +101,47 @@ describe('PDF runtime inventory', () => {
       typeOnly: 0,
     })
   })
+
+  it('classifies PDF runtime re-exports without consuming plain exports', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trama-pdf-runtime-inventory-'))
+    write(
+      root,
+      'src/lib/pdfStudio/reexports.ts',
+      [
+        "export { PDFDocument } from 'pdf-lib'",
+        "export type { PDFPage } from 'pdf-lib'",
+        'export {',
+        '  localValue,',
+        '}',
+        'const localValue = 1',
+      ].join('\n'),
+    )
+    write(root, 'src/lib/pdfStudio/star.ts', "export * from 'pdfjs-dist'\n")
+
+    const inventory = collectPdfRuntimeInventory({ root })
+
+    expect(inventory.imports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'src/lib/pdfStudio/reexports.ts',
+          kind: 'direct-runtime',
+          line: 1,
+          specifier: 'pdf-lib',
+        }),
+        expect.objectContaining({
+          file: 'src/lib/pdfStudio/reexports.ts',
+          kind: 'type-only',
+          line: 2,
+          specifier: 'pdf-lib',
+        }),
+        expect.objectContaining({
+          file: 'src/lib/pdfStudio/star.ts',
+          kind: 'direct-runtime',
+          line: 1,
+          specifier: 'pdfjs-dist',
+        }),
+      ]),
+    )
+    expect(inventory.imports).toHaveLength(3)
+  })
 })

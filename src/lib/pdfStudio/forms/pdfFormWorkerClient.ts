@@ -30,7 +30,9 @@ export function inspectPdfFormInWorker(
     signal: options.signal,
     onProgress: options.onProgress,
     fallback: () =>
-      import('./pdfForms').then(({ inspectPdfForm }) => inspectPdfForm(file)),
+      import('./pdfForms').then(({ inspectPdfForm }) =>
+        inspectPdfForm(file, { signal: options.signal }),
+      ),
   })
 }
 
@@ -60,7 +62,7 @@ export function fillPdfFormInWorker(
     onProgress: options.onProgress,
     fallback: () =>
       import('./pdfForms').then(({ fillPdfForm }) =>
-        fillPdfForm(file, values, fillOptions),
+        fillPdfForm(file, values, fillOptions, { signal: options.signal }),
       ),
   })
 }
@@ -93,7 +95,9 @@ export function writePdfFormFieldsInWorker(
     onProgress: options.onProgress,
     fallback: () =>
       import('./pdfForms').then(({ writePdfFormFields }) =>
-        writePdfFormFields(file, fields, pageIds, fillOptions),
+        writePdfFormFields(file, fields, pageIds, fillOptions, {
+          signal: options.signal,
+        }),
       ),
   })
 }
