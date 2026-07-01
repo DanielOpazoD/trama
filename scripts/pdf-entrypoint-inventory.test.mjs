@@ -15,6 +15,7 @@ describe('PDF entrypoint inventory', () => {
       'editor',
       'assembleExport',
       'forms',
+      'heavyWorker',
       'ocr',
       'stamps',
       'libro',

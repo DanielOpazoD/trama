@@ -14,7 +14,7 @@ export const PDF_AGGREGATE_BUDGETS = [
     name: 'PDF lazy payload total',
     // Suma gzip de los chunks/worker PDF lazy. No mide initial path; sí evita
     // que PDF Studio/Imprenta crezcan por duplicación silenciosa entre workers.
-    budget: 2450,
+    budget: 2050,
     bases: PDF_PAYLOAD_BASES,
   },
   ...PDF_BUNDLE_FAMILIES,

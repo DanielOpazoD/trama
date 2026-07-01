@@ -10,6 +10,7 @@ describe('PDF bundle families', () => {
       'PDF editor',
       'PDF assemble/export',
       'PDF forms',
+      'PDF heavy worker',
       'PDF OCR',
       'PDF stamps',
       'PDF libro',

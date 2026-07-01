@@ -19,13 +19,12 @@ export const PDF_ENTRYPOINT_INVENTORY = [
     id: 'assembleExport',
     label: 'PDF assemble/export',
     intent: 'Write, merge, redact and image-sheet export paths that depend on pdf-lib.',
-    budget: 1900,
+    budget: 1320,
     bases: [
       'assemble',
       'assembleImages',
       'html2canvas.esm',
       'jspdf.es.min',
-      'pdfExport.worker',
       'vendor-pdf-lib',
     ],
     lazyBases: [
@@ -42,26 +41,26 @@ export const PDF_ENTRYPOINT_INVENTORY = [
     id: 'forms',
     label: 'PDF forms',
     intent: 'AcroForm inspection, fill and flatten flows kept behind user intent.',
-    budget: 150,
-    bases: ['pdfForm.worker', 'pdfForms'],
-    lazyBases: ['pdfForm.worker', 'pdfForms', 'pdfLibLoader'],
+    budget: 20,
+    bases: ['pdfForms'],
+    lazyBases: ['pdfForms', 'pdfLibLoader'],
+  },
+  {
+    id: 'heavyWorker',
+    label: 'PDF heavy worker',
+    intent: 'Shared router worker for export, forms and OCR heavy operations.',
+    budget: 10,
+    bases: ['pdfHeavy.worker'],
+    lazyBases: ['pdfHeavy.worker'],
   },
   {
     id: 'ocr',
     label: 'PDF OCR',
     intent: 'Searchable PDF generation and OCR worker/runtime chunks.',
-    budget: 180,
-    bases: [
-      'pdfOcr',
-      'pdfOcr.worker',
-      'pdfOcrInput',
-      'pdfOcrProgress',
-      'pdfOcrRecognition',
-      'vendor-ocr',
-    ],
+    budget: 30,
+    bases: ['pdfOcr', 'pdfOcrInput', 'pdfOcrProgress', 'pdfOcrRecognition', 'vendor-ocr'],
     lazyBases: [
       'pdfOcr',
-      'pdfOcr.worker',
       'pdfOcrInput',
       'pdfOcrProgress',
       'pdfOcrRecognition',
@@ -97,7 +96,7 @@ export const PDF_LAZY_ENTRYPOINT_BASES = [
 ].sort()
 
 export const PDF_DUPLICATE_VENDOR_BUDGETS = {
-  'vendor-pdf-lib': { maxCount: 4, maxGzKb: 1500 },
+  'vendor-pdf-lib': { maxCount: 2, maxGzKb: 1100 },
   'vendor-pdfjs': { maxCount: 2, maxGzKb: 250 },
   'vendor-ocr': { maxCount: 2, maxGzKb: 15 },
 }
