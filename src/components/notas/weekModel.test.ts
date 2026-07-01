@@ -95,6 +95,15 @@ describe('weekModel', () => {
       ).toBe('2027-01-04')
     })
 
+    it('cae al primer lunes visible si la semana actual no está renderizada', () => {
+      expect(
+        rolloverAnchorForVisibleWeeks(
+          ['2026-06-01', '2026-06-15', '2026-06-22', '2026-06-29'],
+          '2026-06-08',
+        ),
+      ).toBe('2026-06-01')
+    })
+
     it('no reinyecta pendientes hacia meses ya pasados', () => {
       expect(
         rolloverAnchorForVisibleWeeks(

@@ -50,7 +50,15 @@ function stubTasksFetch(rows: unknown[] = []) {
     }
     if (url.startsWith('/api/tasks/') && method === 'PATCH') {
       const body = JSON.parse(String(init?.body))
-      return jsonResponse(taskRow({ id: url.split('/').pop(), ...body }))
+      const { weekStart, dueDate, ...rest } = body
+      return jsonResponse(
+        taskRow({
+          id: url.split('/').pop(),
+          ...rest,
+          ...(weekStart !== undefined ? { week_start: weekStart } : {}),
+          ...(dueDate !== undefined ? { due_date: dueDate } : {}),
+        }),
+      )
     }
     if (url.startsWith('/api/month-notes?')) {
       const params = new URLSearchParams(url.split('?')[1])
