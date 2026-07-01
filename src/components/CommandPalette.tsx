@@ -12,6 +12,7 @@ import type { QueryHit, QueryInput } from '../api/query'
 import type { NotasSection } from '../types/notas'
 import { CommandPaletteSearchMode } from './commandPalette/CommandPaletteSearchMode'
 import {
+  clampCommandPaletteFocusIndex,
   getCommandPaletteActiveLength,
   type CommandPaletteMode,
 } from './commandPalette/commandPaletteModel'
@@ -130,6 +131,11 @@ export function CommandPalette({
   }, [mode, onClose])
 
   const overlay = useModalOverlay({ open, onClose: handleEscape })
+  const activeLen = getCommandPaletteActiveLength({
+    mode,
+    itemCount: items.length,
+    hitCount: results?.hits.length ?? 0,
+  })
 
   const runAst = useCallback(
     (queryInput: QueryInput, heading: string) => {
@@ -249,13 +255,6 @@ export function CommandPalette({
 
   useEffect(() => {
     if (!open) return
-    // La lista activa para arrows/Enter depende del modo: items de búsqueda o
-    // hits de resultados.
-    const activeLen = getCommandPaletteActiveLength({
-      mode,
-      itemCount: items.length,
-      hitCount: results?.hits.length ?? 0,
-    })
     // Escape lo maneja useModalOverlay (ver handleEscape). Acá solo navegación
     // por teclado: flechas para mover el resaltado y Enter para seleccionar.
     function handler(e: KeyboardEvent) {
@@ -278,7 +277,11 @@ export function CommandPalette({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [open, items, focusIdx, selectItem, mode, results, selectHit])
+  }, [activeLen, open, items, focusIdx, selectItem, mode, results, selectHit])
+
+  useEffect(() => {
+    setFocusIdx((idx) => clampCommandPaletteFocusIndex({ focusIdx: idx, activeLen }))
+  }, [activeLen])
 
   if (!open) return null
 

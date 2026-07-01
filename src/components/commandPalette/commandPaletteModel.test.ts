@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { Item } from '../../hooks/useCommandSearch'
 import {
+  clampCommandPaletteFocusIndex,
   commandPaletteItemKey,
+  describeCommandPaletteEmptyState,
   getCommandPaletteActiveLength,
 } from './commandPaletteModel'
 
@@ -38,5 +40,42 @@ describe('commandPaletteModel', () => {
         hitCount: 2,
       }),
     ).toBe(2)
+  })
+
+  it('mantiene el índice enfocado dentro del largo activo', () => {
+    expect(clampCommandPaletteFocusIndex({ focusIdx: 5, activeLen: 2 })).toBe(1)
+    expect(clampCommandPaletteFocusIndex({ focusIdx: -2, activeLen: 4 })).toBe(0)
+    expect(clampCommandPaletteFocusIndex({ focusIdx: 3, activeLen: 0 })).toBe(0)
+  })
+
+  it('describe estados vacíos sin mezclar búsqueda remota con consulta NL', () => {
+    expect(
+      describeCommandPaletteEmptyState({
+        query: 'borges',
+        running: false,
+        searching: true,
+      }),
+    ).toBe('buscando en tu trama…')
+    expect(
+      describeCommandPaletteEmptyState({
+        query: 'filósofos',
+        running: true,
+        searching: true,
+      }),
+    ).toBe('consultando tu trama…')
+    expect(
+      describeCommandPaletteEmptyState({
+        query: 'zzzz',
+        running: false,
+        searching: false,
+      }),
+    ).toBe('nada coincide')
+    expect(
+      describeCommandPaletteEmptyState({
+        query: '',
+        running: false,
+        searching: false,
+      }),
+    ).toBe('empieza a escribir para buscar')
   })
 })
