@@ -1,37 +1,22 @@
-import { pdfCommandTooltip } from '../../../../lib/pdfStudio/model/commands'
 import {
   type PdfFontKind,
   type PdfFormFieldKind,
 } from '../../../../lib/pdfStudio/model/model'
 import {
+  editorToolbarContextCapabilities,
   editorToolbarPrimaryInsertAction,
   isMacLikeUserAgent,
   type EditorToolbarContext,
 } from './EditorToolbarModel'
-import {
-  CameraIcon,
-  CursorIcon,
-  DuplicateIcon,
-  HighlighterIcon,
-  ShieldIcon,
-  TextIcon,
-  TrashIcon,
-} from '../../../Icons'
-import { IconButton } from '../../../IconButton'
 import { type ReactNode } from 'react'
 import { type TextStyle, type Tool } from './editorStyle'
+import { ToolbarGroup } from './EditorToolbarPrimitives'
 import {
-  Hint,
-  objectAction,
-  primaryAction,
-  segBtnTool,
-  segGroup,
-  ToolbarGroup,
-} from './EditorToolbarPrimitives'
-import { EditorToolbarFormMenu } from './EditorToolbarFormMenu'
-import { EditorToolbarShapesMenu } from './EditorToolbarShapesMenu'
+  EditorToolbarInsertGroup,
+  EditorToolbarObjectGroup,
+  EditorToolbarToolsGroup,
+} from './EditorToolbarGroups'
 import { EditorToolbarStyleMenu } from './EditorToolbarStyleMenu'
-import { EditorToolbarXMenu } from './EditorToolbarXMenu'
 import { EditorToolbarZoomControl } from './EditorToolbarZoomControl'
 
 export function EditorToolbar({
@@ -98,13 +83,8 @@ export function EditorToolbar({
   const isMac = isMacLikeUserAgent(
     typeof navigator === 'undefined' ? undefined : navigator.userAgent,
   )
-  const isTemplateDesign = context === 'templateDesign'
+  const capabilities = editorToolbarContextCapabilities(context)
   const primaryInsert = editorToolbarPrimaryInsertAction(context)
-  const primaryFieldKind = primaryInsert.fieldKind
-  const handlePrimaryInsert =
-    primaryFieldKind && onAddFormField
-      ? () => onAddFormField(primaryFieldKind)
-      : onAddText
 
   return (
     <div
@@ -112,116 +92,30 @@ export function EditorToolbar({
       aria-label="Barra de herramientas de edición del PDF"
       className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-ink-100/70 bg-paper-100/65 px-2 py-1 shadow-sm shadow-ink-900/5 shrink-0"
     >
-      <ToolbarGroup label="Herramientas">
-        <Hint content={primaryInsert.hint}>
-          <IconButton
-            onClick={handlePrimaryInsert}
-            label={primaryInsert.label}
-            className={primaryAction}
-          >
-            <TextIcon size={14} />
-          </IconButton>
-        </Hint>
-        <div className={segGroup}>
-          <Hint content="Seleccionar y mover">
-            <IconButton
-              onClick={() => onToolChange('select')}
-              className={segBtnTool(tool === 'select')}
-              label="Herramienta seleccionar"
-              aria-pressed={tool === 'select'}
-            >
-              <CursorIcon size={14} />
-            </IconButton>
-          </Hint>
-          {!isTemplateDesign ? (
-            <Hint content="Marcar redacción segura">
-              <IconButton
-                onClick={() => onToolChange('redact')}
-                className={segBtnTool(tool === 'redact')}
-                label="Herramienta redactar"
-                aria-pressed={tool === 'redact'}
-              >
-                <ShieldIcon size={14} />
-              </IconButton>
-            </Hint>
-          ) : null}
-          {!isTemplateDesign ? (
-            <Hint content="Resaltar texto">
-              <IconButton
-                onClick={() => onToolChange('highlight')}
-                className={segBtnTool(tool === 'highlight')}
-                label="Herramienta Resaltar"
-                aria-pressed={tool === 'highlight'}
-              >
-                <HighlighterIcon size={14} />
-              </IconButton>
-            </Hint>
-          ) : null}
-        </div>
-        {!isTemplateDesign ? (
-          <EditorToolbarShapesMenu tool={tool} onToolChange={onToolChange} />
-        ) : null}
-        <Hint content="Marcar casilleros con una X · clic en la X la activa o desactiva">
-          <IconButton
-            onClick={() => onToolChange('x')}
-            className={segBtnTool(tool === 'x')}
-            label="Herramienta marca X para casilleros"
-            aria-pressed={tool === 'x'}
-          >
-            <svg
-              width={14}
-              height={14}
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden="true"
-            >
-              <rect
-                x={2.25}
-                y={2.25}
-                width={11.5}
-                height={11.5}
-                rx={2.5}
-                stroke="currentColor"
-                strokeWidth={1.4}
-              />
-              <path
-                d="M5.5 5.5l5 5M10.5 5.5l-5 5"
-                stroke="currentColor"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-              />
-            </svg>
-          </IconButton>
-        </Hint>
-        {tool === 'x' ? (
-          <EditorToolbarXMenu
-            xMarkSize={xMarkSize}
-            onXMarkSizeChange={onXMarkSizeChange}
-            xMarkStroke={xMarkStroke}
-            onXMarkStrokeChange={onXMarkStrokeChange}
-          />
-        ) : null}
-      </ToolbarGroup>
+      <EditorToolbarToolsGroup
+        canShowPdfMarkupTools={capabilities.canShowPdfMarkupTools}
+        canShowShapeTools={capabilities.canShowShapeTools}
+        onAddText={onAddText}
+        onAddFormField={onAddFormField}
+        onToolChange={onToolChange}
+        primaryFieldKind={primaryInsert.fieldKind}
+        primaryHint={primaryInsert.hint}
+        primaryLabel={primaryInsert.label}
+        tool={tool}
+        xMarkSize={xMarkSize}
+        xMarkStroke={xMarkStroke}
+        onXMarkSizeChange={onXMarkSizeChange}
+        onXMarkStrokeChange={onXMarkStrokeChange}
+      />
 
-      <ToolbarGroup label="Insertar">
-        {!isTemplateDesign ? stampAssetMenu : null}
-        {!isTemplateDesign ? (
-          <Hint content="Estampar una imagen sobre la página">
-            <IconButton
-              onClick={onAddImage}
-              label="Estampar imagen"
-              className={primaryAction}
-            >
-              <CameraIcon size={14} />
-            </IconButton>
-          </Hint>
-        ) : null}
-        <EditorToolbarFormMenu
-          onAddFormField={onAddFormField}
-          onInspectForms={onInspectForms}
-          onSuggestFormFields={onSuggestFormFields}
-        />
-      </ToolbarGroup>
+      <EditorToolbarInsertGroup
+        canStampImage={capabilities.canStampImage}
+        onAddImage={onAddImage}
+        onAddFormField={onAddFormField}
+        onInspectForms={onInspectForms}
+        onSuggestFormFields={onSuggestFormFields}
+        stampAssetMenu={stampAssetMenu}
+      />
 
       <ToolbarGroup label="Estilo">
         <EditorToolbarStyleMenu
@@ -235,40 +129,14 @@ export function EditorToolbar({
           onApplyStyle={onApplyStyle}
         />
       </ToolbarGroup>
-      <ToolbarGroup label="Objeto">
-        <Hint
-          content={
-            hasDuplicableSelection
-              ? pdfCommandTooltip('duplicateAnnotation', isMac)
-              : 'Selecciona una anotación para duplicarla'
-          }
-        >
-          <IconButton
-            onClick={onDuplicate}
-            label={duplicateLabel}
-            disabled={!hasDuplicableSelection}
-            className={objectAction}
-          >
-            <DuplicateIcon size={14} />
-          </IconButton>
-        </Hint>
-        <Hint
-          content={
-            hasSelection
-              ? pdfCommandTooltip('deleteAnnotation', isMac)
-              : 'Selecciona una anotación para eliminarla'
-          }
-        >
-          <IconButton
-            onClick={onDelete}
-            label="Eliminar"
-            disabled={!hasSelection}
-            className={`${objectAction} hover:text-[color:var(--accent-clay)]`}
-          >
-            <TrashIcon size={14} />
-          </IconButton>
-        </Hint>
-      </ToolbarGroup>
+      <EditorToolbarObjectGroup
+        duplicateLabel={duplicateLabel}
+        hasDuplicableSelection={hasDuplicableSelection}
+        hasSelection={hasSelection}
+        isMac={isMac}
+        onDelete={onDelete}
+        onDuplicate={onDuplicate}
+      />
       <ToolbarGroup label="Vista" grow>
         <EditorToolbarZoomControl
           zoom={zoom}
