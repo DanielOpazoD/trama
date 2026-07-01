@@ -32,3 +32,37 @@ export function pdfStudioTextEditorMode(
 ): 'fill' | 'edit' {
   return templateMode === 'fill' ? 'fill' : 'edit'
 }
+
+export function derivePdfStudioViewLayoutState({
+  doc,
+  saved,
+  selectedCount,
+  selectedIndices,
+  templateMode,
+  templatesEnabled,
+}: {
+  doc: PdfDoc
+  saved: SavedDoc[]
+  selectedCount: number
+  selectedIndices: number[]
+  templateMode: PdfTemplateMode | null
+  templatesEnabled: boolean
+}) {
+  const total = doc.pages.length
+  const empty = total === 0
+  const hasVisibleSaved = pdfStudioHasVisibleSaved({ saved, templatesEnabled })
+
+  return {
+    canCropSelectedPage: canCropPdfStudioSelection({
+      doc,
+      selectedCount,
+      selectedIndices,
+    }),
+    canSaveTemplate: templatesEnabled && !empty && isPdfTemplate(doc),
+    empty,
+    hasVisibleSaved,
+    showEditBar: !empty && templateMode !== 'fill',
+    showPanel: !empty || hasVisibleSaved,
+    total,
+  }
+}

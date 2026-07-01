@@ -37,7 +37,7 @@ import { usePdfStudioExternalFiles } from './shell/usePdfStudioExternalFiles'
 import { usePdfStudioKeyboardRefs } from './shell/usePdfStudioKeyboardRefs'
 import { useToast } from '../../../state'
 import { usePdfStudioTemplateSaveAction } from './shell/usePdfStudioTemplateSaveAction'
-import { canCropPdfStudioSelection, pdfStudioHasVisibleSaved } from './PdfStudioViewModel'
+import { derivePdfStudioViewLayoutState } from './PdfStudioViewModel'
 
 export type PdfStudioMode = 'editor' | 'templates'
 type PdfStudioViewProps = {
@@ -152,8 +152,15 @@ export function PdfStudioView({
     selectedIndices,
     userKey: workspace.userKey,
   })
-  const total = doc.pages.length,
-    empty = total === 0
+  const { canCropSelectedPage, canSaveTemplate, empty, showEditBar, showPanel, total } =
+    derivePdfStudioViewLayoutState({
+      doc,
+      saved: workspace.saved,
+      selectedCount,
+      selectedIndices,
+      templateMode: effectiveTemplateMode,
+      templatesEnabled,
+    })
   const openTextEditor = usePdfTextEditorLoader(!empty, setTextPage)
   useEffect(() => () => disposePdfStudio(), [])
   usePdfStudioPageKeyboard({
@@ -192,17 +199,7 @@ export function PdfStudioView({
   const preflightReport = buildPdfStudioPreflight(doc, { action: 'export' })
   const undoable = canUndo(history)
   const redoable = canRedo(history)
-  const hasVisibleSaved = pdfStudioHasVisibleSaved({
-    saved: workspace.saved,
-    templatesEnabled,
-  })
-  const canCropSelectedPage = canCropPdfStudioSelection({
-    doc,
-    selectedCount,
-    selectedIndices,
-  })
-  const showPanel = !empty || hasVisibleSaved
-  const editBar = !empty && effectiveTemplateMode !== 'fill' && (
+  const editBar = showEditBar && (
     <BulkBar
       context={templatesEnabled ? 'templates' : 'editor'}
       count={selectedCount}
@@ -236,7 +233,7 @@ export function PdfStudioView({
         saved={workspace.saved}
         templatesEnabled={templatesEnabled}
         canSave={!empty}
-        canSaveTemplate={templatesEnabled && !empty && isPdfTemplate(doc)}
+        canSaveTemplate={canSaveTemplate}
         suggestedSaveName={doc.title}
         collapsed={workspace.panelCollapsed}
         onCreateFolder={workspace.createFolder}
@@ -284,7 +281,7 @@ export function PdfStudioView({
               updateTitle={updateTitle}
               toolbarProps={{
                 busy,
-                canSaveTemplate: templatesEnabled && !empty && isPdfTemplate(doc),
+                canSaveTemplate,
                 empty,
                 exportStatus,
                 exportCompression,
