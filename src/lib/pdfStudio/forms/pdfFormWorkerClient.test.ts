@@ -117,6 +117,24 @@ describe('pdfStudio/pdfFormWorkerClient', () => {
     expect(mocks.inspectPdfForm).toHaveBeenCalledTimes(1)
   })
 
+  it('pasa el signal al fallback local de formularios', async () => {
+    const controller = new AbortController()
+    mocks.inspectPdfForm.mockResolvedValueOnce({ fieldCount: 1, fields: [] })
+    mocks.runPdfHeavyOperation.mockImplementationOnce(({ fallback }) => fallback())
+    const file = pdf()
+
+    await expect(
+      inspectPdfFormInWorker(file, { signal: controller.signal }),
+    ).resolves.toEqual({
+      fieldCount: 1,
+      fields: [],
+    })
+
+    expect(mocks.inspectPdfForm).toHaveBeenCalledWith(file, {
+      signal: controller.signal,
+    })
+  })
+
   it('usa fallback local al escribir campos si el worker no está disponible', async () => {
     const blob = new Blob(['pdf'], { type: 'application/pdf' })
     mocks.writePdfFormFields.mockResolvedValueOnce({ blob })

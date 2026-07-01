@@ -4,21 +4,12 @@ import {
   type PdfExportWorkerPayload,
   type PdfExportWorkerProgress,
 } from './exportWorkerContract'
+import { createPdfHeavyWorker } from './pdfHeavyWorkerClient'
 import { requestReloadForStaleAsset, staleAssetError } from '../../staleAssetRecovery'
 import type { PdfDoc } from '../model/model'
 
 type AssembleOptions = import('../assemble/assemble').AssembleOptions
 type AssembleResult = import('../assemble/assemble').AssembleResult
-
-function createPdfExportWorker(): Worker {
-  if (typeof Worker === 'undefined') {
-    throw new Error('Worker API unavailable')
-  }
-  return new Worker(new URL('./pdfExport.worker.ts', import.meta.url), {
-    type: 'module',
-    name: 'pdf-export-worker',
-  })
-}
 
 export function assemblePdfInWorker(
   doc: PdfDoc,
@@ -38,7 +29,7 @@ export function assemblePdfInWorker(
   >({
     kind: PDF_EXPORT_OPERATION_KIND,
     payload,
-    createWorker: createPdfExportWorker,
+    createWorker: createPdfHeavyWorker,
     signal: options.signal,
     onProgress: options.onProgress,
   }).catch((err: unknown) => {

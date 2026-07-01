@@ -4,19 +4,10 @@ import {
   type PdfOcrWorkerPayload,
   type PdfOcrWorkerProgress,
 } from './pdfOcrWorkerContract'
+import { createPdfHeavyWorker } from '../export/pdfHeavyWorkerClient'
 
 type PdfOcrOptions = import('./pdfOcr').PdfOcrOptions
 type PdfOcrResult = import('./pdfOcr').PdfOcrResult
-
-function createPdfOcrWorker(): Worker {
-  if (typeof Worker === 'undefined') {
-    throw new Error('Worker API unavailable')
-  }
-  return new Worker(new URL('./pdfOcr.worker.ts', import.meta.url), {
-    type: 'module',
-    name: 'pdf-ocr-worker',
-  })
-}
 
 export function createSearchablePdfInWorker(
   file: File,
@@ -30,7 +21,7 @@ export function createSearchablePdfInWorker(
         language: options.language,
       },
     },
-    createWorker: createPdfOcrWorker,
+    createWorker: createPdfHeavyWorker,
     signal: options.signal,
     onProgress: options.onProgress,
     fallback: () =>

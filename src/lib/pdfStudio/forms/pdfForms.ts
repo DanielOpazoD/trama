@@ -51,10 +51,19 @@ export type PdfFormFillResult = {
   blob: Blob
 }
 
+export type PdfFormOperationOptions = {
+  signal?: AbortSignal
+}
+
 type PdfForm = ReturnType<PDFDocument['getForm']>
 type PdfField = ReturnType<PdfForm['getFields']>[number]
 type PdfWidget = ReturnType<PdfField['acroField']['getWidgets']>[number]
 type PdfFormsRuntime = Awaited<ReturnType<typeof loadPdfLib>>
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (!signal?.aborted) return
+  throw Object.assign(new Error('Operación cancelada.'), { code: 'CANCELLED' })
+}
 
 function pageIndexForWidget(pdf: PDFDocument, form: PdfForm, widget: PdfWidget) {
   try {
@@ -155,25 +164,38 @@ function fieldInfo(
   return { ...base, type: 'unknown' as const, value: null }
 }
 
-async function loadPdf(file: File): Promise<{
+async function loadPdf(
+  file: File,
+  options: PdfFormOperationOptions = {},
+): Promise<{
   pdf: PDFDocument
   runtime: PdfFormsRuntime
 }> {
+  throwIfAborted(options.signal)
   const runtime = await loadPdfLib()
-  const pdf = await runtime.PDFDocument.load(await file.arrayBuffer(), {
+  throwIfAborted(options.signal)
+  const buffer = await file.arrayBuffer()
+  throwIfAborted(options.signal)
+  const pdf = await runtime.PDFDocument.load(buffer, {
     ignoreEncryption: true,
   })
+  throwIfAborted(options.signal)
   return { pdf, runtime }
 }
 
-export async function inspectPdfForm(file: File): Promise<PdfFormInspection> {
-  const { pdf, runtime } = await loadPdf(file)
+export async function inspectPdfForm(
+  file: File,
+  options: PdfFormOperationOptions = {},
+): Promise<PdfFormInspection> {
+  const { pdf, runtime } = await loadPdf(file, options)
+  throwIfAborted(options.signal)
   const form = pdf.getForm()
   const fields = pdf
     .getForm()
     .getFields()
     .map((field) => fieldInfo(pdf, form, field, runtime))
     .sort((a, b) => a.name.localeCompare(b.name))
+  throwIfAborted(options.signal)
   return {
     fieldCount: fields.length,
     fields,
@@ -184,12 +206,14 @@ export async function fillPdfForm(
   file: File,
   values: PdfFormFillValues,
   options: PdfFormFillOptions = {},
+  operationOptions: PdfFormOperationOptions = {},
 ): Promise<PdfFormFillResult> {
-  const { pdf, runtime } = await loadPdf(file)
+  const { pdf, runtime } = await loadPdf(file, operationOptions)
   const { PDFCheckBox, PDFDropdown, PDFRadioGroup, PDFTextField } = runtime
   const form = pdf.getForm()
 
   for (const [name, rawValue] of Object.entries(values)) {
+    throwIfAborted(operationOptions.signal)
     if (rawValue == null) continue
     const field = form.getFieldMaybe(name)
     if (!field) continue
@@ -204,10 +228,13 @@ export async function fillPdfForm(
   }
 
   if (options.flatten) {
+    throwIfAborted(operationOptions.signal)
     form.flatten()
   }
 
+  throwIfAborted(operationOptions.signal)
   const bytes = await pdf.save({ useObjectStreams: true })
+  throwIfAborted(operationOptions.signal)
   return {
     blob: new Blob([bytes as BlobPart], { type: 'application/pdf' }),
   }
@@ -286,7 +313,9 @@ function applyFlags(
 async function embedSignatureImage(
   pdf: PDFDocument,
   value: PdfFormFieldDraft['value'],
+  options: PdfFormOperationOptions = {},
 ): Promise<PDFImage | null> {
+  throwIfAborted(options.signal)
   const src = stringValue(value).trim()
   if (!src) return null
 
@@ -302,14 +331,17 @@ async function embedSignatureImage(
     })
   }
 
+  let image: PDFImage
   try {
-    return isPngBytes(bytes) ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes)
+    image = isPngBytes(bytes) ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes)
   } catch (cause) {
     throw Object.assign(new Error('No se pudo embeber la imagen de firma'), {
       code: 'PDF_FORM_SIGNATURE_IMAGE_INVALID',
       cause,
     })
   }
+  throwIfAborted(options.signal)
+  return image
 }
 
 export async function writePdfFormFields(
@@ -317,14 +349,17 @@ export async function writePdfFormFields(
   fields: PdfFormFieldDraft[],
   pageIds: string[],
   options: PdfFormFillOptions = {},
+  operationOptions: PdfFormOperationOptions = {},
 ): Promise<PdfFormFillResult> {
-  const { pdf, runtime } = await loadPdf(file)
+  const { pdf, runtime } = await loadPdf(file, operationOptions)
   const form = pdf.getForm()
   const font = await pdf.embedFont(runtime.StandardFonts.Helvetica)
+  throwIfAborted(operationOptions.signal)
   const existingNames = new Set(form.getFields().map((field) => field.getName()))
   const writtenNames = new Set<string>()
 
   for (const draft of fields) {
+    throwIfAborted(operationOptions.signal)
     if (existingNames.has(draft.name) || writtenNames.has(draft.name)) {
       throw Object.assign(new Error(`Campo duplicado: ${draft.name}`), {
         code: 'PDF_FORM_DUPLICATE_FIELD',
@@ -356,7 +391,7 @@ export async function writePdfFormFields(
       const field = form.createButton(draft.name)
       applyFlags(field, draft)
       field.addToPage('', page, { ...rect, font })
-      const image = await embedSignatureImage(pdf, draft.value)
+      const image = await embedSignatureImage(pdf, draft.value, operationOptions)
       if (image) field.setImage(image)
       clearWidgetChrome(field, runtime)
     } else {
@@ -371,10 +406,13 @@ export async function writePdfFormFields(
   }
 
   if (options.flatten) {
+    throwIfAborted(operationOptions.signal)
     form.flatten()
   }
 
+  throwIfAborted(operationOptions.signal)
   const bytes = await pdf.save({ useObjectStreams: true })
+  throwIfAborted(operationOptions.signal)
   return {
     blob: new Blob([bytes as BlobPart], { type: 'application/pdf' }),
   }

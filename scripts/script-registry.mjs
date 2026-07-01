@@ -441,6 +441,14 @@ const SCRIPT_ENTRIES = [
       'Fuente ejecutable de entrypoints PDF, familias de payload y duplicados aceptados.',
   },
   {
+    file: 'scripts/pdf-runtime-inventory.mjs',
+    domain: 'pdf',
+    kind: 'support',
+    critical: false,
+    packageScripts: ['pdf:runtime-inventory'],
+    summary: 'Inventaria imports PDF runtime/type/test y consumo de loaders compartidos.',
+  },
+  {
     file: 'scripts/pdf-lazy-entrypoints.mjs',
     domain: 'pdf',
     kind: 'check',
