@@ -1,12 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import {
-  getSource,
-  pageThumbKey,
-  type PdfDoc,
-  type PdfPage,
-} from '../../../../lib/pdfStudio/model/model'
+import { useRef } from 'react'
 import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
-import { renderPageThumb } from '../../../../lib/pdfStudio/render/pdfRender'
 import {
   DownloadIcon,
   DuplicateIcon,
@@ -15,65 +8,14 @@ import {
   TrashIcon,
 } from '../../../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
+import { WorkspaceTemplateThumb } from './WorkspaceTemplateThumb'
+import {
+  workspaceTemplateFieldCountLabel,
+  workspaceTemplateSavedAtLabel,
+} from './workspaceTemplateCardModel'
 
 const rowBtn =
   'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
-
-function TemplateThumb({ doc }: { doc: PdfDoc }) {
-  const page = doc.pages[0]
-  const source = page ? getSource(doc, page.sourceId) : undefined
-  const [url, setUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!page || !source) return
-    let alive = true
-    if (page.kind === 'image') {
-      const u = URL.createObjectURL(source.file)
-      setUrl(u)
-      return () => {
-        alive = false
-        URL.revokeObjectURL(u)
-      }
-    }
-    setUrl(null)
-    renderPdfTemplateThumb(source.file, page)
-      .then((u) => {
-        if (alive) setUrl(u)
-      })
-      .catch(() => {})
-    return () => {
-      alive = false
-    }
-  }, [page, source])
-
-  return url ? (
-    <img
-      src={url}
-      alt=""
-      className="h-full w-full object-contain p-1"
-      draggable={false}
-    />
-  ) : (
-    <FilePdfIcon size={14} />
-  )
-}
-
-function renderPdfTemplateThumb(file: File, page: PdfPage): Promise<string> {
-  return page.kind === 'pdf'
-    ? renderPageThumb(file, page.pageIndex, pageThumbKey(page))
-    : Promise.reject(new Error('La página no es PDF'))
-}
-
-function dateLabel(ms: number): string {
-  const d = new Date(ms)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getDate()}/${d.getMonth() + 1} ${p(d.getHours())}:${p(d.getMinutes())}`
-}
-
-function fieldCountLabel(doc: PdfDoc) {
-  const count = doc.formFields?.length ?? 0
-  return `${count} ${count === 1 ? 'campo' : 'campos'}`
-}
 
 export function WorkspaceTemplateCard({
   saved,
@@ -134,7 +76,7 @@ export function WorkspaceTemplateCard({
       ) : (
         <div className="flex gap-2">
           <div className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-ink-100 bg-gradient-to-b from-paper-50 to-ink-50 text-ink-300">
-            <TemplateThumb doc={saved.doc} />
+            <WorkspaceTemplateThumb doc={saved.doc} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-1">
@@ -143,9 +85,9 @@ export function WorkspaceTemplateCard({
                   {saved.name}
                 </span>
                 <span className="block text-micro text-ink-400 tabular-nums">
-                  {fieldCountLabel(saved.doc)} · {saved.doc.pages.length}{' '}
+                  {workspaceTemplateFieldCountLabel(saved.doc)} · {saved.doc.pages.length}{' '}
                   {saved.doc.pages.length === 1 ? 'hoja' : 'hojas'} ·{' '}
-                  {dateLabel(saved.savedAt)}
+                  {workspaceTemplateSavedAtLabel(saved.savedAt)}
                 </span>
               </div>
               <OverflowMenu
