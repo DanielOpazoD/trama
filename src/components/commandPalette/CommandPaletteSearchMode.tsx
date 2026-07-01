@@ -1,7 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { Item } from '../../hooks/useCommandSearch'
 import { ItemRow, PeekPanel } from '../CommandPaletteItems'
-import { commandPaletteItemKey } from './commandPaletteModel'
+import {
+  commandPaletteItemKey,
+  describeCommandPaletteEmptyState,
+} from './commandPaletteModel'
 
 export function CommandPaletteSearchMode({
   items,
@@ -28,7 +31,7 @@ export function CommandPaletteSearchMode({
         <ul className="max-h-[50vh] overflow-y-auto flex-1 min-w-0">
           {items.length === 0 && (
             <li className="px-5 py-6 text-ink-400 italic text-sm text-center">
-              {running ? 'consultando…' : searching ? 'buscando…' : 'nada coincide'}
+              {describeCommandPaletteEmptyState({ query, running, searching })}
             </li>
           )}
           {items.map((item, idx) => (

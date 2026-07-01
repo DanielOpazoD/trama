@@ -21,8 +21,23 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 390,
+    maxLines: 386,
     files: ['src/components/CommandPalette.tsx'],
+  },
+  {
+    group: 'command-palette-search',
+    maxLines: 120,
+    files: ['src/hooks/useCommandSearch.ts'],
+  },
+  {
+    group: 'command-palette-search',
+    maxLines: 520,
+    files: ['src/hooks/commandSearchModel.ts'],
+  },
+  {
+    group: 'command-palette-search',
+    maxLines: 65,
+    files: ['src/hooks/useCommandServerSearch.ts'],
   },
   {
     group: 'app-shell-components',

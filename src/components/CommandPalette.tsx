@@ -15,6 +15,7 @@ import {
   getCommandPaletteActiveLength,
   type CommandPaletteMode,
 } from './commandPalette/commandPaletteModel'
+import { useCommandPaletteKeyboard } from './commandPalette/useCommandPaletteKeyboard'
 
 // El modo "resultados" (motor de consultas) se carga on-demand: el camino
 // común buscar/navegar no necesita su código, así el bundle del palette no
@@ -130,6 +131,11 @@ export function CommandPalette({
   }, [mode, onClose])
 
   const overlay = useModalOverlay({ open, onClose: handleEscape })
+  const activeLen = getCommandPaletteActiveLength({
+    mode,
+    itemCount: items.length,
+    hitCount: results?.hits.length ?? 0,
+  })
 
   const runAst = useCallback(
     (queryInput: QueryInput, heading: string) => {
@@ -247,38 +253,17 @@ export function CommandPalette({
     ],
   )
 
-  useEffect(() => {
-    if (!open) return
-    // La lista activa para arrows/Enter depende del modo: items de búsqueda o
-    // hits de resultados.
-    const activeLen = getCommandPaletteActiveLength({
-      mode,
-      itemCount: items.length,
-      hitCount: results?.hits.length ?? 0,
-    })
-    // Escape lo maneja useModalOverlay (ver handleEscape). Acá solo navegación
-    // por teclado: flechas para mover el resaltado y Enter para seleccionar.
-    function handler(e: KeyboardEvent) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault()
-        setFocusIdx((i) => Math.min(activeLen - 1, i + 1))
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault()
-        setFocusIdx((i) => Math.max(0, i - 1))
-      } else if (e.key === 'Enter') {
-        e.preventDefault()
-        if (mode === 'results') {
-          const hit = results?.hits[focusIdx]
-          if (hit) selectHit(hit)
-        } else {
-          const item = items[focusIdx]
-          if (item) selectItem(item)
-        }
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [open, items, focusIdx, selectItem, mode, results, selectHit])
+  useCommandPaletteKeyboard({
+    open,
+    activeLen,
+    focusIdx,
+    setFocusIdx,
+    mode,
+    items,
+    results,
+    selectItem,
+    selectHit,
+  })
 
   if (!open) return null
 

@@ -14,6 +14,31 @@ export function getCommandPaletteActiveLength({
   return mode === 'results' ? hitCount : itemCount
 }
 
+export function clampCommandPaletteFocusIndex({
+  focusIdx,
+  activeLen,
+}: {
+  focusIdx: number
+  activeLen: number
+}): number {
+  if (activeLen <= 0) return 0
+  return Math.min(activeLen - 1, Math.max(0, focusIdx))
+}
+
+export function describeCommandPaletteEmptyState({
+  query,
+  running,
+  searching,
+}: {
+  query: string
+  running: boolean
+  searching: boolean
+}): string {
+  if (running) return 'consultando tu trama…'
+  if (searching) return 'buscando en tu trama…'
+  return query.trim() ? 'nada coincide' : 'empieza a escribir para buscar'
+}
+
 export function commandPaletteItemKey(item: Item): string {
   if (item.kind === 'view') return item.view
   if (item.kind === 'action') return item.action
