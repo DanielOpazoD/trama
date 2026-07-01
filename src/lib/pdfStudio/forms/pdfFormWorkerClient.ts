@@ -5,21 +5,12 @@ import {
   type PdfFormWorkerPayload,
   type PdfFormWorkerProgress,
 } from './pdfFormWorkerContract'
+import { createPdfHeavyWorker } from '../export/pdfHeavyWorkerClient'
 
 type PdfFormFillOptions = import('./pdfForms').PdfFormFillOptions
 type PdfFormFillResult = import('./pdfForms').PdfFormFillResult
 type PdfFormFillValues = import('./pdfForms').PdfFormFillValues
 type PdfFormInspection = import('./pdfForms').PdfFormInspection
-
-function createPdfFormWorker(): Worker {
-  if (typeof Worker === 'undefined') {
-    throw new Error('Worker API unavailable')
-  }
-  return new Worker(new URL('./pdfForm.worker.ts', import.meta.url), {
-    type: 'module',
-    name: 'pdf-form-worker',
-  })
-}
 
 export function inspectPdfFormInWorker(
   file: File,
@@ -35,7 +26,7 @@ export function inspectPdfFormInWorker(
   >({
     kind: PDF_FORM_OPERATION_KIND,
     payload: { action: 'inspect', file },
-    createWorker: createPdfFormWorker,
+    createWorker: createPdfHeavyWorker,
     signal: options.signal,
     onProgress: options.onProgress,
     fallback: () =>
@@ -64,7 +55,7 @@ export function fillPdfFormInWorker(
       values,
       options: fillOptions,
     },
-    createWorker: createPdfFormWorker,
+    createWorker: createPdfHeavyWorker,
     signal: options.signal,
     onProgress: options.onProgress,
     fallback: () =>
@@ -97,7 +88,7 @@ export function writePdfFormFieldsInWorker(
       pageIds,
       options: fillOptions,
     },
-    createWorker: createPdfFormWorker,
+    createWorker: createPdfHeavyWorker,
     signal: options.signal,
     onProgress: options.onProgress,
     fallback: () =>
