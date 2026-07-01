@@ -48,6 +48,10 @@ function stubTasksFetch(rows: unknown[] = []) {
         }),
       )
     }
+    if (url.startsWith('/api/tasks/') && method === 'PATCH') {
+      const body = JSON.parse(String(init?.body))
+      return jsonResponse(taskRow({ id: url.split('/').pop(), ...body }))
+    }
     if (url.startsWith('/api/month-notes?')) {
       const params = new URLSearchParams(url.split('?')[1])
       return jsonResponse({
@@ -109,6 +113,77 @@ describe('<TareasView />', () => {
 
     expect(firstWeek).not.toBeNull()
     expect(within(firstWeek as HTMLElement).getByText('Esta semana')).toBeInTheDocument()
+  })
+
+  it('arrastra pendientes no resueltos al primer cuadro cuando se navega a un mes futuro', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const fetchMock = stubTasksFetch([
+      taskRow({
+        id: 'carry-june',
+        title: 'Renovar permiso',
+        week_start: '2026-06-01',
+        created_at: '2026-06-01T10:00:00.000Z',
+      }),
+    ])
+
+    renderWithProviders(<TareasView />)
+
+    expect(await screen.findByText('Renovar permiso')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /mes jul/i }))
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) =>
+          String(url).includes(
+            '/api/tasks?weekFrom=2026-07-06&weekTo=2026-07-27&carryBefore=2026-07-06',
+          ),
+        ),
+      ).toBe(true),
+    )
+
+    const julyWeek = await screen.findByText('6 – 12 de julio')
+    const julyArticle = julyWeek.closest('article')
+    expect(julyArticle).not.toBeNull()
+    expect(
+      within(julyArticle as HTMLElement).getByText('Renovar permiso'),
+    ).toBeInTheDocument()
+  })
+
+  it('al completar un pendiente heredado en mes futuro lo fija en la semana visible', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const fetchMock = stubTasksFetch([
+      taskRow({
+        id: 'carry-june',
+        title: 'Renovar permiso',
+        week_start: '2026-06-01',
+      }),
+    ])
+
+    renderWithProviders(<TareasView />)
+
+    await screen.findByText('Renovar permiso')
+    await user.click(screen.getByRole('button', { name: /mes jul/i }))
+    const julyWeek = await screen.findByText('6 – 12 de julio')
+    const julyArticle = julyWeek.closest('article')
+    expect(julyArticle).not.toBeNull()
+
+    await user.click(
+      within(julyArticle as HTMLElement).getByRole('checkbox', {
+        name: /marcar como hecha/i,
+      }),
+    )
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url, init]) => {
+          if (String(url) !== '/api/tasks/carry-june' || init?.method !== 'PATCH') {
+            return false
+          }
+          return String(init.body).includes('"weekStart":"2026-07-06"')
+        }),
+      ).toBe(true),
+    )
   })
 
   it('cada cuadro semanal tiene pestañas Trabajo / Personal (Trabajo por defecto)', async () => {

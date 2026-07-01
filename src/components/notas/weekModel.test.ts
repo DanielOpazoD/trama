@@ -11,6 +11,7 @@ import {
   filterByCategory,
   countPendingByCategory,
   DEFAULT_CATEGORY,
+  rolloverAnchorForVisibleWeeks,
 } from './weekModel'
 
 const TODAY_WEEK = '2026-06-01' // lunes
@@ -63,6 +64,44 @@ describe('weekModel', () => {
       expect(
         effectiveWeek(makeTask({ id: 'd', weekStart: '2026-06-08' }), TODAY_WEEK),
       ).toBe('2026-06-08')
+    })
+  })
+
+  describe('rolloverAnchorForVisibleWeeks', () => {
+    it('usa la semana actual cuando el mes visible la contiene', () => {
+      expect(
+        rolloverAnchorForVisibleWeeks(
+          ['2026-06-01', '2026-06-08', '2026-06-15'],
+          '2026-06-08',
+        ),
+      ).toBe('2026-06-08')
+    })
+
+    it('arrastra pendientes al primer lunes del mes futuro visible', () => {
+      expect(
+        rolloverAnchorForVisibleWeeks(
+          ['2026-07-06', '2026-07-13', '2026-07-20', '2026-07-27'],
+          '2026-06-08',
+        ),
+      ).toBe('2026-07-06')
+    })
+
+    it('mantiene el arrastre al avanzar a otro año', () => {
+      expect(
+        rolloverAnchorForVisibleWeeks(
+          ['2027-01-04', '2027-01-11', '2027-01-18', '2027-01-25'],
+          '2026-12-28',
+        ),
+      ).toBe('2027-01-04')
+    })
+
+    it('no reinyecta pendientes hacia meses ya pasados', () => {
+      expect(
+        rolloverAnchorForVisibleWeeks(
+          ['2026-05-04', '2026-05-11', '2026-05-18', '2026-05-25'],
+          '2026-06-08',
+        ),
+      ).toBeNull()
     })
   })
 

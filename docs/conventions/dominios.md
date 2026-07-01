@@ -109,9 +109,9 @@ Tareas son recordatorios livianos del mundo Notas agrupados por **semana**: cada
 - `groupTasksByWeek`, `splitByStatus(items, sortMode)`, `sortPending`, `pendingMonthsForYear`.
 - `taskCategory(t)`, `filterByCategory(items, cat)`, `countPendingByCategory(items)` + `DEFAULT_CATEGORY`.
 
-**Arrastre (carry-over):** un pendiente NO completado de una semana anterior se muestra en la semana actual (`effectiveWeek`); las hechas quedan en su semana. Al completar un arrastrado se fija `weekStart = semana actual` (queda registrado como hecho esta semana, no en la vieja). Esa decisión vive en `TareasView` (`onToggle`).
+**Arrastre (carry-over):** un pendiente NO completado de una semana anterior se muestra en el anchor visible (`effectiveWeek`): semana actual si está visible, primer lunes del mes/año futuro si se navega hacia adelante, y nada extra cuando se mira historial. Las hechas quedan en su semana. Al completar un arrastrado se fija `weekStart = semana del cuadro visible` (queda registrado como hecho donde se resolvió, no en la vieja). Esa decisión vive en `TareasView` (`onToggle`) y el cálculo del anchor en `rolloverAnchorForVisibleWeeks`.
 
-**Carga por rango, no todo:** `useTasksRange({ weekFrom, weekTo, carryBefore })` trae solo el mes visible + los pendientes que se arrastran (`carryBefore` = semana actual cuando el mes navegado es el corriente). Los puntos del navegador usan `usePendingTasks()` (lista liviana de solo-pendientes). Nunca cargar la tabla entera para pintar un mes.
+**Carga por rango, no todo:** `useTasksRange({ weekFrom, weekTo, carryBefore })` trae solo el mes visible + los pendientes que se arrastran (`carryBefore` = anchor visible calculado por `rolloverAnchorForVisibleWeeks`). Los puntos del navegador usan `usePendingTasks()` (lista liviana de solo-pendientes). Nunca cargar la tabla entera para pintar un mes.
 
 **Categoría (pestañas Trabajo / Personal):** columna `category ∈ {trabajo, personal}`, `DEFAULT 'trabajo'` — las tareas antiguas (anteriores a la columna) quedan en Trabajo sin tocar nada. Cada cuadro recuerda su pestaña activa; la inactiva muestra un contador tenue de pendientes. El literal `'trabajo'` vive en UN solo lugar (`DEFAULT_CATEGORY`): usá `taskCategory()`/`filterByCategory()`, no el fallback suelto.
 

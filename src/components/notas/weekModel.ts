@@ -26,6 +26,26 @@ export function effectiveWeek(task: Task, todayWeek: string): string {
   return !task.done && wk < todayWeek ? todayWeek : wk
 }
 
+/** Semana visible que debe recibir los pendientes antiguos.
+ *
+ * - Mes actual: la semana actual.
+ * - Mes futuro: el primer lunes visible de ese mes/año.
+ * - Mes pasado: null, para no reinyectar pendientes hacia el historial.
+ */
+export function rolloverAnchorForVisibleWeeks(
+  weekKeys: string[],
+  todayWeek: string,
+): string | null {
+  if (weekKeys.length === 0) return null
+  const ordered = [...weekKeys].sort()
+  const first = ordered[0]!
+  const last = ordered[ordered.length - 1]!
+
+  if (todayWeek < first) return first
+  if (todayWeek <= last) return todayWeek
+  return null
+}
+
 /** Orden de pendientes: prioridad (alta→media→baja), luego más recientes. */
 export function byPriorityThenRecency(a: Task, b: Task): number {
   return (
