@@ -110,9 +110,9 @@ export function PdfTextEditorPageFormLayer({
       onDetectedValueChange={onDetectedValueChange}
       onDraftValueChange={onDraftValueChange}
       onDraftFocus={onDraftFocus}
-      onSelectDraft={(id) => {
+      onSelectDraft={(id, additive) => {
         onActivate(pageIndex)
-        onSelectDraft(id)
+        onSelectDraft(id, additive)
       }}
       onStartDraftDrag={(event) => {
         event.stopPropagation()

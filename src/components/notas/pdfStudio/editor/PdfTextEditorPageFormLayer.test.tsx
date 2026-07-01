@@ -71,10 +71,12 @@ describe('<PdfTextEditorPageFormLayer />', () => {
   it('activa la página inactiva antes de seleccionar un casillero draft', () => {
     const { props } = setup({ draftFields: [draft] })
 
-    fireEvent.pointerDown(screen.getByRole('textbox', { name: 'paciente' }))
+    fireEvent.pointerDown(screen.getByRole('textbox', { name: 'paciente' }), {
+      shiftKey: true,
+    })
 
     expect(props.onActivate).toHaveBeenCalledWith(1)
-    expect(props.onSelectDraft).toHaveBeenCalledWith(draft.id)
+    expect(props.onSelectDraft).toHaveBeenCalledWith(draft.id, true)
     expect(props.onStartDraftDrag).not.toHaveBeenCalled()
   })
 

@@ -54,15 +54,18 @@ export function EditorToolbarToolsGroup({
   onXMarkStrokeChange: (next: number) => void
 }) {
   const handlePrimaryInsert =
-    primaryFieldKind && onAddFormField
-      ? () => onAddFormField(primaryFieldKind)
-      : onAddText
+    primaryFieldKind === null
+      ? onAddText
+      : onAddFormField
+        ? () => onAddFormField(primaryFieldKind)
+        : undefined
 
   return (
     <ToolbarGroup label="Herramientas">
       <Hint content={primaryHint}>
         <IconButton
           onClick={handlePrimaryInsert}
+          disabled={primaryFieldKind !== null && !onAddFormField}
           label={primaryLabel}
           className={primaryAction}
         >

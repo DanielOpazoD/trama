@@ -122,6 +122,16 @@ describe('<EditorToolbar />', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('no reutiliza agregar texto si falta callback de casillero en modo planilla', () => {
+    const p = setup({ context: 'templateDesign' })
+    const primary = screen.getByRole('button', { name: /Crear casillero de texto/i })
+
+    expect(primary).toBeDisabled()
+    fireEvent.click(primary)
+
+    expect(p.onAddText).not.toHaveBeenCalled()
+  })
+
   it('en modo planilla oculta herramientas de edición PDF que no crean casilleros', () => {
     setup({
       context: 'templateDesign',
