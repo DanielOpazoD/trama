@@ -34,6 +34,19 @@ describe('manualVendorChunks', () => {
     )
   })
 
+  it('deja los chunks PDF de aplicacion en el grafo lazy natural', () => {
+    expect(
+      manualVendorChunks('/repo/src/lib/pdfStudio/export/pdfHeavy.worker.ts'),
+    ).toBeUndefined()
+    expect(
+      manualVendorChunks('/repo/src/lib/pdfStudio/assemble/assemble.ts'),
+    ).toBeUndefined()
+    expect(
+      manualVendorChunks('/repo/src/lib/pdfStudio/forms/pdfForms.ts'),
+    ).toBeUndefined()
+    expect(manualVendorChunks('/repo/src/lib/pdfStudio/ocr/pdfOcr.ts')).toBeUndefined()
+  })
+
   it('aísla el visor de Office (mammoth / xlsx) en chunks lazy propios', () => {
     expect(manualVendorChunks('/repo/node_modules/mammoth/lib/index.js')).toBe(
       'vendor-mammoth',
