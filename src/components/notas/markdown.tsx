@@ -109,7 +109,7 @@ const INLINE_RULES: InlineRule[] = [
 ]
 
 /** Renderiza una porción de texto inline (negrita, cursiva, código, etc.). */
-export function renderInline(text: string, keyPrefix = 'i'): ReactNode[] {
+function renderInline(text: string, keyPrefix = 'i'): ReactNode[] {
   const nodes: ReactNode[] = []
   let rest = text
   let k = 0

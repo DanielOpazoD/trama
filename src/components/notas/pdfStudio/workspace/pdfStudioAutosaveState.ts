@@ -15,13 +15,6 @@ export function createAutosaveSavingState(pages: number): PdfStudioAutosaveState
   return { kind: 'saving', pages }
 }
 
-export function createAutosaveSavedState(
-  secondsAgo: number,
-  pages: number,
-): PdfStudioAutosaveState {
-  return { kind: 'saved', pages, savedAt: Date.now() - secondsAgo * 1000 }
-}
-
 export function createAutosaveRestoredState(pages: number): PdfStudioAutosaveState {
   return { kind: 'restored', pages, savedAt: null }
 }

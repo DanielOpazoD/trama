@@ -1,6 +1,6 @@
-export type PdfCommandScope = 'pages' | 'annotations' | 'history' | 'view'
+type PdfCommandScope = 'pages' | 'annotations' | 'history' | 'view'
 
-export type PdfShortcutKeys = {
+type PdfShortcutKeys = {
   mac: string[]
   windows: string[]
 }
@@ -150,7 +150,7 @@ export function getPdfCommand(id: PdfCommandId): PdfCommand {
   return command
 }
 
-export function pdfShortcutKeys(id: PdfCommandId, isMac: boolean): string[] {
+function pdfShortcutKeys(id: PdfCommandId, isMac: boolean): string[] {
   const keys = getPdfCommand(id).keys
   return isMac ? keys.mac : keys.windows
 }

@@ -103,13 +103,13 @@ describe('developer quality gates', () => {
     expect(ignoredIssueKinds).toBeLessThanOrEqual(
       QUALITY_GATE_BASELINE.knip.ignoreIssueKinds,
     )
-    expect(config.ignoreFiles.length).toBeLessThanOrEqual(
+    expect((config.ignoreFiles ?? []).length).toBeLessThanOrEqual(
       QUALITY_GATE_BASELINE.knip.ignoreFiles,
     )
-    expect(config.ignoreDependencies.length).toBeLessThanOrEqual(
+    expect((config.ignoreDependencies ?? []).length).toBeLessThanOrEqual(
       QUALITY_GATE_BASELINE.knip.ignoreDependencies,
     )
-    expect(config.ignoreBinaries.length).toBeLessThanOrEqual(
+    expect((config.ignoreBinaries ?? []).length).toBeLessThanOrEqual(
       QUALITY_GATE_BASELINE.knip.ignoreBinaries,
     )
   })

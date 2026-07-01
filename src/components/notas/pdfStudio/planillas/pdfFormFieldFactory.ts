@@ -12,10 +12,7 @@ import {
 } from './pdfTextEditorFormDefaults'
 import { formFieldTextStyleFromEditor } from './pdfFormFieldStyle'
 
-export function nextFormFieldName(
-  kind: PdfFormFieldKind,
-  fields: PdfFormFieldDraft[],
-): string {
+function nextFormFieldName(kind: PdfFormFieldKind, fields: PdfFormFieldDraft[]): string {
   const prefix = fieldNamePrefix(kind)
   const used = new Set(fields.map((field) => field.name))
   let i = used.size + 1

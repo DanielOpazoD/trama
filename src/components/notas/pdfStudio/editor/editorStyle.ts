@@ -46,10 +46,6 @@ export type Tool =
   | 'arrow'
   | 'x'
 
-/** Las formas son los modos de dibujo de contorno (todo lo que no es seleccionar
- *  ni resaltar ni agregar texto). */
-export const SHAPE_TOOLS = ['rect', 'oval', 'line', 'arrow', 'x'] as const
-
 /** ¿La herramienta activa es una forma (rect/oval/line/arrow/x)? */
 export function isShapeTool(t: Tool): boolean {
   return t === 'rect' || t === 'oval' || t === 'line' || t === 'arrow' || t === 'x'

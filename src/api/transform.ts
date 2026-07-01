@@ -93,7 +93,7 @@ export type MomentoRow = {
 
 // ---------- Transforms ----------
 
-export function asOrigin(value: Origin | string | null | undefined): Origin {
+function asOrigin(value: Origin | string | null | undefined): Origin {
   if (value && typeof value === 'object' && 'kind' in value) return value
   if (typeof value === 'string') return { kind: value === 'ai' ? 'ai' : 'manual' }
   return { kind: 'manual' }

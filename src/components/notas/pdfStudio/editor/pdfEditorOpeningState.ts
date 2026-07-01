@@ -1,9 +1,9 @@
 export const PDF_EDITOR_OPENING_RETRY_MS = 75
-export const PDF_EDITOR_OPENING_STABLE_HITS = 2
+const PDF_EDITOR_OPENING_STABLE_HITS = 2
 // Válvula de seguridad: ~4s de reintentos.
-export const PDF_EDITOR_OPENING_MAX_TICKS = 53
+const PDF_EDITOR_OPENING_MAX_TICKS = 53
 
-export type PdfEditorOpeningFinishReason = 'stable' | 'timeout'
+type PdfEditorOpeningFinishReason = 'stable' | 'timeout'
 
 export type PdfEditorOpeningState = {
   pageIndex: number

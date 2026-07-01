@@ -23,7 +23,7 @@ type Point = { x: number; y: number }
  * antes el sky-700) — sigue siendo importante saber "esto lo propuso la IA"
  * aunque la relación sea de un tipo cálido.
  */
-export function relTypeAccent(type: string): string {
+function relTypeAccent(type: string): string {
   switch (type) {
     case 'influye_en':
     case 'responde_a':

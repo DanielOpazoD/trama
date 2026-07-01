@@ -318,7 +318,7 @@ export async function deleteSavedDoc(userKey: string, id: string): Promise<void>
   }
 }
 
-export function normalizeSavedDocKind(saved: SavedDoc): SavedDoc {
+function normalizeSavedDocKind(saved: SavedDoc): SavedDoc {
   return saved.kind ? saved : { ...saved, kind: inferSavedDocKind(saved.doc) }
 }
 

@@ -134,19 +134,6 @@ export const SparkleIcon = ({ size = 12, className }: Props) => (
   </svg>
 )
 
-export const SunIcon = ({ size = 14, className }: Props) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-  </svg>
-)
-
-export const MoonIcon = ({ size = 14, className }: Props) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
-)
-
 export const DownloadIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
@@ -396,14 +383,6 @@ export const QuoteIcon = ({ size = 16, className }: Props) => (
   </svg>
 )
 
-/* Two interlocked chain links — Relaciones */
-export const RelationsIcon = ({ size = 16, className }: Props) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
-    <path d="M9 13.5a4 4 0 0 1 0-5.5L11 6a4 4 0 0 1 5.5 5.5l-1 1" />
-    <path d="M15 10.5a4 4 0 0 1 0 5.5L13 18a4 4 0 0 1-5.5-5.5l1-1" />
-  </svg>
-)
-
 /* Conversation bubble for the Chat tab */
 export const ChatIcon = ({ size = 16, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
@@ -579,31 +558,6 @@ export const TramaWordmark = ({ className, ...props }: React.SVGProps<SVGSVGElem
       <path d="M606 82L654 14L702 82" />
     </g>
   </svg>
-)
-
-/* Brand lockup — TramaMark + wordmark "Trama" lado a lado.
-   La presentación canónica de la marca cuando hay espacio para
-   ambos. Usa el mismo gap-2 que el Sidebar para mantener feel
-   consistente. El wordmark hereda el font-family `wordmark`
-   (Spectral) declarado en index.css.
-
-   El gap, peso y leading son fijos — esto es la firma de la marca,
-   no un componente con muchas variantes. Si necesitás otra
-   composición, manualmente. */
-export const TramaLockup = ({
-  size = 22,
-  className,
-  animate,
-  wordmarkClassName,
-}: Props & { animate?: boolean; wordmarkClassName?: string }) => (
-  <span className={`inline-flex items-center gap-2 ${className ?? ''}`}>
-    <TramaMark size={size} animate={animate} className="shrink-0" />
-    <span
-      className={`wordmark leading-none ${wordmarkClassName ?? 'text-lg text-ink-800'}`}
-    >
-      Trama
-    </span>
-  </span>
 )
 
 /* Editorial ornament — a printer's flourish that picks up the woven-thread

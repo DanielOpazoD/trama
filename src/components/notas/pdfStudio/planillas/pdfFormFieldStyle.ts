@@ -8,7 +8,6 @@ import type { TextStyle } from '../editor/editorStyle'
 import { FORM_FIELD_EMPTY_HINT } from '../../../../lib/pdfStudio/forms/formFieldConstants'
 import { DEFAULT_FORM_FIELD_SIZE_RATIO } from './pdfFormFieldSizing'
 
-export { DEFAULT_FORM_FIELD_SIZE_RATIO }
 export { FORM_FIELD_EMPTY_HINT }
 
 export type FormFieldTextStyle = Pick<TextStyle, 'font' | 'sizeRatio' | 'bold'>

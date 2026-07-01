@@ -3,7 +3,7 @@ import { CheckIcon } from '../Icons'
 import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 
 /** Orden visual: la prioridad más alta primero. */
-export const PRIORITY_ORDER: TaskPriority[] = ['alta', 'media', 'baja']
+const PRIORITY_ORDER: TaskPriority[] = ['alta', 'media', 'baja']
 
 /** Metadatos de cada prioridad — color (token semántico) y etiqueta. */
 export const PRIORITY_META: Record<

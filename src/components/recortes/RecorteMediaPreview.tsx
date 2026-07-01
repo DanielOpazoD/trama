@@ -5,17 +5,13 @@ import { youtubeThumb } from '../../lib/youtubeThumb'
 import { DuplicateIcon } from '../Icons'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { hostOf, LinkMediaPreview, type LinkMediaSize } from './LinkMediaPreview'
-import { formatRecorteStamp, recorteHasMediaPreview } from './recorteCardModel'
+import { formatRecorteStamp } from './recorteCardModel'
 
 const TRANSPARENT_PX =
   'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
 export { hostOf }
 export type { LinkMediaSize }
-
-export function hasRecorteMediaPreview(recorte: Recorte): boolean {
-  return recorteHasMediaPreview(recorte)
-}
 
 export function RecorteMediaPreview({
   recorte: r,

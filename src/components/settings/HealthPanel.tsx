@@ -13,8 +13,6 @@ import {
 } from './HealthPanelSections'
 import { buildHealthDiagnostic } from './healthPanelModel'
 
-export { buildHealthDiagnostic } from './healthPanelModel'
-
 /**
  * Panel de estado del sistema. Trae todo de /api/health en un solo
  * fetch y lo muestra como bloque. Refresca al abrir Settings.

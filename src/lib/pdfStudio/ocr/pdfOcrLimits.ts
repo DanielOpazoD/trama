@@ -2,10 +2,10 @@ import type { PdfDoc } from '../model/model'
 
 const MB = 1024 * 1024
 
-export const PDF_OCR_CLIENT_WARN_PAGES = 15
-export const PDF_OCR_CLIENT_BLOCK_PAGES = 45
-export const PDF_OCR_CLIENT_WARN_BYTES = 30 * MB
-export const PDF_OCR_CLIENT_BLOCK_BYTES = 90 * MB
+const PDF_OCR_CLIENT_WARN_PAGES = 15
+const PDF_OCR_CLIENT_BLOCK_PAGES = 45
+const PDF_OCR_CLIENT_WARN_BYTES = 30 * MB
+const PDF_OCR_CLIENT_BLOCK_BYTES = 90 * MB
 
 export type PdfOcrDocumentAssessment = {
   severity: 'ok' | 'warn' | 'blocked'

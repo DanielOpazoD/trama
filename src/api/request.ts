@@ -18,7 +18,7 @@ import { demoMediaResponse, isDemoMode, demoRequest } from '../lib/demo'
  * Read the current AI mode synchronously and convert to its header form.
  * Kept inline (no import of useAIMode) so this module stays React-free.
  */
-export function aiModeHeader(): string {
+function aiModeHeader(): string {
   if (typeof window === 'undefined') return 'auto'
   const raw = window.localStorage.getItem('trama.aiMode') ?? 'auto'
   if (raw === 'off' || raw === 'auto') return raw

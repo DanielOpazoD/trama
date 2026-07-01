@@ -28,7 +28,7 @@ async function decodeBitmap(file: File): Promise<ImageBitmap | null> {
 }
 
 /** Resuelve los 3 colores del texto desde el tema actual (fallback fijo). */
-export function resolvePalette(): TextPalette {
+function resolvePalette(): TextPalette {
   const fallback: TextPalette = { ink: '#1a1a1a', paper: '#faf7ef', accent: '#1f4e79' }
   try {
     const cs = getComputedStyle(document.documentElement)
