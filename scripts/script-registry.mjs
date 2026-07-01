@@ -432,6 +432,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Define familias y budgets agregados de payload PDF.',
   },
   {
+    file: 'scripts/pdf-entrypoint-inventory.mjs',
+    domain: 'pdf',
+    kind: 'support',
+    critical: false,
+    packageScripts: [],
+    summary:
+      'Fuente ejecutable de entrypoints PDF, familias de payload y duplicados aceptados.',
+  },
+  {
     file: 'scripts/pdf-lazy-entrypoints.mjs',
     domain: 'pdf',
     kind: 'check',

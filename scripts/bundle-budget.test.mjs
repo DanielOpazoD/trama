@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   chunkBaseName,
   classifyBundleEntry,
+  describeDuplicateBudget,
   evaluateDuplicateBudgets,
   summarizeBundleEntries,
 } from './bundle-budget.mjs'
@@ -115,6 +116,7 @@ describe('bundle budget helpers', () => {
         gzKb: 248,
         maxCount: 1,
         maxGzKb: 130,
+        detail: 'count 2/1, gzip 248/130 KB',
         exceeded: ['count', 'gzKb'],
         status: 'duplicate-over-budget',
       },
@@ -131,6 +133,7 @@ describe('bundle budget helpers', () => {
         gzKb: 120,
         maxCount: 1,
         maxGzKb: 130,
+        detail: 'count 2/1, gzip 120/130 KB',
         exceeded: ['count'],
         status: 'duplicate-over-budget',
       },
@@ -147,9 +150,34 @@ describe('bundle budget helpers', () => {
         gzKb: 140,
         maxCount: 1,
         maxGzKb: 130,
+        detail: 'count 1/1, gzip 140/130 KB',
         exceeded: ['gzKb'],
         status: 'duplicate-over-budget',
       },
     ])
+  })
+
+  it('describe duplicados aceptados y regresiones por eje', () => {
+    expect(
+      describeDuplicateBudget(
+        { file: 'vendor-pdf-lib', count: 4, gzKb: 1498 },
+        { 'vendor-pdf-lib': { maxCount: 4, maxGzKb: 1500 } },
+      ),
+    ).toEqual({
+      detail: 'count 4/4, gzip 1498/1500 KB',
+      exceeded: [],
+      status: 'accepted',
+    })
+
+    expect(
+      describeDuplicateBudget(
+        { file: 'vendor-pdf-lib', count: 5, gzKb: 1510 },
+        { 'vendor-pdf-lib': { maxCount: 4, maxGzKb: 1500 } },
+      ),
+    ).toEqual({
+      detail: 'count 5/4, gzip 1510/1500 KB',
+      exceeded: ['count', 'gzKb'],
+      status: 'over-budget',
+    })
   })
 })

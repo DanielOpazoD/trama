@@ -20,10 +20,12 @@ import { join } from 'node:path'
 import {
   chunkBaseName,
   classifyBundleEntry,
+  describeDuplicateBudget,
   evaluateDuplicateBudgets,
   summarizeBundleEntries,
 } from './bundle-budget.mjs'
 import { PDF_AGGREGATE_BUDGETS } from './pdf-bundle-families.mjs'
+import { PDF_DUPLICATE_VENDOR_BUDGETS } from './pdf-entrypoint-inventory.mjs'
 
 // Budgets en KB (gzip). Ajustables, pero pedí justificación.
 const BUDGETS = {
@@ -35,9 +37,9 @@ const BUDGETS = {
   browser: 15,
   // Imprenta/PDF: chunks lazy pesados. No impactan el inicio, pero sí pueden
   // crecer sin ruido si entran nuevas dependencias de edición/export.
-  // +2 KB: shell lazy de Firma/Timbre Studio; el menú y persistencia viven en
-  // StampAssetMenuHost, chunk separado, para no cargar toda la biblioteca upfront.
-  PdfStudioView: 72,
+  // PdfStudioView es solo shell/preview; PdfTextEditor vive en chunk lazy propio.
+  PdfStudioView: 42,
+  PdfTextEditor: 50,
   'pdf.worker.min': 380,
   'vendor-pdfjs': 140,
   'jspdf.es.min': 135,
@@ -77,11 +79,7 @@ const BUDGETS = {
 }
 
 const AGGREGATE_BUDGETS = [...PDF_AGGREGATE_BUDGETS]
-const DUPLICATE_BUDGETS = {
-  'vendor-pdf-lib': { maxCount: 4, maxGzKb: 1500 },
-  'vendor-pdfjs': { maxCount: 2, maxGzKb: 250 },
-  'vendor-ocr': { maxCount: 2, maxGzKb: 15 },
-}
+const DUPLICATE_BUDGETS = PDF_DUPLICATE_VENDOR_BUDGETS
 
 const DIST = 'dist/assets'
 const MAX_UNBUDGETED_KB = 10
@@ -147,6 +145,7 @@ for (const duplicate of duplicateFailures) {
     budget: duplicate.maxGzKb,
     status: 'duplicate-over-budget',
     count: duplicate.count,
+    detail: duplicate.detail,
     maxCount: duplicate.maxCount,
     exceeded: duplicate.exceeded,
   })
@@ -164,7 +163,7 @@ for (const f of failures) {
     f.status === 'missing-budget'
       ? 'SIN budget >'
       : f.status === 'duplicate-over-budget'
-        ? `DUPLICADO ${f.exceeded?.join('+') ?? 'count+gzKb'} x${f.count}/${f.maxCount} >`
+        ? `DUPLICADO ${f.exceeded?.join('+') ?? 'count+gzKb'} (${f.detail}) >`
         : 'EXCEDE budget'
   console.log(
     `  ${f.file.padEnd(20)} ${String(f.gzKb).padStart(4)} KB   ❌ ${label} ${f.budget} KB`,
@@ -188,8 +187,15 @@ for (const family of summary.families) {
 if (summary.duplicates.length > 0) {
   console.log('\nDuplicaciones por nombre base:')
   for (const duplicate of summary.duplicates.slice(0, 8)) {
+    const duplicateStatus = describeDuplicateBudget(duplicate, DUPLICATE_BUDGETS)
+    const suffix =
+      duplicateStatus.status === 'accepted'
+        ? `aceptado: ${duplicateStatus.detail}`
+        : duplicateStatus.status === 'over-budget'
+          ? `regresion: ${duplicateStatus.detail}`
+          : duplicateStatus.detail
     console.log(
-      `  ${duplicate.file.padEnd(20)} x${duplicate.count}   ${String(duplicate.gzKb).padStart(4)} KB total`,
+      `  ${duplicate.file.padEnd(20)} x${duplicate.count}   ${String(duplicate.gzKb).padStart(4)} KB total   (${suffix})`,
     )
   }
 }

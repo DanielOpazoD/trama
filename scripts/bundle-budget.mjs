@@ -63,22 +63,41 @@ export function summarizeBundleEntries(entries, familyBudgets = []) {
   return { duplicates, families }
 }
 
+export function describeDuplicateBudget(duplicate, duplicateBudgets = {}) {
+  const budget = duplicateBudgets[duplicate.file]
+  if (!budget) {
+    return {
+      detail: 'sin ratchet explicito',
+      exceeded: [],
+      status: 'unbudgeted',
+    }
+  }
+
+  const exceeded = []
+  if (duplicate.count > budget.maxCount) exceeded.push('count')
+  if (duplicate.gzKb > budget.maxGzKb) exceeded.push('gzKb')
+  return {
+    detail: `count ${duplicate.count}/${budget.maxCount}, gzip ${duplicate.gzKb}/${budget.maxGzKb} KB`,
+    exceeded,
+    status: exceeded.length > 0 ? 'over-budget' : 'accepted',
+  }
+}
+
 export function evaluateDuplicateBudgets(duplicates, duplicateBudgets = {}) {
   const failures = []
   for (const duplicate of duplicates) {
     const budget = duplicateBudgets[duplicate.file]
     if (!budget) continue
-    if (duplicate.count <= budget.maxCount && duplicate.gzKb <= budget.maxGzKb) continue
-    const exceeded = []
-    if (duplicate.count > budget.maxCount) exceeded.push('count')
-    if (duplicate.gzKb > budget.maxGzKb) exceeded.push('gzKb')
+    const duplicateStatus = describeDuplicateBudget(duplicate, duplicateBudgets)
+    if (duplicateStatus.status !== 'over-budget') continue
     failures.push({
       file: duplicate.file,
       count: duplicate.count,
       gzKb: duplicate.gzKb,
       maxCount: budget.maxCount,
       maxGzKb: budget.maxGzKb,
-      exceeded,
+      detail: duplicateStatus.detail,
+      exceeded: duplicateStatus.exceeded,
       status: 'duplicate-over-budget',
     })
   }
