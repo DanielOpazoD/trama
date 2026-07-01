@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { isPdfTemplate } from '../../../lib/pdfStudio/model/model'
 import type { AssembleOptions } from '../../../lib/pdfStudio/assemble/assemble'
 import { canRedo, canUndo, redo, undo } from '../../../lib/pdfStudio/model/history'
 import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
 import { buildPdfStudioPreflight } from '../../../lib/pdfStudio/preflight/pdfStudioPreflight'
 import { BulkBar } from './shell/BulkBar'
-import { PdfStudioDocumentControls } from './shell/PdfStudioDocumentControls'
-import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
-import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
-import { PdfStudioOcrPanel } from './ocr/PdfStudioOcrPanel'
-import { PdfStudioWorkspacePanelHost } from './shell/PdfStudioWorkspacePanelHost'
 import { usePdfTextEditorLoader } from './editor/PdfTextEditorLazy'
 import { PdfStudioTextEditorOverlay } from './PdfStudioTextEditorOverlay'
+import { PdfStudioViewCanvas } from './PdfStudioViewCanvas'
+import { PdfStudioWorkspacePanel } from './PdfStudioWorkspacePanel'
 import {
   applyPdfTextEditorResult,
   type PdfTextEditorResult,
@@ -227,138 +223,117 @@ export function PdfStudioView({
   } = usePdfStudioDocumentSettings(doc, updateSettings)
   return (
     <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
-      <PdfStudioWorkspacePanelHost
+      <PdfStudioWorkspacePanel
         show={showPanel}
-        folders={workspace.folders}
-        saved={workspace.saved}
+        workspace={workspace}
         templatesEnabled={templatesEnabled}
-        canSave={!empty}
+        empty={empty}
         canSaveTemplate={canSaveTemplate}
-        suggestedSaveName={doc.title}
-        collapsed={workspace.panelCollapsed}
-        onCreateFolder={workspace.createFolder}
-        onRenameFolder={workspace.renameFolder}
-        onUpdateFolderColor={workspace.updateFolderColor}
-        onDeleteFolder={workspace.removeFolder}
-        onSaveCreation={workspace.saveCreation}
-        onSaveTemplate={saveTemplateWithMode}
+        docTitle={doc.title}
         saveTemplateSignal={saveTemplateSignal}
-        onOpenSaved={(saved) => {
-          openSavedWithMode(saved)
-          // Editar plantilla / abrir copia: abre el editor directo (sin doble clic).
-          if (isPdfTemplate(saved.doc)) setTextPage(0)
-        }}
-        onUseTemplate={(saved) => {
-          openTemplateWithFillMode(saved)
-          setTextPage(0)
-        }}
-        onRenameSaved={workspace.renameSaved}
-        onMoveSavedToFolder={workspace.moveSavedToFolder}
-        onDeleteSaved={workspace.removeSaved}
-        onDownloadSaved={downloadSaved}
-        onDuplicateSaved={workspace.duplicateSaved}
-        onExportTemplatePackage={workspace.exportTemplatePackage}
-        onToggleCollapsed={() => workspace.setPanelCollapsed((c) => !c)}
+        downloadSaved={downloadSaved}
+        onSaveTemplate={saveTemplateWithMode}
+        onOpenSavedWithMode={openSavedWithMode}
+        onOpenTemplateWithFillMode={openTemplateWithFillMode}
+        setTextPage={setTextPage}
       />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        {topBar}
-        <div
-          ref={setScrollRoot}
-          className="pdf-studio-canvas min-h-0 flex-1 overflow-y-auto"
-        >
-          <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
-            <PdfStudioDocumentControls
-              autosaveState={workspace.autosaveState}
-              doc={doc}
-              effectiveTemplateMode={effectiveTemplateMode}
-              empty={empty}
-              fileInputRef={fileInputRef}
-              formSummary={formSummary}
-              onFileInput={onFileInput}
-              preflightReport={preflightReport}
-              templatesEnabled={templatesEnabled}
-              total={total}
-              updateTitle={updateTitle}
-              toolbarProps={{
-                busy,
-                canSaveTemplate,
-                empty,
-                exportStatus,
-                exportCompression,
-                formsEnabled: templatesEnabled,
-                footerText,
-                headerText,
-                imagesPerPage,
-                pageNumbers,
-                redoable,
-                saving,
-                studioMode,
-                templateMode: effectiveTemplateMode ?? 'design',
-                total,
-                undoable,
-                watermarkText,
-                onImport: () => fileInputRef.current?.click(),
-                onUndo: () => setHistory((h) => undo(h)),
-                onRedo: () => setHistory((h) => redo(h)),
-                onSavePdf: () => void openPreview(doc),
-                onDownloadFillable: () => void openPreview(doc, 'rellenable'),
-                onCancelExport: cancelExport,
-                onNewDoc: newDoc,
-                onOpenOcr: () => setOcrOpen(true),
-                onInspectForms: () => void inspectForms(),
-                onPrintTemplate: () =>
-                  void openPreview(doc, 'planilla', { flattenFormFields: true }),
-                onStartSaveTemplate: startTemplateSave,
-                onSetExportCompression: setExportCompression,
-                onSetFooter: setFooter,
-                onSetHeader: setHeader,
-                onSetImagesPerPage: setImagesPerPage,
-                onSetPageNumbers: setPageNumbers,
-                onSetWatermark: setWatermark,
-              }}
-            />
-            {templateModeBanner}
-            {templatesEnabled && (
-              <PdfStudioFormPanel
-                forms={forms}
-                onApply={(flatten) => void applyForms(flatten)}
-                onClear={clearForms}
-                onChange={updateFormValue}
-              />
-            )}
-            {ocrOpen && (
-              <PdfStudioOcrPanel
-                disabled={empty || saving || busy}
-                doc={doc}
-                language={ocrLanguage}
-                running={ocrRunning}
-                status={ocrStatus}
-                totalPages={total}
-                onCancel={cancelOcr}
-                onChangeLanguage={setOcrLanguage}
-                onRun={() => void startOcr(doc)}
-              />
-            )}
-            {editBar}
-            <PdfStudioMainPane
-              doc={doc}
-              interactionMode={pageMode({
-                templatesEnabled,
-                templateMode: effectiveTemplateMode,
-              })}
-              isTemplates={templatesEnabled}
-              scrollRoot={scrollRoot}
-              selectedIds={selectedIds}
-              onDropFiles={onDropFiles}
-              onNudge={nudge}
-              onOpenText={openTextEditor}
-              onPickFiles={() => fileInputRef.current?.click()}
-              onReorder={reorder}
-              onToggleSelect={toggleSelect}
-            />
-          </div>
-        </div>
-      </div>
+      <PdfStudioViewCanvas
+        topBar={topBar}
+        setScrollRoot={setScrollRoot}
+        documentControlsProps={{
+          autosaveState: workspace.autosaveState,
+          doc,
+          effectiveTemplateMode,
+          empty,
+          fileInputRef,
+          formSummary,
+          onFileInput,
+          preflightReport,
+          templatesEnabled,
+          total,
+          updateTitle,
+          toolbarProps: {
+            busy,
+            canSaveTemplate,
+            empty,
+            exportStatus,
+            exportCompression,
+            formsEnabled: templatesEnabled,
+            footerText,
+            headerText,
+            imagesPerPage,
+            pageNumbers,
+            redoable,
+            saving,
+            studioMode,
+            templateMode: effectiveTemplateMode ?? 'design',
+            total,
+            undoable,
+            watermarkText,
+            onImport: () => fileInputRef.current?.click(),
+            onUndo: () => setHistory((h) => undo(h)),
+            onRedo: () => setHistory((h) => redo(h)),
+            onSavePdf: () => void openPreview(doc),
+            onDownloadFillable: () => void openPreview(doc, 'rellenable'),
+            onCancelExport: cancelExport,
+            onNewDoc: newDoc,
+            onOpenOcr: () => setOcrOpen(true),
+            onInspectForms: () => void inspectForms(),
+            onPrintTemplate: () =>
+              void openPreview(doc, 'planilla', { flattenFormFields: true }),
+            onStartSaveTemplate: startTemplateSave,
+            onSetExportCompression: setExportCompression,
+            onSetFooter: setFooter,
+            onSetHeader: setHeader,
+            onSetImagesPerPage: setImagesPerPage,
+            onSetPageNumbers: setPageNumbers,
+            onSetWatermark: setWatermark,
+          },
+        }}
+        templateModeBanner={templateModeBanner}
+        formPanelProps={
+          templatesEnabled
+            ? {
+                forms,
+                onApply: (flatten) => void applyForms(flatten),
+                onClear: clearForms,
+                onChange: updateFormValue,
+              }
+            : null
+        }
+        ocrPanelProps={
+          ocrOpen
+            ? {
+                disabled: empty || saving || busy,
+                doc,
+                language: ocrLanguage,
+                running: ocrRunning,
+                status: ocrStatus,
+                totalPages: total,
+                onCancel: cancelOcr,
+                onChangeLanguage: setOcrLanguage,
+                onRun: () => void startOcr(doc),
+              }
+            : null
+        }
+        editBar={editBar}
+        mainPaneProps={{
+          doc,
+          interactionMode: pageMode({
+            templatesEnabled,
+            templateMode: effectiveTemplateMode,
+          }),
+          isTemplates: templatesEnabled,
+          scrollRoot,
+          selectedIds,
+          onDropFiles,
+          onNudge: nudge,
+          onOpenText: openTextEditor,
+          onPickFiles: () => fileInputRef.current?.click(),
+          onReorder: reorder,
+          onToggleSelect: toggleSelect,
+        }}
+      />
       <PdfStudioTextEditorOverlay
         doc={doc}
         pageIndex={textPage}
