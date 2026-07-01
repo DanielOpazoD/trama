@@ -4,6 +4,11 @@ import {
   type PdfFormFieldKind,
 } from '../../../../lib/pdfStudio/model/model'
 import {
+  editorToolbarPrimaryInsertAction,
+  isMacLikeUserAgent,
+  type EditorToolbarContext,
+} from './EditorToolbarModel'
+import {
   CameraIcon,
   CursorIcon,
   DuplicateIcon,
@@ -28,11 +33,6 @@ import { EditorToolbarShapesMenu } from './EditorToolbarShapesMenu'
 import { EditorToolbarStyleMenu } from './EditorToolbarStyleMenu'
 import { EditorToolbarXMenu } from './EditorToolbarXMenu'
 import { EditorToolbarZoomControl } from './EditorToolbarZoomControl'
-
-function isMacLike(): boolean {
-  if (typeof navigator === 'undefined') return true
-  return /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-}
 
 export function EditorToolbar({
   context = 'editor',
@@ -65,7 +65,7 @@ export function EditorToolbar({
   onPrepareZoomAnchor,
   onZoomChange,
 }: {
-  context?: 'editor' | 'templateDesign'
+  context?: EditorToolbarContext
   tool: Tool
   onToolChange: (t: Tool) => void
   xMarkSize: number
@@ -95,16 +95,16 @@ export function EditorToolbar({
   onPrepareZoomAnchor?: () => void
   onZoomChange: (z: number) => void
 }) {
-  const isMac = isMacLike()
+  const isMac = isMacLikeUserAgent(
+    typeof navigator === 'undefined' ? undefined : navigator.userAgent,
+  )
   const isTemplateDesign = context === 'templateDesign'
-  const primaryInsertLabel = isTemplateDesign
-    ? 'Crear casillero de texto'
-    : 'Agregar cuadro de texto'
-  const primaryInsertHint = isTemplateDesign
-    ? 'Crear un casillero rellenable'
-    : 'Agregar un cuadro editable'
+  const primaryInsert = editorToolbarPrimaryInsertAction(context)
+  const primaryFieldKind = primaryInsert.fieldKind
   const handlePrimaryInsert =
-    isTemplateDesign && onAddFormField ? () => onAddFormField('text') : onAddText
+    primaryFieldKind && onAddFormField
+      ? () => onAddFormField(primaryFieldKind)
+      : onAddText
 
   return (
     <div
@@ -113,10 +113,10 @@ export function EditorToolbar({
       className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-ink-100/70 bg-paper-100/65 px-2 py-1 shadow-sm shadow-ink-900/5 shrink-0"
     >
       <ToolbarGroup label="Herramientas">
-        <Hint content={primaryInsertHint}>
+        <Hint content={primaryInsert.hint}>
           <IconButton
             onClick={handlePrimaryInsert}
-            label={primaryInsertLabel}
+            label={primaryInsert.label}
             className={primaryAction}
           >
             <TextIcon size={14} />

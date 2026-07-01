@@ -1,0 +1,28 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+  editorToolbarPrimaryInsertAction,
+  isMacLikeUserAgent,
+} from './EditorToolbarModel'
+
+describe('EditorToolbarModel', () => {
+  it('trata user agents Mac/iOS como Mac-like para shortcuts', () => {
+    expect(isMacLikeUserAgent(undefined)).toBe(true)
+    expect(isMacLikeUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X)')).toBe(true)
+    expect(isMacLikeUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS)')).toBe(true)
+    expect(isMacLikeUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe(false)
+  })
+
+  it('define la accion primaria segun contexto editor/planilla', () => {
+    expect(editorToolbarPrimaryInsertAction('editor')).toEqual({
+      fieldKind: null,
+      hint: 'Agregar un cuadro editable',
+      label: 'Agregar cuadro de texto',
+    })
+    expect(editorToolbarPrimaryInsertAction('templateDesign')).toEqual({
+      fieldKind: 'text',
+      hint: 'Crear un casillero rellenable',
+      label: 'Crear casillero de texto',
+    })
+  })
+})
