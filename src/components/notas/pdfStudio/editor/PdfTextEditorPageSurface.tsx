@@ -15,17 +15,13 @@ import type {
   ResizeHandle,
 } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { AnnotationLayer, type DrawingRect } from './AnnotationLayer'
-import { FormFieldLayer } from '../planillas/FormFieldLayer'
 import { PageCanvas } from '../pages/PageCanvas'
-import { PdfTextEditorFormSurface } from './PdfTextEditorFormSurface'
 import type { SnapGuide } from './pdfAnnotationSnap'
-import {
-  visualWidgetsForPage,
-  type DetectedPdfFormForCanvas,
-} from '../planillas/pdfFormVisualMapping'
-import { orderFormFieldsForPage } from '../planillas/pdfFormFieldFillOrder'
+import { type DetectedPdfFormForCanvas } from '../planillas/pdfFormVisualMapping'
 import { usePdfTextEditorPageRender } from './usePdfTextEditorPageRender'
 import type { Tool } from './editorStyle'
+import { PdfTextEditorPageFormLayer } from './PdfTextEditorPageFormLayer'
+import { pdfTextEditorPageSurfacePermissions } from './PdfTextEditorPageSurfaceModel'
 type ResizableAnnotation =
   | TextAnnotation
   | HighlightAnnotation
@@ -139,17 +135,8 @@ export function PdfTextEditorPageSurface({
   const source = page ? getSource(doc, page.sourceId) : undefined
   const { areaRef, bg, layout } = usePdfTextEditorPageRender({ page, source, zoom })
   const annotations = edited[pageIndex] ?? page?.annotations ?? []
-  const fillMode = mode === 'fill'
-  // En diseño de planilla también se pueden dibujar/togglear marcas X (la barra
-  // solo expone seleccionar, X y campos de formulario en ese modo).
-  const canEditAnnotations = mode === 'edit' || mode === 'design'
-  // Las marcas X se activan/desactivan en TODOS los modos, incluido LLENADO:
-  // tildar/destildar un casillero (gris = apagado = no se imprime).
-  const canToggleXMarks = canEditAnnotations || fillMode
-  const visibleFormWidgets = page ? visualWidgetsForPage(page, detectedForms) : []
-  const visibleDraftFields = page
-    ? orderFormFieldsForPage(draftFields, page.id, pageIndex)
-    : []
+  const { canEditAnnotations, canToggleXMarks, fillMode } =
+    pdfTextEditorPageSurfacePermissions(mode)
   useEffect(() => {
     if (isActive) onActiveLayoutChange(layout)
   }, [isActive, layout, onActiveLayoutChange])
@@ -192,52 +179,6 @@ export function PdfTextEditorPageSurface({
     onActivate(pageIndex)
     onStartEdit(id)
   }
-  const formSurface =
-    isActive || visibleFormWidgets.length > 0 || visibleDraftFields.length > 0 ? (
-      isActive ? (
-        <PdfTextEditorFormSurface
-          detectedWidgets={visibleFormWidgets}
-          draftFields={visibleDraftFields}
-          mode={mode}
-          activeDraftId={activeDraftId}
-          showFillGuides={showFillGuides}
-          selectedDraftId={selectedDraftId}
-          selectedDraftIds={selectedDraftIds}
-          pageHeightPx={layout?.innerH ?? 1}
-          zoom={zoom}
-          onDetectedValueChange={onDetectedValueChange}
-          onDraftValueChange={onDraftValueChange}
-          onDraftFocus={onDraftFocus}
-          onSelectDraft={onSelectDraft}
-          onStartDraftDrag={startDraftDrag}
-          onStartDraftResize={startDraftResize}
-          onOpenSignature={onOpenSignature}
-        />
-      ) : (
-        <FormFieldLayer
-          detectedWidgets={visibleFormWidgets}
-          draftFields={visibleDraftFields}
-          mode={mode}
-          activeDraftId={activeDraftId}
-          showFillGuides={showFillGuides}
-          selectedDraftId={null}
-          selectedDraftIds={[]}
-          pageHeightPx={layout?.innerH ?? 1}
-          zoom={zoom}
-          onDetectedValueChange={onDetectedValueChange}
-          onDraftValueChange={onDraftValueChange}
-          onDraftFocus={onDraftFocus}
-          onSelectDraft={(id) => (onActivate(pageIndex), onSelectDraft(id))}
-          onStartDraftDrag={activatePointer}
-          onStartDraftResize={activatePointer}
-          onOpenSignature={(field) => {
-            onActivate(pageIndex)
-            onOpenSignature(field)
-          }}
-        />
-      )
-    ) : null
-
   return (
     <section data-pdf-editor-page={pageIndex} className="w-full">
       <PageCanvas
@@ -291,7 +232,28 @@ export function PdfTextEditorPageSurface({
           onCancelEdit={onCancelEdit}
           onStartResize={canEditAnnotations && isActive ? startResize : activatePointer}
         />
-        {formSurface}
+        <PdfTextEditorPageFormLayer
+          activeDraftId={activeDraftId}
+          detectedForms={detectedForms}
+          draftFields={draftFields}
+          isActive={isActive}
+          layout={layout}
+          mode={mode}
+          onActivate={onActivate}
+          onDetectedValueChange={onDetectedValueChange}
+          onDraftFocus={onDraftFocus}
+          onDraftValueChange={onDraftValueChange}
+          onOpenSignature={onOpenSignature}
+          onSelectDraft={onSelectDraft}
+          onStartDraftDrag={startDraftDrag}
+          onStartDraftResize={startDraftResize}
+          page={page}
+          pageIndex={pageIndex}
+          selectedDraftId={selectedDraftId}
+          selectedDraftIds={selectedDraftIds}
+          showFillGuides={showFillGuides}
+          zoom={zoom}
+        />
       </PageCanvas>
     </section>
   )
