@@ -56,4 +56,19 @@ describe('PDF runtime boundaries', () => {
       },
     ])
   })
+
+  it('rejects static fontkit runtime imports outside the shared loader', () => {
+    const root = mkdtempSync(join(tmpdir(), 'trama-pdf-boundary-'))
+    const srcDir = join(root, 'src/lib/pdfStudio/example')
+    mkdirSync(srcDir, { recursive: true })
+    writeFileSync(join(srcDir, 'fontkit.ts'), "import fontkit from '@pdf-lib/fontkit'\n")
+
+    expect(findPdfRuntimeBoundaryIssues({ root })).toMatchObject([
+      {
+        check: 'pdf-lib-static-loader',
+        file: 'src/lib/pdfStudio/example/fontkit.ts',
+        line: 1,
+      },
+    ])
+  })
 })

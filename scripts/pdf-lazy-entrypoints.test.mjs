@@ -1,16 +1,22 @@
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { expect, test } from 'vitest'
 
-import { findPdfLazyEntrypointIssues } from './pdf-lazy-entrypoints.mjs'
+import {
+  findPdfLazyEntrypointIssues,
+  findPdfStudioSourceLazyIssues,
+  PDF_LAZY_ENTRYPOINT_BASES,
+} from './pdf-lazy-entrypoints.mjs'
 
 function createFixture(files) {
   const root = mkdtempSync(join(tmpdir(), 'trama-pdf-entrypoints-'))
   const assets = join(root, 'assets')
   mkdirSync(assets)
   for (const [file, contents] of Object.entries(files)) {
-    writeFileSync(join(root, file), contents)
+    const path = join(root, file)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, contents)
   }
   return root
 }
@@ -74,6 +80,45 @@ test('rejects static PDF imports from initial entry chunks', () => {
       reason: 'Initial entry chunk statically imports a PDF runtime chunk',
     },
   ])
+})
+
+test('tracks stamp assets as a lazy PDF-adjacent entrypoint', () => {
+  expect(PDF_LAZY_ENTRYPOINT_BASES).toContain('StampAssetMenuHost')
+})
+
+test('rejects a static PdfTextEditor import from the PDF Studio shell', () => {
+  const root = createFixture({
+    'src/components/notas/pdfStudio/PdfStudioView.tsx': `
+      import { PdfTextEditor } from './editor/PdfTextEditor'
+      export function PdfStudioView() {
+        return <PdfTextEditor />
+      }
+    `,
+  })
+
+  expect(findPdfStudioSourceLazyIssues({ root })).toEqual([
+    {
+      check: 'pdf-studio-editor-lazy-shell',
+      file: 'src/components/notas/pdfStudio/PdfStudioView.tsx',
+      line: 1,
+      reason: 'PdfTextEditor debe cargarse con React.lazy desde el shell PDF.',
+      text: "import { PdfTextEditor } from './editor/PdfTextEditor'",
+    },
+  ])
+})
+
+test('allows PdfTextEditor behind React.lazy from the PDF Studio shell', () => {
+  const root = createFixture({
+    'src/components/notas/pdfStudio/PdfStudioView.tsx': `
+      import { lazy } from 'react'
+      const PdfTextEditor = lazy(() => import('./editor/PdfTextEditor'))
+      export function PdfStudioView() {
+        return null
+      }
+    `,
+  })
+
+  expect(findPdfStudioSourceLazyIssues({ root })).toEqual([])
 })
 
 test('reports a missing build output as a contract issue', () => {

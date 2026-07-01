@@ -63,14 +63,19 @@ function staticRuntimePdfLibImports(lines) {
     }
 
     const joinedBlock = block.join('\n')
-    if (!/\sfrom\s+['"]pdf-lib['"]/.test(joinedBlock)) continue
-    if (isTypeOnlyPdfLibImport(joinedBlock)) continue
+    const runtimeSource = joinedBlock.match(
+      /\sfrom\s+['"](pdf-lib|@pdf-lib\/fontkit)['"]/,
+    )
+    if (!runtimeSource) continue
+    if (runtimeSource[1] === 'pdf-lib' && isTypeOnlyPdfLibImport(joinedBlock)) {
+      continue
+    }
     issues.push({
       check: 'pdf-lib-static-loader',
       line: startLine,
       text: joinedBlock.trim(),
       reason:
-        'el runtime estatico de pdf-lib debe cargarse via pdfLibLoader; import type esta permitido',
+        'el runtime estatico de pdf-lib/fontkit debe cargarse via pdfLibLoader; import type esta permitido',
     })
   }
   return issues
