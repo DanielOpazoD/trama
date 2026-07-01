@@ -13,6 +13,10 @@ import type { ExportPayload } from '../../types'
 import { DownloadIcon, UploadIcon } from '../Icons'
 import { PanelHeader } from './_shared'
 import { RescueOrphansPanel } from '../momentos/RescueOrphansPanel'
+import { DataImportPreviewCard } from './DataImportPreviewCard'
+import { buildPreview, type ImportPreview } from './dataImportPreviewModel'
+
+export { buildPreview } from './dataImportPreviewModel'
 
 /**
  * Settings → Datos.
@@ -36,20 +40,6 @@ import { RescueOrphansPanel } from '../momentos/RescueOrphansPanel'
 type ParsedFile = {
   payload: ExportPayload
   fileName: string
-}
-
-type BucketCount = { incoming: number; news: number; duplicates: number }
-
-type Preview = {
-  entities: BucketCount
-  relationships: BucketCount
-  quotes: BucketCount
-  momentos: BucketCount
-  notes: BucketCount
-  tasks: BucketCount
-  totalIncoming: number
-  totalNew: number
-  totalDuplicates: number
 }
 
 export function DataPanel() {
@@ -83,7 +73,7 @@ export function DataPanel() {
     return () => window.clearTimeout(t)
   }, [message])
 
-  const preview = useMemo<Preview | null>(() => {
+  const preview = useMemo<ImportPreview | null>(() => {
     if (!parsed) return null
     return buildPreview(
       parsed.payload,
@@ -227,7 +217,7 @@ export function DataPanel() {
       {/* Preview de import — visible solo cuando hay un archivo parseado
           en espera de confirmación. */}
       {parsed && preview && (
-        <ImportPreviewCard
+        <DataImportPreviewCard
           fileName={parsed.fileName}
           preview={preview}
           busy={busy}
@@ -247,178 +237,4 @@ export function DataPanel() {
       </div>
     </section>
   )
-}
-
-/**
- * Card visible solo durante el flujo de import. Hace 3 cosas:
- *   1. Repite la semántica ADITIVA en lenguaje claro — para que el
- *      usuario entienda que esto NO sobreescribe nada.
- *   2. Muestra el desglose de qué va a entrar (por tipo) y cuántas
- *      filas se van a omitir por estar duplicadas.
- *   3. Botones de Cancelar / Confirmar.
- */
-function ImportPreviewCard({
-  fileName,
-  preview,
-  busy,
-  onConfirm,
-  onCancel,
-}: {
-  fileName: string
-  preview: Preview
-  busy: boolean
-  onConfirm: () => void
-  onCancel: () => void
-}) {
-  const {
-    entities,
-    relationships,
-    quotes,
-    momentos,
-    notes,
-    tasks,
-    totalNew,
-    totalDuplicates,
-  } = preview
-
-  return (
-    <div
-      className="mt-4 card-paper p-4 space-y-3 animate-fade-up"
-      role="region"
-      aria-label="Vista previa de importación"
-    >
-      <header className="space-y-1">
-        <p className="section-eyebrow">Vista previa · {fileName}</p>
-        <p className="text-body text-ink-700 leading-relaxed">
-          Esta importación es <strong>aditiva</strong>: agrega lo nuevo a tu trama actual.{' '}
-          <strong>No reemplaza</strong> ni borra nada de lo que ya tienes. Las filas con
-          el mismo identificador se omiten silenciosas.
-        </p>
-      </header>
-
-      <table className="w-full text-xs tabular-nums">
-        <thead>
-          <tr className="text-ink-400 text-left">
-            <th className="font-normal pb-1">Tipo</th>
-            <th className="font-normal pb-1 text-right">En archivo</th>
-            <th className="font-normal pb-1 text-right">Nuevas</th>
-            <th className="font-normal pb-1 text-right">Duplicadas</th>
-          </tr>
-        </thead>
-        <tbody className="text-ink-700">
-          <PreviewRow label="Entidades" stats={entities} />
-          <PreviewRow label="Relaciones" stats={relationships} />
-          <PreviewRow label="Citas" stats={quotes} />
-          <PreviewRow label="Momentos" stats={momentos} />
-          <PreviewRow label="Notas" stats={notes} />
-          <PreviewRow label="Tareas" stats={tasks} />
-          <tr className="border-t border-ink-100/60 font-medium">
-            <td className="pt-1.5">Total</td>
-            <td className="pt-1.5 text-right">{preview.totalIncoming}</td>
-            <td className="pt-1.5 text-right">{totalNew}</td>
-            <td className="pt-1.5 text-right text-ink-400">{totalDuplicates}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div className="flex items-center justify-end gap-2 pt-1">
-        <button
-          onClick={onCancel}
-          disabled={busy}
-          className="px-3 py-1.5 text-xs text-ink-500 hover:text-ink-700 transition-colors disabled:opacity-50"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={busy || totalNew === 0}
-          className="px-3 py-1.5 text-xs bg-ink-700 text-paper-50 rounded-md hover:bg-ink-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {busy
-            ? 'Agregando…'
-            : totalNew === 0
-              ? 'No hay nuevas para agregar'
-              : `Agregar ${totalNew} nuevas`}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function PreviewRow({ label, stats }: { label: string; stats: BucketCount }) {
-  return (
-    <tr>
-      <td className="py-1">{label}</td>
-      <td className="py-1 text-right">{stats.incoming}</td>
-      <td className="py-1 text-right">{stats.news}</td>
-      <td className="py-1 text-right text-ink-400">{stats.duplicates}</td>
-    </tr>
-  )
-}
-
-/**
- * Calcula el preview comparando los IDs del archivo contra los existentes.
- * Pure function — exportable + testeable sin DOM.
- *
- * Una fila se considera "nueva" si tiene un `id` que NO está en la trama
- * actual. Si el id falta o ya existe, va a "duplicadas" (mismo bucket
- * que el backend skipea con `ON CONFLICT DO NOTHING`).
- */
-export function buildPreview(
-  payload: ExportPayload,
-  existingEntityIds: Set<string>,
-  existingRelationshipIds: Set<string>,
-  existingQuoteIds: Set<string>,
-  existingMomentoIds: Set<string> = new Set(),
-  existingNoteIds: Set<string> = new Set(),
-  existingTaskIds: Set<string> = new Set(),
-): Preview {
-  const entities = countBucket(payload.entities ?? [], existingEntityIds)
-  const relationships = countBucket(payload.relationships ?? [], existingRelationshipIds)
-  const quotes = countBucket(payload.quotes ?? [], existingQuoteIds)
-  const momentos = countBucket(payload.momentos ?? [], existingMomentoIds)
-  const notes = countBucket(payload.notes ?? [], existingNoteIds)
-  const tasks = countBucket(payload.tasks ?? [], existingTaskIds)
-  const totalIncoming =
-    entities.incoming +
-    relationships.incoming +
-    quotes.incoming +
-    momentos.incoming +
-    notes.incoming +
-    tasks.incoming
-  const totalNew =
-    entities.news +
-    relationships.news +
-    quotes.news +
-    momentos.news +
-    notes.news +
-    tasks.news
-  const totalDuplicates =
-    entities.duplicates +
-    relationships.duplicates +
-    quotes.duplicates +
-    momentos.duplicates +
-    notes.duplicates +
-    tasks.duplicates
-  return {
-    entities,
-    relationships,
-    quotes,
-    momentos,
-    notes,
-    tasks,
-    totalIncoming,
-    totalNew,
-    totalDuplicates,
-  }
-}
-
-function countBucket(items: Array<{ id?: string }>, existing: Set<string>): BucketCount {
-  let news = 0
-  let duplicates = 0
-  for (const item of items) {
-    if (item.id && !existing.has(item.id)) news++
-    else duplicates++
-  }
-  return { incoming: items.length, news, duplicates }
 }

@@ -543,6 +543,23 @@ describe('<App />', () => {
 
     await user.click(screen.getByRole('button', { name: 'action new quote' }))
     expect(screen.getByText(/view:citas/i)).toBeInTheDocument()
+    expect(screen.getByText(/right desktop no-proposal no-detail/i)).toBeInTheDocument()
+  })
+
+  it('limpia el detalle de entidad cuando el palette navega fuera de grafo', async () => {
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'abrir palette' }))
+    await user.click(screen.getByRole('button', { name: 'palette entity' }))
+    expect(screen.getByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'abrir palette' }))
+    await user.click(screen.getByRole('button', { name: 'action new quote' }))
+
+    expect(screen.getByText(/view:citas/i)).toBeInTheDocument()
+    expect(screen.getByText(/right desktop no-proposal no-detail/i)).toBeInTheDocument()
   })
 
   it('maneja mobile nav, panel derecho y modo focus', async () => {
@@ -598,6 +615,24 @@ describe('<App />', () => {
     expect(window.localStorage.getItem('trama:world')).toBe('trama')
   })
 
+  it('abre aunque localStorage falle al leer el mundo inicial', () => {
+    const originalGetItem = window.localStorage.getItem.bind(window.localStorage)
+    const getItemSpy = vi
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(function (this: Storage, key: string) {
+        if (key === 'trama:world') throw new DOMException('blocked', 'SecurityError')
+        return originalGetItem(key)
+      })
+
+    try {
+      render(<App />)
+    } finally {
+      getItemSpy.mockRestore()
+    }
+
+    expect(screen.getByText(/sidebar inicio trama/i)).toBeInTheDocument()
+  })
+
   it('abre el mundo Notas desde un deep link con sección inicial', () => {
     window.history.replaceState(null, '', '/?world=notas&section=tareas')
 
@@ -605,6 +640,20 @@ describe('<App />', () => {
 
     expect(screen.getByText(/notas world notas section:tareas/i)).toBeInTheDocument()
     expect(window.localStorage.getItem('trama:world')).toBe('notas')
+  })
+
+  it('consume el deep link de sección de Notas solo para la primera entrada', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/?world=notas&section=tareas')
+
+    render(<App />)
+
+    expect(screen.getByText(/notas world notas section:tareas/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'volver trama' }))
+    await user.click(screen.getByRole('button', { name: 'mundo notas' }))
+
+    expect(screen.getByText(/notas world notas section:none/i)).toBeInTheDocument()
   })
 
   it('prioriza el deep link de mundo sobre la preferencia persistida', () => {

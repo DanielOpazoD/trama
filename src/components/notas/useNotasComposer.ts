@@ -5,10 +5,16 @@ import {
   useCreateRecorte,
   useToast,
 } from '../../state'
-import { extractUrl, hostLabel } from '../../lib/captureIntent'
+import { hostLabel } from '../../lib/captureIntent'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { compressImage } from '../momentos/helpers'
+import {
+  captureMediaSuccessMessage,
+  isCaptureMediaFile,
+  isNotasComposerActive,
+  resolveLinkDraft,
+} from './notasComposerModel'
 
 /**
  * Estado + lógica de captura del composer del feed de Notas (nota · enlace ·
@@ -50,18 +56,19 @@ export function useNotasComposer() {
   const savedTimer = useRef<number | null>(null)
 
   // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
-  const linkUrl = forceNote ? null : extractUrl(draft)
+  const linkUrl = resolveLinkDraft(draft, forceNote)
   const isLinkDraft = linkUrl !== null
 
   // El composer está "activo" si tiene foco o algún contenido. Las afordancias
   // del pie (tip de imagen + guardar) solo aparecen entonces — en reposo el
   // composer es una hoja limpia. Con contenido sigue visible aunque pierda el
   // foco, así el click en «guardar» nunca se desmonta antes de registrar.
-  const composerActive =
-    composerFocused ||
-    draft.trim() !== '' ||
-    title.trim() !== '' ||
-    pendingFiles.length > 0
+  const composerActive = isNotasComposerActive({
+    composerFocused,
+    draft,
+    title,
+    pendingFilesCount: pendingFiles.length,
+  })
 
   useEffect(() => {
     return () => {
@@ -109,9 +116,7 @@ export function useNotasComposer() {
    *  Las comprime client-side (downscale + JPEG) antes de subir, igual que el
    *  composer de Momentos — evita subir un screenshot de 8 MB tal cual. */
   async function captureMediaFiles(files: File[]) {
-    const media = files.filter(
-      (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
-    )
+    const media = files.filter(isCaptureMediaFile)
     if (media.length === 0) return
     // Mostramos las tarjetas «subiendo…» desde ya (incluye la compresión).
     setUploadingImages((n) => n + media.length)
@@ -128,12 +133,7 @@ export function useNotasComposer() {
             done += 1
             if (done === media.length) {
               toast.show({
-                message:
-                  media.length === 1
-                    ? isVideo
-                      ? 'Video guardado en tus capturas.'
-                      : 'Imagen guardada en tus capturas.'
-                    : `${media.length} archivos guardados en tus capturas.`,
+                message: captureMediaSuccessMessage(media),
                 tone: 'success',
               })
             }
@@ -169,9 +169,7 @@ export function useNotasComposer() {
     // previene para media, soltar un archivo no soportado cae al default del
     // navegador (abre el archivo / navega fuera) y se pierde el borrador.
     if (files.length > 0) e.preventDefault()
-    const media = files.filter(
-      (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
-    )
+    const media = files.filter(isCaptureMediaFile)
     if (media.length > 0) {
       captureMediaFiles(media)
     } else if (files.length > 0) {

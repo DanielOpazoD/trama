@@ -94,7 +94,7 @@ describe('structure ratchets', () => {
     expect(maxFor('netlify/functions/_lib/recortes-endpoint.ts')).toBeLessThanOrEqual(540)
     expect(maxFor('netlify/functions/_lib/momentos-endpoint.ts')).toBeLessThanOrEqual(550)
     expect(maxFor('netlify/functions/_lib/entities-endpoint.ts')).toBeLessThanOrEqual(480)
-    expect(maxFor('netlify/functions/_lib/search-endpoint.ts')).toBeLessThanOrEqual(370)
+    expect(maxFor('netlify/functions/_lib/search-endpoint.ts')).toBeLessThanOrEqual(190)
     expect(maxFor('netlify/functions/whatsapp-webhook.mts')).toBeLessThanOrEqual(90)
     expect(
       maxFor('netlify/functions/_lib/whatsapp/webhook-endpoint.ts'),
@@ -107,11 +107,16 @@ describe('structure ratchets', () => {
     )
     const maxFor = (file) => entries.find((entry) => entry.file === file)?.maxLines
 
-    expect(maxFor('src/App.tsx')).toBeLessThanOrEqual(600)
+    expect(maxFor('src/App.tsx')).toBeLessThanOrEqual(430)
     expect(maxFor('src/components/notas/NotasFeedView.tsx')).toBeLessThanOrEqual(700)
+    expect(maxFor('src/components/notas/NotasFeedControls.tsx')).toBeLessThanOrEqual(160)
     expect(maxFor('src/components/recortes/RecorteCard.tsx')).toBeLessThanOrEqual(285)
     expect(maxFor('src/components/CommandPalette.tsx')).toBeLessThanOrEqual(390)
+    expect(maxFor('src/components/MomentosView.tsx')).toBeLessThanOrEqual(300)
     expect(maxFor('src/components/Settings.tsx')).toBeLessThanOrEqual(125)
+    expect(maxFor('src/components/settings/LogsPanel.tsx')).toBeLessThanOrEqual(80)
+    expect(maxFor('src/components/settings/DataPanel.tsx')).toBeLessThanOrEqual(260)
+    expect(maxFor('src/components/settings/HealthPanel.tsx')).toBeLessThanOrEqual(120)
     expect(maxFor('src/components/notas/NotasFeedVirtualList.tsx')).toBeLessThanOrEqual(
       225,
     )

@@ -6,7 +6,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 560,
+    maxLines: 430,
     files: ['src/App.tsx'],
   },
   {
@@ -63,7 +63,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'notas-feed-components',
-    maxLines: 350,
+    maxLines: 160,
     files: ['src/components/notas/NotasFeedControls.tsx'],
   },
   {
@@ -102,7 +102,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'momentos-surfaces',
-    maxLines: 420,
+    maxLines: 300,
     files: ['src/components/MomentosView.tsx'],
   },
   {
@@ -121,17 +121,17 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'settings-surfaces',
-    maxLines: 455,
+    maxLines: 80,
     files: ['src/components/settings/LogsPanel.tsx'],
   },
   {
     group: 'settings-surfaces',
-    maxLines: 435,
+    maxLines: 260,
     files: ['src/components/settings/DataPanel.tsx'],
   },
   {
     group: 'settings-surfaces',
-    maxLines: 375,
+    maxLines: 120,
     files: ['src/components/settings/HealthPanel.tsx'],
   },
   {
@@ -172,7 +172,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-api-endpoints',
-    maxLines: 370,
+    maxLines: 190,
     files: ['netlify/functions/_lib/search-endpoint.ts'],
   },
   {

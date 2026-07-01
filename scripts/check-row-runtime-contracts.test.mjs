@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { checkRowRuntimeContracts } from './check-row-runtime-contracts.mjs'
+import {
+  HOT_ROW_CONTRACT_FILES,
+  checkRowRuntimeContracts,
+} from './check-row-runtime-contracts.mjs'
 
 async function makeRepo(files) {
   const root = await mkdtemp(join(tmpdir(), 'trama-row-contracts-'))
@@ -19,6 +22,12 @@ async function makeRepo(files) {
 const HOT_QUOTES_FILE = 'netlify/functions/quotes.mts'
 
 describe('checkRowRuntimeContracts', () => {
+  it('incluye helpers splitteados de endpoints hot para no perder cobertura', () => {
+    expect(HOT_ROW_CONTRACT_FILES).toContain(
+      'netlify/functions/_lib/search-endpoint-queries.ts',
+    )
+  })
+
   it('acepta sqlTyped<Row> crítico cuando está envuelto por parseRows con schema y context', async () => {
     const root = await makeRepo({
       [HOT_QUOTES_FILE]: `
@@ -37,6 +46,47 @@ describe('checkRowRuntimeContracts', () => {
 
     expect(result.ok).toBe(true)
     expect(result.violations).toEqual([])
+  })
+
+  it('acepta sqlTyped<Row> crítico cuando una rama concurrente parsea rows en .then', async () => {
+    const root = await makeRepo({
+      [HOT_QUOTES_FILE]: `
+        const queries = [
+          sqlTyped<QuoteRow>(sql\`
+            SELECT id, text
+            FROM quotes
+          \`).then((rows) => parseRows(rows, QuoteRowSchema, 'quotes.list'))
+        ]
+      `,
+    })
+
+    const result = checkRowRuntimeContracts({ root })
+
+    expect(result.ok).toBe(true)
+    expect(result.violations).toEqual([])
+  })
+
+  it('falla si .then parsea un valor distinto al resultado de sqlTyped<Row>', async () => {
+    const root = await makeRepo({
+      [HOT_QUOTES_FILE]: `
+        const queries = [
+          sqlTyped<QuoteRow>(sql\`
+            SELECT id, text
+            FROM quotes
+          \`).then((rows) => parseRows(otherRows, QuoteRowSchema, 'quotes.list'))
+        ]
+      `,
+    })
+
+    const result = checkRowRuntimeContracts({ root })
+
+    expect(result.ok).toBe(false)
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        file: HOT_QUOTES_FILE,
+        rowType: 'QuoteRow',
+      }),
+    ])
   })
 
   it('falla si un archivo hot usa await sqlTyped<QuoteRow> directo', async () => {
