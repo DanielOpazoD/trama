@@ -37,10 +37,20 @@ export const SETTINGS_SECTIONS: Array<{
   { id: 'data', label: 'Datos', hint: 'export / import' },
 ]
 
+export type SettingsPanelLoadMode = 'eager' | 'lazy'
+
+const EAGER_SETTINGS_PANEL_IDS = new Set<SettingsSectionId>(['health', 'appearance'])
+
 export function getInitialSettingsSection(
   initialSection: SettingsSectionId | undefined,
 ): SettingsSectionId {
   return initialSection ?? 'health'
+}
+
+export function getSettingsPanelLoadMode(
+  section: SettingsSectionId,
+): SettingsPanelLoadMode {
+  return EAGER_SETTINGS_PANEL_IDS.has(section) ? 'eager' : 'lazy'
 }
 
 export function resolveSettingsOauthReturn({

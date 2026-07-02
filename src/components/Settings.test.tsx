@@ -100,13 +100,13 @@ describe('<Settings />', () => {
       />,
     )
 
-    expect(screen.getByText('panel spotify oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel spotify oauth')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /X \(Twitter\)/i }))
-    expect(screen.getByText('panel x sin oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel x sin oauth')).toBeInTheDocument()
   })
 
-  it('sincroniza la sección cuando cambia initialSection', () => {
+  it('sincroniza la sección cuando cambia initialSection', async () => {
     const { rerender } = render(
       <Settings
         open
@@ -117,7 +117,7 @@ describe('<Settings />', () => {
       />,
     )
 
-    expect(screen.getByText('panel spotify sin oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel spotify sin oauth')).toBeInTheDocument()
 
     rerender(
       <Settings
@@ -129,6 +129,6 @@ describe('<Settings />', () => {
       />,
     )
 
-    expect(screen.getByText('panel x sin oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel x sin oauth')).toBeInTheDocument()
   })
 })
