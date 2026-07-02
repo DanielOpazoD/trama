@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { ExportPayload } from '../../types'
-import { buildPreview } from './dataImportPreviewModel'
+import type { ExportPayload, ImportResult } from '../../types'
+import {
+  buildPreview,
+  buildExistingImportIdSets,
+  formatImportResultMessage,
+  parseImportPayloadText,
+} from './dataImportPreviewModel'
 
-describe('dataImportPreviewModel', () => {
+describe('dataImportPreviewModel helpers', () => {
   it('cuenta existentes, filas sin id y duplicados dentro del mismo payload', () => {
     const payload = {
       version: 1,
@@ -49,5 +54,70 @@ describe('dataImportPreviewModel', () => {
       totalNew: 1,
       totalDuplicates: 3,
     })
+  })
+
+  it('parsea payloads v1/v2 y conserva el nombre del archivo', () => {
+    const payload: ExportPayload = {
+      version: 2,
+      exportedAt: '2026-07-02T00:00:00Z',
+      entities: [],
+      relationships: [],
+      quotes: [],
+      notes: [],
+      tasks: [],
+    }
+
+    expect(parseImportPayloadText(JSON.stringify(payload), 'trama.json')).toEqual({
+      payload,
+      fileName: 'trama.json',
+    })
+  })
+
+  it('rechaza JSON inválido, versiones no soportadas y payloads no objeto', () => {
+    expect(() => parseImportPayloadText('{', 'bad.json')).toThrow()
+    expect(() =>
+      parseImportPayloadText(JSON.stringify({ version: 3 }), 'future.json'),
+    ).toThrow('versión 3 no soportada')
+    expect(() => parseImportPayloadText('null', 'null.json')).toThrow('payload inválido')
+  })
+
+  it('formatea mensajes de import exitoso y con fallas truncadas', () => {
+    expect(formatImportResultMessage({ imported: 3 })).toBe(
+      'Agregadas 3 entradas a tu trama',
+    )
+
+    const result: ImportResult = {
+      imported: 2,
+      failed: [
+        {
+          kind: 'entity',
+          id: 'e1',
+          reason:
+            'razón extremadamente larga que no debería ocupar todo el panel de datos',
+        },
+      ],
+    }
+
+    expect(formatImportResultMessage(result)).toBe(
+      'Agregadas 2, 1 con error (primero: razón extremadamente larga que no debería ocupar todo el pan). Revisa Logs en Settings.',
+    )
+  })
+
+  it('centraliza sets de IDs existentes para el preview', () => {
+    const sets = buildExistingImportIdSets({
+      entities: [{ id: 'e1' }],
+      relationships: [{ id: 'r1' }],
+      quotes: [{ id: 'q1' }],
+      momentos: [{ id: 'm1' }],
+      notes: [{ id: 'n1' }],
+      tasks: [{ id: 't1' }],
+    })
+
+    expect(sets.entityIds.has('e1')).toBe(true)
+    expect(sets.relationshipIds.has('r1')).toBe(true)
+    expect(sets.quoteIds.has('q1')).toBe(true)
+    expect(sets.momentoIds.has('m1')).toBe(true)
+    expect(sets.noteIds.has('n1')).toBe(true)
+    expect(sets.taskIds.has('t1')).toBe(true)
   })
 })

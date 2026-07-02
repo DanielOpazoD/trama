@@ -20,8 +20,6 @@ import {
   readMaxTokens,
   readVisionProvider,
 } from './config.js'
-import { getCached, hashMessages, putCached } from './cache.js'
-import { getCachedFromDB, putCachedToDB } from './db-cache.js'
 import { LLMTransientError } from './retry.js'
 import { logEvent } from '../observability.js'
 import {
@@ -42,6 +40,12 @@ import type {
 } from './types.js'
 import { parseOpenAICompatibleSseBlock } from './streaming.js'
 import { buildProviderChain, resolveProvider, type ChainLink } from './provider-chain.js'
+import {
+  buildPrimaryLLMCacheKey,
+  buildVisionLLMCacheKey,
+  readLLMCache,
+  writeLLMCacheBestEffort,
+} from './cache-policy.js'
 
 /** Una sola llamada a un provider concreto. Envuelve el RawResult en LLMResult. */
 async function callOneProvider(
@@ -90,22 +94,9 @@ async function callLLM(
   // el usuario espera variedad entre clicks. El key se ancla al provider
   // primario; si un fallback responde, su resultado se cachea bajo ese mismo
   // key — así el próximo request idéntico no vuelve a fallar contra el primario.
-  const cacheKey = await hashMessages(
-    messages,
-    `${primary.provider}|${primary.config.model}|${mode}|${override?.freshNonce ?? ''}`,
-  )
-  // DD6: dos niveles. 1) Memoria (sub-ms, mismo Lambda warm). 2) Postgres
-  // (~15-30ms, sobrevive cold starts y deploys). Solo llamamos al provider
-  // si ambas misses.
-  const cached = getCached(cacheKey)
+  const cacheKey = await buildPrimaryLLMCacheKey({ messages, primary, mode, override })
+  const cached = await readLLMCache({ cacheKey, cacheTtl })
   if (cached) return cached
-  const dbCached = await getCachedFromDB(cacheKey)
-  if (dbCached) {
-    // Hot-fill el memory cache para que el próximo hit del mismo Lambda
-    // sea sub-ms en vez de pegarle a Postgres otra vez.
-    putCached(cacheKey, dbCached, cacheTtl)
-    return dbCached
-  }
 
   // Recorre la cadena: ante una falla TRANSITORIA (5xx/timeout/red) cae al
   // siguiente provider; ante una permanente (4xx auth/bad-request, o JSON
@@ -122,9 +113,7 @@ async function callLLM(
           mode,
         })
       }
-      putCached(cacheKey, result, cacheTtl)
-      // Persistir a DB best-effort (no await; no debe bloquear el response).
-      void putCachedToDB(cacheKey, result, cacheTtl)
+      writeLLMCacheBestEffort({ cacheKey, result, cacheTtl })
       return result
     } catch (err) {
       lastError = err
@@ -305,21 +294,14 @@ export async function askLLMForVision(
 
   // Cache por hash de system + user text + image bytes (truncados) — duplicados
   // exactos son raros para vision pero cheap dedupear.
-  const cacheKey = await hashMessages(
-    [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userText + ':' + imageBase64.slice(0, 64) },
-    ],
-    `${provider}|vision`,
-  )
-  const cached = getCached(cacheKey)
+  const cacheKey = await buildVisionLLMCacheKey({
+    provider,
+    systemPrompt,
+    userText,
+    imageBase64,
+  })
+  const cached = await readLLMCache({ cacheKey, cacheTtl })
   if (cached) return cached
-  // DD6: cache persistente también para vision. Misma estrategia.
-  const dbCached = await getCachedFromDB(cacheKey)
-  if (dbCached) {
-    putCached(cacheKey, dbCached, cacheTtl)
-    return dbCached
-  }
 
   // Cadena de visión: primario + el otro provider vision-capable (openai↔gemini)
   // si está en AI_FALLBACK_PROVIDERS y tiene key dedicada. Vision solo soporta
@@ -389,8 +371,7 @@ export async function askLLMForVision(
           used: link.provider,
         })
       }
-      putCached(cacheKey, result, cacheTtl)
-      void putCachedToDB(cacheKey, result, cacheTtl)
+      writeLLMCacheBestEffort({ cacheKey, result, cacheTtl })
       return result
     } catch (err) {
       lastError = err

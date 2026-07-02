@@ -27,9 +27,13 @@ const MOMENTOS_INFINITE = queryKeys.momentosInfinite
 
 type ListResult = { items: Momento[]; nextCursor: string | null }
 
-export function useInfiniteMomentosQuery(opts?: { kind?: MomentoKind }) {
+export function useInfiniteMomentosQuery(opts?: {
+  enabled?: boolean
+  kind?: MomentoKind
+}) {
   return useInfiniteQuery<ListResult>({
     queryKey: [...MOMENTOS_INFINITE, opts?.kind ?? 'all'],
+    enabled: opts?.enabled ?? true,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       api.listMomentos({

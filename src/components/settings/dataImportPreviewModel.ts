@@ -1,4 +1,4 @@
-import type { ExportPayload } from '../../types'
+import type { ExportPayload, ImportResult } from '../../types'
 
 export type BucketCount = { incoming: number; news: number; duplicates: number }
 
@@ -12,6 +12,70 @@ export type ImportPreview = {
   totalIncoming: number
   totalNew: number
   totalDuplicates: number
+}
+
+export type ParsedImportFile = {
+  payload: ExportPayload
+  fileName: string
+}
+
+export type ExistingImportIdSets = {
+  entityIds: Set<string>
+  relationshipIds: Set<string>
+  quoteIds: Set<string>
+  momentoIds: Set<string>
+  noteIds: Set<string>
+  taskIds: Set<string>
+}
+
+type ExistingImportSources = {
+  entities: Array<{ id: string }>
+  relationships: Array<{ id: string }>
+  quotes: Array<{ id: string }>
+  momentos: Array<{ id: string }>
+  notes: Array<{ id: string }>
+  tasks: Array<{ id: string }>
+}
+
+export function parseImportPayloadText(text: string, fileName: string): ParsedImportFile {
+  const parsed = JSON.parse(text) as unknown
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('payload inválido')
+  }
+  const payload = parsed as ExportPayload
+  if (payload.version !== 1 && payload.version !== 2) {
+    throw new Error(`versión ${payload.version} no soportada`)
+  }
+  return { payload, fileName }
+}
+
+export function formatImportResultMessage(result: ImportResult): string {
+  const failedCount = result.failed?.length ?? 0
+  if (failedCount === 0) return `Agregadas ${result.imported} entradas a tu trama`
+
+  const firstReason = result.failed?.[0]?.reason ?? 'desconocido'
+  return `Agregadas ${result.imported}, ${failedCount} con error (primero: ${firstReason.slice(
+    0,
+    60,
+  )}). Revisa Logs en Settings.`
+}
+
+export function buildExistingImportIdSets({
+  entities,
+  relationships,
+  quotes,
+  momentos,
+  notes,
+  tasks,
+}: ExistingImportSources): ExistingImportIdSets {
+  return {
+    entityIds: new Set(entities.map((entity) => entity.id)),
+    relationshipIds: new Set(relationships.map((relationship) => relationship.id)),
+    quoteIds: new Set(quotes.map((quote) => quote.id)),
+    momentoIds: new Set(momentos.map((momento) => momento.id)),
+    noteIds: new Set(notes.map((note) => note.id)),
+    taskIds: new Set(tasks.map((task) => task.id)),
+  }
 }
 
 /**

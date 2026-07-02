@@ -95,6 +95,8 @@ describe('structure ratchets', () => {
     expect(maxFor('netlify/functions/_lib/momentos-endpoint.ts')).toBeLessThanOrEqual(550)
     expect(maxFor('netlify/functions/_lib/entities-endpoint.ts')).toBeLessThanOrEqual(480)
     expect(maxFor('netlify/functions/_lib/search-endpoint.ts')).toBeLessThanOrEqual(190)
+    expect(maxFor('netlify/functions/_lib/llm/dispatch.ts')).toBeLessThanOrEqual(400)
+    expect(maxFor('netlify/functions/_lib/llm/cache-policy.ts')).toBeLessThanOrEqual(110)
     expect(maxFor('netlify/functions/whatsapp-webhook.mts')).toBeLessThanOrEqual(90)
     expect(
       maxFor('netlify/functions/_lib/whatsapp/webhook-endpoint.ts'),
@@ -111,14 +113,26 @@ describe('structure ratchets', () => {
     expect(maxFor('src/components/notas/NotasFeedView.tsx')).toBeLessThanOrEqual(700)
     expect(maxFor('src/components/notas/NotasFeedControls.tsx')).toBeLessThanOrEqual(160)
     expect(maxFor('src/components/recortes/RecorteCard.tsx')).toBeLessThanOrEqual(285)
-    expect(maxFor('src/components/CommandPalette.tsx')).toBeLessThanOrEqual(386)
+    expect(maxFor('src/components/CommandPalette.tsx')).toBeLessThanOrEqual(135)
+    expect(
+      maxFor('src/components/commandPalette/useCommandPaletteController.ts'),
+    ).toBeLessThanOrEqual(220)
+    expect(
+      maxFor('src/components/commandPalette/commandPaletteSelectionModel.ts'),
+    ).toBeLessThanOrEqual(80)
     expect(maxFor('src/hooks/useCommandSearch.ts')).toBeLessThanOrEqual(120)
     expect(maxFor('src/hooks/commandSearchModel.ts')).toBeLessThanOrEqual(520)
     expect(maxFor('src/hooks/useCommandServerSearch.ts')).toBeLessThanOrEqual(65)
     expect(maxFor('src/components/MomentosView.tsx')).toBeLessThanOrEqual(300)
     expect(maxFor('src/components/Settings.tsx')).toBeLessThanOrEqual(125)
     expect(maxFor('src/components/settings/LogsPanel.tsx')).toBeLessThanOrEqual(80)
-    expect(maxFor('src/components/settings/DataPanel.tsx')).toBeLessThanOrEqual(260)
+    expect(maxFor('src/components/settings/DataPanel.tsx')).toBeLessThanOrEqual(200)
+    expect(
+      maxFor('src/components/settings/dataImportPreviewModel.ts'),
+    ).toBeLessThanOrEqual(150)
+    expect(
+      maxFor('src/components/settings/useDataPanelImportPreview.ts'),
+    ).toBeLessThanOrEqual(115)
     expect(maxFor('src/components/settings/HealthPanel.tsx')).toBeLessThanOrEqual(120)
     expect(maxFor('src/components/notas/NotasFeedVirtualList.tsx')).toBeLessThanOrEqual(
       225,

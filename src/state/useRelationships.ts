@@ -42,10 +42,11 @@ function nowIso(): string {
   return new Date().toISOString()
 }
 
-export function useRelationshipsQuery() {
+export function useRelationshipsQuery(options: { enabled?: boolean } = {}) {
   const { setOffline, offline } = useOffline()
   return useQuery({
     queryKey: queryKeys.relationships,
+    enabled: options.enabled ?? true,
     queryFn: async () => {
       try {
         const result = await api.listRelationships()
