@@ -1,42 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
-import { api } from '../../api'
+import { useEffect, useMemo } from 'react'
 import {
   useEntitiesQuery,
+  useInfiniteMomentosQuery,
   useNotesQuery,
   useQuotesQuery,
   useRelationshipsQuery,
   useTasksQuery,
 } from '../../state'
-import { queryKeys } from '../../state/queryClient'
 import {
   buildExistingImportIdSets,
   buildPreview,
   type ImportPreview,
   type ParsedImportFile,
 } from './dataImportPreviewModel'
-
-const MOMENTOS_IMPORT_PREVIEW_PAGE_SIZE = 100
-
-function useImportPreviewMomentosQuery(enabled: boolean) {
-  return useQuery({
-    queryKey: [...queryKeys.momentosInfinite, 'import-preview-all'],
-    enabled,
-    queryFn: async () => {
-      const items = []
-      let cursor: string | null = null
-      do {
-        const page = await api.listMomentos({
-          cursor,
-          limit: MOMENTOS_IMPORT_PREVIEW_PAGE_SIZE,
-        })
-        items.push(...page.items)
-        cursor = page.nextCursor
-      } while (cursor)
-      return items
-    },
-  })
-}
 
 export function useDataPanelImportPreview(
   parsed: ParsedImportFile | null,
@@ -45,44 +21,54 @@ export function useDataPanelImportPreview(
   const entitiesQuery = useEntitiesQuery({ enabled })
   const quotesQuery = useQuotesQuery({ enabled })
   const relationshipsQuery = useRelationshipsQuery({ enabled })
-  const momentosQuery = useImportPreviewMomentosQuery(enabled)
+  const momentosQuery = useInfiniteMomentosQuery({ enabled })
   const notesQuery = useNotesQuery({ enabled })
   const tasksQuery = useTasksQuery({ enabled })
+  const {
+    data: momentosPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isPending: momentosPending,
+  } = momentosQuery
 
-  const existingEntities = entitiesQuery.data ?? []
-  const existingQuotes = quotesQuery.data ?? []
-  const existingRelationships = relationshipsQuery.data ?? []
-  const existingMomentos = momentosQuery.data ?? []
-  const existingNotes = notesQuery.data ?? []
-  const existingTasks = tasksQuery.data ?? []
+  useEffect(() => {
+    if (!enabled || !hasNextPage || isFetchingNextPage) {
+      return
+    }
+    void fetchNextPage()
+  }, [enabled, fetchNextPage, hasNextPage, isFetchingNextPage])
+
+  const existingMomentos = useMemo(
+    () => momentosPages?.pages.flatMap((page) => page.items) ?? [],
+    [momentosPages],
+  )
   const previewDataPending =
     enabled &&
-    [
-      entitiesQuery,
-      quotesQuery,
-      relationshipsQuery,
-      momentosQuery,
-      notesQuery,
-      tasksQuery,
-    ].some((query) => query.isPending)
+    ([entitiesQuery, quotesQuery, relationshipsQuery, notesQuery, tasksQuery].some(
+      (query) => query.isPending,
+    ) ||
+      momentosPending ||
+      hasNextPage ||
+      isFetchingNextPage)
 
   const existingIds = useMemo(
     () =>
       buildExistingImportIdSets({
-        entities: existingEntities,
-        relationships: existingRelationships,
-        quotes: existingQuotes,
+        entities: entitiesQuery.data ?? [],
+        relationships: relationshipsQuery.data ?? [],
+        quotes: quotesQuery.data ?? [],
         momentos: existingMomentos,
-        notes: existingNotes,
-        tasks: existingTasks,
+        notes: notesQuery.data ?? [],
+        tasks: tasksQuery.data ?? [],
       }),
     [
-      existingEntities,
-      existingRelationships,
-      existingQuotes,
+      entitiesQuery.data,
+      relationshipsQuery.data,
+      quotesQuery.data,
       existingMomentos,
-      existingNotes,
-      existingTasks,
+      notesQuery.data,
+      tasksQuery.data,
     ],
   )
 

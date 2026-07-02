@@ -1,17 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useExport, useImport } from '../../state'
 import { DownloadIcon, UploadIcon } from '../Icons'
 import { PanelHeader } from './_shared'
 import { RescueOrphansPanel } from '../momentos/RescueOrphansPanel'
-import { DataImportPreviewCard } from './DataImportPreviewCard'
 import {
   formatImportResultMessage,
   parseImportPayloadText,
   type ParsedImportFile,
 } from './dataImportPreviewModel'
-import { useDataPanelImportPreview } from './useDataPanelImportPreview'
 
-export { buildPreview } from './dataImportPreviewModel'
+const DataImportPreviewHost = lazy(() =>
+  import('./DataImportPreviewHost').then((mod) => ({
+    default: mod.DataImportPreviewHost,
+  })),
+)
 
 /**
  * Settings → Datos.
@@ -41,8 +43,6 @@ export function DataPanel() {
   // Estado del flujo de import: archivo parseado y a la espera de
   // confirmación. Si está `null`, no hay nada pendiente.
   const [parsed, setParsed] = useState<ParsedImportFile | null>(null)
-
-  const preview = useDataPanelImportPreview(parsed)
 
   useEffect(() => {
     if (!message) return
@@ -160,14 +160,15 @@ export function DataPanel() {
 
       {/* Preview de import — visible solo cuando hay un archivo parseado
           en espera de confirmación. */}
-      {parsed && preview && (
-        <DataImportPreviewCard
-          fileName={parsed.fileName}
-          preview={preview}
-          busy={busy}
-          onConfirm={handleConfirmImport}
-          onCancel={handleCancelImport}
-        />
+      {parsed && (
+        <Suspense fallback={null}>
+          <DataImportPreviewHost
+            parsed={parsed}
+            busy={busy}
+            onConfirm={handleConfirmImport}
+            onCancel={handleCancelImport}
+          />
+        </Suspense>
       )}
 
       {/* DD1: recovery de fotos subidas desde deploy previews. Solo aparece

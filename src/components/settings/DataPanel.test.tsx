@@ -20,7 +20,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { OfflineContext } from '../../state/offline'
 import { ToastProvider } from '../../state/toast'
 import { queryKeys } from '../../state/queryClient'
-import { DataPanel, buildPreview } from './DataPanel'
+import { DataPanel } from './DataPanel'
+import { buildPreview } from './dataImportPreviewModel'
 import * as apiModule from '../../api'
 import type { Entity, ExportPayload, Quote, Relationship } from '../../types'
 
@@ -286,11 +287,11 @@ describe('<DataPanel /> — flujo de import con preview', () => {
     )
     expect(apiModule.api.listMomentos).toHaveBeenCalledWith({
       cursor: null,
-      limit: 100,
+      limit: 30,
     })
     expect(apiModule.api.listMomentos).toHaveBeenCalledWith({
       cursor: 'cursor-2',
-      limit: 100,
+      limit: 30,
     })
   })
 
