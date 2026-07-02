@@ -9,6 +9,7 @@ import {
 import { CameraIcon, ScissorsIcon, UploadIcon } from '../Icons'
 import { MarkdownField } from './MarkdownField'
 import { PendingAttachmentsInput } from './PendingAttachmentsInput'
+import { buildNotasComposerCta } from './notasComposerModel'
 
 export function NotasFeedComposer({
   accent,
@@ -72,6 +73,12 @@ export function NotasFeedComposer({
   onSave: () => void
 }) {
   const captureMediaInputRef = useRef<HTMLInputElement>(null)
+  const cta = buildNotasComposerCta({
+    draft,
+    isLinkDraft,
+    createNoteBusy,
+    createRecorteBusy,
+  })
 
   return (
     <div
@@ -165,23 +172,15 @@ export function NotasFeedComposer({
         <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60 animate-fade-up">
           <span className="flex items-center gap-1.5 text-micro text-ink-300">
             <CameraIcon size={11} />
-            pega o suelta una imagen o video para capturarlo
+            {cta.mediaHint}
           </span>
           <div className="relative">
             <button
               onClick={onSave}
-              disabled={
-                (!draft.trim() && !isLinkDraft) || createNoteBusy || createRecorteBusy
-              }
+              disabled={cta.disabled}
               className="btn-ink text-xs disabled:opacity-40"
             >
-              {createRecorteBusy
-                ? 'Guardando…'
-                : createNoteBusy
-                  ? 'Guardando…'
-                  : isLinkDraft
-                    ? 'Guardar enlace'
-                    : 'Guardar nota'}
+              {cta.label}
             </button>
             {justSaved && (
               <span
