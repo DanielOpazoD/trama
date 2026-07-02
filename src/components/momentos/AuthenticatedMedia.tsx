@@ -1,33 +1,10 @@
 import { useEffect, useState, type ImgHTMLAttributes } from 'react'
-import { ApiClientError, requestBlob } from '../../api/request'
+import { requestBlob } from '../../api/request'
 import { momentoMediaUrl } from './helpers'
-
-// Endpoints de blobs autenticados: el browser no adjunta el bearer de Clerk a
-// un `<img src>` directo (da 401), así que estos se bajan con `requestBlob`
-// (header Authorization) y se sirven como object-URL. Aplica a media de
-// Momentos y a los anexos de Notas/Tareas.
-function shouldFetchWithApiClient(src: string): boolean {
-  return (
-    src.startsWith('/api/momentos-file/') ||
-    src.startsWith('/api/notas-attachments-file/') ||
-    src.startsWith('/api/recortes-image/') ||
-    src.startsWith('/api/library-uploads-file/')
-  )
-}
-
-function shouldRetryLegacyMediaWithoutAuth(src: string, error: unknown): boolean {
-  if (!(error instanceof ApiClientError)) return false
-  if (error.status !== 401 && error.status !== 404) return false
-  const prefix = '/api/momentos-file/'
-  if (!src.startsWith(prefix)) return false
-  const keyPath = src.slice(prefix.length)
-
-  return (
-    keyPath.startsWith('legacy-single-user/') ||
-    keyPath.toLowerCase().startsWith('legacy-single-user%2f') ||
-    (!keyPath.includes('/') && !keyPath.toLowerCase().includes('%2f'))
-  )
-}
+import {
+  shouldFetchWithApiClient,
+  shouldRetryLegacyMediaWithoutAuth,
+} from './authenticatedMediaModel'
 
 async function fetchMediaBlob(src: string, signal: AbortSignal): Promise<Blob> {
   try {
