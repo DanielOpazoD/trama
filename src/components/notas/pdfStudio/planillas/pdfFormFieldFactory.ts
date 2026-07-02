@@ -11,6 +11,7 @@ import {
   initialFieldBox,
 } from './pdfTextEditorFormDefaults'
 import { formFieldTextStyleFromEditor } from './pdfFormFieldStyle'
+import type { FormFieldStyleDefaults } from './pdfFormFieldStyleDefaults'
 
 function nextFormFieldName(kind: PdfFormFieldKind, fields: PdfFormFieldDraft[]): string {
   const prefix = fieldNamePrefix(kind)
@@ -26,12 +27,15 @@ export function makeDraftFormField({
   kind,
   page,
   style,
+  styleDefaults,
 }: {
   box?: ReturnType<typeof initialFieldBox>
   fields: PdfFormFieldDraft[]
   kind: PdfFormFieldKind
   page: PdfPage | undefined
   style: TextStyle
+  /** Estilo inicial recordado por el usuario: pisa el estilo de la barra. */
+  styleDefaults?: FormFieldStyleDefaults | null
 }): PdfFormFieldDraft | null {
   if (!page) return null
   return makePdfFormFieldDraft({
@@ -40,7 +44,9 @@ export function makeDraftFormField({
     name: nextFormFieldName(kind, fields),
     value: defaultFormValue(kind),
     options: kind === 'radio' ? ['Sí'] : undefined,
-    ...(kind === 'text' ? formFieldTextStyleFromEditor(style) : {}),
+    ...(kind === 'text'
+      ? { ...formFieldTextStyleFromEditor(style), ...styleDefaults }
+      : {}),
     ...(box ?? initialFieldBox(kind, style)),
   })
 }

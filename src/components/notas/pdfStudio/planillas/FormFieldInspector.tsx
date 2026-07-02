@@ -2,7 +2,24 @@ import type {
   PdfFormFieldDraft,
   PdfFormValue,
 } from '../../../../lib/pdfStudio/model/model'
+import type {
+  AnnotationDistributionAxis,
+  AnnotationHorizontalAlignment,
+} from '../editor/pdfAnnotationArrange'
+import { clamp, type TextStyle } from '../editor/editorStyle'
 import { focusRing } from '../editor/EditorToolbarPrimitives'
+import { formFieldTextStyle, type FormFieldVisualPatch } from './pdfFormFieldStyle'
+import {
+  InspectorAlignRow,
+  InspectorArrangeSection,
+  InspectorLabel,
+  InspectorSwatchRow,
+  InspectorToolButton,
+} from './FormFieldInspectorSections'
+
+const SIZE_STEP = 0.005
+const SIZE_MIN = 0.015
+const SIZE_MAX = 0.12
 
 function valueAsText(value: PdfFormValue): string {
   if (typeof value === 'string') return value
@@ -10,31 +27,67 @@ function valueAsText(value: PdfFormValue): string {
   return ''
 }
 
+const fieldInput = `h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption text-ink-800 outline-none ${focusRing}`
+
+/**
+ * Inspector de la selección de casilleros (uno o varios). Con selección
+ * múltiple, los cambios de estilo/flags aplican a todos; variable y valor
+ * inicial solo se editan de a uno.
+ */
 export function FormFieldInspector({
-  field,
+  fields,
+  onAlignFields,
+  onApplyStyle,
+  onApplyVisual,
   onDelete,
-  onPatch,
+  onDistributeFields,
+  onPatchSelection,
+  onRememberStyle,
+  onRename,
   onValueChange,
 }: {
-  field: PdfFormFieldDraft
+  /** Selección actual (1..n); el último es el casillero activo. */
+  fields: PdfFormFieldDraft[]
+  onAlignFields: (alignment: AnnotationHorizontalAlignment) => void
+  onApplyStyle: (patch: Partial<TextStyle>) => void
+  onApplyVisual: (patch: FormFieldVisualPatch) => void
   onDelete: () => void
-  onPatch: (patch: Partial<PdfFormFieldDraft>) => void
+  onDistributeFields: (axis: AnnotationDistributionAxis) => void
+  onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
+  onRememberStyle?: () => void
+  onRename: (name: string) => void
   onValueChange: (value: string | boolean) => void
 }) {
+  const active = fields[fields.length - 1]
+  if (!active) return null
+  const multi = fields.length > 1
+  const activeText = formFieldTextStyle(active)
   const canEditValue =
-    field.fieldKind === 'text' ||
-    field.fieldKind === 'date' ||
-    field.fieldKind === 'signature'
+    !multi &&
+    (active.fieldKind === 'text' ||
+      active.fieldKind === 'date' ||
+      active.fieldKind === 'signature')
+  const hasTextControls = fields.some(
+    (field) => field.fieldKind === 'text' || field.fieldKind === 'date',
+  )
+  const stepSize = (delta: number) =>
+    onApplyStyle({ sizeRatio: clamp(activeText.sizeRatio + delta, SIZE_MIN, SIZE_MAX) })
 
   return (
     <aside
-      aria-label="Inspector de casillero"
-      className="absolute right-3 top-28 z-30 w-[17rem] rounded-lg border border-[color:var(--accent-sage)]/30 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
+      aria-label={
+        multi ? 'Inspector de casilleros seleccionados' : 'Inspector de casillero'
+      }
+      className="absolute right-3 top-28 z-30 max-h-[calc(100vh-9rem)] w-[17rem] overflow-y-auto rounded-lg border border-[color:var(--accent-sage)]/30 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
     >
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-caption font-medium text-ink-700">Casillero</p>
-          <p className="text-micro text-ink-400">{field.fieldKind}</p>
+          <p className="text-caption font-medium text-ink-700">
+            {multi ? `${fields.length} casilleros` : 'Casillero'}
+          </p>
+          <p className="text-micro text-ink-400">
+            {multi ? 'El estilo aplica a toda la selección' : active.fieldKind}
+          </p>
         </div>
         <button
           type="button"
@@ -42,41 +95,108 @@ export function FormFieldInspector({
           className={`rounded-md px-2 py-1 text-caption font-medium text-[color:var(--accent-clay)] hover:bg-ink-100/60 ${focusRing}`}
         >
           Eliminar
-          <span className="sr-only"> casillero</span>
+          <span className="sr-only">
+            {multi ? ` ${fields.length} casilleros` : ' casillero'}
+          </span>
         </button>
       </div>
 
-      <label className="mt-2 grid gap-1 text-micro text-ink-500">
-        <span>Variable</span>
-        <input
-          type="text"
-          aria-label="Nombre del casillero"
-          value={field.name}
-          onChange={(event) => onPatch({ name: event.currentTarget.value })}
-          className={`h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption text-ink-800 outline-none ${focusRing}`}
-        />
-      </label>
+      {!multi && (
+        <label className="mt-2 grid gap-1 text-micro text-ink-500">
+          <span>Variable</span>
+          <input
+            type="text"
+            aria-label="Nombre del casillero"
+            value={active.name}
+            onChange={(event) => onRename(event.currentTarget.value)}
+            className={fieldInput}
+          />
+        </label>
+      )}
 
       {canEditValue && (
         <label className="mt-2 grid gap-1 text-micro text-ink-500">
           <span>Valor inicial</span>
           <input
-            type={field.fieldKind === 'date' ? 'date' : 'text'}
+            type={active.fieldKind === 'date' ? 'date' : 'text'}
             aria-label="Valor inicial del casillero"
-            value={valueAsText(field.value)}
+            value={valueAsText(active.value)}
             onChange={(event) => onValueChange(event.currentTarget.value)}
-            className={`h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption text-ink-800 outline-none ${focusRing}`}
+            className={fieldInput}
           />
         </label>
       )}
+
+      {hasTextControls && (
+        <>
+          <InspectorLabel>Texto</InspectorLabel>
+          <div className="grid grid-cols-4 gap-1.5">
+            <InspectorToolButton
+              label="Reducir tamaño de letra"
+              onClick={() => stepSize(-SIZE_STEP)}
+            >
+              A−
+            </InspectorToolButton>
+            <span
+              aria-label="Tamaño de letra actual"
+              className="inline-flex h-8 items-center justify-center text-caption tabular-nums text-ink-600"
+            >
+              {Math.round(activeText.sizeRatio * 792)}
+            </span>
+            <InspectorToolButton
+              label="Aumentar tamaño de letra"
+              onClick={() => stepSize(SIZE_STEP)}
+            >
+              A+
+            </InspectorToolButton>
+            <InspectorToolButton
+              label="Negrita"
+              active={activeText.bold}
+              onClick={() => onApplyStyle({ bold: !activeText.bold })}
+            >
+              B
+            </InspectorToolButton>
+          </div>
+          <div className="mt-1.5">
+            <InspectorAlignRow
+              active={active.align}
+              onAlign={(align) => onApplyVisual({ align })}
+            />
+          </div>
+          <InspectorSwatchRow
+            label="Color de texto"
+            activeColor={active.color}
+            clearLabel="Color de texto por defecto"
+            onClear={() => onApplyVisual({ color: null })}
+            onSelect={(hex) => onApplyVisual({ color: hex })}
+          />
+        </>
+      )}
+
+      <InspectorSwatchRow
+        label="Fondo"
+        activeColor={active.bgColor}
+        clearLabel="Sin fondo"
+        onClear={() => onApplyVisual({ bgColor: null })}
+        onSelect={(hex) => onApplyVisual({ bgColor: hex })}
+      />
+      <InspectorSwatchRow
+        label="Borde"
+        activeColor={active.borderColor}
+        clearLabel="Sin borde"
+        onClear={() => onApplyVisual({ borderColor: null })}
+        onSelect={(hex) => onApplyVisual({ borderColor: hex })}
+      />
 
       <div className="mt-2 grid gap-1.5 text-caption text-ink-600">
         <label htmlFor="form-field-required" className="flex items-center gap-2">
           <input
             id="form-field-required"
             type="checkbox"
-            checked={field.required ?? false}
-            onChange={(event) => onPatch({ required: event.currentTarget.checked })}
+            checked={active.required ?? false}
+            onChange={(event) =>
+              onPatchSelection({ required: event.currentTarget.checked })
+            }
             className="accent-[color:var(--accent-sage)]"
           />
           Requerido
@@ -85,13 +205,33 @@ export function FormFieldInspector({
           <input
             id="form-field-read-only"
             type="checkbox"
-            checked={field.readOnly ?? false}
-            onChange={(event) => onPatch({ readOnly: event.currentTarget.checked })}
+            checked={active.readOnly ?? false}
+            onChange={(event) =>
+              onPatchSelection({ readOnly: event.currentTarget.checked })
+            }
             className="accent-[color:var(--accent-sage)]"
           />
           Solo lectura
         </label>
       </div>
+
+      {multi && (
+        <InspectorArrangeSection
+          count={fields.length}
+          onAlignFields={onAlignFields}
+          onDistributeFields={onDistributeFields}
+        />
+      )}
+
+      {!multi && active.fieldKind === 'text' && onRememberStyle && (
+        <button
+          type="button"
+          onClick={onRememberStyle}
+          className={`mt-2 w-full rounded-md border border-dashed border-[color:var(--accent-sage)]/50 px-2 py-1.5 text-caption font-medium text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)]/50 ${focusRing}`}
+        >
+          Usar como estilo de nuevos casilleros
+        </button>
+      )}
     </aside>
   )
 }

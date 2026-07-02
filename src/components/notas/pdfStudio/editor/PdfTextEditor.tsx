@@ -240,11 +240,15 @@ export function PdfTextEditor({
     formFields,
     chooseSignatureImage,
     applyDraftFieldStyle,
+    applyDraftFieldVisual,
     openSignature,
     pendingFormKind,
     patchDraftFormField,
+    patchSelectedDraftFormFields,
     placePendingFormField,
+    rememberFieldStyleDefaults,
     selectedDraftFormField,
+    selectedDraftFormFields,
     saveSignatureDataUrl,
     selectedFormFieldId,
     selectedFormFieldIds,
@@ -262,6 +266,7 @@ export function PdfTextEditor({
     layout: activeLayout,
     zoom,
     style,
+    userKey: stampAssetUserKey,
     setTool,
     setEditingId,
     setSelectedId,
@@ -454,17 +459,17 @@ export function PdfTextEditor({
           />
         ) : null}
         <PdfTextEditorFloatingFormTools
-          field={fillMode ? null : selectedDraftFormField}
-          activeBold={activeStyle.bold}
-          activeSizeRatio={activeStyle.sizeRatio}
-          selectionCount={fillMode ? 0 : selectedFormFieldIds.length}
+          fields={fillMode ? [] : selectedDraftFormFields}
           signatureField={signatureField}
           onAlignFields={alignDraftFormFields}
           onApplyStyle={applyEditorStyle}
+          onApplyVisual={applyDraftFieldVisual}
           onChooseSignatureImage={chooseSignatureImage}
           onDeleteField={deleteDraftFormField}
           onDistributeFields={distributeDraftFormFields}
           onPatchField={patchDraftFormField}
+          onPatchSelection={patchSelectedDraftFormFields}
+          onRememberStyle={rememberFieldStyleDefaults}
           onSaveSignature={saveSignatureDataUrl}
           onSetSignatureField={setSignatureField}
           onValueChange={updateDraftFormValue}
