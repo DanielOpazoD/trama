@@ -1,20 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  useEntitiesQuery,
-  useExport,
-  useInfiniteMomentosQuery,
-  useImport,
-  useNotesQuery,
-  useQuotesQuery,
-  useRelationshipsQuery,
-  useTasksQuery,
-} from '../../state'
-import type { ExportPayload } from '../../types'
+import { useEffect, useRef, useState } from 'react'
+import { useExport, useImport } from '../../state'
 import { DownloadIcon, UploadIcon } from '../Icons'
 import { PanelHeader } from './_shared'
 import { RescueOrphansPanel } from '../momentos/RescueOrphansPanel'
 import { DataImportPreviewCard } from './DataImportPreviewCard'
-import { buildPreview, type ImportPreview } from './dataImportPreviewModel'
+import {
+  formatImportResultMessage,
+  parseImportPayloadText,
+  type ParsedImportFile,
+} from './dataImportPreviewModel'
+import { useDataPanelImportPreview } from './useDataPanelImportPreview'
 
 export { buildPreview } from './dataImportPreviewModel'
 
@@ -37,11 +32,6 @@ export { buildPreview } from './dataImportPreviewModel'
  * El usuario confirma antes de que la importación se aplique.
  */
 
-type ParsedFile = {
-  payload: ExportPayload
-  fileName: string
-}
-
 export function DataPanel() {
   const doExport = useExport()
   const doImport = useImport()
@@ -50,49 +40,15 @@ export function DataPanel() {
   const [message, setMessage] = useState<string | null>(null)
   // Estado del flujo de import: archivo parseado y a la espera de
   // confirmación. Si está `null`, no hay nada pendiente.
-  const [parsed, setParsed] = useState<ParsedFile | null>(null)
+  const [parsed, setParsed] = useState<ParsedImportFile | null>(null)
 
-  // Snapshot de los IDs que YA existen en la trama. Lo usamos para
-  // calcular "nuevas vs duplicadas" en el preview sin tener que pegar
-  // al backend (las queries ya están cacheadas).
-  const { data: existingEntities = [] } = useEntitiesQuery()
-  const { data: existingQuotes = [] } = useQuotesQuery()
-  const { data: existingRelationships = [] } = useRelationshipsQuery()
-  const { data: existingMomentosPages } = useInfiniteMomentosQuery()
-  const { data: existingNotes = [] } = useNotesQuery()
-  const { data: existingTasks = [] } = useTasksQuery()
-
-  const existingMomentos = useMemo(
-    () => existingMomentosPages?.pages.flatMap((page) => page.items) ?? [],
-    [existingMomentosPages],
-  )
+  const preview = useDataPanelImportPreview(parsed)
 
   useEffect(() => {
     if (!message) return
     const t = window.setTimeout(() => setMessage(null), 4000)
     return () => window.clearTimeout(t)
   }, [message])
-
-  const preview = useMemo<ImportPreview | null>(() => {
-    if (!parsed) return null
-    return buildPreview(
-      parsed.payload,
-      new Set(existingEntities.map((e) => e.id)),
-      new Set(existingRelationships.map((r) => r.id)),
-      new Set(existingQuotes.map((q) => q.id)),
-      new Set(existingMomentos.map((m) => m.id)),
-      new Set(existingNotes.map((n) => n.id)),
-      new Set(existingTasks.map((t) => t.id)),
-    )
-  }, [
-    parsed,
-    existingEntities,
-    existingRelationships,
-    existingQuotes,
-    existingMomentos,
-    existingNotes,
-    existingTasks,
-  ])
 
   async function handleExport() {
     setBusy(true)
@@ -126,11 +82,7 @@ export function DataPanel() {
     setMessage(null)
     try {
       const text = await file.text()
-      const payload = JSON.parse(text) as ExportPayload
-      if (payload.version !== 1 && payload.version !== 2) {
-        throw new Error(`versión ${payload.version} no soportada`)
-      }
-      setParsed({ payload, fileName: file.name })
+      setParsed(parseImportPayloadText(text, file.name))
     } catch (err) {
       setMessage(
         err instanceof Error
@@ -156,15 +108,7 @@ export function DataPanel() {
     setMessage(null)
     try {
       const result = await doImport(parsed.payload)
-      const failedCount = result.failed?.length ?? 0
-      if (failedCount > 0) {
-        const firstReason = result.failed?.[0]?.reason ?? 'desconocido'
-        setMessage(
-          `Agregadas ${result.imported}, ${failedCount} con error (primero: ${firstReason.slice(0, 60)}). Revisa Logs en Settings.`,
-        )
-      } else {
-        setMessage(`Agregadas ${result.imported} entradas a tu trama`)
-      }
+      setMessage(formatImportResultMessage(result))
       setParsed(null) // limpiar el preview tras aplicar
     } catch (err) {
       setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al importar')
