@@ -5,7 +5,8 @@ import { EmptyMessage } from '../EmptyMessage'
 import { NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
 import type { NotasSection } from '../../types/notas'
 import { PRIORITY_META } from './PriorityDots'
-import { sortPending } from './weekModel'
+import { buildNotasHomeModel } from './notasHomeModel'
+import { weekStartLocal } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -24,28 +25,10 @@ export function NotasHomeView({
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks])
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
 
-  // `tasks` ya son solo pendientes (usePendingTasks); ordenados por prioridad.
-  const pendingTasks = useMemo(() => sortPending(tasks).slice(0, 5), [tasks])
-  const topNotes = useMemo(
-    () => [...notes].sort((a, b) => Number(b.pinned) - Number(a.pinned)).slice(0, 4),
-    [notes],
-  )
-  const topPrompts = useMemo(
-    () =>
-      [...prompts]
-        .sort(
-          (a, b) => Number(b.favorite) - Number(a.favorite) || b.useCount - a.useCount,
-        )
-        .slice(0, 4),
-    [prompts],
-  )
-  const criticalTasks = useMemo(
-    () => pendingTasks.filter((task) => task.priority === 'alta'),
-    [pendingTasks],
-  )
-  const pinnedNotes = useMemo(
-    () => notes.filter((note) => note.pinned).slice(0, 3),
-    [notes],
+  const todayWeek = useMemo(() => weekStartLocal(), [])
+  const home = useMemo(
+    () => buildNotasHomeModel({ notes, tasks, prompts, todayWeek }),
+    [notes, prompts, tasks, todayWeek],
   )
   const initialLoading =
     rawNotes === undefined || rawTasks === undefined || rawPrompts === undefined
@@ -64,16 +47,8 @@ export function NotasHomeView({
             <p className="text-micro uppercase tracking-eyebrow text-ink-300">
               turno del día
             </p>
-            <p className="mt-1 font-serif text-xl text-ink-700">
-              {pendingTasks.length}{' '}
-              {pendingTasks.length === 1 ? 'pendiente' : 'pendientes'} ·{' '}
-              {criticalTasks.length} {criticalTasks.length === 1 ? 'crítico' : 'críticos'}
-            </p>
-            <p className="mt-1 text-caption text-ink-400">
-              {pinnedNotes.length > 0
-                ? `${pinnedNotes.length} notas fijadas sostienen el foco.`
-                : 'Sin notas fijadas: captura una señal antes de ordenar el día.'}
-            </p>
+            <p className="mt-1 font-serif text-xl text-ink-700">{home.daily.headline}</p>
+            <p className="mt-1 text-caption text-ink-400">{home.daily.subline}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 md:w-72">
             <QuickAction
@@ -134,11 +109,11 @@ export function NotasHomeView({
         />
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
-          <HubCard title="Pendientes" count={pendingTasks.length}>
-            {pendingTasks.length === 0 ? (
-              <Muted>Nada pendiente por ahora.</Muted>
+          <HubCard title="Esta semana" count={home.currentTasks.length}>
+            {home.currentTasks.length === 0 ? (
+              <Muted>Lo pendiente viene de semanas anteriores.</Muted>
             ) : (
-              pendingTasks.map((t) => (
+              home.currentTasks.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => onNavigate('tareas')}
@@ -155,8 +130,56 @@ export function NotasHomeView({
               ))
             )}
           </HubCard>
-          <HubCard title="Notas vivas" count={topNotes.length} ariaLabel="Notas fijadas">
-            {topNotes.map((n) => (
+          <HubCard
+            title="Heredadas"
+            count={home.inheritedTasks.length}
+            ariaLabel="Tareas pendientes heredadas"
+          >
+            {home.inheritedTasks.length === 0 ? (
+              <Muted>Sin arrastre antiguo.</Muted>
+            ) : (
+              home.inheritedTasks.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => onNavigate('tareas')}
+                  className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0"
+                >
+                  <p className="text-sm text-ink-700 truncate">{t.title}</p>
+                  <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+                    pendiente desde {t.weekStart}
+                  </p>
+                </button>
+              ))
+            )}
+          </HubCard>
+          <HubCard
+            title="Bandeja"
+            count={home.noteInbox.length}
+            ariaLabel="Bandeja de notas"
+          >
+            {home.noteInbox.length === 0 ? (
+              <Muted>No hay notas por clasificar.</Muted>
+            ) : (
+              home.noteInbox.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => onNavigate('notas')}
+                  className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0"
+                >
+                  <p className="text-sm text-ink-700 line-clamp-2">{n.content}</p>
+                  <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+                    {n.reason}
+                  </p>
+                </button>
+              ))
+            )}
+          </HubCard>
+          <HubCard
+            title="Notas vivas"
+            count={home.topNotes.length}
+            ariaLabel="Notas fijadas"
+          >
+            {home.topNotes.map((n) => (
               <button
                 key={n.id}
                 onClick={() => onNavigate('notas')}
@@ -165,10 +188,10 @@ export function NotasHomeView({
                 <p className="text-sm text-ink-700 line-clamp-2">{n.content}</p>
               </button>
             ))}
-            {topNotes.length === 0 && <Muted>Todavía sin apuntes.</Muted>}
+            {home.topNotes.length === 0 && <Muted>Todavía sin apuntes.</Muted>}
           </HubCard>
-          <HubCard title="Prompts listos" count={topPrompts.length}>
-            {topPrompts.map((p) => (
+          <HubCard title="Prompts listos" count={home.topPrompts.length}>
+            {home.topPrompts.map((p) => (
               <button
                 key={p.id}
                 onClick={() => onNavigate('prompts')}
@@ -180,7 +203,7 @@ export function NotasHomeView({
                 </p>
               </button>
             ))}
-            {topPrompts.length === 0 && <Muted>Todavía sin prompts.</Muted>}
+            {home.topPrompts.length === 0 && <Muted>Todavía sin prompts.</Muted>}
           </HubCard>
           <HubCard title="Claves" count={0}>
             <button
