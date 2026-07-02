@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+import { useEffect, type RefObject } from 'react'
 
 export function PdfTextEditorAuxiliaryControls({
   fillMode,
@@ -21,6 +21,20 @@ export function PdfTextEditorAuxiliaryControls({
   onSignatureFile: (file: File) => void
   onStampFile: (file: File) => void
 }) {
+  // Esc cancela la colocación pendiente ANTES de que el editor interprete la
+  // tecla (deseleccionar/cerrar): captura + stopImmediatePropagation.
+  useEffect(() => {
+    if (!pendingFormKind) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      onCancelPendingFormField()
+    }
+    document.addEventListener('keydown', onKey, { capture: true })
+    return () => document.removeEventListener('keydown', onKey, { capture: true })
+  }, [pendingFormKind, onCancelPendingFormField])
+
   return (
     <>
       {!fillMode ? (
@@ -63,7 +77,7 @@ export function PdfTextEditorAuxiliaryControls({
             <strong className="font-semibold">Colocar casillero</strong>
             <span className="text-[color:var(--accent-sage)]/80">
               {' '}
-              · ubicación pendiente
+              · haz clic en la página (arrastra para dimensionar) · Esc cancela
             </span>
           </span>
           <button

@@ -141,12 +141,23 @@ export function FormFieldLayer({
           fillMode && showFillGuides
             ? 'rounded bg-[color:var(--accent-sage-soft)]/20 ring-1 ring-[color:var(--accent-sage)]/25'
             : ''
+        // Affordances de diseño: arrastrable + hover sutil + selección visible
+        // aunque los handles solo aparezcan con selección única.
+        const designChrome = fillMode
+          ? ''
+          : field.readOnly
+            ? 'cursor-not-allowed'
+            : `cursor-move rounded-sm ${
+                selected
+                  ? 'ring-2 ring-[color:var(--accent-sage)]/40'
+                  : 'hover:ring-1 hover:ring-[color:var(--accent-sage)]/30'
+              }`
         return (
           <div
             key={field.id}
             aria-label={activeInFill ? `Casillero activo ${field.name}` : undefined}
             style={boxStyle(field)}
-            className={`z-20 ${guideClass} ${activeInFill ? 'rounded ring-2 ring-[color:var(--accent-sage)]/45 ring-offset-1 ring-offset-paper-50' : ''}`}
+            className={`z-20 ${guideClass} ${designChrome} ${activeInFill ? 'rounded ring-2 ring-[color:var(--accent-sage)]/45 ring-offset-1 ring-offset-paper-50' : ''}`}
             onPointerDown={(event) => {
               event.stopPropagation()
               if (fillMode) return
@@ -186,6 +197,7 @@ export function FormFieldLayer({
                     key={handle.key}
                     type="button"
                     aria-label={`Redimensionar campo ${field.name} desde ${handle.label}`}
+                    title={`Redimensionar desde ${handle.label}`}
                     onPointerDown={(event) => {
                       event.stopPropagation()
                       event.preventDefault()

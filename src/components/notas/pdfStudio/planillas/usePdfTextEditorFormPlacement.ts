@@ -94,9 +94,15 @@ export function usePdfTextEditorFormPlacement({
     })
   }
 
+  /** Caja del casillero pendiente (para el fantasma de colocación). */
+  const pendingFieldBox = pendingFormKind
+    ? initialFieldBox(pendingFormKind, { ...style, ...styleDefaults })
+    : null
+
   return {
     addFormField,
     cancelPendingFormField,
+    pendingFieldBox,
     pendingFormKind,
     placePendingFormField,
   }

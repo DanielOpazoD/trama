@@ -242,6 +242,7 @@ export function PdfTextEditor({
     applyDraftFieldStyle,
     applyDraftFieldVisual,
     openSignature,
+    pendingFieldBox,
     pendingFormKind,
     patchDraftFormField,
     patchSelectedDraftFormFields,
@@ -516,6 +517,7 @@ export function PdfTextEditor({
                   detectedForms={detectedForms}
                   draftFields={formFields}
                   pendingFormKind={Boolean(pendingFormKind)}
+                  placementPreviewBox={pendingFieldBox}
                   activeDraftId={activeFillFieldId}
                   showFillGuides={showFillGuides}
                   selectedDraftId={selectedFormFieldId}

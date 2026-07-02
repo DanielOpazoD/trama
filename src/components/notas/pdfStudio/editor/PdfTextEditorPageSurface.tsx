@@ -47,6 +47,7 @@ export function PdfTextEditorPageSurface({
   detectedForms,
   draftFields,
   pendingFormKind,
+  placementPreviewBox = null,
   activeDraftId,
   showFillGuides,
   selectedDraftId,
@@ -90,6 +91,8 @@ export function PdfTextEditorPageSurface({
   detectedForms: DetectedPdfFormForCanvas[]
   draftFields: PdfFormFieldDraft[]
   pendingFormKind: boolean
+  /** Caja del casillero pendiente: activa el fantasma de colocación. */
+  placementPreviewBox?: { wRatio: number; hRatio: number } | null
   activeDraftId?: string | null
   showFillGuides?: boolean
   selectedDraftId: string | null
@@ -249,6 +252,7 @@ export function PdfTextEditorPageSurface({
           onStartDraftResize={startDraftResize}
           page={page}
           pageIndex={pageIndex}
+          placementPreviewBox={pendingFormKind ? placementPreviewBox : null}
           selectedDraftId={selectedDraftId}
           selectedDraftIds={selectedDraftIds}
           showFillGuides={showFillGuides}

@@ -83,18 +83,23 @@ export function usePdfTextEditorForms({
     setFields: setFormFields,
     userKey,
   })
-  const { addFormField, cancelPendingFormField, pendingFormKind, placePendingFormField } =
-    usePdfTextEditorFormPlacement({
-      fields: formFields,
-      setFields: setFormFields,
-      setSelectedIds: setSelectedFormFieldIds,
-      setEditingId,
-      setSelectedId,
-      setTool,
-      style,
-      styleDefaults: fieldStyleDefaults,
-      zoom,
-    })
+  const {
+    addFormField,
+    cancelPendingFormField,
+    pendingFieldBox,
+    pendingFormKind,
+    placePendingFormField,
+  } = usePdfTextEditorFormPlacement({
+    fields: formFields,
+    setFields: setFormFields,
+    setSelectedIds: setSelectedFormFieldIds,
+    setEditingId,
+    setSelectedId,
+    setTool,
+    style,
+    styleDefaults: fieldStyleDefaults,
+    zoom,
+  })
   const {
     chooseSignatureImage,
     openSignature,
@@ -217,6 +222,7 @@ export function usePdfTextEditorForms({
     deleteDraftFormField,
     distributeDraftFormFields,
     formFields,
+    pendingFieldBox,
     pendingFormKind,
     placePendingFormField: placePendingFormFieldOnPage,
     patchSelectedDraftFormFields,
