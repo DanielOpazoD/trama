@@ -65,4 +65,66 @@ describe('reduceFormFieldShortcut', () => {
     expect(duplicated.fields).toHaveLength(2)
     expect(duplicated.selectedIds).toEqual([duplicated.fields[1]?.id])
   })
+
+  it('pega corrido dentro de la misma página para no tapar el original', () => {
+    const pasted = reduceFormFieldShortcut({
+      fields: [base],
+      selectedIds: [],
+      clipboard: [base],
+      selectableIds: [base.id],
+      currentPageId: 'p1',
+      key: 'v',
+      mod: true,
+      shift: false,
+    })
+
+    const copy = pasted.fields[1]
+    expect(copy?.pageId).toBe('p1')
+    expect(copy?.xRatio).toBeCloseTo(base.xRatio + 0.025)
+    expect(copy?.yRatio).toBeCloseTo(base.yRatio + 0.025)
+  })
+
+  it('pega en la página visible cuando difiere de la página de origen', () => {
+    const pasted = reduceFormFieldShortcut({
+      fields: [base, other],
+      selectedIds: [],
+      clipboard: [base, other],
+      selectableIds: [base.id, other.id],
+      currentPageId: 'p3',
+      key: 'v',
+      mod: true,
+      shift: false,
+    })
+
+    const copies = pasted.fields.slice(2)
+    expect(copies).toHaveLength(2)
+    expect(copies.every((field) => field.pageId === 'p3')).toBe(true)
+    // Conserva posición, tamaño y estilo del original; solo cambia de página.
+    expect(copies[0]?.xRatio).toBeCloseTo(base.xRatio)
+    expect(copies[0]?.yRatio).toBeCloseTo(base.yRatio)
+    expect(copies[0]?.wRatio).toBeCloseTo(base.wRatio)
+    expect(copies[0]?.hRatio).toBeCloseTo(base.hRatio)
+    expect(copies[1]?.xRatio).toBeCloseTo(other.xRatio)
+    expect(pasted.selectedIds).toEqual(copies.map((field) => field.id))
+    const names = pasted.fields.map((field) => field.name)
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('acota al pegar en otra página un casillero que quedaría fuera de los límites', () => {
+    const wide = { ...base, id: 'f-wide', name: 'ancho', xRatio: 0.85, wRatio: 0.3 }
+    const pasted = reduceFormFieldShortcut({
+      fields: [wide],
+      selectedIds: [],
+      clipboard: [wide],
+      selectableIds: [wide.id],
+      currentPageId: 'p2',
+      key: 'v',
+      mod: true,
+      shift: false,
+    })
+
+    const copy = pasted.fields[1]
+    expect(copy?.pageId).toBe('p2')
+    expect((copy?.xRatio ?? 0) + (copy?.wRatio ?? 0)).toBeLessThanOrEqual(1)
+  })
 })

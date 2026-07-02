@@ -64,6 +64,7 @@ export function usePdfTextEditorForms({
 
   usePdfTextEditorFormShortcuts({
     clipboardRef: formClipboardRef,
+    currentPageId: page?.id ?? null,
     fields: formFields,
     selectedIds: selectedFormFieldIds,
     setEditingId,
