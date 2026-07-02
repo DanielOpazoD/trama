@@ -13,7 +13,7 @@ const notFound = new ApiClientError({
 })
 
 const unauthorized = new ApiClientError({
-  code: 'UNAUTHORIZED',
+  code: 'UNAUTHENTICATED',
   status: 401,
   message: 'No autorizada',
   requestId: 'rid-media',
@@ -66,8 +66,8 @@ describe('authenticatedMediaModel', () => {
       shouldRetryLegacyMediaWithoutAuth(
         '/api/momentos-file/legacy-single-user/foto.jpg',
         new ApiClientError({
-          code: 'FORBIDDEN',
-          status: 403,
+          code: 'INTERNAL',
+          status: 500,
           message: 'No',
           requestId: 'rid-media',
         }),
