@@ -95,6 +95,8 @@ export type PdfFormFieldKind =
 
 export type PdfFormValue = string | boolean | string[] | null
 
+export type PdfFormFieldAlign = 'left' | 'center' | 'right'
+
 export type PdfFormFieldDraft = {
   id: string
   fieldKind: PdfFormFieldKind
@@ -111,6 +113,12 @@ export type PdfFormFieldDraft = {
   font?: PdfFontKind
   sizeRatio?: number
   bold?: boolean
+  /** Estilo visual opcional (hex `#rrggbb`). Sin valor: texto tinta, fondo y
+   *  borde transparentes — así el casillero no tapa el PDF base al exportar. */
+  color?: string
+  bgColor?: string
+  borderColor?: string
+  align?: PdfFormFieldAlign
 }
 
 export type PdfPage = {

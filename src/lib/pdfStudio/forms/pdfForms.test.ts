@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PDFDocument, PDFName } from 'pdf-lib'
+import { PDFDocument, PDFName, TextAlignment } from 'pdf-lib'
 import { makePdfFormFieldDraft } from '../model/model'
 import {
   fillPdfForm,
@@ -174,6 +174,46 @@ describe('pdfStudio/pdfForms', () => {
     expect(appearance?.has(PDFName.of('BG'))).toBe(false)
     expect(appearance?.has(PDFName.of('BC'))).toBe(false)
     expect(widget?.getBorderStyle()?.getWidth()).toBe(0)
+  })
+
+  it('exporta el estilo visual declarado: fondo, borde y alineación', async () => {
+    const pdf = await PDFDocument.create()
+    pdf.addPage([600, 800])
+    const bytes = await pdf.save()
+    const base = new File([bytes as BlobPart], 'base.pdf', { type: 'application/pdf' })
+    const pageId = 'page-1'
+
+    const { blob } = await writePdfFormFields(
+      base,
+      [
+        makePdfFormFieldDraft({
+          fieldKind: 'text',
+          pageId,
+          name: 'destacado',
+          value: 'Texto',
+          xRatio: 0.1,
+          yRatio: 0.2,
+          wRatio: 0.4,
+          hRatio: 0.05,
+          color: '#b3412c',
+          bgColor: '#f2c94c',
+          borderColor: '#222222',
+          align: 'center',
+        }),
+      ],
+      [pageId],
+      { flatten: false },
+    )
+
+    const loaded = await PDFDocument.load(await blob.arrayBuffer())
+    const field = loaded.getForm().getTextField('destacado')
+    const widget = field.acroField.getWidgets()[0]
+    const appearance = widget?.MK()
+
+    expect(field.getAlignment()).toBe(TextAlignment.Center)
+    expect(appearance?.has(PDFName.of('BG'))).toBe(true)
+    expect(appearance?.has(PDFName.of('BC'))).toBe(true)
+    expect(widget?.getBorderStyle()?.getWidth() ?? 1).toBeGreaterThan(0)
   })
 
   it('no exporta el texto estándar de casilleros vacíos como contenido real', async () => {

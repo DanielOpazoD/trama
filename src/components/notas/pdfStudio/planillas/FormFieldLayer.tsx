@@ -7,7 +7,7 @@ import type { ResizeHandle } from '../../../../lib/pdfStudio/model/editorGeometr
 import type { PdfFormFieldType } from '../../../../lib/pdfStudio/forms/pdfForms'
 import { ACCENT } from '../editor/editorStyle'
 import { FillFieldLabel, FormFieldControl } from './FormFieldControl'
-import { formFieldTextCss } from './pdfFormFieldStyle'
+import { formFieldChromeCss, formFieldTextCss } from './pdfFormFieldStyle'
 
 export type VisualPdfFormWidget = {
   id: string
@@ -168,6 +168,7 @@ export function FormFieldLayer({
               readOnly={field.readOnly}
               selected={!fillMode && selected}
               zoom={zoom}
+              frameStyle={formFieldChromeCss(field, zoom)}
               textStyle={formFieldTextCss(field, pageHeightPx)}
               value={
                 field.fieldKind === 'radio' && field.value == null

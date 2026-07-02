@@ -1,7 +1,12 @@
 import type { PDFDocument, PDFImage, PDFPage } from 'pdf-lib'
 import { dataUrlToBytes, isPngBytes } from '../assemble/assembleImages'
 import { FORM_FIELD_EMPTY_HINT } from './formFieldConstants'
-import type { PdfFormFieldDraft } from '../model/model'
+import {
+  formFieldAppearanceValues,
+  type FormFieldAppearanceValues,
+  type RgbTuple,
+} from './formFieldAppearance'
+import type { PdfFormFieldAlign, PdfFormFieldDraft } from '../model/model'
 import { loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 
 const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
@@ -257,6 +262,33 @@ function pdfRectForField(
   }
 }
 
+/** Traduce la apariencia declarada del casillero a opciones de pdf-lib. Solo lo
+ *  fijado por el usuario: lo demás conserva el default de cada tipo de campo. */
+function appearanceOptionsFor(
+  appearance: FormFieldAppearanceValues,
+  runtime: PdfFormsRuntime,
+) {
+  const color = (tuple: RgbTuple) => runtime.rgb(tuple[0], tuple[1], tuple[2])
+  return {
+    ...(appearance.textColor ? { textColor: color(appearance.textColor) } : null),
+    ...(appearance.backgroundColor
+      ? { backgroundColor: color(appearance.backgroundColor) }
+      : null),
+    ...(appearance.borderColor
+      ? {
+          borderColor: color(appearance.borderColor),
+          borderWidth: appearance.borderWidth,
+        }
+      : null),
+  }
+}
+
+function textAlignmentFor(align: PdfFormFieldAlign, runtime: PdfFormsRuntime) {
+  if (align === 'center') return runtime.TextAlignment.Center
+  if (align === 'right') return runtime.TextAlignment.Right
+  return runtime.TextAlignment.Left
+}
+
 type FieldWithWidgets = {
   acroField: {
     getWidgets(): {
@@ -269,12 +301,13 @@ type FieldWithWidgets = {
 function clearWidgetChrome(
   field: FieldWithWidgets,
   runtime: PdfFormsRuntime,
-  options: { border?: boolean } = {},
+  options: { background?: boolean; border?: boolean } = {},
 ) {
+  const { background = true, border = false } = options
   for (const widget of field.acroField.getWidgets()) {
     const appearance = widget.MK()
-    appearance?.delete(runtime.PDFName.of('BG'))
-    if (options.border) {
+    if (background) appearance?.delete(runtime.PDFName.of('BG'))
+    if (border) {
       appearance?.delete(runtime.PDFName.of('BC'))
       widget.getOrCreateBorderStyle().setWidth(0)
     }
@@ -372,35 +405,45 @@ export async function writePdfFormFields(
       })
     }
     const page = pdf.getPage(pageIndex)
-    const rect = pdfRectForField(draft, page, runtime)
+    const appearance = formFieldAppearanceValues(draft)
+    const rect = {
+      ...pdfRectForField(draft, page, runtime),
+      ...appearanceOptionsFor(appearance, runtime),
+    }
+    const keepBackground = { background: !appearance.backgroundColor }
 
     if (draft.fieldKind === 'checkbox') {
       const field = form.createCheckBox(draft.name)
       applyFlags(field, draft)
       if (draft.value === true) field.check()
       field.addToPage(page, rect)
-      clearWidgetChrome(field, runtime)
+      clearWidgetChrome(field, runtime, keepBackground)
     } else if (draft.fieldKind === 'radio') {
       const field = form.createRadioGroup(draft.name)
       applyFlags(field, draft)
       const option = draft.options?.[0] ?? 'Sí'
       field.addOptionToPage(option, page, rect)
       if (draft.value === option) field.select(option)
-      clearWidgetChrome(field, runtime)
+      clearWidgetChrome(field, runtime, keepBackground)
     } else if (draft.fieldKind === 'signature') {
       const field = form.createButton(draft.name)
       applyFlags(field, draft)
       field.addToPage('', page, { ...rect, font })
       const image = await embedSignatureImage(pdf, draft.value, operationOptions)
       if (image) field.setImage(image)
-      clearWidgetChrome(field, runtime)
+      clearWidgetChrome(field, runtime, keepBackground)
     } else {
       const field = form.createTextField(draft.name)
       applyFlags(field, draft)
       field.setText(formTextValue(draft.value))
+      if (appearance.align)
+        field.setAlignment(textAlignmentFor(appearance.align, runtime))
       field.addToPage(page, { ...rect, font })
       field.setFontSize(fontSizeForField(draft, page))
-      clearWidgetChrome(field, runtime, { border: true })
+      clearWidgetChrome(field, runtime, {
+        ...keepBackground,
+        border: !appearance.borderColor,
+      })
     }
     writtenNames.add(draft.name)
   }

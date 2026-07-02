@@ -88,6 +88,7 @@ export function FormFieldControl({
   onChange,
   onFocus,
   onOpenSignature,
+  frameStyle,
   textStyle,
 }: {
   ariaName: string
@@ -102,12 +103,17 @@ export function FormFieldControl({
   onChange: (value: string | boolean) => void
   onFocus?: () => void
   onOpenSignature?: () => void
+  /** Fondo/borde declarados del casillero: pisan el chrome por defecto del modo. */
+  frameStyle?: CSSProperties
   textStyle?: CSSProperties
 }) {
   if (fieldKind === 'checkbox') {
     const fillMode = mode === 'fill'
     return (
-      <label className={controlFrameStyle(mode)} style={frameVisualStyle(zoom, fillMode)}>
+      <label
+        className={controlFrameStyle(mode)}
+        style={{ ...frameVisualStyle(zoom, fillMode), ...frameStyle }}
+      >
         <input
           data-form-field-control={controlId}
           type="checkbox"
@@ -126,7 +132,10 @@ export function FormFieldControl({
     const option = options?.[0] ?? 'Sí'
     const fillMode = mode === 'fill'
     return (
-      <label className={controlFrameStyle(mode)} style={frameVisualStyle(zoom, fillMode)}>
+      <label
+        className={controlFrameStyle(mode)}
+        style={{ ...frameVisualStyle(zoom, fillMode), ...frameStyle }}
+      >
         <input
           data-form-field-control={controlId}
           type="radio"
@@ -143,7 +152,7 @@ export function FormFieldControl({
   if (fieldKind === 'signature') {
     const text = valueAsText(value)
     const fillMode = mode === 'fill'
-    const signatureStyle = frameVisualStyle(zoom, fillMode)
+    const signatureStyle = { ...frameVisualStyle(zoom, fillMode), ...frameStyle }
     return text.startsWith('data:image/') ? (
       <button
         type="button"
@@ -182,7 +191,7 @@ export function FormFieldControl({
         disabled={readOnly}
         onChange={(event) => onChange(event.currentTarget.value)}
         className={commonControlStyle(selected, mode === 'fill')}
-        style={frameVisualStyle(zoom, mode === 'fill')}
+        style={{ ...frameVisualStyle(zoom, mode === 'fill'), ...frameStyle }}
       >
         {(options?.length ? options : [valueAsText(value)]).map((option) => (
           <option key={option} value={option}>
@@ -212,6 +221,7 @@ export function FormFieldControl({
       style={{
         ...frameVisualStyle(zoom, mode === 'fill'),
         ...(mode === 'fill' ? { borderWidth: 0, borderRadius: 0 } : null),
+        ...frameStyle,
         ...textStyle,
       }}
     />
