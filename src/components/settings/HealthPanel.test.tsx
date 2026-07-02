@@ -59,6 +59,8 @@ const HEALTH_FIXTURE: HealthResponse = {
     databaseReachable: true,
     runtimeApiRoutesContract: 'check:runtime-api-routes',
     productionSmokeCommand: 'npm run smoke:production-report',
+    legacyDataReassignmentCommand:
+      'npm run legacy-data-reassignment:dry-run -- --markdown',
     logRedaction: 'structured-redaction',
   },
   embeddings: { pendingEntities: 0, pendingQuotes: 0 },
@@ -92,6 +94,9 @@ describe('<HealthPanel />', () => {
     expect(screen.getByText(/gpt-test/i)).toBeInTheDocument()
     expect(screen.getByText(/2×/i)).toBeInTheDocument()
     expect(screen.getByText(/fallo repetido/i)).toBeInTheDocument()
+    expect(screen.getByText(/Clerk estricto/i)).toBeInTheDocument()
+    expect(screen.getByText(/Inventario legacy read-only/i)).toBeInTheDocument()
+    expect(screen.getByText(/legacy-data-reassignment:dry-run/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Consumo de IA por día/i)).toBeInTheDocument()
   })
 
@@ -135,8 +140,9 @@ describe('<HealthPanel />', () => {
 
     renderWithProviders(<HealthPanel />)
 
-    expect(await screen.findByText('Fallback legacy activo')).toBeInTheDocument()
+    expect(await screen.findAllByText('Fallback legacy activo')).toHaveLength(2)
     expect(screen.getByText(/requests sin token Clerk/i)).toBeInTheDocument()
+    expect(screen.getByText(/ALLOW_LEGACY_FALLBACK/i)).toBeInTheDocument()
   })
 
   it('copia un diagnóstico operativo al clipboard', async () => {
@@ -162,6 +168,9 @@ describe('<HealthPanel />', () => {
     )
     expect(writeText.mock.calls[0]?.[0]).toContain(
       'productionSmokeCommand=npm run smoke:production-report',
+    )
+    expect(writeText.mock.calls[0]?.[0]).toContain(
+      'legacyDataReassignmentCommand=npm run legacy-data-reassignment:dry-run -- --markdown',
     )
     expect(writeText.mock.calls[0]?.[0]).toContain(
       'counts=12 entities, 34 quotes, 5 relationships',

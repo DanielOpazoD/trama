@@ -202,6 +202,8 @@ describe('health endpoint — aislamiento por user_id', () => {
       databaseReachable: true,
       runtimeApiRoutesContract: 'check:runtime-api-routes',
       productionSmokeCommand: 'npm run smoke:production-report',
+      legacyDataReassignmentCommand:
+        'npm run legacy-data-reassignment:dry-run -- --markdown',
       logRedaction: 'structured-redaction',
     })
     expect(JSON.stringify(body.operational)).not.toContain('secret')

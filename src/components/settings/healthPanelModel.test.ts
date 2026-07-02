@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { HealthResponse } from '../../api'
 import {
+  buildLegacyCutoverChecklist,
   buildHealthDiagnostic,
   dedupHealthErrors,
   resolveBudgetTone,
@@ -35,6 +36,8 @@ const HEALTH: HealthResponse = {
     databaseReachable: true,
     runtimeApiRoutesContract: 'check:runtime-api-routes',
     productionSmokeCommand: 'npm run smoke:production-report',
+    legacyDataReassignmentCommand:
+      'npm run legacy-data-reassignment:dry-run -- --markdown',
     logRedaction: 'structured-redaction',
   },
   embeddings: { pendingEntities: 5, pendingQuotes: 6 },
@@ -46,6 +49,55 @@ describe('healthPanelModel', () => {
     expect(buildHealthDiagnostic(HEALTH)).toContain('auth=clerk')
     expect(buildHealthDiagnostic(HEALTH)).toContain('requestId=rid-test')
     expect(buildHealthDiagnostic(HEALTH)).toContain('latestError=extract 500 boom')
+  })
+
+  it('deriva checklist de cutover legacy accionable en modo Clerk estricto', () => {
+    expect(buildLegacyCutoverChecklist(HEALTH)).toEqual([
+      {
+        code: 'strict_auth',
+        status: 'ok',
+        label: 'Clerk estricto',
+        detail: 'Requests sin token no deberían caer a legacy-single-user.',
+      },
+      {
+        code: 'legacy_owner_mapping',
+        status: 'ok',
+        label: 'Owner histórico mapeado',
+        detail:
+          'LEGACY_OWNER_CLERK_ID permite revisar data histórica sin fallback anónimo.',
+      },
+      {
+        code: 'legacy_inventory',
+        status: 'action',
+        label: 'Inventario legacy read-only',
+        detail: 'npm run legacy-data-reassignment:dry-run -- --markdown',
+      },
+    ])
+  })
+
+  it('marca fallback legacy como bloqueo operativo en el checklist', () => {
+    expect(
+      buildLegacyCutoverChecklist({
+        ...HEALTH,
+        auth: {
+          clerkConfigured: true,
+          legacyFallbackAllowed: true,
+          legacyOwnerMapped: false,
+          mode: 'clerk-with-legacy-fallback',
+        },
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'strict_auth',
+          status: 'blocked',
+        }),
+        expect.objectContaining({
+          code: 'legacy_owner_mapping',
+          status: 'warning',
+        }),
+      ]),
+    )
   })
 
   it('agrupa errores recientes y conserva el timestamp mas nuevo', () => {

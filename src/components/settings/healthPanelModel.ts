@@ -8,6 +8,13 @@ export type HealthErrorGroup = {
   count: number
 }
 
+export type LegacyCutoverChecklistItem = {
+  code: 'strict_auth' | 'legacy_owner_mapping' | 'legacy_inventory'
+  status: 'ok' | 'warning' | 'blocked' | 'action'
+  label: string
+  detail: string
+}
+
 export function resolveBudgetTone(pct: number) {
   if (pct < 0.5) {
     return { bg: 'var(--accent-sage-soft)', fg: 'var(--accent-sage)' }
@@ -30,6 +37,7 @@ export function buildHealthDiagnostic(data: HealthResponse): string {
     `databaseReachable=${data.operational.databaseReachable}`,
     `runtimeApiRoutesContract=${data.operational.runtimeApiRoutesContract}`,
     `productionSmokeCommand=${data.operational.productionSmokeCommand}`,
+    `legacyDataReassignmentCommand=${data.operational.legacyDataReassignmentCommand}`,
     `logRedaction=${data.operational.logRedaction}`,
     `counts=${data.counts.entities} entities, ${data.counts.quotes} quotes, ${data.counts.relationships} relationships`,
     `aiMonth=${data.month.calls} calls, ${data.month.tokensIn} in, ${data.month.tokensOut} out, ${data.month.costCents} cents`,
@@ -40,6 +48,41 @@ export function buildHealthDiagnostic(data: HealthResponse): string {
       ? `latestError=${latestError.functionName} ${latestError.statusCode ?? 'NA'} ${latestError.message.slice(0, 160)}`
       : 'latestError=none',
   ].join('\n')
+}
+
+export function buildLegacyCutoverChecklist(
+  data: HealthResponse,
+): LegacyCutoverChecklistItem[] {
+  const strictAuthOk =
+    data.auth.clerkConfigured &&
+    !data.auth.legacyFallbackAllowed &&
+    data.auth.mode === 'clerk'
+  const ownerMapped = data.auth.legacyOwnerMapped
+
+  return [
+    {
+      code: 'strict_auth',
+      status: strictAuthOk ? 'ok' : 'blocked',
+      label: strictAuthOk ? 'Clerk estricto' : 'Fallback legacy activo',
+      detail: strictAuthOk
+        ? 'Requests sin token no deberían caer a legacy-single-user.'
+        : 'Desactiva ALLOW_LEGACY_FALLBACK antes de declarar cutover multiusuario.',
+    },
+    {
+      code: 'legacy_owner_mapping',
+      status: ownerMapped ? 'ok' : 'warning',
+      label: ownerMapped ? 'Owner histórico mapeado' : 'Owner histórico sin mapeo',
+      detail: ownerMapped
+        ? 'LEGACY_OWNER_CLERK_ID permite revisar data histórica sin fallback anónimo.'
+        : 'Define LEGACY_OWNER_CLERK_ID para revisar legacy-single-user con cuenta Clerk real.',
+    },
+    {
+      code: 'legacy_inventory',
+      status: 'action',
+      label: 'Inventario legacy read-only',
+      detail: data.operational.legacyDataReassignmentCommand,
+    },
+  ]
 }
 
 export function dedupHealthErrors(

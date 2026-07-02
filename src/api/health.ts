@@ -36,6 +36,7 @@ export type HealthResponse = {
     databaseReachable: boolean
     runtimeApiRoutesContract: 'check:runtime-api-routes'
     productionSmokeCommand: 'npm run smoke:production-report'
+    legacyDataReassignmentCommand: 'npm run legacy-data-reassignment:dry-run -- --markdown'
     logRedaction: 'structured-redaction'
   }
   byProvider: Array<{
