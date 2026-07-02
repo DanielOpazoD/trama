@@ -1,4 +1,9 @@
-import { SETTINGS_SECTIONS, type SettingsSectionId } from './settingsModel'
+import {
+  SETTINGS_SECTIONS,
+  getSettingsPanelLoadMode,
+  type SettingsSectionId,
+} from './settingsModel'
+import { preloadSettingsPanel } from './SettingsLazyPanelHost'
 
 export function SettingsNav({
   section,
@@ -15,10 +20,15 @@ export function SettingsNav({
     >
       {SETTINGS_SECTIONS.map((s) => {
         const active = section === s.id
+        const preloadPanel = () => {
+          if (getSettingsPanelLoadMode(s.id) === 'lazy') preloadSettingsPanel(s.id)
+        }
         return (
           <button
             key={s.id}
             onClick={() => onSectionChange(s.id)}
+            onFocus={preloadPanel}
+            onPointerEnter={preloadPanel}
             className={`group shrink-0 md:shrink text-left px-3 py-2 rounded-md transition-colors ${
               active
                 ? 'bg-ink-100 text-ink-800'

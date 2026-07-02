@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Settings } from './Settings'
 
+vi.mock('./settings/SettingsLazyPanelHost', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./settings/SettingsLazyPanelHost')>()
+  return { ...actual, preloadSettingsPanel: vi.fn() }
+})
+
 vi.mock('./settings/HealthPanel', () => ({
   HealthPanel: () => <section>panel estado</section>,
 }))
