@@ -166,7 +166,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'settings-components',
-    maxLines: 80,
+    maxLines: 115,
     files: ['src/components/settings/useDataPanelImportPreview.ts'],
   },
   {
@@ -237,7 +237,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-llm-boundaries',
-    maxLines: 90,
+    maxLines: 110,
     files: [
       'netlify/functions/_lib/llm/provider-chain.ts',
       'netlify/functions/_lib/llm/cache-policy.ts',

@@ -16,9 +16,10 @@ import { queryKeys } from './queryClient'
 import { patchNoteInFeed, restoreNotasFeed, snapshotNotasFeed } from './notasFeedCache'
 import { useToast } from './toast'
 
-export function useNotesQuery() {
+export function useNotesQuery(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: queryKeys.notes,
+    enabled: options.enabled ?? true,
     queryFn: () => api.notes.list(),
   })
 }

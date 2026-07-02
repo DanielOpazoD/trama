@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { QueryHit, QueryInput } from '../../api/query'
 import type { CommandAction, Item } from '../../hooks/useCommandSearch'
 import { useAskQuery, useRunQuery, useSaveQuery } from '../../state/useSavedQueries'
@@ -45,6 +45,7 @@ export function useCommandPaletteController({
   const [mode, setMode] = useState<CommandPaletteMode>('search')
   const [results, setResults] = useState<CommandPaletteResultsState | null>(null)
   const [running, setRunning] = useState(false)
+  const runningRef = useRef(false)
 
   const ask = useAskQuery()
   const run = useRunQuery()
@@ -55,6 +56,7 @@ export function useCommandPaletteController({
     if (!open) return
     setMode('search')
     setResults(null)
+    runningRef.current = false
     setRunning(false)
     setFocusIdx(0)
   }, [open])
@@ -67,6 +69,8 @@ export function useCommandPaletteController({
 
   const runAst = useCallback(
     (queryInput: QueryInput, heading: string) => {
+      if (runningRef.current) return
+      runningRef.current = true
       setRunning(true)
       run
         .mutateAsync(queryInput)
@@ -78,13 +82,18 @@ export function useCommandPaletteController({
         .catch(() => {
           toast.show({ message: 'No se pudo ejecutar la consulta.', tone: 'error' })
         })
-        .finally(() => setRunning(false))
+        .finally(() => {
+          runningRef.current = false
+          setRunning(false)
+        })
     },
     [run, toast],
   )
 
   const runAsk = useCallback(
     (q: string) => {
+      if (runningRef.current) return
+      runningRef.current = true
       setRunning(true)
       ask
         .mutateAsync(q)
@@ -101,7 +110,10 @@ export function useCommandPaletteController({
         .catch(() => {
           toast.show({ message: 'No se pudo interpretar la pregunta.', tone: 'error' })
         })
-        .finally(() => setRunning(false))
+        .finally(() => {
+          runningRef.current = false
+          setRunning(false)
+        })
     },
     [ask, toast],
   )

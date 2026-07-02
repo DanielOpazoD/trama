@@ -20,7 +20,6 @@ import {
   readMaxTokens,
   readVisionProvider,
 } from './config.js'
-import { hashMessages } from './cache.js'
 import { LLMTransientError } from './retry.js'
 import { logEvent } from '../observability.js'
 import {
@@ -43,6 +42,7 @@ import { parseOpenAICompatibleSseBlock } from './streaming.js'
 import { buildProviderChain, resolveProvider, type ChainLink } from './provider-chain.js'
 import {
   buildPrimaryLLMCacheKey,
+  buildVisionLLMCacheKey,
   readLLMCache,
   writeLLMCacheBestEffort,
 } from './cache-policy.js'
@@ -95,7 +95,7 @@ async function callLLM(
   // primario; si un fallback responde, su resultado se cachea bajo ese mismo
   // key — así el próximo request idéntico no vuelve a fallar contra el primario.
   const cacheKey = await buildPrimaryLLMCacheKey({ messages, primary, mode, override })
-  const cached = await readLLMCache(cacheKey, cacheTtl)
+  const cached = await readLLMCache({ cacheKey, cacheTtl })
   if (cached) return cached
 
   // Recorre la cadena: ante una falla TRANSITORIA (5xx/timeout/red) cae al
@@ -294,14 +294,13 @@ export async function askLLMForVision(
 
   // Cache por hash de system + user text + image bytes (truncados) — duplicados
   // exactos son raros para vision pero cheap dedupear.
-  const cacheKey = await hashMessages(
-    [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userText + ':' + imageBase64.slice(0, 64) },
-    ],
-    `${provider}|vision`,
-  )
-  const cached = await readLLMCache(cacheKey, cacheTtl)
+  const cacheKey = await buildVisionLLMCacheKey({
+    provider,
+    systemPrompt,
+    userText,
+    imageBase64,
+  })
+  const cached = await readLLMCache({ cacheKey, cacheTtl })
   if (cached) return cached
 
   // Cadena de visión: primario + el otro provider vision-capable (openai↔gemini)

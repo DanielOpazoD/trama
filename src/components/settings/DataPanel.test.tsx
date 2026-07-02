@@ -169,6 +169,20 @@ describe('buildPreview (pure)', () => {
 })
 
 describe('<DataPanel /> — flujo de import con preview', () => {
+  it('no carga datasets completos de preview antes de elegir archivo', async () => {
+    const qc = makeQueryClient()
+
+    render(<DataPanel />, { wrapper: wrap(qc) })
+
+    await waitFor(() => expect(apiModule.api.listOrphanedBlobs).toHaveBeenCalled())
+    expect(apiModule.api.listEntities).not.toHaveBeenCalled()
+    expect(apiModule.api.listQuotes).not.toHaveBeenCalled()
+    expect(apiModule.api.listRelationships).not.toHaveBeenCalled()
+    expect(apiModule.api.listMomentos).not.toHaveBeenCalled()
+    expect(apiModule.api.notes.list).not.toHaveBeenCalled()
+    expect(apiModule.api.tasks.list).not.toHaveBeenCalled()
+  })
+
   it('describe el export como core estructurado parcial, no como backup total', () => {
     const qc = makeQueryClient()
     qc.setQueryData<Entity[]>(queryKeys.entities, [])
@@ -237,6 +251,47 @@ describe('<DataPanel /> — flujo de import con preview', () => {
     })
     // Botón refleja "1 nueva" porque la otra es duplicada.
     expect(screen.getByRole('button', { name: /agregar 1 nuevas?/i })).toBeInTheDocument()
+  })
+
+  it('cuenta Momentos existentes aunque estén después de la primera página', async () => {
+    vi.spyOn(apiModule.api, 'listMomentos')
+      .mockResolvedValueOnce({
+        items: [],
+        nextCursor: 'cursor-2',
+      })
+      .mockResolvedValueOnce({
+        items: [{ id: 'm-existing' }],
+        nextCursor: null,
+      } as Awaited<ReturnType<typeof apiModule.api.listMomentos>>)
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [])
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [])
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [])
+
+    render(<DataPanel />, { wrapper: wrap(qc) })
+
+    const payload = {
+      ...EMPTY_PAYLOAD,
+      version: 2,
+      momentos: [{ id: 'm-existing' }],
+    } as unknown as ExportPayload
+    const inputEl = document.querySelector('input[type="file"]') as HTMLInputElement
+    const user = userEvent.setup()
+    await user.upload(inputEl, makeFile(payload))
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /no hay nuevas para agregar/i }),
+      ).toBeDisabled(),
+    )
+    expect(apiModule.api.listMomentos).toHaveBeenCalledWith({
+      cursor: null,
+      limit: 100,
+    })
+    expect(apiModule.api.listMomentos).toHaveBeenCalledWith({
+      cursor: 'cursor-2',
+      limit: 100,
+    })
   })
 
   it('"Cancelar" descarta el preview sin llamar al backend', async () => {

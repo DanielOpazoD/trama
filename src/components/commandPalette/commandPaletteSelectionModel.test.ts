@@ -33,10 +33,32 @@ describe('commandPaletteSelectionModel', () => {
       },
     )
     expect(
+      getCommandPaletteItemCommand({
+        kind: 'action',
+        action: 'new-entity',
+        label: 'Nueva entidad',
+      } as Item),
+    ).toEqual({
+      kind: 'action',
+      action: 'new-entity',
+    })
+    expect(getCommandPaletteItemCommand({ kind: 'entity', id: 'e2' } as Item)).toEqual({
+      kind: 'selectEntity',
+      id: 'e2',
+    })
+    expect(
       getCommandPaletteItemCommand({ kind: 'quote', entityId: 'e-quote' } as Item),
     ).toEqual({
       kind: 'selectEntity',
       id: 'e-quote',
+    })
+    expect(getCommandPaletteItemCommand({ kind: 'momento' } as Item)).toEqual({
+      kind: 'navigate',
+      view: 'momentos',
+    })
+    expect(getCommandPaletteItemCommand({ kind: 'cronica' } as Item)).toEqual({
+      kind: 'navigate',
+      view: 'inicio',
     })
     expect(
       getCommandPaletteItemCommand({ kind: 'chat', threadId: 'thread-1' } as Item, {
@@ -57,6 +79,12 @@ describe('commandPaletteSelectionModel', () => {
     expect(getCommandPaletteItemCommand({ kind: 'ask', q: 'notas' } as Item)).toEqual({
       kind: 'runAsk',
       q: 'notas',
+    })
+    expect(
+      getCommandPaletteItemCommand({ kind: 'reveal', moduleId: 'notas' } as Item),
+    ).toEqual({
+      kind: 'revealNotasModule',
+      moduleId: 'notas',
     })
     expect(
       getCommandPaletteItemCommand({

@@ -9,8 +9,8 @@
 **Current hotspot targets:**
 
 - `src/components/CommandPalette.tsx`
-- `src/hooks/useCommandSearch.ts`
-- `src/hooks/commandSearchModel.ts`
+- `src/components/commandPalette/useCommandPaletteController.ts`
+- `src/components/commandPalette/commandPaletteSelectionModel.ts`
 - `src/components/settings/DataPanel.tsx`
 - `netlify/functions/_lib/llm/dispatch.ts`
 - PDF Studio surfaces where extraction is low-risk

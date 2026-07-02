@@ -44,10 +44,37 @@ export async function buildPrimaryLLMCacheKey({
   return hashMessages(messages, buildPrimaryLLMCacheScope(primary, mode, override))
 }
 
-export async function readLLMCache(
-  cacheKey: string,
-  cacheTtl: number,
-): Promise<LLMResult | null> {
+export function buildVisionLLMCacheScope(provider: 'openai' | 'gemini'): string {
+  return `${provider}|vision`
+}
+
+export async function buildVisionLLMCacheKey({
+  provider,
+  systemPrompt,
+  userText,
+  imageBase64,
+}: {
+  provider: 'openai' | 'gemini'
+  systemPrompt: string
+  userText: string
+  imageBase64: string
+}): Promise<string> {
+  return hashMessages(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userText + ':' + imageBase64.slice(0, 64) },
+    ],
+    buildVisionLLMCacheScope(provider),
+  )
+}
+
+export async function readLLMCache({
+  cacheKey,
+  cacheTtl,
+}: {
+  cacheKey: string
+  cacheTtl: number
+}): Promise<LLMResult | null> {
   const cached = getCached(cacheKey)
   if (cached) return cached
 

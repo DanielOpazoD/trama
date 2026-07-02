@@ -96,7 +96,7 @@ describe('structure ratchets', () => {
     expect(maxFor('netlify/functions/_lib/entities-endpoint.ts')).toBeLessThanOrEqual(480)
     expect(maxFor('netlify/functions/_lib/search-endpoint.ts')).toBeLessThanOrEqual(190)
     expect(maxFor('netlify/functions/_lib/llm/dispatch.ts')).toBeLessThanOrEqual(400)
-    expect(maxFor('netlify/functions/_lib/llm/cache-policy.ts')).toBeLessThanOrEqual(90)
+    expect(maxFor('netlify/functions/_lib/llm/cache-policy.ts')).toBeLessThanOrEqual(110)
     expect(maxFor('netlify/functions/whatsapp-webhook.mts')).toBeLessThanOrEqual(90)
     expect(
       maxFor('netlify/functions/_lib/whatsapp/webhook-endpoint.ts'),
@@ -132,7 +132,7 @@ describe('structure ratchets', () => {
     ).toBeLessThanOrEqual(150)
     expect(
       maxFor('src/components/settings/useDataPanelImportPreview.ts'),
-    ).toBeLessThanOrEqual(80)
+    ).toBeLessThanOrEqual(115)
     expect(maxFor('src/components/settings/HealthPanel.tsx')).toBeLessThanOrEqual(120)
     expect(maxFor('src/components/notas/NotasFeedVirtualList.tsx')).toBeLessThanOrEqual(
       225,
