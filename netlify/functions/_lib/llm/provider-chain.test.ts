@@ -39,6 +39,12 @@ describe('provider-chain', () => {
     expect(link.apiKey).toBe('deepseek-key')
   })
 
+  it('lanza si el provider resuelto no tiene API key disponible', () => {
+    stubEnv({ AI_PROVIDER: 'deepseek' })
+
+    expect(() => resolveProvider()).toThrow(/AI_API_KEY/)
+  })
+
   it('arma fallback solo con providers distintos y key dedicada', () => {
     stubEnv({
       AI_PROVIDER: 'deepseek',

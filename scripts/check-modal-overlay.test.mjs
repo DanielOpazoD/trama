@@ -68,6 +68,7 @@ describe('checkModalOverlay', () => {
 
     const result = checkModalOverlay({
       root,
+      adoptedByParent: new Map(),
       exempt: new Map([['src/Popover.tsx', 'popover anclado']]),
       pending: new Map([['src/Legacy.tsx', 'deuda conocida']]),
     })
@@ -83,7 +84,12 @@ describe('checkModalOverlay', () => {
     const { root, write } = await makeRepo()
     write('src/NuevoModal.tsx', handRolledDialog('nuevo'))
 
-    const result = checkModalOverlay({ root, exempt: new Map(), pending: new Map() })
+    const result = checkModalOverlay({
+      root,
+      adoptedByParent: new Map(),
+      exempt: new Map(),
+      pending: new Map(),
+    })
 
     expect(result.ok).toBe(false)
     expect(result.unclassified).toEqual(['src/NuevoModal.tsx'])
@@ -97,7 +103,12 @@ describe('checkModalOverlay', () => {
     const { root, write } = await makeRepo()
     write('src/NuevoModal.tsx', adoptedDialog('nuevo'))
 
-    const result = checkModalOverlay({ root, exempt: new Map(), pending: new Map() })
+    const result = checkModalOverlay({
+      root,
+      adoptedByParent: new Map(),
+      exempt: new Map(),
+      pending: new Map(),
+    })
 
     expect(result.ok).toBe(true)
     expect(result.adopted).toEqual(['src/NuevoModal.tsx'])
@@ -109,6 +120,7 @@ describe('checkModalOverlay', () => {
 
     const result = checkModalOverlay({
       root,
+      adoptedByParent: new Map(),
       exempt: new Map([['src/Popover.tsx', 'popover anclado']]),
       pending: new Map(),
     })
@@ -124,6 +136,7 @@ describe('checkModalOverlay', () => {
 
     const result = checkModalOverlay({
       root,
+      adoptedByParent: new Map(),
       exempt: new Map(),
       pending: new Map([['src/Legacy.tsx', 'deuda conocida']]),
     })
@@ -138,11 +151,36 @@ describe('checkModalOverlay', () => {
 
     const result = checkModalOverlay({
       root,
+      adoptedByParent: new Map(),
       exempt: new Map(),
       pending: new Map([['src/Legacy.tsx', 'deuda conocida']]),
     })
 
     expect(result.ok).toBe(true)
     expect(result.migratedPending).toEqual(['src/Legacy.tsx'])
+  })
+
+  it('acepta shells presentacionales que reciben el dialogRef desde el padre', async () => {
+    const { root, write } = await makeRepo()
+    write(
+      'src/DialogShell.tsx',
+      [
+        'export const DialogShell = ({ dialogRef }) => (',
+        '  <div ref={dialogRef} role="dialog" aria-label="shell" />',
+        ')',
+      ].join('\n'),
+    )
+
+    const result = checkModalOverlay({
+      root,
+      adoptedByParent: new Map([
+        ['src/DialogShell.tsx', 'Parent owns useModalOverlay and passes dialogRef.'],
+      ]),
+      exempt: new Map(),
+      pending: new Map(),
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.adopted).toEqual(['src/DialogShell.tsx'])
   })
 })

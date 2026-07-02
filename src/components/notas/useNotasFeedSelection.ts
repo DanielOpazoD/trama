@@ -7,6 +7,8 @@ import {
 } from './notasFeedViewModel'
 import type { RecorteFeedView } from '../../hooks/useRecorteFeedView'
 
+const EMPTY_SELECTED_IDS = new Set<string>()
+
 export function useNotasFeedSelection({
   feedView,
   items,
@@ -28,9 +30,12 @@ export function useNotasFeedSelection({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const galleryMode = isNotasFeedGalleryMode({ feedView, segment })
+  const canSelect = segment === 'capturas' && !galleryMode
+  const effectiveSelectionMode = canSelect && selectionMode
+  const effectiveSelectedIds = canSelect ? selectedIds : EMPTY_SELECTED_IDS
   const selectedRecortes = useMemo(
-    () => selectedRecortesFromItems(items, selectedIds),
-    [items, selectedIds],
+    () => selectedRecortesFromItems(items, effectiveSelectedIds),
+    [items, effectiveSelectedIds],
   )
 
   const exitSelection = useCallback(() => {
@@ -38,21 +43,24 @@ export function useNotasFeedSelection({
     setSelectedIds(new Set())
   }, [])
 
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
+  const toggleSelect = useCallback(
+    (id: string) => {
+      if (!canSelect) return
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      })
+    },
+    [canSelect],
+  )
 
   const toggleSelectionMode = useCallback(() => {
-    setSelectionMode((active) => {
-      if (active) setSelectedIds(new Set())
-      return !active
-    })
-  }, [])
+    if (!canSelect) return
+    if (selectionMode) exitSelection()
+    else setSelectionMode(true)
+  }, [canSelect, exitSelection, selectionMode])
 
   useEffect(() => {
     if (segment !== 'capturas') exitSelection()
@@ -65,9 +73,9 @@ export function useNotasFeedSelection({
   return {
     exitSelection,
     galleryMode,
-    selectedIds,
+    selectedIds: effectiveSelectedIds,
     selectedRecortes,
-    selectionMode,
+    selectionMode: effectiveSelectionMode,
     toggleSelect,
     toggleSelectionMode,
   }

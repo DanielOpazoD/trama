@@ -45,6 +45,17 @@ export const MODAL_OVERLAY_EXEMPT = new Map([
   ],
 ])
 
+// Componentes presentacionales con role=dialog que NO llaman al hook
+// directamente, pero reciben el dialogRef desde un padre que sí lo usa.
+// Mantener esta lista chica: si el componente empieza a manejar Escape/backdrop
+// por cuenta propia, debe migrar a useModalOverlay o clasificarse distinto.
+export const MODAL_OVERLAY_ADOPTED_BY_PARENT = new Map([
+  [
+    'src/components/commandPalette/CommandPaletteDialog.tsx',
+    'Shell presentacional; CommandPalette crea useModalOverlay y pasa dialogRef.',
+  ],
+])
+
 // Modales todavía hand-rolled, diferidos por riesgo. RATCHET: esta lista solo
 // puede ENCOGER. Migrar a useModalOverlay y removerlos de acá; nunca agregar.
 export const MODAL_OVERLAY_PENDING = new Map([
@@ -79,6 +90,7 @@ export function collectModalOverlayUsage(root = process.cwd()) {
 
 export function checkModalOverlay({
   root = process.cwd(),
+  adoptedByParent = MODAL_OVERLAY_ADOPTED_BY_PARENT,
   exempt = MODAL_OVERLAY_EXEMPT,
   pending = MODAL_OVERLAY_PENDING,
 } = {}) {
@@ -91,7 +103,7 @@ export function checkModalOverlay({
   const unclassified = []
 
   for (const entry of dialogs) {
-    if (entry.usesHook) {
+    if (entry.usesHook || adoptedByParent.has(entry.file)) {
       adopted.push(entry.file)
     } else if (exempt.has(entry.file)) {
       exemptHits.push(entry.file)
@@ -105,6 +117,9 @@ export function checkModalOverlay({
   // Entradas stale: la allowlist apunta a un archivo que ya no existe o ya no
   // tiene role=dialog. Hay que removerlas (como hard-delete-allowlist).
   const staleExempt = [...exempt.keys()].filter((file) => !byFile.has(file))
+  const staleAdoptedByParent = [...adoptedByParent.keys()].filter(
+    (file) => !byFile.has(file),
+  )
   const stalePending = [...pending.keys()].filter((file) => !byFile.has(file))
 
   // PENDING que ya migró: el archivo sigue teniendo role=dialog pero ahora usa
@@ -118,6 +133,8 @@ export function checkModalOverlay({
   if (unclassified.length > 0)
     failures.push({ kind: 'unclassified', files: unclassified })
   if (staleExempt.length > 0) failures.push({ kind: 'staleExempt', files: staleExempt })
+  if (staleAdoptedByParent.length > 0)
+    failures.push({ kind: 'staleAdoptedByParent', files: staleAdoptedByParent })
   if (stalePending.length > 0)
     failures.push({ kind: 'stalePending', files: stalePending })
 
@@ -129,6 +146,7 @@ export function checkModalOverlay({
     pending: pendingHits,
     unclassified,
     staleExempt,
+    staleAdoptedByParent,
     stalePending,
     migratedPending,
     failures,
@@ -162,6 +180,13 @@ if (isCli) {
           '(removelas de MODAL_OVERLAY_EXEMPT):',
       )
       for (const file of result.staleExempt) console.error(`  - ${file}`)
+    }
+    if (result.staleAdoptedByParent.length > 0) {
+      console.error(
+        '\nEntradas ADOPTED_BY_PARENT que ya no existen o ya no tienen role=dialog ' +
+          '(removelas de MODAL_OVERLAY_ADOPTED_BY_PARENT):',
+      )
+      for (const file of result.staleAdoptedByParent) console.error(`  - ${file}`)
     }
     if (result.stalePending.length > 0) {
       console.error(

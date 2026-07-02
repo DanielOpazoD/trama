@@ -29,7 +29,9 @@ export function WorkspaceTemplateThumb({ doc }: { doc: PdfDoc }) {
       .then((u) => {
         if (alive) setUrl(u)
       })
-      .catch(() => {})
+      .catch((error) => {
+        console.warn('No se pudo renderizar miniatura de planilla PDF.', error)
+      })
     return () => {
       alive = false
     }
