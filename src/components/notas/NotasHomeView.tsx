@@ -25,7 +25,7 @@ export function NotasHomeView({
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks])
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
 
-  const todayWeek = useMemo(() => weekStartLocal(), [])
+  const todayWeek = weekStartLocal()
   const home = useMemo(
     () => buildNotasHomeModel({ notes, tasks, prompts, todayWeek }),
     [notes, prompts, tasks, todayWeek],

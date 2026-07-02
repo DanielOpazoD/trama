@@ -113,10 +113,10 @@ function isNoteInboxCandidate(note: Note): boolean {
 }
 
 function noteInboxReason(note: Note): NotasHomeInboxNote['reason'] | null {
+  if (note.tags.length > 0) return null
   if (note.source === 'whatsapp') return 'vía WhatsApp'
-  if (note.tags.length === 0) return 'sin etiquetas'
   if (note.hasAudio || note.hasImages) return 'con adjuntos'
-  return null
+  return 'sin etiquetas'
 }
 
 function formatDailyHeadline({

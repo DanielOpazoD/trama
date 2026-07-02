@@ -129,6 +129,13 @@ describe('notasHomeModel', () => {
           tags: ['obra'],
           updatedAt: '2026-07-06T15:00:00.000Z',
         }),
+        note({
+          id: 'whatsapp-tagged',
+          content: 'WhatsApp ya clasificado',
+          source: 'whatsapp',
+          tags: ['obra'],
+          updatedAt: '2026-07-06T16:00:00.000Z',
+        }),
       ],
       tasks: [],
       prompts: [prompt({ id: 'p1', title: 'Prompt favorito', favorite: true })],
@@ -137,7 +144,11 @@ describe('notasHomeModel', () => {
     expect(model.noteInbox.map((item) => item.id)).toEqual(['whatsapp', 'untagged'])
     expect(model.noteInbox[0]?.reason).toBe('vía WhatsApp')
     expect(model.noteInbox[1]?.reason).toBe('sin etiquetas')
-    expect(model.topNotes.map((item) => item.id)).toEqual(['pinned', 'tagged'])
+    expect(model.topNotes.map((item) => item.id)).toEqual([
+      'pinned',
+      'whatsapp-tagged',
+      'tagged',
+    ])
     expect(model.daily.subline).toBe('2 notas recientes esperan clasificación.')
     expect(model.topPrompts.map((item) => item.id)).toEqual(['p1'])
   })
