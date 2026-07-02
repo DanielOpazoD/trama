@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ViewMode } from '../types/view'
 import {
   useCommandSearch,
@@ -10,29 +10,19 @@ import { useAskQuery, useRunQuery, useSaveQuery } from '../state/useSavedQueries
 import { useToast } from '../state/toast'
 import type { QueryHit, QueryInput } from '../api/query'
 import type { NotasSection } from '../types/notas'
-import { CommandPaletteSearchMode } from './commandPalette/CommandPaletteSearchMode'
+import {
+  CommandPaletteDialog,
+  type CommandPaletteResultsState,
+} from './commandPalette/CommandPaletteDialog'
 import {
   getCommandPaletteActiveLength,
   type CommandPaletteMode,
 } from './commandPalette/commandPaletteModel'
 import { useCommandPaletteKeyboard } from './commandPalette/useCommandPaletteKeyboard'
 
-// El modo "resultados" (motor de consultas) se carga on-demand: el camino
-// común buscar/navegar no necesita su código, así el bundle del palette no
-// crece para todos.
-const CommandPaletteResults = lazy(() =>
-  import('./CommandPaletteResults').then((m) => ({ default: m.CommandPaletteResults })),
-)
-
 // `CommandAction` se define en useCommandSearch; lo re-exportamos acá para no
 // romper imports existentes que lo toman desde este módulo.
 export type { CommandAction }
-
-// σ-followup: símbolo del modificador. Antes vivía en TopBar — al
-// mover el atajo visual al palette, este módulo lo necesita propio.
-const IS_MAC =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 /**
  * Cmd+K palette. Search-as-you-type across views + entities + quotes.
@@ -76,12 +66,7 @@ export function CommandPalette({
   // clásico (find/navigate). 'results' muestra los hits del motor de consultas
   // tras un "Preguntar" o correr una consulta guardada.
   const [mode, setMode] = useState<CommandPaletteMode>('search')
-  const [results, setResults] = useState<{
-    hits: QueryHit[]
-    ast: QueryInput | null
-    source?: 'llm' | 'fallback'
-    heading: string
-  } | null>(null)
+  const [results, setResults] = useState<CommandPaletteResultsState | null>(null)
   const [running, setRunning] = useState(false)
 
   const ask = useAskQuery()
@@ -268,100 +253,30 @@ export function CommandPalette({
   if (!open) return null
 
   return (
-    <>
-      <button
-        onClick={onClose}
-        aria-label="Cerrar"
-        className="fixed inset-0 z-30 bg-ink-900/30 backdrop-blur-sm cursor-default animate-fade-up"
-        tabIndex={-1}
-      />
-      {/* ω: contenedor full-screen que centra el diálogo con flexbox. El
-          centrado va acá y NO en un transform del propio diálogo: la animación
-          animate-fade-up del card también usa transform y pisaba el translate
-          de centrado (-translate-x/y-1/2), corriendo el modal hacia abajo y a
-          la derecha y cortándole el borde inferior. pointer-events-none deja
-          pasar el clic al backdrop; el card lo recaptura con
-          pointer-events-auto. */}
-      <div className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-none">
-        <div
-          ref={overlay.dialogRef}
-          role="dialog"
-          aria-label="Buscar"
-          aria-modal="true"
-          className="w-full max-w-xl md:max-w-3xl pointer-events-auto animate-fade-up"
-        >
-          <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
-            {/* σ-followup: kbd visible del atajo arriba derecha del input —
-              se movió desde el sidebar trigger. Da sentido ver "⌘ K"
-              cuando el modal está abierto: refuerza el atajo en el
-              contexto donde aporta. */}
-            <div className="relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar o preguntar…"
-                aria-label="Buscar o preguntar"
-                className="w-full px-5 py-4 pr-16 bg-transparent text-ink-700 placeholder:text-ink-300 font-serif text-lg leading-none border-b border-ink-100/60"
-                autoComplete="off"
-              />
-              <kbd
-                aria-hidden
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-micro px-1.5 py-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-400 leading-none font-mono"
-              >
-                {SHORTCUT_KEY} K
-              </kbd>
-            </div>
-            {mode === 'results' && results ? (
-              <>
-                <Suspense
-                  fallback={
-                    <p className="px-5 py-6 text-ink-400 italic text-sm text-center">
-                      cargando resultados…
-                    </p>
-                  }
-                >
-                  <CommandPaletteResults
-                    hits={results.hits}
-                    ast={results.ast}
-                    source={results.source}
-                    heading={results.heading}
-                    focusIdx={focusIdx}
-                    onFocusIdx={setFocusIdx}
-                    onSelectHit={selectHit}
-                    onBack={() => {
-                      setMode('search')
-                      setResults(null)
-                      setFocusIdx(0)
-                    }}
-                    onSave={(name) => {
-                      if (results.ast) saveQuery.mutate({ name, query: results.ast })
-                    }}
-                    saving={saveQuery.isPending}
-                  />
-                </Suspense>
-                <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
-                  <span>↑↓ navegar · enter abrir · esc volver</span>
-                  <span>{results.hits.length} resultados</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <CommandPaletteSearchMode
-                  items={items}
-                  query={query}
-                  running={running}
-                  searching={searching}
-                  focusIdx={focusIdx}
-                  entitiesForPeek={entitiesForPeek}
-                  onFocusIdx={setFocusIdx}
-                  onSelectItem={selectItem}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+    <CommandPaletteDialog
+      dialogRef={overlay.dialogRef}
+      entitiesForPeek={entitiesForPeek}
+      focusIdx={focusIdx}
+      items={items}
+      mode={mode}
+      onBackToSearch={() => {
+        setMode('search')
+        setResults(null)
+        setFocusIdx(0)
+      }}
+      onClose={onClose}
+      onFocusIdx={setFocusIdx}
+      onQueryChange={setQuery}
+      onSaveQuery={(name) => {
+        if (results?.ast) saveQuery.mutate({ name, query: results.ast })
+      }}
+      onSelectHit={selectHit}
+      onSelectItem={selectItem}
+      query={query}
+      results={results}
+      running={running}
+      saving={saveQuery.isPending}
+      searching={searching}
+    />
   )
 }

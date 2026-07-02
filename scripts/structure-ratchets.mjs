@@ -21,7 +21,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 386,
+    maxLines: 300,
     files: ['src/components/CommandPalette.tsx'],
   },
   {
@@ -57,13 +57,18 @@ export const STRUCTURE_RATCHETS = [
     ],
   },
   {
+    group: 'command-palette-components',
+    maxLines: 150,
+    files: ['src/components/commandPalette/CommandPaletteDialog.tsx'],
+  },
+  {
     group: 'app-large-surfaces',
     maxLines: 505,
     files: ['src/components/GraphView.tsx'],
   },
   {
     group: 'notas-feed-surfaces',
-    maxLines: 500,
+    maxLines: 430,
     files: ['src/components/notas/NotasFeedView.tsx'],
   },
   {
@@ -74,7 +79,11 @@ export const STRUCTURE_RATCHETS = [
   {
     group: 'notas-feed-components',
     maxLines: 130,
-    files: ['src/components/notas/NotasFeedContent.tsx'],
+    files: [
+      'src/components/notas/NotasFeedContent.tsx',
+      'src/components/notas/useNotasFeedSelection.ts',
+      'src/components/notas/useNotasFeedVirtualWindow.ts',
+    ],
   },
   {
     group: 'notas-feed-components',
@@ -207,8 +216,13 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-large-surfaces',
-    maxLines: 465,
+    maxLines: 425,
     files: ['netlify/functions/_lib/llm/dispatch.ts'],
+  },
+  {
+    group: 'server-llm-boundaries',
+    maxLines: 90,
+    files: ['netlify/functions/_lib/llm/provider-chain.ts'],
   },
   {
     group: 'pdf-studio-core',
@@ -217,8 +231,16 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-core',
-    maxLines: 385,
+    maxLines: 365,
     files: ['src/components/notas/pdfStudio/PdfStudioView.tsx'],
+  },
+  {
+    group: 'pdf-studio-shell-components',
+    maxLines: 90,
+    files: [
+      'src/components/notas/pdfStudio/PdfStudioViewCanvas.tsx',
+      'src/components/notas/pdfStudio/PdfStudioWorkspacePanel.tsx',
+    ],
   },
   {
     group: 'pdf-studio-core',
@@ -278,7 +300,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-forms',
-    maxLines: 285,
+    maxLines: 270,
     files: [
       'src/lib/pdfStudio/model/modelForms.ts',
       'src/components/notas/pdfStudio/planillas/FormFieldLayer.tsx',
@@ -315,7 +337,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'pdf-studio-workspace',
-    maxLines: 250,
+    maxLines: 200,
     files: ['src/components/notas/pdfStudio/workspace/WorkspaceTemplateCard.tsx'],
   },
   {

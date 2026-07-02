@@ -23,6 +23,12 @@ import {
 } from './pdfFormFieldPointer'
 import { patchFormFieldTextStyle } from './pdfFormFieldStyle'
 import { initialFieldBox, uniqueFieldName } from './pdfTextEditorFormDefaults'
+import {
+  latestSelectedFormFieldId,
+  nextSelectedFormFieldIds,
+  patchDraftFormFields,
+  removeSelectedFormFieldId,
+} from './pdfTextEditorFormDraftModel'
 import { usePdfTextEditorFormArrange } from './usePdfTextEditorFormArrange'
 import { usePdfTextEditorFormShortcuts } from './usePdfTextEditorFormShortcuts'
 import { usePdfTextEditorFormSignature } from './usePdfTextEditorFormSignature'
@@ -53,8 +59,7 @@ export function usePdfTextEditorForms({
   )
   const [selectedFormFieldIds, setSelectedFormFieldIds] = useState<string[]>([])
   const formClipboardRef = useRef<PdfFormFieldDraft[]>([])
-  const selectedFormFieldId =
-    selectedFormFieldIds[selectedFormFieldIds.length - 1] ?? null
+  const selectedFormFieldId = latestSelectedFormFieldId(selectedFormFieldIds)
   const [pendingFormKind, setPendingFormKind] = useState<PdfFormFieldKind | null>(null)
 
   usePdfTextEditorFormShortcuts({
@@ -176,34 +181,17 @@ export function usePdfTextEditorForms({
   }
 
   function patchDraftFormField(id: string, patch: Partial<PdfFormFieldDraft>) {
-    setFormFields((fields) =>
-      fields.map((field) =>
-        field.id === id
-          ? {
-              ...field,
-              ...patch,
-              name:
-                patch.name == null
-                  ? field.name
-                  : patch.name.trim().replace(/\s+/g, '_') || field.name,
-            }
-          : field,
-      ),
-    )
+    setFormFields((fields) => patchDraftFormFields(fields, id, patch))
   }
 
   function deleteDraftFormField(id: string) {
     setFormFields((fields) => fields.filter((field) => field.id !== id))
-    setSelectedFormFieldIds((selected) => selected.filter((fieldId) => fieldId !== id))
+    setSelectedFormFieldIds((selected) => removeSelectedFormFieldId(selected, id))
   }
 
   function selectDraftFormField(id: string, additive = false) {
     setSelectedFormFieldIds((selected) =>
-      additive
-        ? selected.includes(id)
-          ? selected.filter((fieldId) => fieldId !== id)
-          : [...selected, id]
-        : [id],
+      nextSelectedFormFieldIds(selected, id, additive),
     )
     setSelectedId(null)
     setEditingId(null)
