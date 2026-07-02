@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Inventory And Ratchet
+## Task 1: Inventory And Ratchet
 
 **Files:**
 
@@ -42,7 +42,7 @@ npm test -- scripts/developer-quality-gates.test.mjs
 
 Expected: FAIL because both state hook files are still in `ignoreIssues`.
 
-### Task 2: Remove Demonstrably Dead State Hooks
+## Task 2: Remove Demonstrably Dead State Hooks
 
 **Files:**
 
@@ -63,7 +63,7 @@ Delete `src/state/useReadingTables.ts` and `src/state/useSavedQueries.ts` from `
 
 Set `QUALITY_GATE_BASELINE.knip.ignoreIssueFiles` to `33` and `ignoreIssueKinds` to `34`.
 
-### Task 3: Document Remaining Exceptions
+## Task 3: Document Remaining Exceptions
 
 **Files:**
 
@@ -78,7 +78,7 @@ Add explicit domain buckets for API barrels, PDF Studio cross-boundary contracts
 
 Extend `report:quality-gates` with the domain breakdown so future PRs know which bucket grew.
 
-### Task 4: Validate
+## Task 4: Validate
 
 **Files:**
 

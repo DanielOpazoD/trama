@@ -7,6 +7,7 @@ import { QUALITY_GATES } from './script-registry.mjs'
 import { QUALITY_GATE_BASELINE } from './quality-gates-baseline.mjs'
 import {
   buildQualityGatesReport,
+  classifyIgnoreIssueDomains,
   formatQualityGatesReport,
 } from './report-quality-gates.mjs'
 
@@ -161,6 +162,18 @@ describe('developer quality gates', () => {
     expect(formatted).toContain('api-contracts: 11 files, 11 kinds')
     expect(formatted).toContain('state-contracts: 4 files, 5 kinds')
     expect(formatted).toContain('component-contracts: 1 file, 1 kind')
+  })
+
+  test('keeps uncategorized Knip exceptions visible in the domain report', () => {
+    expect(
+      classifyIgnoreIssueDomains({
+        'src/api/search.ts': ['types'],
+        'tools/external-contract.ts': ['exports', 'types'],
+      }),
+    ).toEqual([
+      { name: 'api-contracts', files: 1, kinds: 1 },
+      { name: 'uncategorized', files: 1, kinds: 2 },
+    ])
   })
 
   test('does not keep resolved Sidebar cycles in the dependency-cruiser baseline', () => {

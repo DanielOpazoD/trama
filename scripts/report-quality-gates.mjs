@@ -38,9 +38,9 @@ const KNIP_IGNORE_ISSUE_DOMAINS = [
   },
 ]
 
-function classifyIgnoreIssueDomains(ignoreIssues) {
+export function classifyIgnoreIssueDomains(ignoreIssues) {
   const classified = new Set()
-  return KNIP_IGNORE_ISSUE_DOMAINS.map((domain) => {
+  const domains = KNIP_IGNORE_ISSUE_DOMAINS.map((domain) => {
     const entries = Object.entries(ignoreIssues).filter(([file]) => {
       if (classified.has(file) || !domain.matches(file)) return false
       classified.add(file)
@@ -52,6 +52,19 @@ function classifyIgnoreIssueDomains(ignoreIssues) {
       kinds: entries.reduce((total, [, issues]) => total + issues.length, 0),
     }
   }).filter((domain) => domain.files > 0 || domain.kinds > 0)
+
+  const uncategorized = Object.entries(ignoreIssues).filter(
+    ([file]) => !classified.has(file),
+  )
+  if (uncategorized.length > 0) {
+    domains.push({
+      name: 'uncategorized',
+      files: uncategorized.length,
+      kinds: uncategorized.reduce((total, [, issues]) => total + issues.length, 0),
+    })
+  }
+
+  return domains
 }
 
 export function buildQualityGatesReport() {
