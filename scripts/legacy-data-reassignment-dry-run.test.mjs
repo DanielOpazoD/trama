@@ -171,6 +171,95 @@ describe('legacy data reassignment dry-run', () => {
     expect(markdown).toContain('| blob:momentos-media | 1 key | no | si | high |')
   })
 
+  it('clasifica readiness de cutover con target faltante y revision manual', () => {
+    const database = evaluateTableInventoryRows(
+      [
+        { table_name: 'notes', legacy_rows: 2 },
+        { table_name: 'notas_attachments', legacy_rows: 1 },
+      ],
+      [
+        { table: 'notes', lifecycle: 'soft-delete', reason: 'private notes' },
+        {
+          table: 'notas_attachments',
+          lifecycle: 'soft-delete',
+          reason: 'attachment metadata',
+        },
+      ],
+    )
+    const blobs = {
+      storesChecked: 1,
+      totalKeys: 2,
+      totalLegacyUnscopedKeys: 1,
+      stores: [
+        summarizeBlobInventory({
+          storeName: 'notas-attachments',
+          blobs: [{ key: 'legacy-photo.png' }, { key: 'user_real/photo.png' }],
+        }),
+      ],
+      warnings: [],
+    }
+
+    const report = summarizeDryRun({ database, blobs, targetUserId: null })
+
+    expect(report.cutoverReadiness).toMatchObject({
+      status: 'blocked',
+      targetUserIdPresent: false,
+      autoMigrableRows: 2,
+      manualReviewItems: 2,
+      highRiskItems: 2,
+    })
+    expect(report.cutoverReadiness.blockers).toEqual(
+      expect.arrayContaining([
+        'target_user_id_missing',
+        'manual_review_required',
+        'legacy_unscoped_blobs_present',
+      ]),
+    )
+    expect(report.cutoverReadiness.nextActions).toEqual(
+      expect.arrayContaining([
+        'define LEGACY_REASSIGNMENT_TARGET_USER_ID or pass --target-user-id=<clerk-sub>',
+        'review high/medium risk tables and blob stores before writing a migration executor',
+      ]),
+    )
+  })
+
+  it('declara readiness lista solo cuando no queda legacy y existe target', () => {
+    const database = evaluateTableInventoryRows(
+      [],
+      [{ table: 'notes', lifecycle: 'soft-delete', reason: 'private notes' }],
+    )
+    const blobs = {
+      storesChecked: 1,
+      totalKeys: 3,
+      totalLegacyUnscopedKeys: 0,
+      stores: [
+        summarizeBlobInventory({
+          storeName: 'momentos-media',
+          blobs: [{ key: 'user_real/photo.png' }, { key: 'user_real/audio.webm' }],
+        }),
+      ],
+      warnings: [],
+    }
+
+    const report = summarizeDryRun({
+      database,
+      blobs,
+      targetUserId: 'user_real',
+    })
+
+    expect(report.cutoverReadiness).toMatchObject({
+      status: 'ready',
+      blockers: [],
+      targetUserIdPresent: true,
+      autoMigrableRows: 0,
+      manualReviewItems: 0,
+      highRiskItems: 0,
+    })
+    expect(report.cutoverReadiness.nextActions).toContain(
+      'legacy inventory clean; keep compatibility guardrails until production smoke confirms strict Clerk',
+    )
+  })
+
   it('no filtra blob keys crudas en el Markdown del reporte', () => {
     const rawKey = 'contrato-firma-privada-con-nombre-real.png'
     const database = evaluateTableInventoryRows(
