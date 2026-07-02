@@ -1,7 +1,7 @@
 import type { Note, Prompt, Task } from '../../api'
 import { rawTaskWeek, sortPending } from './weekModel'
 
-export type NotasHomeDailySummary = {
+type NotasHomeDailySummary = {
   pendingCount: number
   inheritedCount: number
   criticalCount: number
@@ -10,7 +10,7 @@ export type NotasHomeDailySummary = {
   subline: string
 }
 
-export type NotasHomeInboxNote = Note & {
+type NotasHomeInboxNote = Note & {
   reason: 'sin etiquetas' | 'vía WhatsApp' | 'con adjuntos'
 }
 
