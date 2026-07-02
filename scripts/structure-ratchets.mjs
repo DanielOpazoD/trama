@@ -21,7 +21,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 300,
+    maxLines: 135,
     files: ['src/components/CommandPalette.tsx'],
   },
   {
@@ -54,7 +54,13 @@ export const STRUCTURE_RATCHETS = [
     files: [
       'src/components/commandPalette/CommandPaletteSearchMode.tsx',
       'src/components/commandPalette/commandPaletteModel.ts',
+      'src/components/commandPalette/commandPaletteSelectionModel.ts',
     ],
+  },
+  {
+    group: 'command-palette-components',
+    maxLines: 220,
+    files: ['src/components/commandPalette/useCommandPaletteController.ts'],
   },
   {
     group: 'command-palette-components',
@@ -150,8 +156,18 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'settings-surfaces',
-    maxLines: 260,
+    maxLines: 200,
     files: ['src/components/settings/DataPanel.tsx'],
+  },
+  {
+    group: 'settings-components',
+    maxLines: 150,
+    files: ['src/components/settings/dataImportPreviewModel.ts'],
+  },
+  {
+    group: 'settings-components',
+    maxLines: 80,
+    files: ['src/components/settings/useDataPanelImportPreview.ts'],
   },
   {
     group: 'settings-surfaces',
@@ -216,13 +232,16 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'server-large-surfaces',
-    maxLines: 425,
+    maxLines: 400,
     files: ['netlify/functions/_lib/llm/dispatch.ts'],
   },
   {
     group: 'server-llm-boundaries',
     maxLines: 90,
-    files: ['netlify/functions/_lib/llm/provider-chain.ts'],
+    files: [
+      'netlify/functions/_lib/llm/provider-chain.ts',
+      'netlify/functions/_lib/llm/cache-policy.ts',
+    ],
   },
   {
     group: 'pdf-studio-core',
