@@ -8,6 +8,7 @@ import {
   LEGACY_REASSIGNMENT_MODE,
   classifyBlobKey,
   collectDatabaseInventoryFromClient,
+  countManualReviewItems,
   evaluateTableInventoryRows,
   formatDryRunJson,
   formatDryRunMarkdown,
@@ -221,6 +222,23 @@ describe('legacy data reassignment dry-run', () => {
         'review high/medium risk tables and blob stores before writing a migration executor',
       ]),
     )
+  })
+
+  it('cuenta items de revision manual con una unica politica compartida', () => {
+    const database = {
+      tables: [
+        { legacyRows: 2, requiresReview: true },
+        { legacyRows: 5, requiresReview: false },
+      ],
+    }
+    const blobs = {
+      stores: [
+        { legacyUnscopedKeys: 1, requiresReview: true },
+        { legacyUnscopedKeys: 3, requiresReview: false },
+      ],
+    }
+
+    expect(countManualReviewItems(database, blobs)).toBe(2)
   })
 
   it('declara readiness lista solo cuando no queda legacy y existe target', () => {

@@ -238,12 +238,19 @@ export function summarizeBlobInventory({
   }
 }
 
+export function countManualReviewItems(database, blobs) {
+  const tableReviewItems = database.tables.filter(
+    (table) => table.legacyRows > 0 && table.requiresReview,
+  ).length
+  const blobReviewItems = blobs.stores.filter(
+    (store) => store.legacyUnscopedKeys > 0 && store.requiresReview,
+  ).length
+
+  return tableReviewItems + blobReviewItems
+}
+
 export function deriveCutoverReadiness({ database, blobs, targetUserId = null }) {
-  const manualReviewItems =
-    database.tables.filter((table) => table.legacyRows > 0 && table.requiresReview)
-      .length +
-    blobs.stores.filter((store) => store.legacyUnscopedKeys > 0 && store.requiresReview)
-      .length
+  const manualReviewItems = countManualReviewItems(database, blobs)
   const highRiskItems =
     database.tables.filter(
       (table) => table.legacyRows > 0 && table.rollbackRisk === 'high',
@@ -353,12 +360,7 @@ export function summarizeDryRun({
   targetUserId = process.env.LEGACY_REASSIGNMENT_TARGET_USER_ID ?? null,
   generatedAt = nowIso(),
 } = {}) {
-  const tableReviewItems = database.tables.filter(
-    (table) => table.legacyRows > 0 && table.requiresReview,
-  ).length
-  const blobReviewItems = blobs.stores.filter(
-    (store) => store.legacyUnscopedKeys > 0,
-  ).length
+  const manualReviewItems = countManualReviewItems(database, blobs)
   const autoMigrableRows = database.tables
     .filter((table) => table.autoMigrable)
     .reduce((sum, table) => sum + table.legacyRows, 0)
@@ -382,7 +384,7 @@ export function summarizeDryRun({
       tablesWithLegacyRows: database.tablesWithLegacyRows,
       totalLegacyUnscopedBlobKeys: blobs.totalLegacyUnscopedKeys,
       autoMigrableRows,
-      manualReviewItems: tableReviewItems + blobReviewItems,
+      manualReviewItems,
       warnings: [...database.warnings, ...blobs.warnings],
     },
     cutoverReadiness,

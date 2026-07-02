@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Legacy Dry-Run Readiness Evidence
+## Task 1: Legacy Dry-Run Readiness Evidence
 
 **Files:**
 
@@ -83,7 +83,7 @@ git add scripts/legacy-data-reassignment-dry-run.mjs scripts/legacy-data-reassig
 git commit -m "feat(legacy): summarize cutover readiness evidence"
 ```
 
-### Task 2: Client Media Fallback Boundary
+## Task 2: Client Media Fallback Boundary
 
 **Files:**
 
@@ -135,7 +135,7 @@ git add src/components/momentos/authenticatedMediaModel.ts src/components/moment
 git commit -m "refactor(media): freeze legacy fallback classification"
 ```
 
-### Task 3: Legacy Media Fallback Guardrail
+## Task 3: Legacy Media Fallback Guardrail
 
 **Files:**
 
@@ -181,7 +181,7 @@ git add scripts/check-legacy-media-fallbacks.mjs scripts/check-legacy-media-fall
 git commit -m "test(media): guard legacy fallback surface"
 ```
 
-### Task 4: HealthPanel Cutover Evidence
+## Task 4: HealthPanel Cutover Evidence
 
 **Files:**
 
@@ -225,7 +225,7 @@ git add src/api/health.ts src/components/settings/healthPanelModel.ts src/compon
 git commit -m "feat(health): surface legacy cutover evidence"
 ```
 
-### Task 5: Runbooks and Final Validation
+## Task 5: Runbooks and Final Validation
 
 **Files:**
 

@@ -10,7 +10,8 @@ export const LEGACY_MEDIA_FALLBACK_ALLOWLIST = new Set([
 
 const SOURCE_EXT_RE = /\.(ts|tsx|js|mjs)$/
 const TEST_FILE_RE = /(\.test|\.spec)\.(ts|tsx|js|mjs)$/
-const FALLBACK_RE = /\bfetch\s*\([^)]*headers\s*:\s*\{\s*\}/gs
+const EMPTY_HEADERS_RE = /\bheaders\s*:\s*\{\s*\}/
+const MOMENTOS_FILE_ROUTE_RE = /\/api\/momentos-file\//
 
 function walkSourceFiles(root, dir = 'src') {
   const base = join(root, dir)
@@ -34,8 +35,63 @@ function readRepoFiles(root) {
   )
 }
 
-function countFallbacks(source) {
-  return source.match(FALLBACK_RE)?.length ?? 0
+function findMatchingParen(source, openParenIndex) {
+  let depth = 0
+  let quote = null
+  let escaped = false
+
+  for (let index = openParenIndex; index < source.length; index += 1) {
+    const char = source[index]
+
+    if (quote) {
+      if (escaped) {
+        escaped = false
+        continue
+      }
+      if (char === '\\') {
+        escaped = true
+        continue
+      }
+      if (char === quote) quote = null
+      continue
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      quote = char
+      continue
+    }
+    if (char === '(') depth += 1
+    if (char === ')') {
+      depth -= 1
+      if (depth === 0) return index
+    }
+  }
+
+  return -1
+}
+
+export function extractFetchCalls(source) {
+  const calls = []
+  const fetchRe = /\bfetch\s*\(/g
+  let match
+
+  while ((match = fetchRe.exec(source))) {
+    const openParenIndex = source.indexOf('(', match.index)
+    const closeParenIndex = findMatchingParen(source, openParenIndex)
+    if (closeParenIndex === -1) continue
+    calls.push(source.slice(match.index, closeParenIndex + 1))
+    fetchRe.lastIndex = closeParenIndex + 1
+  }
+
+  return calls
+}
+
+function countFallbacks({ file, source, allowlist }) {
+  const shouldInspectEmptyHeaders =
+    allowlist.has(file) || MOMENTOS_FILE_ROUTE_RE.test(source)
+  if (!shouldInspectEmptyHeaders) return 0
+
+  return extractFetchCalls(source).filter((call) => EMPTY_HEADERS_RE.test(call)).length
 }
 
 export function checkLegacyMediaFallbacks({
@@ -45,7 +101,10 @@ export function checkLegacyMediaFallbacks({
   allowlist = LEGACY_MEDIA_FALLBACK_ALLOWLIST,
 } = {}) {
   const entries = Object.entries(files)
-    .map(([file, source]) => ({ file, count: countFallbacks(source) }))
+    .map(([file, source]) => ({
+      file,
+      count: countFallbacks({ file, source, allowlist }),
+    }))
     .filter((entry) => entry.count > 0)
   const failures = []
 

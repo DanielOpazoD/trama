@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { checkLegacyMediaFallbacks } from './check-legacy-media-fallbacks.mjs'
+import {
+  checkLegacyMediaFallbacks,
+  extractFetchCalls,
+} from './check-legacy-media-fallbacks.mjs'
 
 describe('check legacy media fallbacks', () => {
   it('acepta el fallback legacy concentrado en AuthenticatedMedia', () => {
@@ -41,6 +44,36 @@ describe('check legacy media fallbacks', () => {
     )
   })
 
+  it('ignora fetch no-media con headers vacios para evitar falsos positivos', () => {
+    const result = checkLegacyMediaFallbacks({
+      files: {
+        'src/components/ExternalWidget.tsx':
+          "await fetch('https://cdn.example.com/pixel.png', { headers: {} })",
+      },
+    })
+
+    expect(result).toMatchObject({
+      ok: true,
+      count: 0,
+    })
+  })
+
+  it('detecta fetch legacy con primer argumento anidado', () => {
+    const result = checkLegacyMediaFallbacks({
+      files: {
+        'src/components/momentos/AuthenticatedMedia.tsx': [
+          "const legacyUrl = '/api/momentos-file/' + key",
+          'await fetch(buildLegacyUrl(id), { signal, headers: {} })',
+        ].join('\n'),
+      },
+    })
+
+    expect(result).toMatchObject({
+      ok: true,
+      count: 1,
+    })
+  })
+
   it('falla si crece el numero de fallbacks permitidos', () => {
     const result = checkLegacyMediaFallbacks({
       baseline: 1,
@@ -60,5 +93,13 @@ describe('check legacy media fallbacks', () => {
         reason: 'legacy_media_fallback_baseline_exceeded',
       },
     ])
+  })
+
+  it('extrae llamadas fetch completas aunque tengan parentesis anidados', () => {
+    expect(
+      extractFetchCalls(
+        "await fetch(buildLegacyUrl(id), { signal, headers: {} }); await fetch('/x')",
+      ),
+    ).toEqual(['fetch(buildLegacyUrl(id), { signal, headers: {} })', "fetch('/x')"])
   })
 })
