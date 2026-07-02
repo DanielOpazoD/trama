@@ -71,7 +71,8 @@ const BUDGETS = {
   // inspector (etiquetas + conexiones + picker de entidad/nota/momento). Los
   // sub-visores PDF/texto y pdf.js viven en sus propios chunks.
   BibliotecaView: 16,
-  Settings: 18,
+  // Settings es shell + panel inicial; paneles secundarios viven en chunks lazy.
+  Settings: 8,
   'index.es': 60,
   'purify.es': 12,
   // Bundle principal — el que más crece con features. Headroom mínimo.

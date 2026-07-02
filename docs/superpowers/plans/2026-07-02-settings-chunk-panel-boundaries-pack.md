@@ -16,6 +16,12 @@
 - `npm run bundle:check`: passed because the checker reports rounded 18 KB against the 18 KB budget, but the Vite gzip output shows the chunk is already over the explicit ceiling.
 - Current pressure comes from `SettingsPanelContent.tsx` statically importing every panel even though Settings opens on `health` by default.
 
+## Final Bundle Evidence
+
+- `npm run build`: `dist/assets/Settings-DbkTWc-X.js` measured 21.40 kB raw / 6.81 kB gzip.
+- Secondary panels now split into small lazy chunks: `DataPanel` 3.53 kB gzip, `WhatsAppPanel` 3.21 kB gzip, `LogsPanel` 2.48 kB gzip, and the remaining lazy panels under 2 kB gzip each.
+- `scripts/check-bundle-size.mjs` lowers the `Settings` budget from 18 KB to 8 KB, preserving margin without keeping stale headroom.
+
 ## Task 1: Lazy Panel Boundary Tests
 
 **Files:**
