@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { Settings } from './Settings'
 
+vi.mock('./settings/SettingsLazyPanelHost', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./settings/SettingsLazyPanelHost')>()
+  return { ...actual, preloadSettingsPanel: vi.fn() }
+})
+
 vi.mock('./settings/HealthPanel', () => ({
   HealthPanel: () => <section>panel estado</section>,
 }))
@@ -100,13 +105,13 @@ describe('<Settings />', () => {
       />,
     )
 
-    expect(screen.getByText('panel spotify oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel spotify oauth')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /X \(Twitter\)/i }))
-    expect(screen.getByText('panel x sin oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel x sin oauth')).toBeInTheDocument()
   })
 
-  it('sincroniza la sección cuando cambia initialSection', () => {
+  it('sincroniza la sección cuando cambia initialSection', async () => {
     const { rerender } = render(
       <Settings
         open
@@ -117,7 +122,7 @@ describe('<Settings />', () => {
       />,
     )
 
-    expect(screen.getByText('panel spotify sin oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel spotify sin oauth')).toBeInTheDocument()
 
     rerender(
       <Settings
@@ -129,6 +134,6 @@ describe('<Settings />', () => {
       />,
     )
 
-    expect(screen.getByText('panel x sin oauth')).toBeInTheDocument()
+    expect(await screen.findByText('panel x sin oauth')).toBeInTheDocument()
   })
 })

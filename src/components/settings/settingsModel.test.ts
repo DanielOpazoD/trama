@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SETTINGS_SECTIONS,
   getInitialSettingsSection,
+  getSettingsPanelLoadMode,
   resolveSettingsOauthReturn,
 } from './settingsModel'
 
@@ -38,5 +39,27 @@ describe('settingsModel', () => {
         oauthReturn: { provider: 'spotify', ok: true, code: null },
       }),
     ).toBeNull()
+  })
+
+  it('declara qué paneles quedan eager y cuáles se cargan perezoso', () => {
+    expect(getSettingsPanelLoadMode('health')).toBe('eager')
+    expect(getSettingsPanelLoadMode('appearance')).toBe('eager')
+
+    expect(
+      SETTINGS_SECTIONS.filter(
+        (section) => getSettingsPanelLoadMode(section.id) === 'lazy',
+      ).map((section) => section.id),
+    ).toEqual([
+      'logs',
+      'personalization',
+      'privacy',
+      'spotify',
+      'extension',
+      'whatsapp',
+      'x',
+      'ai',
+      'search',
+      'data',
+    ])
   })
 })

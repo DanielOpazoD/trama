@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { request } from '../../api/request'
 import { ProgressBar } from '../ProgressBar'
 import { PanelHeader } from './_shared'
+import { buildReindexProgress } from './searchPanelModel'
 
 export function SearchPanel() {
   return (
@@ -72,7 +73,12 @@ function ReindexEmbeddingsSection() {
     }
   }
 
-  const totalPending = pending ? pending.entities + pending.quotes : null
+  const { totalPending, progressMax, progressValue } = buildReindexProgress({
+    pending,
+    running,
+    runStartTotal,
+    runProcessed,
+  })
 
   return (
     <div className="space-y-3">
@@ -88,8 +94,8 @@ function ReindexEmbeddingsSection() {
       {running && (
         <ProgressBar
           label="Indexando embeddings"
-          current={runProcessed}
-          total={runStartTotal}
+          current={progressValue}
+          total={progressMax}
           hint="25 items por batch — no recargues la página"
         />
       )}

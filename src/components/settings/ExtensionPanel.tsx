@@ -4,6 +4,7 @@ import { api } from '../../api'
 import { queryKeys } from '../../state/queryClient'
 import { useToast } from '../../state/toast'
 import { PanelHeader } from './_shared'
+import { formatExtensionTokenDate } from './extensionPanelModel'
 
 /**
  * Conectar extensión — tokens personales para la extensión de Chrome.
@@ -45,14 +46,6 @@ export function ExtensionPanel() {
     } catch {
       /* clipboard bloqueado: queda visible para copiar a mano */
     }
-  }
-
-  function formatDate(iso: string | null): string {
-    if (!iso) return 'nunca'
-    const d = new Date(iso)
-    return Number.isNaN(d.getTime())
-      ? 'nunca'
-      : d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
   return (
@@ -103,8 +96,8 @@ export function ExtensionPanel() {
                 <div className="min-w-0">
                   <p className="truncate text-caption text-ink-700">{t.label}</p>
                   <p className="text-micro text-ink-300">
-                    creado {formatDate(t.createdAt)} · último uso{' '}
-                    {formatDate(t.lastUsedAt)}
+                    creado {formatExtensionTokenDate(t.createdAt)} · último uso{' '}
+                    {formatExtensionTokenDate(t.lastUsedAt)}
                   </p>
                 </div>
                 <button
