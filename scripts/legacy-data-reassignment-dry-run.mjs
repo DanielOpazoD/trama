@@ -238,6 +238,74 @@ export function summarizeBlobInventory({
   }
 }
 
+export function countManualReviewItems(database, blobs) {
+  const tableReviewItems = database.tables.filter(
+    (table) => table.legacyRows > 0 && table.requiresReview,
+  ).length
+  const blobReviewItems = blobs.stores.filter(
+    (store) => store.legacyUnscopedKeys > 0 && store.requiresReview,
+  ).length
+
+  return tableReviewItems + blobReviewItems
+}
+
+export function deriveCutoverReadiness({ database, blobs, targetUserId = null }) {
+  const manualReviewItems = countManualReviewItems(database, blobs)
+  const highRiskItems =
+    database.tables.filter(
+      (table) => table.legacyRows > 0 && table.rollbackRisk === 'high',
+    ).length +
+    blobs.stores.filter(
+      (store) => store.legacyUnscopedKeys > 0 && store.rollbackRisk === 'high',
+    ).length
+  const autoMigrableRows = database.tables
+    .filter((table) => table.autoMigrable)
+    .reduce((sum, table) => sum + table.legacyRows, 0)
+  const warnings = [...database.warnings, ...blobs.warnings]
+  const blockers = []
+  const nextActions = []
+
+  if (!targetUserId) {
+    blockers.push('target_user_id_missing')
+    nextActions.push(
+      'define LEGACY_REASSIGNMENT_TARGET_USER_ID or pass --target-user-id=<clerk-sub>',
+    )
+  }
+  if (manualReviewItems > 0) {
+    blockers.push('manual_review_required')
+    nextActions.push(
+      'review high/medium risk tables and blob stores before writing a migration executor',
+    )
+  }
+  if (blobs.totalLegacyUnscopedKeys > 0) {
+    blockers.push('legacy_unscoped_blobs_present')
+    nextActions.push(
+      'map every legacy unscoped blob key to an owning row before copy/rename work',
+    )
+  }
+  if (warnings.length > 0) {
+    blockers.push('inventory_warnings_present')
+    nextActions.push('rerun the dry-run after resolving inventory warnings')
+  }
+
+  if (blockers.length === 0) {
+    nextActions.push(
+      'legacy inventory clean; keep compatibility guardrails until production smoke confirms strict Clerk',
+    )
+  }
+
+  return {
+    status: blockers.length === 0 ? 'ready' : 'blocked',
+    targetUserIdPresent: Boolean(targetUserId),
+    blockers,
+    autoMigrableRows,
+    manualReviewItems,
+    highRiskItems,
+    warnings: warnings.length,
+    nextActions,
+  }
+}
+
 export async function listPaginatedBlobs(store) {
   const blobs = []
   let cursor
@@ -292,15 +360,15 @@ export function summarizeDryRun({
   targetUserId = process.env.LEGACY_REASSIGNMENT_TARGET_USER_ID ?? null,
   generatedAt = nowIso(),
 } = {}) {
-  const tableReviewItems = database.tables.filter(
-    (table) => table.legacyRows > 0 && table.requiresReview,
-  ).length
-  const blobReviewItems = blobs.stores.filter(
-    (store) => store.legacyUnscopedKeys > 0,
-  ).length
+  const manualReviewItems = countManualReviewItems(database, blobs)
   const autoMigrableRows = database.tables
     .filter((table) => table.autoMigrable)
     .reduce((sum, table) => sum + table.legacyRows, 0)
+  const cutoverReadiness = deriveCutoverReadiness({
+    database,
+    blobs,
+    targetUserId,
+  })
 
   return {
     generatedAt,
@@ -316,9 +384,10 @@ export function summarizeDryRun({
       tablesWithLegacyRows: database.tablesWithLegacyRows,
       totalLegacyUnscopedBlobKeys: blobs.totalLegacyUnscopedKeys,
       autoMigrableRows,
-      manualReviewItems: tableReviewItems + blobReviewItems,
+      manualReviewItems,
       warnings: [...database.warnings, ...blobs.warnings],
     },
+    cutoverReadiness,
     nonGoals: [
       'no update user_id',
       'no copy blob',
@@ -408,6 +477,24 @@ export function formatDryRunMarkdown(report) {
 
   lines.push('', '## Non-goals de este PR', '')
   for (const nonGoal of report.nonGoals) lines.push(`- ${nonGoal}`)
+
+  lines.push('', '## Cutover readiness', '')
+  lines.push(`- Estado: **${report.cutoverReadiness.status}**`)
+  lines.push(
+    `- Target user definido: ${yesNo(report.cutoverReadiness.targetUserIdPresent)}`,
+  )
+  lines.push(`- Filas automigrables futuras: ${report.cutoverReadiness.autoMigrableRows}`)
+  lines.push(`- Items con revision manual: ${report.cutoverReadiness.manualReviewItems}`)
+  lines.push(`- Items high-risk: ${report.cutoverReadiness.highRiskItems}`)
+  lines.push(
+    `- Blockers: ${
+      report.cutoverReadiness.blockers.length
+        ? report.cutoverReadiness.blockers.map((blocker) => `\`${blocker}\``).join(', ')
+        : '_ninguno_'
+    }`,
+  )
+  lines.push('', '### Siguiente accion', '')
+  for (const action of report.cutoverReadiness.nextActions) lines.push(`- ${action}`)
 
   return `${lines.join('\n')}\n`
 }

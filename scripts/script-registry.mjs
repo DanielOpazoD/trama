@@ -285,6 +285,15 @@ const SCRIPT_ENTRIES = [
       'Inventaria filas y blobs legacy para planificar reasignacion futura sin escribir datos.',
   },
   {
+    file: 'scripts/check-legacy-media-fallbacks.mjs',
+    domain: 'auth',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:legacy-media-fallbacks'],
+    summary:
+      'Congela el unico fallback legacy de media Momentos sin auth permitido en cliente.',
+  },
+  {
     file: 'scripts/storage-assets-report.mjs',
     domain: 'database',
     kind: 'report',
@@ -759,6 +768,13 @@ export const QUALITY_GATES = [
     phase: 'database',
     required: true,
     summary: 'Frontera de storage por adapter y manifest.',
+  },
+  {
+    command: 'npm run check:legacy-media-fallbacks',
+    job: 'lint',
+    phase: 'auth',
+    required: true,
+    summary: 'Fallback sin auth de media legacy no puede crecer.',
   },
   {
     command: 'npm run check:hard-delete-allowlist',

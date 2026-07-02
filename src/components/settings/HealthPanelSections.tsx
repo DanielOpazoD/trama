@@ -1,9 +1,11 @@
 import type { HealthResponse } from '../../api'
 import { Sparkline } from '../Sparkline'
 import {
+  buildLegacyCutoverChecklist,
   dedupHealthErrors,
   resolveBudgetTone,
   type HealthErrorGroup,
+  type LegacyCutoverChecklistItem,
 } from './healthPanelModel'
 
 type HealthPanelData = HealthResponse
@@ -73,6 +75,47 @@ export function HealthAlertsList({ alerts }: { alerts: HealthPanelData['alerts']
         </li>
       ))}
     </ul>
+  )
+}
+
+export function HealthLegacyCutoverSection({ data }: { data: HealthPanelData }) {
+  const checklist = buildLegacyCutoverChecklist(data)
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="section-eyebrow">cutover legacy</span>
+        <span className="text-micro uppercase tracking-eyebrow text-ink-300">
+          evidencia
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {checklist.map((item) => (
+          <LegacyCutoverRow key={item.code} item={item} />
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function LegacyCutoverRow({ item }: { item: LegacyCutoverChecklistItem }) {
+  const statusClass =
+    item.status === 'ok'
+      ? 'border-[color:var(--accent-sage-ring)] bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
+      : item.status === 'blocked'
+        ? 'alert-error'
+        : item.status === 'warning'
+          ? 'alert-warn'
+          : 'border-ink-100/70 bg-paper-50 text-ink-500'
+  return (
+    <li className={`rounded-lg border px-3 py-2 ${statusClass}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-body font-medium leading-tight">{item.label}</span>
+        <span className="text-micro uppercase tracking-eyebrow tabular-nums opacity-75">
+          {item.status}
+        </span>
+      </div>
+      <p className="mt-1 text-caption leading-relaxed opacity-80">{item.detail}</p>
+    </li>
   )
 }
 

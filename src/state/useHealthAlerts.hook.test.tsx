@@ -38,6 +38,8 @@ function health(alerts: HealthAlert[]): HealthResponse {
       databaseReachable: true,
       runtimeApiRoutesContract: 'check:runtime-api-routes',
       productionSmokeCommand: 'npm run smoke:production-report',
+      legacyDataReassignmentCommand:
+        'npm run legacy-data-reassignment:dry-run -- --markdown',
       logRedaction: 'structured-redaction',
     },
     byProvider: [],

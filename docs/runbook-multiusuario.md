@@ -132,6 +132,27 @@ Qué cubre:
 | Blobs      | Lista keys sin prefijo en `momentos-media`, `recortes-media`, `notas-attachments`    | Evita romper descargas por mover solo DB o solo storage.                 |
 | Reporte    | Marca automigrable, requiere revisión y riesgo de rollback                           | Obliga a revisar tokens, attachments, sharing y media antes de escribir. |
 
+El reporte incluye `cutoverReadiness` como veredicto operativo:
+
+| Campo                 | Cómo leerlo                                                                  |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `status`              | `ready` solo si no hay blockers; `blocked` exige revisión antes de escribir. |
+| `blockers`            | Razones normalizadas que impiden un PR de ejecución seguro.                  |
+| `nextActions`         | Acciones concretas para convertir evidencia en plan de ejecución.            |
+| `autoMigrableRows`    | Filas owner-scoped candidatas a UPDATE futuro con target aprobado.           |
+| `manualReviewItems`   | Tablas/stores que requieren revisión humana antes de tocar datos.            |
+| `highRiskItems`       | Superficies con rollback o privacidad más delicada.                          |
+| `targetUserIdPresent` | Confirma que el dueño real fue pasado por env var o flag.                    |
+
+Blockers esperados:
+
+| Blocker                         | Resolución antes de ejecutar cambios reales                                     |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| `target_user_id_missing`        | Definir `LEGACY_REASSIGNMENT_TARGET_USER_ID` o `--target-user-id`.              |
+| `manual_review_required`        | Revisar tablas medium/high risk y decidir si requieren script dedicado.         |
+| `legacy_unscoped_blobs_present` | Mapear keys sin namespace a referencias DB antes de copiar, renombrar o borrar. |
+| `inventory_warnings_present`    | Repetir el dry-run después de resolver warnings de conexión, store o contrato.  |
+
 Reglas:
 
 - Este comando es read-only. Si un cambio futuro agrega `UPDATE`, `DELETE`,
@@ -148,6 +169,7 @@ Smokes mínimos antes de un PR de ejecución real:
 npm run check:legacy-identity-contracts
 npm run check:user-id-writes
 npm run check:legacy-identity-schema
+npm run check:legacy-media-fallbacks
 E2E_BASE_URL=https://<sitio>.netlify.app \
 E2E_USER_A_TOKEN=... \
 E2E_USER_B_TOKEN=... \
@@ -458,6 +480,8 @@ soft-borra todas las fixtures de A.
 - [ ] RLS cubre toda tabla versionada con `user_id`.
 - [ ] `legacy-single-user` no aparece como `DEFAULT` efectivo de `user_id` en
       tablas privadas (`check:legacy-identity-*` verdes).
+- [ ] Health muestra el checklist de cutover legacy y el comando
+      `legacy-data-reassignment:dry-run`.
 
 ## Quality gates por dominio crítico
 
@@ -467,7 +491,7 @@ soft-borra todas las fixtures de A.
 | Identidad legacy | `legacy-single-user` es compatibilidad histórica, no default operativo | `npm run check:legacy-identity-contracts`, `npm run check:user-id-writes`, `npm run legacy-identity:report`, `npm run check:legacy-identity-schema` |
 | RLS              | Toda tabla `user_id` tiene RLS, FK a `users` y contexto seguro         | `netlify/functions/_lib/isolation-guardrail.test.ts`, `query.integration.test.ts`                                                                   |
 | Soft delete      | Delete/restore privado usa scope por dueño y 0 filas no es 2xx         | `npm run check:hard-delete-allowlist`, `npm run check:cte-regression`, tests de endpoints                                                           |
-| Blobs            | List/download/delete validan dueño activo antes de tocar store         | smoke multiusuario, `notas-attachments-*`, `momentos-file` y tests de endpoints autenticados                                                        |
+| Blobs            | List/download/delete validan dueño activo antes de tocar store         | smoke multiusuario, `notas-attachments-*`, `momentos-file`, `npm run check:legacy-media-fallbacks` y tests de endpoints autenticados                |
 
 ## Inventario ejecutable Auth/RLS
 

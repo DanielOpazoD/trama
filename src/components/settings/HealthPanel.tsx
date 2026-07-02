@@ -8,6 +8,7 @@ import {
   HealthCountsGrid,
   HealthDailyCostSection,
   HealthDiagnosticCard,
+  HealthLegacyCutoverSection,
   HealthProviderBreakdown,
   HealthRecentErrorsSection,
 } from './HealthPanelSections'
@@ -81,6 +82,7 @@ export function HealthPanel() {
 
       <HealthDiagnosticCard copiedDiagnostic={copiedDiagnostic} onCopy={copyDiagnostic} />
       <HealthAlertsList alerts={data.alerts} />
+      <HealthLegacyCutoverSection data={data} />
       <HealthCountsGrid counts={data.counts} />
       <HealthBudgetSection budget={data.budget} month={data.month} />
       <HealthDailyCostSection dailyCost={data.dailyCost} />

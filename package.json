@@ -19,6 +19,7 @@
     "check:auth-rls-contracts": "node scripts/auth-rls-contracts.mjs",
     "check:legacy-identity-contracts": "node scripts/legacy-identity-contracts.mjs",
     "check:legacy-identity-schema": "node scripts/check-legacy-identity-schema.mjs",
+    "check:legacy-media-fallbacks": "node scripts/check-legacy-media-fallbacks.mjs",
     "check:user-id-writes": "node scripts/user-id-write-contracts.mjs",
     "legacy-identity:report": "node scripts/legacy-identity-report.mjs",
     "legacy-data-reassignment:dry-run": "node scripts/legacy-data-reassignment-dry-run.mjs",
