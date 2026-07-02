@@ -26,7 +26,7 @@ export const DESIGN_TOKEN_BASELINE = {
   // (NO cuenta text-[color:var(--x)], que es color, no tamaño/tracking).
   arbitrary: 18,
   // Aliases legacy de la type scale: text-(sm|xs|base|lg|xl|2xl).
-  legacy: 508,
+  legacy: 499,
 }
 
 // text-[<size>] con unidad px/rem/em, descartando text-[color:...].
