@@ -35,7 +35,7 @@ function SettingsPanelFallback({ section }: { section: SettingsSectionId }) {
   const label = SETTINGS_SECTIONS.find((item) => item.id === section)?.label ?? 'panel'
   return (
     <section aria-label={`Cargando ${label}`} className="min-h-32">
-      <p className="text-xs text-ink-300 italic">cargando…</p>
+      <p className="text-caption text-ink-300 italic">cargando…</p>
     </section>
   )
 }
