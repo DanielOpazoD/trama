@@ -5,6 +5,11 @@ import { describe, expect, test } from 'vitest'
 
 import { QUALITY_GATES } from './script-registry.mjs'
 import { QUALITY_GATE_BASELINE } from './quality-gates-baseline.mjs'
+import {
+  buildQualityGatesReport,
+  classifyIgnoreIssueDomains,
+  formatQualityGatesReport,
+} from './report-quality-gates.mjs'
 
 const require = createRequire(import.meta.url)
 const ROOT = join(import.meta.dirname, '..')
@@ -114,6 +119,14 @@ describe('developer quality gates', () => {
     )
   })
 
+  test('does not park removable state hook exports in the Knip baseline', () => {
+    const config = JSON.parse(readRepoFile('knip.json'))
+    const ignoredFiles = Object.keys(config.ignoreIssues ?? {})
+
+    expect(ignoredFiles).not.toContain('src/state/useReadingTables.ts')
+    expect(ignoredFiles).not.toContain('src/state/useSavedQueries.ts')
+  })
+
   test('exposes a quality gates evidence report', () => {
     const packageJson = JSON.parse(readRepoFile('package.json'))
     const docs = readRepoFile('docs/conventions/developer-quality-gates.md')
@@ -131,6 +144,36 @@ describe('developer quality gates', () => {
     expect(registryEntry).toMatchObject({ phase: 'operations', required: false })
     expect(docs).toContain('npm run report:quality-gates')
     expect(scriptsReadme).toContain('report:quality-gates')
+  })
+
+  test('classifies remaining Knip exceptions by domain', () => {
+    const report = buildQualityGatesReport()
+    const formatted = formatQualityGatesReport(report)
+
+    expect(report.knip.ignoreIssueDomains).toEqual([
+      { name: 'pdf-studio-contracts', files: 10, kinds: 10 },
+      { name: 'api-contracts', files: 11, kinds: 11 },
+      { name: 'component-contracts', files: 1, kinds: 1 },
+      { name: 'shared-lib-contracts', files: 4, kinds: 4 },
+      { name: 'state-contracts', files: 4, kinds: 5 },
+      { name: 'shared-domain-types', files: 3, kinds: 3 },
+    ])
+    expect(formatted).toContain('Knip ignoreIssue domains:')
+    expect(formatted).toContain('api-contracts: 11 files, 11 kinds')
+    expect(formatted).toContain('state-contracts: 4 files, 5 kinds')
+    expect(formatted).toContain('component-contracts: 1 file, 1 kind')
+  })
+
+  test('keeps uncategorized Knip exceptions visible in the domain report', () => {
+    expect(
+      classifyIgnoreIssueDomains({
+        'src/api/search.ts': ['types'],
+        'tools/external-contract.ts': ['exports', 'types'],
+      }),
+    ).toEqual([
+      { name: 'api-contracts', files: 1, kinds: 1 },
+      { name: 'uncategorized', files: 1, kinds: 2 },
+    ])
   })
 
   test('does not keep resolved Sidebar cycles in the dependency-cruiser baseline', () => {

@@ -58,10 +58,24 @@ Las excepciones restantes caen en cuatro grupos:
   blobs antes de parsear JSON.
 
 El baseline actual queda ratcheado en `scripts/developer-quality-gates.test.mjs`:
-como maximo 35 archivos con `ignoreIssues`, 36 tipos de issue ignorados, 0
+como maximo 33 archivos con `ignoreIssues`, 34 tipos de issue ignorados, 0
 `ignoreFiles`, 3 `ignoreDependencies` y 2 `ignoreBinaries`. Si una excepcion
 nueva es inevitable, el mismo commit debe explicar por que no hay entrypoint real
 mejor y actualizar el ratchet deliberadamente.
+
+El reporte agrupa las excepciones restantes por dominio:
+
+| Dominio                | Archivos | Kinds | Razon de permanencia                                                               |
+| ---------------------- | -------: | ----: | ---------------------------------------------------------------------------------- |
+| `pdf-studio-contracts` |       10 |    10 | Contratos browser/worker/storage y modelos serializados de Imprenta/PDF Studio.    |
+| `api-contracts`        |       11 |    11 | Tipos exportados por clientes API/barrels que sostienen contratos TS entre capas.  |
+| `component-contracts`  |        1 |     1 | Tipo local expuesto para un componente con flujo de edición especializado.         |
+| `shared-lib-contracts` |        4 |     4 | Tipos de librería compartidos por fronteras o datos persistidos.                   |
+| `state-contracts`      |        4 |     5 | Barrel y hooks de estado que mantienen superficie de importación estable.          |
+| `shared-domain-types`  |        3 |     3 | Tipos de dominio compartidos por import/export, origen y propuestas de extracción. |
+
+No estaciones hooks o helpers removibles en `ignoreIssues`: si un export no tiene
+consumidor real, elimínalo o muévelo a privado en el mismo PR que baja el ratchet.
 
 Para revisar el estado sin leer `knip.json` a mano, corre:
 
