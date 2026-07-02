@@ -234,6 +234,16 @@ test('a11y: Settings Estado sin violaciones', async ({ page }) => {
             legacyOwnerMapped: true,
             mode: 'clerk',
           },
+          operational: {
+            requestId: 'rid-a11y-health',
+            databaseReachable: true,
+            runtimeApiRoutesContract: 'check:runtime-api-routes',
+            productionSmokeCommand: 'npm run smoke:production-report',
+            legacyDataReassignmentCommand:
+              'npm run legacy-data-reassignment:dry-run -- --markdown',
+            logRedaction: 'structured-redaction',
+          },
+          status: 'ok',
           embeddings: { pendingEntities: 0, pendingQuotes: 0 },
           alerts: [],
           dailyCost: [{ day: '2026-06-13', costCents: 95, calls: 4 }],

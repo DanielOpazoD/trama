@@ -374,6 +374,23 @@ export async function mockBackend(page: Page, state: MockState) {
       },
       month: { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0 },
       budget: { limitCents: 5000, remainingCents: 5000, pct: 0 },
+      auth: {
+        clerkConfigured: true,
+        legacyFallbackAllowed: false,
+        legacyOwnerMapped: true,
+        mode: 'clerk',
+      },
+      operational: {
+        requestId: 'rid-e2e-health',
+        databaseReachable: true,
+        runtimeApiRoutesContract: 'check:runtime-api-routes',
+        productionSmokeCommand: 'npm run smoke:production-report',
+        legacyDataReassignmentCommand:
+          'npm run legacy-data-reassignment:dry-run -- --markdown',
+        logRedaction: 'structured-redaction',
+      },
+      status: 'ok',
+      embeddings: { pendingEntities: 0, pendingQuotes: 0 },
       alerts: [],
       dailyCost: [],
       byProvider: [],
