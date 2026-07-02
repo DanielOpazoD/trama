@@ -70,8 +70,6 @@
     "src/state/toast.tsx": ["types"],
     "src/state/useNotasFeed.ts": ["types"],
     "src/state/useQuotes.ts": ["types"],
-    "src/state/useReadingTables.ts": ["exports"],
-    "src/state/useSavedQueries.ts": ["exports"],
     "src/types/extraction.ts": ["types"],
     "src/types/import-export.ts": ["types"],
     "src/types/origin.ts": ["types"]

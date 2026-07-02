@@ -120,12 +120,7 @@ export {
   type NotasFeedSegment,
   type RecorteStatusFilter,
 } from './useNotasFeed'
-export {
-  useReadingTablesQuery,
-  useCreateReadingTable,
-  useUpdateReadingTable,
-  useDeleteReadingTable,
-} from './useReadingTables'
+export { useReadingTablesQuery, useUpdateReadingTable } from './useReadingTables'
 export {
   useTasksQuery,
   useTasksRange,

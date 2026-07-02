@@ -11,6 +11,49 @@ function readJson(path) {
   return JSON.parse(readFileSync(join(ROOT, path), 'utf8'))
 }
 
+const KNIP_IGNORE_ISSUE_DOMAINS = [
+  {
+    name: 'pdf-studio-contracts',
+    matches: (file) => file.includes('/pdfStudio/'),
+  },
+  {
+    name: 'api-contracts',
+    matches: (file) => file.startsWith('src/api/'),
+  },
+  {
+    name: 'component-contracts',
+    matches: (file) => file.startsWith('src/components/'),
+  },
+  {
+    name: 'shared-lib-contracts',
+    matches: (file) => file.startsWith('src/lib/'),
+  },
+  {
+    name: 'state-contracts',
+    matches: (file) => file.startsWith('src/state/'),
+  },
+  {
+    name: 'shared-domain-types',
+    matches: (file) => file.startsWith('src/types/'),
+  },
+]
+
+function classifyIgnoreIssueDomains(ignoreIssues) {
+  const classified = new Set()
+  return KNIP_IGNORE_ISSUE_DOMAINS.map((domain) => {
+    const entries = Object.entries(ignoreIssues).filter(([file]) => {
+      if (classified.has(file) || !domain.matches(file)) return false
+      classified.add(file)
+      return true
+    })
+    return {
+      name: domain.name,
+      files: entries.length,
+      kinds: entries.reduce((total, [, issues]) => total + issues.length, 0),
+    }
+  }).filter((domain) => domain.files > 0 || domain.kinds > 0)
+}
+
 export function buildQualityGatesReport() {
   const knip = readJson('knip.json')
   const architectureBaseline = readJson('.dependency-cruiser-known-violations.json')
@@ -29,6 +72,7 @@ export function buildQualityGatesReport() {
       ignoreFiles: knip.ignoreFiles?.length ?? 0,
       ignoreDependencies: knip.ignoreDependencies?.length ?? 0,
       ignoreBinaries: knip.ignoreBinaries?.length ?? 0,
+      ignoreIssueDomains: classifyIgnoreIssueDomains(ignoreIssues),
       baseline: QUALITY_GATE_BASELINE.knip,
     },
     dependencyCruiser: {
@@ -46,6 +90,10 @@ export function buildQualityGatesReport() {
 
 function formatCount(label, actual, expected) {
   return `  - ${label}: ${actual}/${expected}`
+}
+
+function pluralize(count, singular, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`
 }
 
 export function formatQualityGatesReport(report) {
@@ -73,6 +121,15 @@ export function formatQualityGatesReport(report) {
       'ignoreBinaries',
       report.knip.ignoreBinaries,
       report.knip.baseline.ignoreBinaries,
+    ),
+    '',
+    'Knip ignoreIssue domains:',
+    ...report.knip.ignoreIssueDomains.map(
+      (domain) =>
+        `  - ${domain.name}: ${pluralize(domain.files, 'file')}, ${pluralize(
+          domain.kinds,
+          'kind',
+        )}`,
     ),
     '',
     'Dependency-cruiser baseline:',

@@ -3,8 +3,8 @@
  *
  * `useAskQuery`/`useRunQuery` son acciones imperativas (mutations): disparan
  * una llamada al motor cuando el usuario pregunta o corre una consulta. Las
- * consultas guardadas siguen el patrón query+mutaciones-que-invalidan del resto
- * (ver useFavoritos).
+ * consultas guardadas exponen query + save; delete/update permanecen en la API
+ * hasta que exista una UI que los consuma.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
@@ -14,7 +14,6 @@ import {
   type QueryInput,
   type QueryResult,
 } from '../api/query'
-import type { SavedQuery } from '../api/savedQueries'
 import { queryKeys } from './queryClient'
 import { useToast } from './toast'
 
@@ -34,35 +33,6 @@ export function useSaveQuery() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.savedQueries })
       toast.show({ message: 'Consulta guardada', tone: 'success' })
-    },
-  })
-}
-
-export function useDeleteSavedQuery() {
-  const qc = useQueryClient()
-  const toast = useToast()
-  return useMutation({
-    mutationFn: (sq: SavedQuery) => api.deleteSavedQuery(sq.id),
-    onSuccess: (_void, sq) => {
-      qc.invalidateQueries({ queryKey: queryKeys.savedQueries })
-      // Soft-delete → ofrecemos Deshacer recreando la consulta (nuevo id; los
-      // bloques embebibles llevan el AST inline, así que no dependen del id).
-      toast.show({
-        message: 'Consulta eliminada',
-        tone: 'success',
-        durationMs: 10_000,
-        action: {
-          label: 'Deshacer',
-          onAction: async () => {
-            await api.createSavedQuery({
-              name: sq.name,
-              query: sq.query,
-              description: sq.description ?? undefined,
-            })
-            qc.invalidateQueries({ queryKey: queryKeys.savedQueries })
-          },
-        },
-      })
     },
   })
 }
