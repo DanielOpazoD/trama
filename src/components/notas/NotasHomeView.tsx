@@ -109,7 +109,7 @@ export function NotasHomeView({
         />
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
-          <HubCard title="Esta semana" count={home.currentTasks.length}>
+          <HubCard title="Esta semana" count={home.sectionCounts.currentTasks}>
             {home.currentTasks.length === 0 ? (
               <Muted>Lo pendiente viene de semanas anteriores.</Muted>
             ) : (
@@ -132,7 +132,7 @@ export function NotasHomeView({
           </HubCard>
           <HubCard
             title="Heredadas"
-            count={home.inheritedTasks.length}
+            count={home.sectionCounts.inheritedTasks}
             ariaLabel="Tareas pendientes heredadas"
           >
             {home.inheritedTasks.length === 0 ? (
@@ -154,7 +154,7 @@ export function NotasHomeView({
           </HubCard>
           <HubCard
             title="Bandeja"
-            count={home.noteInbox.length}
+            count={home.sectionCounts.noteInbox}
             ariaLabel="Bandeja de notas"
           >
             {home.noteInbox.length === 0 ? (
@@ -176,7 +176,7 @@ export function NotasHomeView({
           </HubCard>
           <HubCard
             title="Notas vivas"
-            count={home.topNotes.length}
+            count={home.sectionCounts.topNotes}
             ariaLabel="Notas fijadas"
           >
             {home.topNotes.map((n) => (
@@ -190,7 +190,7 @@ export function NotasHomeView({
             ))}
             {home.topNotes.length === 0 && <Muted>Todavía sin apuntes.</Muted>}
           </HubCard>
-          <HubCard title="Prompts listos" count={home.topPrompts.length}>
+          <HubCard title="Prompts listos" count={home.sectionCounts.topPrompts}>
             {home.topPrompts.map((p) => (
               <button
                 key={p.id}

@@ -14,8 +14,17 @@ type NotasHomeInboxNote = Note & {
   reason: 'sin etiquetas' | 'vía WhatsApp' | 'con adjuntos'
 }
 
+type NotasHomeSectionCounts = {
+  currentTasks: number
+  inheritedTasks: number
+  noteInbox: number
+  topNotes: number
+  topPrompts: number
+}
+
 export type NotasHomeModel = {
   daily: NotasHomeDailySummary
+  sectionCounts: NotasHomeSectionCounts
   pendingPreview: Task[]
   currentTasks: Task[]
   inheritedTasks: Task[]
@@ -39,15 +48,11 @@ export function buildNotasHomeModel({
 }): NotasHomeModel {
   const pendingTasks = sortPending(tasks)
   const pendingPreview = pendingTasks.slice(0, 5)
-  const inheritedTasks = pendingTasks
-    .filter((task) => rawTaskWeek(task) < todayWeek)
-    .slice(0, 5)
-  const currentTasks = pendingTasks
-    .filter((task) => rawTaskWeek(task) >= todayWeek)
-    .slice(0, 5)
+  const inheritedTasksAll = pendingTasks.filter((task) => rawTaskWeek(task) < todayWeek)
+  const currentTasksAll = pendingTasks.filter((task) => rawTaskWeek(task) >= todayWeek)
   const criticalTasks = pendingTasks.filter((task) => task.priority === 'alta')
-  const pinnedNotes = notes.filter((note) => note.pinned).slice(0, 3)
-  const topNotes = [...notes]
+  const pinnedNotesAll = notes.filter((note) => note.pinned)
+  const topNotesAll = [...notes]
     .filter((note) => !note.promotedMomentoId && !isNoteInboxCandidate(note))
     .sort(
       (a, b) =>
@@ -55,41 +60,45 @@ export function buildNotasHomeModel({
         b.updatedAt.localeCompare(a.updatedAt) ||
         b.createdAt.localeCompare(a.createdAt),
     )
-    .slice(0, 4)
-  const noteInbox = buildNoteInbox(notes)
-  const topPrompts = [...prompts]
-    .sort(
-      (a, b) =>
-        Number(b.favorite) - Number(a.favorite) ||
-        b.useCount - a.useCount ||
-        b.updatedAt.localeCompare(a.updatedAt),
-    )
-    .slice(0, 4)
+  const noteInboxAll = buildNoteInbox(notes)
+  const topPromptsAll = [...prompts].sort(
+    (a, b) =>
+      Number(b.favorite) - Number(a.favorite) ||
+      b.useCount - a.useCount ||
+      b.updatedAt.localeCompare(a.updatedAt),
+  )
 
   return {
     daily: {
       pendingCount: pendingTasks.length,
-      inheritedCount: inheritedTasks.length,
+      inheritedCount: inheritedTasksAll.length,
       criticalCount: criticalTasks.length,
-      pinnedCount: pinnedNotes.length,
+      pinnedCount: pinnedNotesAll.length,
       headline: formatDailyHeadline({
         pendingCount: pendingTasks.length,
-        inheritedCount: inheritedTasks.length,
+        inheritedCount: inheritedTasksAll.length,
         criticalCount: criticalTasks.length,
       }),
       subline: formatDailySubline({
-        noteInboxCount: noteInbox.length,
-        pinnedCount: pinnedNotes.length,
+        noteInboxCount: noteInboxAll.length,
+        pinnedCount: pinnedNotesAll.length,
       }),
     },
+    sectionCounts: {
+      currentTasks: currentTasksAll.length,
+      inheritedTasks: inheritedTasksAll.length,
+      noteInbox: noteInboxAll.length,
+      topNotes: topNotesAll.length,
+      topPrompts: topPromptsAll.length,
+    },
     pendingPreview,
-    currentTasks,
-    inheritedTasks,
+    currentTasks: currentTasksAll.slice(0, 5),
+    inheritedTasks: inheritedTasksAll.slice(0, 5),
     criticalTasks,
-    pinnedNotes,
-    topNotes,
-    noteInbox,
-    topPrompts,
+    pinnedNotes: pinnedNotesAll.slice(0, 3),
+    topNotes: topNotesAll.slice(0, 4),
+    noteInbox: noteInboxAll.slice(0, 4),
+    topPrompts: topPromptsAll.slice(0, 4),
   }
 }
 
@@ -105,7 +114,6 @@ function buildNoteInbox(notes: Note[]): NotasHomeInboxNote[] {
       (a, b) =>
         b.updatedAt.localeCompare(a.updatedAt) || b.createdAt.localeCompare(a.createdAt),
     )
-    .slice(0, 4)
 }
 
 function isNoteInboxCandidate(note: Note): boolean {

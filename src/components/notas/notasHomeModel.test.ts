@@ -96,6 +96,85 @@ describe('notasHomeModel', () => {
     expect(model.currentTasks.map((item) => item.id)).toEqual(['current-medium'])
   })
 
+  it('separa totales reales de previews cappeados', () => {
+    const inheritedTasks = Array.from({ length: 6 }, (_, index) =>
+      task({
+        id: `inherited-${index}`,
+        title: `Heredada ${index}`,
+        weekStart: '2026-06-22',
+        createdAt: `2026-06-22T10:0${index}:00.000Z`,
+        updatedAt: `2026-06-22T10:0${index}:00.000Z`,
+      }),
+    )
+    const currentTasks = Array.from({ length: 6 }, (_, index) =>
+      task({
+        id: `current-${index}`,
+        title: `Actual ${index}`,
+        weekStart: '2026-07-06',
+        createdAt: `2026-07-06T10:0${index}:00.000Z`,
+        updatedAt: `2026-07-06T10:0${index}:00.000Z`,
+      }),
+    )
+    const pinnedNotes = Array.from({ length: 4 }, (_, index) =>
+      note({
+        id: `pinned-${index}`,
+        content: `Fijada ${index}`,
+        pinned: true,
+        updatedAt: `2026-07-06T12:0${index}:00.000Z`,
+      }),
+    )
+    const inboxNotes = Array.from({ length: 5 }, (_, index) =>
+      note({
+        id: `inbox-${index}`,
+        content: `Bandeja ${index}`,
+        updatedAt: `2026-07-06T13:0${index}:00.000Z`,
+      }),
+    )
+    const classifiedNotes = Array.from({ length: 2 }, (_, index) =>
+      note({
+        id: `classified-${index}`,
+        content: `Clasificada ${index}`,
+        tags: ['obra'],
+        updatedAt: `2026-07-06T14:0${index}:00.000Z`,
+      }),
+    )
+    const prompts = Array.from({ length: 5 }, (_, index) =>
+      prompt({
+        id: `prompt-${index}`,
+        title: `Prompt ${index}`,
+        useCount: index,
+        updatedAt: `2026-07-06T15:0${index}:00.000Z`,
+      }),
+    )
+
+    const model = buildNotasHomeModel({
+      todayWeek: '2026-07-06',
+      notes: [...pinnedNotes, ...inboxNotes, ...classifiedNotes],
+      tasks: [...inheritedTasks, ...currentTasks],
+      prompts,
+    })
+
+    expect(model.daily.pendingCount).toBe(12)
+    expect(model.daily.inheritedCount).toBe(6)
+    expect(model.daily.pinnedCount).toBe(4)
+    expect(model.daily.headline).toBe('12 pendientes · 6 heredadas')
+    expect(model.daily.subline).toBe('5 notas recientes esperan clasificación.')
+    expect(model.sectionCounts).toEqual({
+      currentTasks: 6,
+      inheritedTasks: 6,
+      noteInbox: 5,
+      topNotes: 6,
+      topPrompts: 5,
+    })
+    expect(model.pendingPreview).toHaveLength(5)
+    expect(model.currentTasks).toHaveLength(5)
+    expect(model.inheritedTasks).toHaveLength(5)
+    expect(model.pinnedNotes).toHaveLength(3)
+    expect(model.noteInbox).toHaveLength(4)
+    expect(model.topNotes).toHaveLength(4)
+    expect(model.topPrompts).toHaveLength(4)
+  })
+
   it('arma una bandeja de notas recientes sin clasificar ni fijar', () => {
     const model = buildNotasHomeModel({
       todayWeek: '2026-07-06',
