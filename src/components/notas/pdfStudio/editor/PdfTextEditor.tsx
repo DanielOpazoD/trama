@@ -37,6 +37,8 @@ import { formFieldTextStyle } from '../planillas/pdfFormFieldStyle'
 import { fillProgressForTemplateFields } from '../planillas/fill/pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
+import { usePdfTextEditorAutosave } from './usePdfTextEditorAutosave'
+import { PdfTextEditorAutosaveBadge } from './PdfTextEditorAutosaveBadge'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
 import { usePdfTextEditorXMarks } from './usePdfTextEditorXMarks'
 import { usePdfTextEditorInsertions } from './usePdfTextEditorInsertions'
@@ -51,6 +53,8 @@ export function PdfTextEditor({
   templateToolsEnabled = true,
   onFormValueChange = () => undefined,
   onInspectForms,
+  onAutosave,
+  autosaveState,
   onClose,
   onDisplayZoomChange,
   onMailMerge,
@@ -296,6 +300,15 @@ export function PdfTextEditor({
     formFields,
     settings: { ...doc.settings, xMarkSize, xMarkStroke },
   })
+  usePdfTextEditorAutosave({
+    docSettings: doc.settings,
+    edited,
+    enabled: designMode,
+    formFields,
+    onAutosave,
+    xMarkSize,
+    xMarkStroke,
+  })
   const { fillSidebarProps, showFillGuides } = usePdfTextEditorFillSidebarProps({
     activeFillFieldId,
     applyDraftFormValues,
@@ -456,6 +469,7 @@ export function PdfTextEditor({
           onSetSignatureField={setSignatureField}
           onValueChange={updateDraftFormValue}
         />
+        {designMode ? <PdfTextEditorAutosaveBadge state={autosaveState} /> : null}
         <PdfTextEditorAuxiliaryControls
           fillMode={fillMode}
           formSuggestionStatus={formSuggestionStatus}
