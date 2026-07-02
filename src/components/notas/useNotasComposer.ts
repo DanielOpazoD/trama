@@ -11,8 +11,10 @@ import { usePrefersReducedMotion } from '../../hooks/usePrefersReducedMotion'
 import { compressImage } from '../momentos/helpers'
 import {
   captureMediaSuccessMessage,
-  isCaptureMediaFile,
+  captureMediaFilesFrom,
+  composerDropUnsupportedMessage,
   isNotasComposerActive,
+  pastedNoteImagesFrom,
   resolveLinkDraft,
 } from './notasComposerModel'
 
@@ -38,31 +40,17 @@ export function useNotasComposer() {
   const [title, setTitle] = useState('')
   const composerRef = useAutosizeTextarea(draft, { minRows: 3, maxRows: 12 })
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
-  // El usuario pegó un enlace solo; el composer ofrece guardarlo como recorte.
-  // `forceNote` deja anular esa heurística y guardarlo igual como nota.
   const [forceNote, setForceNote] = useState(false)
-  // Resalte del composer mientras se arrastra una imagen encima.
   const [dragging, setDragging] = useState(false)
-  // Cuántas imágenes se están subiendo ahora (para tarjetas «subiendo…»).
   const [uploadingImages, setUploadingImages] = useState(0)
-  // Foco editorial del composer: ilumina el borde + anillo tintado mientras se
-  // escribe, y revela las afordancias del pie (no están siempre a la vista).
   const [composerFocused, setComposerFocused] = useState(false)
-  // Escritura enfocada del cuerpo del composer (overlay fullscreen).
   const [focusMode, setFocusMode] = useState(false)
-  // Micro-confirmación al guardar una nota: una onda + ✓ silenciosos sobre el
-  // botón guardar (check-pop + saved-ripple). La app no celebra; hace lugar.
   const [justSaved, setJustSaved] = useState(false)
   const savedTimer = useRef<number | null>(null)
 
-  // El borrador es un enlace puro (y el usuario no eligió "guardar como nota").
   const linkUrl = resolveLinkDraft(draft, forceNote)
   const isLinkDraft = linkUrl !== null
 
-  // El composer está "activo" si tiene foco o algún contenido. Las afordancias
-  // del pie (tip de imagen + guardar) solo aparecen entonces — en reposo el
-  // composer es una hoja limpia. Con contenido sigue visible aunque pierda el
-  // foco, así el click en «guardar» nunca se desmonta antes de registrar.
   const composerActive = isNotasComposerActive({
     composerFocused,
     draft,
@@ -76,10 +64,8 @@ export function useNotasComposer() {
     }
   }, [])
 
-  /** Foco al composer (afordancia de teclado `n` + empty state). */
   const focusComposer = useCallback(() => composerRef.current?.focus(), [composerRef])
 
-  /** Dispara la micro-confirmación de guardado (callada). */
   function flashSaved() {
     if (reducedMotion) return
     setJustSaved(true)
@@ -87,7 +73,6 @@ export function useNotasComposer() {
     savedTimer.current = window.setTimeout(() => setJustSaved(false), 700)
   }
 
-  /** Guarda el borrador-enlace como recorte web (captura de 1 paso). */
   function saveLink(url: string) {
     if (createRecorte.isPending) return
     createRecorte.mutate(
@@ -112,11 +97,8 @@ export function useNotasComposer() {
     )
   }
 
-  /** Sube y captura imágenes/videos como recortes visuales.
-   *  Las comprime client-side (downscale + JPEG) antes de subir, igual que el
-   *  composer de Momentos — evita subir un screenshot de 8 MB tal cual. */
   async function captureMediaFiles(files: File[]) {
-    const media = files.filter(isCaptureMediaFile)
+    const media = captureMediaFilesFrom(files)
     if (media.length === 0) return
     // Mostramos las tarjetas «subiendo…» desde ya (incluye la compresión).
     setUploadingImages((n) => n + media.length)
@@ -149,33 +131,26 @@ export function useNotasComposer() {
     }
   }
 
-  /** Pegar imagen(es) las adjunta a la nota en curso (anexos pendientes), no
-   *  las captura como recorte suelto — el pegado acompaña lo que se escribe.
-   *  (Soltar una imagen sí crea un recorte; ver onComposerDrop.) */
   function onComposerPaste(e: React.ClipboardEvent) {
-    const images = Array.from(e.clipboardData.files).filter((f) =>
-      f.type.startsWith('image/'),
-    )
+    const images = pastedNoteImagesFrom(Array.from(e.clipboardData.files))
     if (images.length > 0) {
       e.preventDefault()
       setPendingFiles((prev) => [...prev, ...images])
     }
   }
 
-  /** Soltar imágenes/videos sobre el composer las captura como recortes. */
   function onComposerDrop(e: React.DragEvent) {
     const files = Array.from(e.dataTransfer.files)
     // Prevenir el default del browser ante CUALQUIER archivo soltado: si solo se
     // previene para media, soltar un archivo no soportado cae al default del
     // navegador (abre el archivo / navega fuera) y se pierde el borrador.
     if (files.length > 0) e.preventDefault()
-    const media = files.filter(isCaptureMediaFile)
+    const media = captureMediaFilesFrom(files)
     if (media.length > 0) {
       captureMediaFiles(media)
-    } else if (files.length > 0) {
-      // Feedback explícito: sin esto, soltar un archivo no soportado quedaba
-      // silencioso tras prevenir el default.
-      toast.show({ message: 'Solo se pueden soltar imágenes o videos.', tone: 'default' })
+    } else {
+      const message = composerDropUnsupportedMessage(files)
+      if (message) toast.show({ message, tone: 'default' })
     }
     setDragging(false)
   }

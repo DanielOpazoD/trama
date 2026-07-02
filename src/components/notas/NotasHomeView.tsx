@@ -5,7 +5,8 @@ import { EmptyMessage } from '../EmptyMessage'
 import { NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
 import type { NotasSection } from '../../types/notas'
 import { PRIORITY_META } from './PriorityDots'
-import { sortPending } from './weekModel'
+import { buildNotasHomeModel } from './notasHomeModel'
+import { weekStartLocal } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
 
@@ -24,28 +25,10 @@ export function NotasHomeView({
   const tasks = useMemo(() => rawTasks ?? [], [rawTasks])
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
 
-  // `tasks` ya son solo pendientes (usePendingTasks); ordenados por prioridad.
-  const pendingTasks = useMemo(() => sortPending(tasks).slice(0, 5), [tasks])
-  const topNotes = useMemo(
-    () => [...notes].sort((a, b) => Number(b.pinned) - Number(a.pinned)).slice(0, 4),
-    [notes],
-  )
-  const topPrompts = useMemo(
-    () =>
-      [...prompts]
-        .sort(
-          (a, b) => Number(b.favorite) - Number(a.favorite) || b.useCount - a.useCount,
-        )
-        .slice(0, 4),
-    [prompts],
-  )
-  const criticalTasks = useMemo(
-    () => pendingTasks.filter((task) => task.priority === 'alta'),
-    [pendingTasks],
-  )
-  const pinnedNotes = useMemo(
-    () => notes.filter((note) => note.pinned).slice(0, 3),
-    [notes],
+  const todayWeek = weekStartLocal()
+  const home = useMemo(
+    () => buildNotasHomeModel({ notes, tasks, prompts, todayWeek }),
+    [notes, prompts, tasks, todayWeek],
   )
   const initialLoading =
     rawNotes === undefined || rawTasks === undefined || rawPrompts === undefined
@@ -64,16 +47,8 @@ export function NotasHomeView({
             <p className="text-micro uppercase tracking-eyebrow text-ink-300">
               turno del día
             </p>
-            <p className="mt-1 font-serif text-xl text-ink-700">
-              {pendingTasks.length}{' '}
-              {pendingTasks.length === 1 ? 'pendiente' : 'pendientes'} ·{' '}
-              {criticalTasks.length} {criticalTasks.length === 1 ? 'crítico' : 'críticos'}
-            </p>
-            <p className="mt-1 text-caption text-ink-400">
-              {pinnedNotes.length > 0
-                ? `${pinnedNotes.length} notas fijadas sostienen el foco.`
-                : 'Sin notas fijadas: captura una señal antes de ordenar el día.'}
-            </p>
+            <p className="mt-1 font-serif text-h2 text-ink-700">{home.daily.headline}</p>
+            <p className="mt-1 text-caption text-ink-400">{home.daily.subline}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 md:w-72">
             <QuickAction
@@ -118,14 +93,14 @@ export function NotasHomeView({
               <button
                 type="button"
                 onClick={() => onNavigate('notas')}
-                className="btn-ink min-h-[44px] px-4 text-xs"
+                className="btn-ink min-h-[44px] px-4 text-caption"
               >
                 Crear nota
               </button>
               <button
                 type="button"
                 onClick={() => onNavigate('tareas')}
-                className="min-h-[44px] rounded-md border border-ink-100 bg-paper-50 px-4 text-xs uppercase tracking-eyebrow text-ink-500 hover:text-ink-800 hover:border-ink-200 transition-colors"
+                className="min-h-[44px] rounded-md border border-ink-100 bg-paper-50 px-4 text-caption uppercase tracking-eyebrow text-ink-500 hover:text-ink-800 hover:border-ink-200 transition-colors"
               >
                 Crear tarea
               </button>
@@ -134,11 +109,11 @@ export function NotasHomeView({
         />
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
-          <HubCard title="Pendientes" count={pendingTasks.length}>
-            {pendingTasks.length === 0 ? (
-              <Muted>Nada pendiente por ahora.</Muted>
+          <HubCard title="Esta semana" count={home.sectionCounts.currentTasks}>
+            {home.currentTasks.length === 0 ? (
+              <Muted>Lo pendiente viene de semanas anteriores.</Muted>
             ) : (
-              pendingTasks.map((t) => (
+              home.currentTasks.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => onNavigate('tareas')}
@@ -150,44 +125,92 @@ export function NotasHomeView({
                     style={{ backgroundColor: PRIORITY_META[t.priority].color }}
                     title={`Prioridad ${PRIORITY_META[t.priority].label}`}
                   />
-                  <p className="text-sm text-ink-700 truncate">{t.title}</p>
+                  <p className="text-body text-ink-700 truncate">{t.title}</p>
                 </button>
               ))
             )}
           </HubCard>
-          <HubCard title="Notas vivas" count={topNotes.length} ariaLabel="Notas fijadas">
-            {topNotes.map((n) => (
+          <HubCard
+            title="Heredadas"
+            count={home.sectionCounts.inheritedTasks}
+            ariaLabel="Tareas pendientes heredadas"
+          >
+            {home.inheritedTasks.length === 0 ? (
+              <Muted>Sin arrastre antiguo.</Muted>
+            ) : (
+              home.inheritedTasks.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => onNavigate('tareas')}
+                  className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0"
+                >
+                  <p className="text-body text-ink-700 truncate">{t.title}</p>
+                  <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+                    pendiente desde {t.weekStart}
+                  </p>
+                </button>
+              ))
+            )}
+          </HubCard>
+          <HubCard
+            title="Bandeja"
+            count={home.sectionCounts.noteInbox}
+            ariaLabel="Bandeja de notas"
+          >
+            {home.noteInbox.length === 0 ? (
+              <Muted>No hay notas por clasificar.</Muted>
+            ) : (
+              home.noteInbox.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => onNavigate('notas')}
+                  className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0"
+                >
+                  <p className="text-body text-ink-700 line-clamp-2">{n.content}</p>
+                  <p className="text-micro uppercase tracking-eyebrow text-ink-300">
+                    {n.reason}
+                  </p>
+                </button>
+              ))
+            )}
+          </HubCard>
+          <HubCard
+            title="Notas vivas"
+            count={home.sectionCounts.topNotes}
+            ariaLabel="Notas fijadas"
+          >
+            {home.topNotes.map((n) => (
               <button
                 key={n.id}
                 onClick={() => onNavigate('notas')}
                 className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0"
               >
-                <p className="text-sm text-ink-700 line-clamp-2">{n.content}</p>
+                <p className="text-body text-ink-700 line-clamp-2">{n.content}</p>
               </button>
             ))}
-            {topNotes.length === 0 && <Muted>Todavía sin apuntes.</Muted>}
+            {home.topNotes.length === 0 && <Muted>Todavía sin apuntes.</Muted>}
           </HubCard>
-          <HubCard title="Prompts listos" count={topPrompts.length}>
-            {topPrompts.map((p) => (
+          <HubCard title="Prompts listos" count={home.sectionCounts.topPrompts}>
+            {home.topPrompts.map((p) => (
               <button
                 key={p.id}
                 onClick={() => onNavigate('prompts')}
                 className="w-full text-left py-1.5 border-b border-ink-100/50 last:border-0"
               >
-                <p className="text-sm text-ink-700 truncate">{p.title}</p>
+                <p className="text-body text-ink-700 truncate">{p.title}</p>
                 <p className="text-micro uppercase tracking-eyebrow text-ink-300">
                   {p.collection ?? 'sin colección'} · {p.useCount} usos
                 </p>
               </button>
             ))}
-            {topPrompts.length === 0 && <Muted>Todavía sin prompts.</Muted>}
+            {home.topPrompts.length === 0 && <Muted>Todavía sin prompts.</Muted>}
           </HubCard>
           <HubCard title="Claves" count={0}>
             <button
               onClick={() => onNavigate('claves')}
               className="w-full text-left py-1.5"
             >
-              <p className="text-sm text-ink-700 truncate">Tus claves, a salvo</p>
+              <p className="text-body text-ink-700 truncate">Tus claves, a salvo</p>
               <p className="text-micro uppercase tracking-eyebrow text-ink-300">
                 se abren con tu clave
               </p>
@@ -241,7 +264,7 @@ function QuickAction({
       onClick={onClick}
       className="card-paper-soft min-h-[44px] rounded-lg border border-ink-100/70 px-3 py-2 flex items-center justify-between text-left hover:border-ink-200 transition-colors"
     >
-      <span className="inline-flex items-center gap-2 text-sm text-ink-700">
+      <span className="inline-flex items-center gap-2 text-body text-ink-700">
         <span className="inline-flex" style={{ color: ACCENT }}>
           <Icon size={14} />
         </span>
@@ -278,5 +301,5 @@ function HubCard({
 }
 
 function Muted({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-ink-300 py-2">{children}</p>
+  return <p className="text-body text-ink-300 py-2">{children}</p>
 }

@@ -109,17 +109,24 @@ describe('<NotasHomeView />', () => {
 
     expect(await screen.findByText('Pendiente alta')).toBeInTheDocument()
     expect(screen.getByText('Nota fijada del día')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tareas pendientes heredadas')).toHaveTextContent(
+      /Pendiente alta/i,
+    )
+    expect(screen.getByLabelText('Bandeja de notas')).toHaveTextContent(/Nota sin fijar/i)
+    expect(screen.getByLabelText('Bandeja de notas')).toHaveTextContent(/sin etiquetas/i)
     expect(screen.getByText('Prompt favorito')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /nueva tarea/i }))
     await user.click(screen.getByRole('button', { name: /Nota fijada del día/i }))
     await user.click(screen.getByRole('button', { name: /Prompt favorito/i }))
     await user.click(screen.getByRole('button', { name: /Tus claves, a salvo/i }))
+    await user.click(screen.getByRole('button', { name: /Nota sin fijar/i }))
 
     expect(onNavigate).toHaveBeenNthCalledWith(1, 'tareas')
     expect(onNavigate).toHaveBeenNthCalledWith(2, 'notas')
     expect(onNavigate).toHaveBeenNthCalledWith(3, 'prompts')
     expect(onNavigate).toHaveBeenNthCalledWith(4, 'claves')
+    expect(onNavigate).toHaveBeenNthCalledWith(5, 'notas')
   })
 
   it('prioriza un primer viewport operativo con captura, foco crítico y notas fijadas', async () => {
@@ -130,7 +137,8 @@ describe('<NotasHomeView />', () => {
     await screen.findByText('Pendiente alta')
 
     expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/2 pendientes/i)
-    expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/1 crítico/i)
+    expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/2 heredadas/i)
+    expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/1 crítica/i)
     expect(screen.getByRole('button', { name: /capturar nota/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /capturar tarea/i })).toBeInTheDocument()
     expect(screen.getByLabelText('Notas fijadas')).toHaveTextContent(
