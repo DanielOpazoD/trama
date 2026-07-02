@@ -28,18 +28,18 @@ Es un contrato de borde pequeño, ejecutable y fácil de revisar.
 
 ## Matriz Por Superficie
 
-| Superficie                    | Ruta                            | Helper                         | Dueño del contrato                     | Test/guardrail                                            |
-| ----------------------------- | ------------------------------- | ------------------------------ | -------------------------------------- | --------------------------------------------------------- |
-| Anexos de nota/tarea          | `/api/notas-attachments-file/*` | `requestBlob()`                | `AttachmentsPanel`, `AttachmentPhotos` | `AttachmentsPanel.test.tsx`, `client-api-contracts.mjs`   |
-| Miniaturas autenticadas       | `/api/notas-attachments-file/*` | `useAuthenticatedMediaState()` | `AuthenticatedMedia`                   | `AuthenticatedMedia.test.tsx`                             |
-| Media de Momentos             | `/api/momentos-file/*`          | `requestBlob()`                | `AuthenticatedMedia`, `FotoEditModal`  | `AuthenticatedMedia.test.tsx`, `client-api-contracts.mjs` |
-| Fallback Momentos legacy      | `/api/momentos-file/<legacy>`   | `fetch()` allowlisteado        | `AuthenticatedMedia`                   | `AuthenticatedMedia.test.tsx`                             |
-| Imágenes de Recortes internas | `/api/recortes-image/*`         | `requestBlob()`                | `RecorteCard`, import a Imprenta       | `recortesToPdfFiles.test.ts`, guardrail                   |
-| Imagen externa de Recorte     | `https://...`                   | `fetch()` allowlisteado        | `RecorteCard`                          | Guardrail por conteo exacto                               |
-| Exportar fotos                | URLs privadas de anexos         | `requestBlob()`                | `photoExport`                          | `photoExport.test.ts`                                     |
-| Importar recortes a PDF       | `/api/recortes-image/*`         | `fetchBlob` inyectado          | `NotasWorld` + helper puro             | `recortesToPdfFiles.test.ts`                              |
-| Fuentes PDF/Libro             | URL de fuente                   | `fetch()` allowlisteado        | `assembleFonts`, `buildLibro`          | Guardrail por conteo exacto                               |
-| Bitmap object-url             | `blob:`/URL temporal            | `fetch()` allowlisteado        | `usePdfStudioPageActions`              | Guardrail por conteo exacto                               |
+| Superficie                    | Ruta                            | Helper                         | Dueño del contrato                     | Test/guardrail                                                                                   |
+| ----------------------------- | ------------------------------- | ------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Anexos de nota/tarea          | `/api/notas-attachments-file/*` | `requestBlob()`                | `AttachmentsPanel`, `AttachmentPhotos` | `AttachmentsPanel.test.tsx`, `client-api-contracts.mjs`                                          |
+| Miniaturas autenticadas       | `/api/notas-attachments-file/*` | `useAuthenticatedMediaState()` | `AuthenticatedMedia`                   | `AuthenticatedMedia.test.tsx`                                                                    |
+| Media de Momentos             | `/api/momentos-file/*`          | `requestBlob()`                | `AuthenticatedMedia`, `FotoEditModal`  | `AuthenticatedMedia.test.tsx`, `client-api-contracts.mjs`                                        |
+| Fallback Momentos legacy      | `/api/momentos-file/<legacy>`   | `fetch()` allowlisteado        | `AuthenticatedMedia`                   | `authenticatedMediaModel.test.ts`, `AuthenticatedMedia.test.tsx`, `check:legacy-media-fallbacks` |
+| Imágenes de Recortes internas | `/api/recortes-image/*`         | `requestBlob()`                | `RecorteCard`, import a Imprenta       | `recortesToPdfFiles.test.ts`, guardrail                                                          |
+| Imagen externa de Recorte     | `https://...`                   | `fetch()` allowlisteado        | `RecorteCard`                          | Guardrail por conteo exacto                                                                      |
+| Exportar fotos                | URLs privadas de anexos         | `requestBlob()`                | `photoExport`                          | `photoExport.test.ts`                                                                            |
+| Importar recortes a PDF       | `/api/recortes-image/*`         | `fetchBlob` inyectado          | `NotasWorld` + helper puro             | `recortesToPdfFiles.test.ts`                                                                     |
+| Fuentes PDF/Libro             | URL de fuente                   | `fetch()` allowlisteado        | `assembleFonts`, `buildLibro`          | Guardrail por conteo exacto                                                                      |
+| Bitmap object-url             | `blob:`/URL temporal            | `fetch()` allowlisteado        | `usePdfStudioPageActions`              | Guardrail por conteo exacto                                                                      |
 
 ## Contrato De Errores
 
@@ -285,7 +285,8 @@ runtime completos se justifican sólo en responses de alto riesgo o con drift re
 
 - No convierte `CommandPalette`, búsqueda ni editores a TanStack Query.
 - No cambia contratos servidor ni rutas Netlify.
-- No elimina fallback legacy de Momentos; solo lo deja acotado.
+- No elimina fallback legacy de Momentos; lo mantiene acotado por helper puro,
+  test de UI y `check:legacy-media-fallbacks`.
 - No cachea blobs ni introduce retry global.
 - No añade un downloader común de UI; `requestBlob()` basta por ahora.
 

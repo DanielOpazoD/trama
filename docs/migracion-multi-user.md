@@ -17,9 +17,11 @@
 > el `user_id` en tablas privadas, RLS (`app.current_user_id`), el provisioning
 > lazy (`ensureUserRow`) y el cost-cap por usuario ya estaban en el código.
 > **Deuda OPCIONAL, no bloqueante:** reasignar la data histórica de
-> `legacy-single-user` al `sub` real del dueño (inventariada por
-> `legacy-data-reassignment:dry-run`). Los "Commit 1–N" de abajo son referencia
-> histórica. El resumen vivo está en
+> `legacy-single-user` al `sub` real del dueño. El estado vivo se inventaria con
+> `legacy-data-reassignment:dry-run`, cuyo `cutoverReadiness` separa blockers,
+> acciones siguientes y superficies de revisión manual. Health muestra el comando
+> y checklist operativo para no confundir compatibilidad legacy con ejecución real.
+> Los "Commit 1–N" de abajo son referencia histórica. El resumen vivo está en
 > [`docs/conventions/roadmap.md`](conventions/roadmap.md).
 
 > **Estado RLS (junio 2026): implementado como segunda barrera.**
@@ -339,6 +341,17 @@ en Netlify/Clerk reales.
 recorre handlers y helpers de contexto críticos para fallar si una query sobre
 tabla per-user no menciona `user_id`, si un endpoint HTTP queda sin auth
 explícita, o si un write con `user_id` no llama a `ensureUserRow`.
+
+Para un PR futuro de ejecución real, correr primero:
+
+```bash
+LEGACY_REASSIGNMENT_TARGET_USER_ID=user_... \
+npm run legacy-data-reassignment:dry-run -- --markdown
+npm run check:legacy-media-fallbacks
+```
+
+Si `cutoverReadiness.status` queda `blocked`, no automatizar UPDATEs ni copies de
+blobs: resolver blockers o dividir el dominio de alto riesgo en un script dedicado.
 
 ## RLS: contrato de privacidad runtime
 

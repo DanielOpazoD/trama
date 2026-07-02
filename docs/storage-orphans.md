@@ -14,6 +14,13 @@ Esto NO se puede chequear de forma estática: necesita la DB y/o el store. Por e
 no es un gate de CI sino un **script operativo read-only**, hermano del dry-run de
 reasignación legacy.
 
+Importante: una key legacy sin namespace de usuario no es un huérfano por defecto.
+Este inventario responde "manifest vs objeto". La pregunta "a qué dueño real se
+reasigna esta key histórica" vive en `npm run legacy-data-reassignment:dry-run`.
+Antes de copiar, renombrar o borrar media legacy, cruzar ambos reportes: storage
+orphans para consistencia técnica del store, legacy reassignment para ownership y
+riesgo de cutover.
+
 ## Cómo correr el inventario
 
 ```bash
