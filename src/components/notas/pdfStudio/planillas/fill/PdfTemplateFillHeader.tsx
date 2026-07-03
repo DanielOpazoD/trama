@@ -14,6 +14,7 @@ export function PdfTemplateFillHeader({
   zoomInDisabled = false,
   zoomOutDisabled = false,
   onClose,
+  onGuidedFill,
   onNextPage,
   onPrevPage,
   onPrepareZoomAnchor,
@@ -33,6 +34,8 @@ export function PdfTemplateFillHeader({
   zoomInDisabled?: boolean
   zoomOutDisabled?: boolean
   onClose: () => void
+  /** Salta al primer campo pendiente; Enter sigue avanzando desde ahí. */
+  onGuidedFill?: () => void
   onNextPage: () => void
   onPrevPage: () => void
   onPrepareZoomAnchor: () => void
@@ -76,6 +79,21 @@ export function PdfTemplateFillHeader({
           <p className="truncate text-micro text-ink-400">
             Solo relleno · Página {currentPage + 1} de {totalPages} · {status}
           </p>
+          {totalFields > 0 ? (
+            <div
+              role="progressbar"
+              aria-label="Progreso del llenado"
+              aria-valuemin={0}
+              aria-valuemax={totalFields}
+              aria-valuenow={completedFields}
+              className="mt-1 h-[3px] w-40 max-w-full overflow-hidden rounded-full bg-ink-100/80"
+            >
+              <div
+                className="h-full rounded-full bg-[color:var(--accent-sage)] transition-[width] duration-200"
+                style={{ width: `${(completedFields / totalFields) * 100}%` }}
+              />
+            </div>
+          ) : null}
         </div>
         <IconButton
           onClick={onNextPage}
@@ -88,6 +106,17 @@ export function PdfTemplateFillHeader({
         </IconButton>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {onGuidedFill && totalFields > 0 && pending > 0 ? (
+          <button
+            type="button"
+            onClick={onGuidedFill}
+            aria-label={hasData ? 'Siguiente pendiente' : 'Empezar a llenar'}
+            title="Salta al siguiente campo pendiente. Enter avanza, ⇧Enter retrocede."
+            className="btn-ghost text-caption"
+          >
+            {hasData ? 'Siguiente pendiente ⏎' : 'Empezar a llenar ⏎'}
+          </button>
+        ) : null}
         <div
           className="inline-flex items-center overflow-hidden rounded-md border border-ink-100 bg-paper-50"
           aria-label="Zoom del documento"

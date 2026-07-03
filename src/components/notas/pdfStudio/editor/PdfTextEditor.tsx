@@ -33,6 +33,8 @@ import { formFieldTextStyle } from '../planillas/pdfFormFieldStyle'
 import { fillProgressForTemplateFields } from '../planillas/fill/pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
+import { usePdfTemplateGuidedFill } from '../planillas/fill/usePdfTemplateGuidedFill'
+import { PdfStudioShortcutsHelp } from '../planillas/PdfStudioShortcutsHelp'
 import { usePdfTextEditorAnnotationSetters } from './usePdfTextEditorAnnotationSetters'
 import { usePdfTextEditorAutosave } from './usePdfTextEditorAutosave'
 import { PdfTextEditorAutosaveBadge } from './PdfTextEditorAutosaveBadge'
@@ -201,6 +203,7 @@ export function PdfTextEditor({
     distributeDraftFormFields,
     duplicateSelectedDraftFormFields,
     formFields,
+    formSnapGuides,
     matchDraftFormFieldSizes,
     chooseSignatureImage,
     applyDraftFieldStyle,
@@ -294,6 +297,12 @@ export function PdfTextEditor({
   const pageIndexById = Object.fromEntries(doc.pages.map((p, i) => [p.id, i]))
   const { activeFillFieldId, jumpToFormField, setActiveFillFieldId } =
     usePdfTextEditorFillFocus({ goToPage, pageIndexById })
+  const { startGuidedFill } = usePdfTemplateGuidedFill({
+    enabled: fillMode,
+    fields: formFields,
+    pageIndexById,
+    jumpToFormField,
+  })
   const currentEdits = () => ({
     annotations: edited,
     formFields,
@@ -382,6 +391,7 @@ export function PdfTextEditor({
           fillProgress={fillProgress}
           headerProps={headerProps}
           onCreateTemplateField={() => addFormField('text')}
+          onGuidedFill={fillMode ? startGuidedFill : undefined}
           prepareZoomAnchor={prepareZoomAnchor}
           stepZoomIn={stepZoomIn}
           stepZoomOut={stepZoomOut}
@@ -478,6 +488,9 @@ export function PdfTextEditor({
           onValueChange={updateDraftFormValue}
         />
         {designMode ? <PdfTextEditorAutosaveBadge state={autosaveState} /> : null}
+        {designMode || fillMode ? (
+          <PdfStudioShortcutsHelp mode={fillMode ? 'fill' : 'design'} />
+        ) : null}
         <PdfTextEditorAuxiliaryControls
           fillMode={fillMode}
           formSuggestionStatus={formSuggestionStatus}
@@ -515,6 +528,7 @@ export function PdfTextEditor({
                   selectionMarquee={selectionMarquee}
                   selectionLasso={selectionLasso}
                   snapGuides={snapGuides}
+                  formSnapGuides={formSnapGuides}
                   drawColor={style.color}
                   detectedForms={detectedForms}
                   draftFields={formFields}

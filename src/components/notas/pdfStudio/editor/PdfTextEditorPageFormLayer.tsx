@@ -9,6 +9,8 @@ import type {
 } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { FormFieldLayer } from '../planillas/FormFieldLayer'
 import { FormFieldPlacementPreview } from '../planillas/FormFieldPlacementPreview'
+import { SnapGuideLines } from './SnapGuideLines'
+import type { SnapGuide } from './pdfAnnotationSnap'
 import {
   type DetectedPdfFormForCanvas,
   visualWidgetsForPage,
@@ -20,6 +22,7 @@ export function PdfTextEditorPageFormLayer({
   activeDraftId,
   detectedForms,
   draftFields,
+  formSnapGuides = [],
   isActive,
   layout,
   mode,
@@ -42,6 +45,8 @@ export function PdfTextEditorPageFormLayer({
   activeDraftId?: string | null
   detectedForms: DetectedPdfFormForCanvas[]
   draftFields: PdfFormFieldDraft[]
+  /** Guías magnéticas del casillero en arrastre/redimensión (página activa). */
+  formSnapGuides?: SnapGuide[]
   isActive: boolean
   layout: PageLayout | null
   mode: 'edit' | 'design' | 'fill'
@@ -89,6 +94,7 @@ export function PdfTextEditorPageFormLayer({
   if (isActive) {
     return (
       <>
+        {mode === 'design' && <SnapGuideLines guides={formSnapGuides} />}
         <PdfTextEditorFormSurface
           detectedWidgets={visibleFormWidgets}
           draftFields={visibleDraftFields}

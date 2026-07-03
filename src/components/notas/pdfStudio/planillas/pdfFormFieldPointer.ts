@@ -7,10 +7,23 @@ import {
   type ResizeHandle,
 } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { trackPointerMove } from '../editor/pdfTextEditorPointerListeners'
+import type { SnapGuide } from '../editor/pdfAnnotationSnap'
+import {
+  snapFormFieldDrag,
+  snapResizedFormFieldBox,
+  type FieldRatioBox,
+} from './pdfFormFieldSnap'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 type SetFields = Dispatch<SetStateAction<PdfFormFieldDraft[]>>
 type RatioBox = Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>
+
+/** Guías magnéticas del gesto: cajas objetivo (misma página, no arrastradas) y
+ *  callback para pintar/limpiar las líneas. Alt desactiva el imán. */
+export type FieldSnapContext = {
+  targets: FieldRatioBox[]
+  onGuides: (guides: SnapGuide[]) => void
+}
 
 export function newFieldBoxFromDrag({
   currentClientX,
@@ -106,6 +119,7 @@ export function startFormFieldDrag({
   layout,
   selectedIds,
   setFields,
+  snap,
   zoom,
 }: {
   event: ReactPointerEvent
@@ -114,6 +128,7 @@ export function startFormFieldDrag({
   layout: PageLayout | null
   selectedIds: string[]
   setFields: SetFields
+  snap?: FieldSnapContext
   zoom: number
 }) {
   if (!layout || field.readOnly) return
@@ -124,18 +139,36 @@ export function startFormFieldDrag({
   const startY = event.clientY
   const ids = selectedIds.includes(field.id) ? selectedIds : [field.id]
   const starts = new Map(fields.map((item) => [item.id, item]))
+  const anchorStart = starts.get(field.id) ?? field
   const move = (ev: PointerEvent) => {
     const { dx, dy } = screenDeltaToPage(
       ev.clientX - startX,
       ev.clientY - startY,
       layout.rot,
     )
+    let dxRatio = dx / dw
+    let dyRatio = dy / dh
+    if (snap && !ev.altKey) {
+      const snapped = snapFormFieldDrag({
+        box: anchorStart,
+        others: snap.targets,
+        dxRatio,
+        dyRatio,
+        pageWidthPx: dw,
+        pageHeightPx: dh,
+      })
+      dxRatio = snapped.dxRatio
+      dyRatio = snapped.dyRatio
+      snap.onGuides(snapped.guides)
+    } else {
+      snap?.onGuides([])
+    }
     setFields((items) =>
       items.map((item) => {
         if (!ids.includes(item.id) || item.readOnly) return item
         const start = starts.get(item.id) ?? item
-        const xRatio = clamp01(start.xRatio + dx / dw)
-        const yRatio = clamp01(start.yRatio + dy / dh)
+        const xRatio = clamp01(start.xRatio + dxRatio)
+        const yRatio = clamp01(start.yRatio + dyRatio)
         return {
           ...item,
           xRatio: Math.min(1 - item.wRatio, xRatio),
@@ -144,7 +177,7 @@ export function startFormFieldDrag({
       }),
     )
   }
-  trackPointerMove(move)
+  trackPointerMove(move, () => snap?.onGuides([]))
 }
 
 export function startFormFieldResize({
@@ -153,6 +186,7 @@ export function startFormFieldResize({
   handle,
   layout,
   setFields,
+  snap,
   zoom,
 }: {
   event: ReactPointerEvent
@@ -160,6 +194,7 @@ export function startFormFieldResize({
   handle: ResizeHandle
   layout: PageLayout | null
   setFields: SetFields
+  snap?: FieldSnapContext
   zoom: number
 }) {
   if (!layout || field.readOnly) return
@@ -169,19 +204,33 @@ export function startFormFieldResize({
   const dh = layout.innerH * zoom
   const startX = event.clientX
   const startY = event.clientY
+  const minW = 14 / dw
+  const minH = 14 / dh
   const move = (ev: PointerEvent) => {
     const { dx, dy } = screenDeltaToPage(
       ev.clientX - startX,
       ev.clientY - startY,
       layout.rot,
     )
-    const next = resizeRatioBox(field, handle, dx / dw, dy / dh, {
-      minW: 14 / dw,
-      minH: 14 / dh,
-    })
+    let next = resizeRatioBox(field, handle, dx / dw, dy / dh, { minW, minH })
+    if (snap && !ev.altKey) {
+      const snapped = snapResizedFormFieldBox({
+        original: field,
+        next,
+        others: snap.targets,
+        pageWidthPx: dw,
+        pageHeightPx: dh,
+        minW,
+        minH,
+      })
+      next = snapped.box
+      snap.onGuides(snapped.guides)
+    } else {
+      snap?.onGuides([])
+    }
     setFields((fields) =>
       fields.map((item) => (item.id === field.id ? { ...item, ...next } : item)),
     )
   }
-  trackPointerMove(move)
+  trackPointerMove(move, () => snap?.onGuides([]))
 }
