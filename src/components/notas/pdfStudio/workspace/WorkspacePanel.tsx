@@ -1,9 +1,14 @@
-import { isSavedTemplate } from '../../../../lib/pdfStudio/render/persistence'
+import { useState } from 'react'
+import {
+  isSavedTemplate,
+  type SavedDoc,
+} from '../../../../lib/pdfStudio/render/persistence'
 import { ChevronLeftIcon, ChevronRightIcon, FilePdfIcon } from '../../../Icons'
 import { IconButton } from '../../../IconButton'
 import type { WorkspacePanelProps } from './WorkspacePanelProps'
 import { WorkspaceSavedDocsSection } from './WorkspaceSavedDocsSection'
 import { WorkspaceTemplatesSection } from './WorkspaceTemplatesSection'
+import { WorkspaceTemplateVersionsDialog } from './WorkspaceTemplateVersionsDialog'
 
 const ACCENT = 'var(--accent-sage)'
 export function WorkspacePanel({
@@ -30,9 +35,11 @@ export function WorkspacePanel({
   onDeleteSaved,
   onDownloadSaved,
   onExportTemplatePackage,
+  templateCloud,
   collapsed,
   onToggleCollapsed,
 }: WorkspacePanelProps) {
+  const [versionsFor, setVersionsFor] = useState<SavedDoc | null>(null)
   const templates = saved.filter(isSavedTemplate)
   const creations = saved.filter((s) => !isSavedTemplate(s))
   const savedCount = templatesEnabled ? saved.length : creations.length
@@ -88,7 +95,15 @@ export function WorkspacePanel({
               onDeleteSaved={onDeleteSaved}
               onDownloadSaved={onDownloadSaved}
               onExportTemplatePackage={onExportTemplatePackage}
+              onShowVersions={templateCloud ? setVersionsFor : undefined}
             />
+            {versionsFor && templateCloud ? (
+              <WorkspaceTemplateVersionsDialog
+                saved={versionsFor}
+                templateCloud={templateCloud}
+                onClose={() => setVersionsFor(null)}
+              />
+            ) : null}
 
             <div className="mx-2.5 border-t border-ink-100/70" />
           </>

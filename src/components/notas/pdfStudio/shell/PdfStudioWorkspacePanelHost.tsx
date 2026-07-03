@@ -4,6 +4,7 @@ import type {
   SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
 import type { SavedTemplateMetaPatch } from '../workspace/WorkspaceTemplateDetails'
+import type { WorkspaceTemplateCloud } from '../workspace/useWorkspaceTemplateCloud'
 import { WorkspacePanel } from '../workspace/WorkspacePanel'
 
 export function PdfStudioWorkspacePanelHost({
@@ -33,6 +34,7 @@ export function PdfStudioWorkspacePanelHost({
   onUpdateFolderColor,
   onToggleCollapsed,
   onUseTemplate,
+  templateCloud,
 }: {
   canSave: boolean
   canSaveTemplate: boolean
@@ -61,6 +63,7 @@ export function PdfStudioWorkspacePanelHost({
   onUpdateFolderColor: (id: string, color: SavedFolderColor) => void
   onToggleCollapsed: () => void
   onUseTemplate: (saved: SavedDoc) => void
+  templateCloud?: WorkspaceTemplateCloud
 }) {
   if (!show) return null
 
@@ -105,6 +108,7 @@ export function PdfStudioWorkspacePanelHost({
           onDeleteSaved={onDeleteSaved}
           onDownloadSaved={onDownloadSaved}
           onExportTemplatePackage={onExportTemplatePackage}
+          templateCloud={templateCloud}
           collapsed={collapsed}
           onToggleCollapsed={onToggleCollapsed}
         />

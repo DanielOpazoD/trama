@@ -3,6 +3,7 @@ import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './tes
 
 const blobMocks = vi.hoisted(() => ({
   set: vi.fn(async () => {}),
+  delete: vi.fn(async () => {}),
   getWithMetadata: vi.fn(async () => ({
     data: '{"version":1}',
     etag: 'etag-1',
@@ -14,6 +15,7 @@ vi.mock('./db.js', () => setupMockSql())
 vi.mock('@netlify/blobs', () => ({
   getStore: vi.fn(() => ({
     set: blobMocks.set,
+    delete: blobMocks.delete,
     getWithMetadata: blobMocks.getWithMetadata,
   })),
 }))
@@ -68,8 +70,8 @@ describe('pdf-studio templates endpoint', () => {
     expect(select?.values).toContain('legacy-single-user')
   })
 
-  it('sube el paquete con key determinista por documento y upsert de metadata', async () => {
-    mockSqlResponses.push([], [rowFixture])
+  it('sube el paquete versionando la cabeza anterior en el mismo statement', async () => {
+    mockSqlResponses.push([], [rowFixture], [{ id: 'asset-1' }], [])
     const form = new FormData()
     form.set('savedDocId', 'local-1')
     form.set('name', 'Receta')
@@ -99,7 +101,7 @@ describe('pdf-studio templates endpoint', () => {
       name: 'Receta',
     })
     expect(blobMocks.set).toHaveBeenCalledWith(
-      'legacy-single-user/local-1.json',
+      expect.stringMatching(/^legacy-single-user\/local-1\/[a-f0-9]{32}\.json$/),
       expect.any(ArrayBuffer),
       expect.objectContaining({
         metadata: expect.objectContaining({ mime: 'application/json' }),
@@ -109,6 +111,13 @@ describe('pdf-studio templates endpoint', () => {
       /INSERT INTO pdf_studio_templates/i.test(call.template),
     )
     expect(insert?.template).toMatch(/ON CONFLICT \(user_id, saved_doc_id\)/i)
+    expect(insert?.template).toMatch(/INSERT INTO pdf_studio_template_versions/i)
+    expect(insert?.template).toMatch(/FROM head/i)
+    const prune = mockSqlState.calls.find((call) =>
+      /UPDATE pdf_studio_template_versions/i.test(call.template),
+    )
+    expect(prune?.template).toMatch(/OFFSET/i)
+    expect(prune?.values).toContain('legacy-single-user')
     expect(insert?.values).toEqual(
       expect.arrayContaining(['legacy-single-user', 'local-1', 'Receta', 'ready']),
     )
@@ -165,11 +174,51 @@ describe('pdf-studio templates endpoint', () => {
     expect(select?.template).toMatch(/deleted_at IS NULL/i)
   })
 
-  it('borra con soft delete scoping por usuario y baja el manifiesto', async () => {
+  it('lista y descarga versiones verificando dueño', async () => {
+    mockSqlResponses.push(
+      [], // ensureUserRow (lista)
+      [
+        {
+          id: 'v1',
+          name: 'Receta',
+          byte_size: 10,
+          saved_at: '2026-07-02T00:00:00.000Z',
+          created_at: '2026-07-02T00:00:00.000Z',
+        },
+      ],
+      [], // ensureUserRow (descarga)
+      [{ storage_key: 'legacy-single-user/local-1/aa.json' }],
+    )
+
+    const list = await handler(
+      new Request('http://localhost/api/pdf-studio-templates/remote-1/versions'),
+      mockContext({ id: 'remote-1' }),
+    )
+    expect(list.status).toBe(200)
+    expect(await list.json()).toMatchObject([{ id: 'v1', byteSize: 10 }])
+    const listSelect = mockSqlState.calls.find((call) =>
+      /FROM pdf_studio_template_versions/i.test(call.template),
+    )
+    expect(listSelect?.template).toMatch(/user_id =/i)
+    expect(listSelect?.template).toMatch(/deleted_at IS NULL/i)
+
+    const download = await handler(
+      new Request('http://localhost/api/pdf-studio-templates/remote-1/versions/v1'),
+      mockContext({ id: 'remote-1', versionId: 'v1' }),
+    )
+    expect(download.status).toBe(200)
+    expect(await download.json()).toEqual({ version: 1 })
+  })
+
+  it('borra con soft delete scoping por usuario y limpia historial y manifiesto', async () => {
     mockSqlResponses.push(
       [],
-      [{ id: 'remote-1', storage_key: 'legacy-single-user/local-1.json' }],
+      [
+        { kind: 'head', storage_key: 'legacy-single-user/local-1.json' },
+        { kind: 'version', storage_key: 'legacy-single-user/local-1/old.json' },
+      ],
       [{ id: 'asset-1' }],
+      [{ id: 'asset-2' }],
     )
 
     const res = await handler(
@@ -184,18 +233,17 @@ describe('pdf-studio templates endpoint', () => {
       /UPDATE pdf_studio_templates/i.test(call.template),
     )
     expect(update?.template).toMatch(/SET deleted_at = NOW\(\)/i)
+    expect(update?.template).toMatch(/pdf_studio_template_versions/i)
     expect(update?.template).toMatch(/user_id =/i)
     expect(update?.template).toMatch(/deleted_at IS NULL/i)
-    const manifestUpdate = mockSqlState.calls.find((call) =>
+    const manifestUpdates = mockSqlState.calls.filter((call) =>
       /UPDATE storage_assets/i.test(call.template),
     )
-    expect(manifestUpdate?.values).toEqual(
-      expect.arrayContaining([
-        'legacy-single-user',
-        'pdf-studio-templates',
-        'netlify-blobs',
-        'legacy-single-user/local-1.json',
-      ]),
+    expect(manifestUpdates).toHaveLength(2)
+    expect(manifestUpdates[0]?.values).toEqual(
+      expect.arrayContaining(['legacy-single-user', 'legacy-single-user/local-1.json']),
     )
+    // El paquete histórico se borra de verdad del store (contenido privado).
+    expect(blobMocks.delete).toHaveBeenCalledWith('legacy-single-user/local-1/old.json')
   })
 })

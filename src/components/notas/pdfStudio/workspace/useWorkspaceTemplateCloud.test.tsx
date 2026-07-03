@@ -10,6 +10,8 @@ const api = vi.hoisted(() => ({
   uploadPdfStudioTemplate: vi.fn(),
   downloadPdfStudioTemplatePackage: vi.fn(),
   deletePdfStudioTemplate: vi.fn(),
+  listPdfStudioTemplateVersions: vi.fn(),
+  downloadPdfStudioTemplateVersion: vi.fn(),
 }))
 
 const persistence = vi.hoisted(() => ({
@@ -194,6 +196,39 @@ describe('useWorkspaceTemplateCloud', () => {
 
     expect(api.deletePdfStudioTemplate).toHaveBeenCalledTimes(1)
     expect(api.deletePdfStudioTemplate).toHaveBeenCalledWith('remote-1')
+  })
+
+  it('restaurar una versión la materializa como estado actual y la re-sube', async () => {
+    api.downloadPdfStudioTemplateVersion.mockResolvedValue({
+      version: 1,
+      title: 'Vieja',
+      pages: [],
+      formFields: [],
+      sources: [],
+    })
+    const hook = renderCloud()
+    const synced = savedTemplate({
+      cloudTemplate: { id: 'remote-1', savedAt: '2026-07-03T12:00:00.000Z' },
+    })
+
+    let ok = false
+    await act(async () => {
+      ok = await hook.result.current.cloud.restoreTemplateVersion(synced, 'v1')
+    })
+
+    expect(ok).toBe(true)
+    expect(api.downloadPdfStudioTemplateVersion).toHaveBeenCalledWith('remote-1', 'v1')
+    const restored = hook.result.current.saved.find((s) => s.id === 'doc-1')
+    expect(restored?.doc.title).toBe('Vieja')
+    expect(restored?.savedAt).toBeGreaterThan(synced.savedAt)
+    expect(api.uploadPdfStudioTemplate).toHaveBeenCalledWith(
+      expect.objectContaining({ savedDocId: 'doc-1' }),
+    )
+    // Sin marcador de nube no hay historial que consultar
+    await expect(
+      hook.result.current.cloud.listTemplateVersions(savedTemplate()),
+    ).resolves.toEqual([])
+    expect(api.listPdfStudioTemplateVersions).not.toHaveBeenCalled()
   })
 
   it('falla silenciosamente sin conexión: la biblioteca local no cambia', async () => {

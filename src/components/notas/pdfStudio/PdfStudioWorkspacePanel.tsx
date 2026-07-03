@@ -72,6 +72,7 @@ export function PdfStudioWorkspacePanel({
       }}
       onUpdateSavedMeta={workspace.updateSavedMeta}
       onExportTemplatePackage={workspace.exportTemplatePackage}
+      templateCloud={workspace.templateCloud}
       onToggleCollapsed={() => workspace.setPanelCollapsed((collapsed) => !collapsed)}
     />
   )

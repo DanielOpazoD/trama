@@ -185,6 +185,14 @@ export const PRIVATE_TABLE_CONTRACTS = [
     reason: 'Template structure reveals private clinical/document workflows per user.',
   },
   {
+    table: 'pdf_studio_template_versions',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership: 'owner scoped history of editable PDF template packages',
+    reason: 'Old template versions reveal the same private workflows as the head.',
+  },
+  {
     table: 'pdf_stamp_assets',
     lifecycle: 'soft-delete',
     userId: 'required',
@@ -613,12 +621,15 @@ export const ENDPOINT_PRIVACY_CONTRACTS = [
   },
   {
     route: '/api/pdf-studio-templates',
-    files: ['netlify/functions/pdf-studio-templates.mts'],
+    files: [
+      'netlify/functions/pdf-studio-templates.mts',
+      'netlify/functions/_lib/pdf-studio-templates-endpoint.ts',
+    ],
     auth: 'required',
-    operations: ['list', 'upload', 'download', 'delete'],
-    tables: ['pdf_studio_templates'],
+    operations: ['list', 'upload', 'download', 'versions', 'delete'],
+    tables: ['pdf_studio_templates', 'pdf_studio_template_versions'],
     ownership:
-      'Editable template packages and blob payloads are scoped to the authenticated owner.',
+      'Editable template packages, their version history and blob payloads are scoped to the authenticated owner.',
     evidence: ['netlify/functions/_lib/pdf-studio-templates-endpoint.test.ts'],
   },
   {

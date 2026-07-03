@@ -3,6 +3,7 @@ import {
   DownloadIcon,
   DuplicateIcon,
   FilePdfIcon,
+  UndoIcon,
   PencilIcon,
   TrashIcon,
 } from '../../../Icons'
@@ -21,6 +22,7 @@ export function WorkspaceTemplateCardMenu({
   onEditDetails,
   onExportCsv,
   onExportJson,
+  onShowVersions,
   onStartRename,
 }: {
   saved: SavedDoc
@@ -31,6 +33,8 @@ export function WorkspaceTemplateCardMenu({
   onEditDetails: () => void
   onExportCsv: () => void
   onExportJson: () => void
+  /** Historial en la nube; ausente si la plantilla no está sincronizada. */
+  onShowVersions?: () => void
   onStartRename: () => void
 }) {
   const item = (close: () => void, action: () => void) => () => {
@@ -57,6 +61,12 @@ export function WorkspaceTemplateCardMenu({
             <PencilIcon size={14} />
             Renombrar
           </OverflowMenuItem>
+          {onShowVersions ? (
+            <OverflowMenuItem onClick={item(close, onShowVersions)}>
+              <UndoIcon size={14} />
+              Versiones…
+            </OverflowMenuItem>
+          ) : null}
           <OverflowMenuItem onClick={item(close, onEditDetails)}>
             <PencilIcon size={14} />
             Editar detalles
