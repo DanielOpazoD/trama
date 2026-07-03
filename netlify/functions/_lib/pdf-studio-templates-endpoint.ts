@@ -258,7 +258,8 @@ async function handlePost(req: Request, requestId: string) {
   if (!ALLOWED_STATUS.has(status)) {
     return ApiErrors.validation(requestId, 'status inválido')
   }
-  if (!Number.isFinite(savedAtMs) || savedAtMs <= 0) {
+  // Cota superior: new Date(ms) revienta con RangeError sobre ±8.64e15.
+  if (!Number.isFinite(savedAtMs) || savedAtMs <= 0 || savedAtMs > 8.64e15) {
     return ApiErrors.validation(requestId, 'savedAt requerido')
   }
   if (file.type !== 'application/json') {
@@ -346,8 +347,9 @@ async function handleDelete(req: Request, context: Context, requestId: string) {
   const sql = getSql()
   await ensureUserRow(sql, authedUser)
   // Cabeza + historial caen juntos (CTE): borrar la plantilla borra sus
-  // versiones en el mismo statement.
-  const rows = await sqlTyped<{ id: string; storage_key: string }>(sql`
+  // versiones en el mismo statement, y los paquetes históricos se limpian
+  // de verdad (blob + manifiesto) — contenido privado no queda atrás.
+  const rows = await sqlTyped<{ kind: 'head' | 'version'; storage_key: string }>(sql`
     WITH gone AS (
       UPDATE pdf_studio_templates
       SET deleted_at = NOW(), updated_at = NOW()
@@ -362,17 +364,27 @@ async function handleDelete(req: Request, context: Context, requestId: string) {
       WHERE template_id IN (SELECT id FROM gone)
         AND user_id = ${authedUser.id}
         AND deleted_at IS NULL
-      RETURNING id
+      RETURNING id, storage_key
     )
-    SELECT id, storage_key FROM gone
+    SELECT 'head' AS kind, storage_key FROM gone
+    UNION ALL
+    SELECT 'version' AS kind, storage_key FROM versions_gone
   `)
-  if (!rows[0]) return ApiErrors.notFound(requestId, 'No encontrado')
-  await softDeleteStorageAsset(sql, {
-    userId: authedUser.id,
-    domain: 'pdf-studio-templates',
-    provider: 'netlify-blobs',
-    storageKey: rows[0].storage_key,
-  })
+  const head = rows.find((row) => row.kind === 'head')
+  if (!head) return ApiErrors.notFound(requestId, 'No encontrado')
+  for (const row of rows) {
+    if (row.kind === 'version') {
+      await createNetlifyBlobStorageAdapter(STORE)
+        .delete(row.storage_key)
+        .catch(() => {})
+    }
+    await softDeleteStorageAsset(sql, {
+      userId: authedUser.id,
+      domain: 'pdf-studio-templates',
+      provider: 'netlify-blobs',
+      storageKey: row.storage_key,
+    })
+  }
   return new Response(null, { status: 204 })
 }
 

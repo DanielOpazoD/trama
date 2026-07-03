@@ -210,11 +210,15 @@ describe('pdf-studio templates endpoint', () => {
     expect(await download.json()).toEqual({ version: 1 })
   })
 
-  it('borra con soft delete scoping por usuario y baja el manifiesto', async () => {
+  it('borra con soft delete scoping por usuario y limpia historial y manifiesto', async () => {
     mockSqlResponses.push(
       [],
-      [{ id: 'remote-1', storage_key: 'legacy-single-user/local-1.json' }],
+      [
+        { kind: 'head', storage_key: 'legacy-single-user/local-1.json' },
+        { kind: 'version', storage_key: 'legacy-single-user/local-1/old.json' },
+      ],
       [{ id: 'asset-1' }],
+      [{ id: 'asset-2' }],
     )
 
     const res = await handler(
@@ -232,16 +236,14 @@ describe('pdf-studio templates endpoint', () => {
     expect(update?.template).toMatch(/pdf_studio_template_versions/i)
     expect(update?.template).toMatch(/user_id =/i)
     expect(update?.template).toMatch(/deleted_at IS NULL/i)
-    const manifestUpdate = mockSqlState.calls.find((call) =>
+    const manifestUpdates = mockSqlState.calls.filter((call) =>
       /UPDATE storage_assets/i.test(call.template),
     )
-    expect(manifestUpdate?.values).toEqual(
-      expect.arrayContaining([
-        'legacy-single-user',
-        'pdf-studio-templates',
-        'netlify-blobs',
-        'legacy-single-user/local-1.json',
-      ]),
+    expect(manifestUpdates).toHaveLength(2)
+    expect(manifestUpdates[0]?.values).toEqual(
+      expect.arrayContaining(['legacy-single-user', 'legacy-single-user/local-1.json']),
     )
+    // El paquete histórico se borra de verdad del store (contenido privado).
+    expect(blobMocks.delete).toHaveBeenCalledWith('legacy-single-user/local-1/old.json')
   })
 })

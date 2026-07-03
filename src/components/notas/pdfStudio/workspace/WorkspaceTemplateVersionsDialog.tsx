@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { PdfStudioTemplateVersion } from '../../../../api/pdfStudioTemplates'
 import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
 import { useModalOverlay } from '../../../../hooks/useModalOverlay'
@@ -29,36 +29,51 @@ export function WorkspaceTemplateVersionsDialog({
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  // La identidad de templateCloud cambia por render del workspace: vía ref
+  // el efecto de carga corre una sola vez por plantilla.
+  const cloudRef = useRef(templateCloud)
+  cloudRef.current = templateCloud
+  const aliveRef = useRef(true)
 
   useEffect(() => {
-    let alive = true
-    templateCloud
+    aliveRef.current = true
+    cloudRef.current
       .listTemplateVersions(saved)
       .then((list) => {
-        if (alive) setVersions(list)
+        if (aliveRef.current) setVersions(list)
       })
       .catch(() => {
-        if (alive) setError('No pudimos cargar el historial. Revisa tu conexión.')
+        if (aliveRef.current) {
+          setError('No pudimos cargar el historial. Revisa tu conexión.')
+        }
       })
     return () => {
-      alive = false
+      aliveRef.current = false
     }
-  }, [saved, templateCloud])
+  }, [saved])
 
   async function restore(version: PdfStudioTemplateVersion) {
     setBusyId(version.id)
     setFeedback(null)
     try {
-      const ok = await templateCloud.restoreTemplateVersion(saved, version.id)
+      const ok = await cloudRef.current.restoreTemplateVersion(saved, version.id)
+      if (!aliveRef.current) return
       setFeedback(
         ok
           ? `Restaurada la versión del ${workspaceTemplateSavedAtLabel(Date.parse(version.savedAt))}.`
           : 'No se pudo restaurar esa versión.',
       )
+      if (ok) {
+        // El estado reemplazado acaba de entrar al historial: refrescar.
+        const list = await cloudRef.current.listTemplateVersions(saved).catch(() => null)
+        if (aliveRef.current && list) setVersions(list)
+      }
     } catch {
-      setFeedback('No se pudo restaurar esa versión. Revisa tu conexión.')
+      if (aliveRef.current) {
+        setFeedback('No se pudo restaurar esa versión. Revisa tu conexión.')
+      }
     } finally {
-      setBusyId(null)
+      if (aliveRef.current) setBusyId(null)
     }
   }
 
