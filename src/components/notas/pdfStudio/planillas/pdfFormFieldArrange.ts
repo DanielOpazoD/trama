@@ -83,7 +83,8 @@ export function alignFormFields(
 }
 
 /** Iguala ancho o alto de la selección al casillero de referencia (el activo:
- *  último seleccionado). El tamaño se acota para no salirse de la página. */
+ *  último de `ids`, que llegan en orden de selección). El tamaño se acota para
+ *  no salirse de la página. */
 export function matchFormFieldsSize(
   fields: PdfFormFieldDraft[],
   ids: string[],
@@ -93,7 +94,8 @@ export function matchFormFieldsSize(
   const { selectedIds, selected } = selectedFields(fields, ids)
   if (selected.length < 2) return fields
   const reference =
-    selected.find((field) => field.id === referenceId) ?? selected[selected.length - 1]!
+    selected.find((field) => field.id === (referenceId ?? ids[ids.length - 1])) ??
+    selected[selected.length - 1]!
 
   let changed = false
   const next = fields.map((field) => {

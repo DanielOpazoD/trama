@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import type { PdfFormFieldAlign } from '../../../../lib/pdfStudio/model/model'
+import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
+import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldArrange'
 import { COLORS, focusRing } from '../editor/EditorToolbarPrimitives'
 
 /** Piezas presentacionales del inspector de casilleros: etiquetas de sección,
@@ -125,12 +127,10 @@ export function InspectorArrangeSection({
   onMatchFieldSizes,
 }: {
   count: number
-  onAlignFields: (
-    alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom',
-  ) => void
-  onDistributeFields: (axis: 'x' | 'y') => void
+  onAlignFields: (alignment: FormFieldAlignment) => void
+  onDistributeFields: (axis: AnnotationDistributionAxis) => void
   onDuplicateFields: () => void
-  onMatchFieldSizes: (dimension: 'width' | 'height') => void
+  onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
 }) {
   return (
     <>

@@ -100,6 +100,16 @@ describe('pdfFormFieldArrange', () => {
     expect(heights[1]).toMatchObject({ hRatio: 0.09 })
   })
 
+  it('sin referencia explícita iguala al último SELECCIONADO, no al último del array', () => {
+    // 'a' es el último en selección pero el primero en el array de campos.
+    const fields = [field('a', 0.1, 0.1, 0.25), field('b', 0.4, 0.2, 0.1)]
+
+    const widths = matchFormFieldsSize(fields, ['b', 'a'], 'width')
+
+    expect(widths[0]).toMatchObject({ wRatio: 0.25 })
+    expect(widths[1]).toMatchObject({ wRatio: 0.25 })
+  })
+
   it('al igualar acota el tamaño para no salirse de la página', () => {
     const fields = [field('a', 0.9, 0.1, 0.05), field('b', 0.1, 0.2, 0.5)]
 
