@@ -1,5 +1,6 @@
 import type { Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './db.js'
+import { withObservability } from './handler-wrap.js'
 import { ApiErrors } from './api-error.js'
 import { getAuthedUser } from './auth.js'
 import { ensureUserRow } from './user-provisioning.js'
@@ -375,7 +376,7 @@ async function handleDelete(req: Request, context: Context, requestId: string) {
   return new Response(null, { status: 204 })
 }
 
-export async function handlePdfStudioTemplates(
+async function handlePdfStudioTemplates(
   req: Request,
   context: Context,
   requestId: string,
@@ -390,3 +391,9 @@ export async function handlePdfStudioTemplates(
   if (req.method === 'DELETE') return handleDelete(req, context, requestId)
   return ApiErrors.methodNotAllowed(requestId)
 }
+
+export default withObservability(
+  'pdf-studio-templates',
+  async (req: Request, context: Context, { requestId }) =>
+    handlePdfStudioTemplates(req, context, requestId),
+)

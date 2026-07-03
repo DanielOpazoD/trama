@@ -1,12 +1,6 @@
-import type { Config, Context } from '@netlify/functions'
-import { withObservability } from './_lib/handler-wrap.js'
-import { handlePdfStudioTemplates } from './_lib/pdf-studio-templates-endpoint.js'
+import type { Config } from '@netlify/functions'
 
-export default withObservability(
-  'pdf-studio-templates',
-  async (req: Request, context: Context, { requestId }) =>
-    handlePdfStudioTemplates(req, context, requestId),
-)
+import handler from './_lib/pdf-studio-templates-endpoint.js'
 
 export const config: Config = {
   path: [
@@ -16,3 +10,5 @@ export const config: Config = {
     '/api/pdf-studio-templates/:id/versions/:versionId',
   ],
 }
+
+export default handler
