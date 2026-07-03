@@ -1,4 +1,5 @@
 import type { PDFDocument, PDFImage, PDFPage } from 'pdf-lib'
+import { createPdfFontResolver } from '../assemble/assembleFontResolver'
 import { dataUrlToBytes, isPngBytes } from '../assemble/assembleImages'
 import { FORM_FIELD_EMPTY_HINT } from './formFieldConstants'
 import {
@@ -7,7 +8,7 @@ import {
   type RgbTuple,
 } from './formFieldAppearance'
 import type { PdfFormFieldAlign, PdfFormFieldDraft } from '../model/model'
-import { loadPdfLib } from '../pdfRuntime/pdfLibLoader'
+import { loadPdfFontkit, loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 
 const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
 
@@ -386,6 +387,10 @@ export async function writePdfFormFields(
 ): Promise<PdfFormFillResult> {
   const { pdf, runtime } = await loadPdf(file, operationOptions)
   const form = pdf.getForm()
+  // Las fuentes del casillero exportan de verdad (Inter/Spectral/Caveat
+  // embebidas con fallback estándar), igual que las anotaciones de texto.
+  pdf.registerFontkit(await loadPdfFontkit())
+  const resolveFont = createPdfFontResolver(pdf)
   const font = await pdf.embedFont(runtime.StandardFonts.Helvetica)
   throwIfAborted(operationOptions.signal)
   const existingNames = new Set(form.getFields().map((field) => field.getName()))
@@ -438,12 +443,17 @@ export async function writePdfFormFields(
       field.setText(formTextValue(draft.value))
       if (appearance.align)
         field.setAlignment(textAlignmentFor(appearance.align, runtime))
-      field.addToPage(page, { ...rect, font })
+      const fieldFont = await resolveFont(draft.font ?? 'sans', draft.bold ?? false)
+      field.addToPage(page, { ...rect, font: fieldFont })
       field.setFontSize(fontSizeForField(draft, page))
       clearWidgetChrome(field, runtime, {
         ...keepBackground,
         border: !appearance.borderColor,
       })
+      // Con el chrome ya definitivo, regenera la apariencia con la fuente del
+      // casillero y marca el campo limpio: sin esto, save() la reharía con la
+      // Helvetica default del formulario.
+      field.updateAppearances(fieldFont)
     }
     writtenNames.add(draft.name)
   }

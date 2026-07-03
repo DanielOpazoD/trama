@@ -216,6 +216,67 @@ describe('pdfStudio/pdfForms', () => {
     expect(widget?.getBorderStyle()?.getWidth() ?? 1).toBeGreaterThan(0)
   })
 
+  it('exporta la fuente y negrita del casillero (embebida, no Helvetica fija)', async () => {
+    const pdf = await PDFDocument.create()
+    pdf.addPage([600, 800])
+    const bytes = await pdf.save()
+    const base = new File([bytes as BlobPart], 'base.pdf', { type: 'application/pdf' })
+    const pageId = 'page-1'
+    const box = { xRatio: 0.1, wRatio: 0.4, hRatio: 0.05 }
+
+    const { blob } = await writePdfFormFields(
+      base,
+      [
+        makePdfFormFieldDraft({
+          fieldKind: 'text',
+          pageId,
+          name: 'manuscrita',
+          value: 'Firma',
+          yRatio: 0.1,
+          font: 'script',
+          ...box,
+        }),
+        makePdfFormFieldDraft({
+          fieldKind: 'text',
+          pageId,
+          name: 'negrita',
+          value: 'Fuerte',
+          yRatio: 0.2,
+          bold: true,
+          ...box,
+        }),
+        makePdfFormFieldDraft({
+          fieldKind: 'text',
+          pageId,
+          name: 'mono',
+          value: 'Código',
+          yRatio: 0.3,
+          font: 'mono',
+          ...box,
+        }),
+      ],
+      [pageId],
+      { flatten: false },
+    )
+
+    const loaded = await PDFDocument.load(await blob.arrayBuffer())
+    const form = loaded.getForm()
+    const defaultAppearance = (name: string) =>
+      form.getTextField(name).acroField.getDefaultAppearance() ?? ''
+
+    // En vitest no hay servidor para el fetch del woff, así que el resolver cae
+    // a las estándar (en navegador embebe Inter/Caveat, mismo resolver que el
+    // export de anotaciones). Lo que fija este test es el cableado por campo:
+    // fuente y negrita del casillero llegan a la DA, ya no Helvetica fija.
+    expect(defaultAppearance('manuscrita')).toContain('Helvetica-Oblique')
+    expect(defaultAppearance('negrita')).toContain('Helvetica-Bold')
+    expect(defaultAppearance('mono')).toContain('Courier')
+    // El contrato de chrome transparente se conserva con fuente embebida.
+    const widget = form.getTextField('manuscrita').acroField.getWidgets()[0]
+    expect(widget?.MK()?.has(PDFName.of('BG'))).toBe(false)
+    expect(widget?.getBorderStyle()?.getWidth()).toBe(0)
+  })
+
   it('no exporta el texto estándar de casilleros vacíos como contenido real', async () => {
     const pdf = await PDFDocument.create()
     pdf.addPage([600, 800])
