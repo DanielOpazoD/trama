@@ -53,6 +53,7 @@ export function usePdfTextEditorForms({
   )
   const formClipboardRef = useRef<PdfFormFieldDraft[]>([])
   const {
+    selectAdjacentDraftFormField,
     selectDraftFormField,
     selectDraftFormFieldsInBox,
     selectedDraftFormFields,
@@ -62,6 +63,7 @@ export function usePdfTextEditorForms({
   } = usePdfTextEditorFormSelection({
     fields: formFields,
     pageId: page?.id ?? null,
+    pageIndexById: Object.fromEntries(doc.pages.map((p, index) => [p.id, index])),
     setEditingId,
     setSelectedId,
   })
@@ -241,6 +243,7 @@ export function usePdfTextEditorForms({
     quickPlaceDraftFormField,
     patchSelectedDraftFormFields,
     rememberFieldStyleDefaults,
+    selectAdjacentDraftFormField,
     selectedDraftFormField:
       formFields.find((field) => field.id === selectedFormFieldId) ?? null,
     selectedDraftFormFields,

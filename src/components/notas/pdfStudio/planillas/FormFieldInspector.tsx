@@ -1,4 +1,8 @@
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import type {
   PdfFormFieldDraft,
   PdfFormValue,
@@ -10,18 +14,23 @@ import { focusRing } from '../editor/EditorToolbarPrimitives'
 import { formFieldTextStyle, type FormFieldVisualPatch } from './pdfFormFieldStyle'
 import type { FormFieldPresetKey } from './pdfFormFieldPresets'
 import {
+  InspectorAdvancedSection,
   InspectorAlignRow,
   InspectorArrangeSection,
+  InspectorColorPreview,
+  InspectorDisclosure,
   InspectorHeader,
-  InspectorLabel,
   InspectorPresetRow,
   InspectorSwatchRow,
   InspectorToolButton,
 } from './FormFieldInspectorSections'
 
-const SIZE_STEP = 0.005
-const SIZE_MIN = 0.015
-const SIZE_MAX = 0.12
+/** Tamaño de letra en puntos (alto carta = 792 pt): pasos de 1 pt y entrada exacta. */
+const PAGE_PT = 792
+const PT_MIN = 6
+const PT_MAX = 96
+
+type InspectorSection = 'color' | 'bg' | 'border' | 'presets' | 'advanced'
 
 function valueAsText(value: PdfFormValue): string {
   if (typeof value === 'string') return value
@@ -32,9 +41,9 @@ function valueAsText(value: PdfFormValue): string {
 const fieldInput = `h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption text-ink-800 outline-none ${focusRing}`
 
 /**
- * Inspector de la selección de casilleros (uno o varios). Con selección
- * múltiple, los cambios de estilo/flags aplican a todos; variable y valor
- * inicial solo se editan de a uno.
+ * Inspector de la selección de casilleros (uno o varios). Lo esencial queda a
+ * la vista (variable, valor, tamaño, alineación); colores, presets y opciones
+ * avanzadas viven en filas plegables para que el panel respire.
  */
 export function FormFieldInspector({
   fields,
@@ -48,6 +57,7 @@ export function FormFieldInspector({
   onDragHandlePointerDown,
   onDuplicateFields,
   onMatchFieldSizes,
+  onNavigate,
   onPatchSelection,
   onRememberStyle,
   onRename,
@@ -66,15 +76,18 @@ export function FormFieldInspector({
   onDragHandlePointerDown?: (event: ReactPointerEvent<HTMLElement>) => void
   onDuplicateFields: () => void
   onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
+  onNavigate?: (direction: 1 | -1) => void
   onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
   onRememberStyle?: () => void
   onRename: (name: string) => void
   onValueChange: (value: string | boolean) => void
 }) {
+  const [openSection, setOpenSection] = useState<InspectorSection | null>(null)
   const active = fields[fields.length - 1]
   if (!active) return null
   const multi = fields.length > 1
   const activeText = formFieldTextStyle(active)
+  const activePt = Math.round(activeText.sizeRatio * PAGE_PT)
   const canEditValue =
     !multi &&
     (active.fieldKind === 'text' ||
@@ -83,8 +96,10 @@ export function FormFieldInspector({
   const hasTextControls = fields.some(
     (field) => field.fieldKind === 'text' || field.fieldKind === 'date',
   )
-  const stepSize = (delta: number) =>
-    onApplyStyle({ sizeRatio: clamp(activeText.sizeRatio + delta, SIZE_MIN, SIZE_MAX) })
+  const setPt = (pt: number) =>
+    onApplyStyle({ sizeRatio: clamp(Math.round(pt), PT_MIN, PT_MAX) / PAGE_PT })
+  const toggle = (section: InspectorSection) =>
+    setOpenSection((current) => (current === section ? null : section))
 
   return (
     <aside
@@ -93,13 +108,14 @@ export function FormFieldInspector({
         multi ? 'Inspector de casilleros seleccionados' : 'Inspector de casillero'
       }
       style={dragStyle}
-      className="absolute right-3 top-28 z-30 max-h-[calc(100vh-9rem)] w-[17rem] overflow-y-auto rounded-xl border border-ink-100 bg-paper-50/95 p-2.5 shadow-xl shadow-ink-900/15 backdrop-blur-md"
+      className="fixed right-6 top-28 z-[70] max-h-[calc(100vh-9rem)] w-[17rem] overflow-y-auto rounded-xl border border-ink-100 bg-paper-50/95 p-2.5 shadow-xl shadow-ink-900/15 backdrop-blur-md"
     >
       <InspectorHeader
         count={fields.length}
         kind={active.fieldKind}
         onDelete={onDelete}
         onDragHandlePointerDown={onDragHandlePointerDown}
+        onNavigate={onNavigate}
       />
 
       {!multi && (
@@ -128,27 +144,30 @@ export function FormFieldInspector({
         </label>
       )}
 
-      {hasTextControls && <InspectorPresetRow onApplyPreset={onApplyPreset} />}
-
       {hasTextControls && (
         <>
-          <InspectorLabel>Texto</InspectorLabel>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="mt-2 grid grid-cols-4 gap-1.5">
             <InspectorToolButton
               label="Reducir tamaño de letra"
-              onClick={() => stepSize(-SIZE_STEP)}
+              onClick={() => setPt(activePt - 1)}
             >
               A−
             </InspectorToolButton>
-            <span
-              aria-label="Tamaño de letra actual"
-              className="inline-flex h-8 items-center justify-center text-caption tabular-nums text-ink-600"
-            >
-              {Math.round(activeText.sizeRatio * 792)}
-            </span>
+            <input
+              type="number"
+              aria-label="Tamaño de letra en puntos"
+              value={activePt}
+              min={PT_MIN}
+              max={PT_MAX}
+              onChange={(event) => {
+                const pt = Number(event.currentTarget.value)
+                if (Number.isFinite(pt) && pt > 0) setPt(pt)
+              }}
+              className={`h-8 rounded-md border border-ink-100 bg-paper-50 px-1 text-center text-caption tabular-nums text-ink-700 outline-none ${focusRing}`}
+            />
             <InspectorToolButton
               label="Aumentar tamaño de letra"
-              onClick={() => stepSize(SIZE_STEP)}
+              onClick={() => setPt(activePt + 1)}
             >
               A+
             </InspectorToolButton>
@@ -166,57 +185,62 @@ export function FormFieldInspector({
               onAlign={(align) => onApplyVisual({ align })}
             />
           </div>
-          <InspectorSwatchRow
+          <InspectorDisclosure
             label="Color de texto"
-            activeColor={active.color}
-            clearLabel="Color de texto por defecto"
-            onClear={() => onApplyVisual({ color: null })}
-            onSelect={(hex) => onApplyVisual({ color: hex })}
-          />
+            open={openSection === 'color'}
+            preview={<InspectorColorPreview color={active.color} />}
+            onToggle={() => toggle('color')}
+          >
+            <InspectorSwatchRow
+              label="Color de texto"
+              activeColor={active.color}
+              clearLabel="Color de texto por defecto"
+              onClear={() => onApplyVisual({ color: null })}
+              onSelect={(hex) => onApplyVisual({ color: hex })}
+            />
+          </InspectorDisclosure>
         </>
       )}
 
-      <InspectorSwatchRow
+      <InspectorDisclosure
         label="Fondo"
-        activeColor={active.bgColor}
-        clearLabel="Sin fondo"
-        onClear={() => onApplyVisual({ bgColor: null })}
-        onSelect={(hex) => onApplyVisual({ bgColor: hex })}
-      />
-      <InspectorSwatchRow
+        open={openSection === 'bg'}
+        preview={<InspectorColorPreview color={active.bgColor} />}
+        onToggle={() => toggle('bg')}
+      >
+        <InspectorSwatchRow
+          label="Fondo"
+          activeColor={active.bgColor}
+          clearLabel="Sin fondo"
+          onClear={() => onApplyVisual({ bgColor: null })}
+          onSelect={(hex) => onApplyVisual({ bgColor: hex })}
+        />
+      </InspectorDisclosure>
+      <InspectorDisclosure
         label="Borde"
-        activeColor={active.borderColor}
-        clearLabel="Sin borde"
-        onClear={() => onApplyVisual({ borderColor: null })}
-        onSelect={(hex) => onApplyVisual({ borderColor: hex })}
-      />
+        open={openSection === 'border'}
+        preview={<InspectorColorPreview color={active.borderColor} />}
+        onToggle={() => toggle('border')}
+      >
+        <InspectorSwatchRow
+          label="Borde"
+          activeColor={active.borderColor}
+          clearLabel="Sin borde"
+          onClear={() => onApplyVisual({ borderColor: null })}
+          onSelect={(hex) => onApplyVisual({ borderColor: hex })}
+        />
+      </InspectorDisclosure>
 
-      <div className="mt-2 grid gap-1.5 text-caption text-ink-600">
-        <label htmlFor="form-field-required" className="flex items-center gap-2">
-          <input
-            id="form-field-required"
-            type="checkbox"
-            checked={active.required ?? false}
-            onChange={(event) =>
-              onPatchSelection({ required: event.currentTarget.checked })
-            }
-            className="accent-[color:var(--accent-sage)]"
-          />
-          Requerido
-        </label>
-        <label htmlFor="form-field-read-only" className="flex items-center gap-2">
-          <input
-            id="form-field-read-only"
-            type="checkbox"
-            checked={active.readOnly ?? false}
-            onChange={(event) =>
-              onPatchSelection({ readOnly: event.currentTarget.checked })
-            }
-            className="accent-[color:var(--accent-sage)]"
-          />
-          Solo lectura
-        </label>
-      </div>
+      {hasTextControls && (
+        <InspectorDisclosure
+          label="Presets"
+          hint="Estilos completos de un clic"
+          open={openSection === 'presets'}
+          onToggle={() => toggle('presets')}
+        >
+          <InspectorPresetRow onApplyPreset={onApplyPreset} />
+        </InspectorDisclosure>
+      )}
 
       {multi && (
         <InspectorArrangeSection
@@ -228,15 +252,19 @@ export function FormFieldInspector({
         />
       )}
 
-      {!multi && active.fieldKind === 'text' && onRememberStyle && (
-        <button
-          type="button"
-          onClick={onRememberStyle}
-          className={`mt-2 w-full rounded-md border border-dashed border-[color:var(--accent-sage)]/50 px-2 py-1.5 text-caption font-medium text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)]/50 ${focusRing}`}
-        >
-          Usar como estilo de nuevos casilleros
-        </button>
-      )}
+      <InspectorDisclosure
+        label="Avanzado"
+        open={openSection === 'advanced'}
+        onToggle={() => toggle('advanced')}
+      >
+        <InspectorAdvancedSection
+          required={active.required ?? false}
+          readOnly={active.readOnly ?? false}
+          showRememberStyle={!multi && active.fieldKind === 'text'}
+          onPatchSelection={onPatchSelection}
+          onRememberStyle={onRememberStyle}
+        />
+      </InspectorDisclosure>
     </aside>
   )
 }

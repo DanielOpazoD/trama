@@ -110,7 +110,11 @@ export function PdfTextEditor({
   const stampInputRef = useRef<HTMLInputElement>(null)
   const backdropDownRef = useRef<{ x: number; y: number } | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, true)
+  // El inspector flotante vive portaleado al body (se puede arrastrar fuera
+  // del modal): el focus trap lo cuenta como parte del editor.
+  const floatingToolsRef = useRef<HTMLDivElement>(null)
+  const focusTrapRoots = useRef([floatingToolsRef]).current
+  useFocusTrap(dialogRef, true, focusTrapRoots)
   useEffect(() => {
     dialogRef.current?.focus()
     // Calienta las fuentes del menú de estilo. Caveat ("Manuscrita") puede no
@@ -230,6 +234,7 @@ export function PdfTextEditor({
     placePendingFormField,
     quickPlaceDraftFormField,
     rememberFieldStyleDefaults,
+    selectAdjacentDraftFormField,
     selectedDraftFormField,
     selectedDraftFormFields,
     saveSignatureDataUrl,
@@ -469,6 +474,7 @@ export function PdfTextEditor({
         ) : null}
         <PdfTextEditorFloatingFormTools
           fields={fillMode ? [] : selectedDraftFormFields}
+          portalHostRef={floatingToolsRef}
           signatureField={signatureField}
           onAlignFields={alignDraftFormFields}
           onApplyPreset={applyDraftFieldPreset}
@@ -479,6 +485,10 @@ export function PdfTextEditor({
           onDistributeFields={distributeDraftFormFields}
           onDuplicateFields={duplicateSelectedDraftFormFields}
           onMatchFieldSizes={matchDraftFormFieldSizes}
+          onNavigateFields={(direction) => {
+            const next = selectAdjacentDraftFormField(direction)
+            if (next) activatePage(pageIndexById[next.pageId] ?? 0)
+          }}
           onPatchField={patchDraftFormField}
           onPatchSelection={patchSelectedDraftFormFields}
           onRememberStyle={rememberFieldStyleDefaults}
