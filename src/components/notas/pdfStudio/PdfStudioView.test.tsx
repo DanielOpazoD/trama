@@ -75,6 +75,7 @@ vi.mock('../../../lib/pdfStudio/render/persistence', () => ({
     (saved.kind ??
       ((saved.doc.formFields?.length ?? 0) > 0 ? 'template' : 'creation')) === 'template',
   isSavedFilledTemplate: (saved: { kind?: string }) => saved.kind === 'filled-template',
+  savedTemplateStatus: (saved: { status?: 'draft' | 'ready' }) => saved.status ?? 'ready',
 }))
 vi.mock('../../../api/pdfStudioSavedPdfs', () => ({
   uploadPdfStudioSavedPdf: mocks.uploadPdfStudioSavedPdf,

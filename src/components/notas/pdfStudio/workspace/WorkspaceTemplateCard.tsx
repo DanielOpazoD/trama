@@ -1,21 +1,20 @@
-import { useRef } from 'react'
-import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
+import { useRef, useState } from 'react'
 import {
-  DownloadIcon,
-  DuplicateIcon,
-  FilePdfIcon,
-  PencilIcon,
-  TrashIcon,
-} from '../../../Icons'
-import { OverflowMenu, OverflowMenuItem } from '../../../OverflowMenu'
+  savedTemplateStatus,
+  type SavedDoc,
+} from '../../../../lib/pdfStudio/render/persistence'
+import { PencilIcon } from '../../../Icons'
+import { WorkspaceTemplateCardMenu } from './WorkspaceTemplateCardMenu'
+import {
+  WorkspaceTemplateDetails,
+  WorkspaceTemplateStatusBadge,
+  type SavedTemplateMetaPatch,
+} from './WorkspaceTemplateDetails'
 import { WorkspaceTemplateThumb } from './WorkspaceTemplateThumb'
 import {
   workspaceTemplateFieldCountLabel,
   workspaceTemplateSavedAtLabel,
 } from './workspaceTemplateCardModel'
-
-const rowBtn =
-  'touch-target inline-flex h-6 w-6 items-center justify-center rounded text-ink-400 hover:text-ink-800 hover:bg-ink-100/60 transition-colors'
 
 export function WorkspaceTemplateCard({
   saved,
@@ -27,6 +26,8 @@ export function WorkspaceTemplateCard({
   onUseTemplate,
   onEditStructure,
   onDuplicate,
+  onDuplicateAndEdit,
+  onUpdateMeta,
   onDelete,
   onDownloadPdf,
   onExportJson,
@@ -41,6 +42,8 @@ export function WorkspaceTemplateCard({
   onUseTemplate: () => void
   onEditStructure: () => void
   onDuplicate: () => void
+  onDuplicateAndEdit: () => void
+  onUpdateMeta: (meta: SavedTemplateMetaPatch) => void
   onDelete: () => void
   onDownloadPdf: () => void
   onExportJson: () => void
@@ -48,6 +51,7 @@ export function WorkspaceTemplateCard({
 }) {
   const isRenaming = renameValue !== null
   const skipBlurConfirmRef = useRef(false)
+  const [editingDetails, setEditingDetails] = useState(false)
 
   return (
     <li className="group rounded-md border border-ink-100 bg-paper-50/70 p-1.5 shadow-[0_1px_2px_rgba(31,28,24,0.04)] transition-colors hover:border-ink-200">
@@ -81,8 +85,11 @@ export function WorkspaceTemplateCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start gap-1">
               <div className="min-w-0 flex-1">
-                <span className="block truncate text-caption font-medium text-ink-700">
-                  {saved.name}
+                <span className="flex items-center gap-1.5">
+                  <span className="min-w-0 truncate text-caption font-medium text-ink-700">
+                    {saved.name}
+                  </span>
+                  <WorkspaceTemplateStatusBadge status={savedTemplateStatus(saved)} />
                 </span>
                 <span className="block text-micro text-ink-400 tabular-nums">
                   {workspaceTemplateFieldCountLabel(saved.doc)} · {saved.doc.pages.length}{' '}
@@ -90,74 +97,25 @@ export function WorkspaceTemplateCard({
                   {workspaceTemplateSavedAtLabel(saved.savedAt)}
                 </span>
               </div>
-              <OverflowMenu
-                label={`Más acciones de ${saved.name}`}
-                width="w-52"
-                triggerClassName={rowBtn}
-              >
-                {(close) => (
-                  <>
-                    <OverflowMenuItem
-                      onClick={() => {
-                        close()
-                        onDuplicate()
-                      }}
-                    >
-                      <DuplicateIcon size={14} />
-                      Duplicar
-                    </OverflowMenuItem>
-                    <OverflowMenuItem
-                      onClick={() => {
-                        close()
-                        onStartRename()
-                      }}
-                    >
-                      <PencilIcon size={14} />
-                      Renombrar
-                    </OverflowMenuItem>
-                    <div className="my-1 border-t border-ink-100" />
-                    <OverflowMenuItem
-                      onClick={() => {
-                        close()
-                        onDownloadPdf()
-                      }}
-                    >
-                      <FilePdfIcon size={14} />
-                      Descargar PDF editable
-                    </OverflowMenuItem>
-                    <OverflowMenuItem
-                      onClick={() => {
-                        close()
-                        onExportJson()
-                      }}
-                    >
-                      <DownloadIcon size={14} />
-                      Exportar JSON
-                    </OverflowMenuItem>
-                    <OverflowMenuItem
-                      onClick={() => {
-                        close()
-                        onExportCsv()
-                      }}
-                    >
-                      <DownloadIcon size={14} />
-                      Exportar CSV
-                    </OverflowMenuItem>
-                    <div className="my-1 border-t border-ink-100" />
-                    <OverflowMenuItem
-                      danger
-                      onClick={() => {
-                        close()
-                        onDelete()
-                      }}
-                    >
-                      <TrashIcon size={14} />
-                      Eliminar
-                    </OverflowMenuItem>
-                  </>
-                )}
-              </OverflowMenu>
+              <WorkspaceTemplateCardMenu
+                saved={saved}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onDuplicateAndEdit={onDuplicateAndEdit}
+                onDownloadPdf={onDownloadPdf}
+                onEditDetails={() => setEditingDetails(true)}
+                onExportCsv={onExportCsv}
+                onExportJson={onExportJson}
+                onStartRename={onStartRename}
+              />
             </div>
+
+            <WorkspaceTemplateDetails
+              saved={saved}
+              editing={editingDetails}
+              onCloseEdit={() => setEditingDetails(false)}
+              onUpdateMeta={onUpdateMeta}
+            />
 
             <div className="mt-1.5 grid grid-cols-[1fr_auto] gap-1">
               <button

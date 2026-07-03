@@ -64,6 +64,13 @@ export function PdfStudioWorkspacePanel({
       onDeleteSaved={workspace.removeSaved}
       onDownloadSaved={downloadSaved}
       onDuplicateSaved={workspace.duplicateSaved}
+      onDuplicateAndEditSaved={(saved) => {
+        // Crear una planilla nueva desde una existente: duplica y abre la copia.
+        const copy = workspace.duplicateSaved(saved)
+        onOpenSavedWithMode(copy)
+        setTextPage(0)
+      }}
+      onUpdateSavedMeta={workspace.updateSavedMeta}
       onExportTemplatePackage={workspace.exportTemplatePackage}
       onToggleCollapsed={() => workspace.setPanelCollapsed((collapsed) => !collapsed)}
     />

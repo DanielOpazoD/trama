@@ -3,6 +3,7 @@ import type {
   SavedFolder,
   SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
+import type { SavedTemplateMetaPatch } from '../workspace/WorkspaceTemplateDetails'
 import { WorkspacePanel } from '../workspace/WorkspacePanel'
 
 export function PdfStudioWorkspacePanelHost({
@@ -18,6 +19,8 @@ export function PdfStudioWorkspacePanelHost({
   onCreateFolder,
   onDeleteFolder,
   onDuplicateSaved,
+  onDuplicateAndEditSaved,
+  onUpdateSavedMeta,
   onExportTemplatePackage,
   onOpenSaved,
   onRenameFolder,
@@ -43,6 +46,8 @@ export function PdfStudioWorkspacePanelHost({
   onCreateFolder: (input: { name: string; color: SavedFolderColor }) => void
   onDeleteFolder: (id: string) => void
   onDuplicateSaved: (saved: SavedDoc) => void
+  onDuplicateAndEditSaved: (saved: SavedDoc) => void
+  onUpdateSavedMeta: (id: string, meta: SavedTemplateMetaPatch) => void
   onExportTemplatePackage: (saved: SavedDoc, format: 'json' | 'csv') => void
   onOpenSaved: (saved: SavedDoc) => void
   onRenameFolder: (id: string, name: string) => void
@@ -93,6 +98,8 @@ export function PdfStudioWorkspacePanelHost({
           onOpenSaved={onOpenSaved}
           onUseTemplate={onUseTemplate}
           onDuplicateSaved={onDuplicateSaved}
+          onDuplicateAndEditSaved={onDuplicateAndEditSaved}
+          onUpdateSavedMeta={onUpdateSavedMeta}
           onRenameSaved={onRenameSaved}
           onMoveSavedToFolder={onMoveSavedToFolder}
           onDeleteSaved={onDeleteSaved}

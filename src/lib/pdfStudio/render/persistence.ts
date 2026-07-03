@@ -32,6 +32,9 @@ export type Draft = { doc: PdfDoc; library: ImageAsset[] }
 /** Una creación GUARDADA: snapshot con nombre del documento, que perdura aparte del
  *  borrador de trabajo (se puede re-abrir para editar, descargar/imprimir, borrar). */
 export type SavedDocKind = 'creation' | 'template' | 'filled-template'
+/** Estado de biblioteca de una plantilla. Sin valor = 'ready': las plantillas
+ *  guardadas antes de este campo ya estaban en uso y no se degradan a borrador. */
+export type SavedTemplateStatus = 'draft' | 'ready'
 export type SavedDoc = {
   id: string
   name: string
@@ -39,11 +42,21 @@ export type SavedDoc = {
   savedAt: number
   kind?: SavedDocKind
   folderId?: string | null
+  /** Metadatos de biblioteca (opcionales: los registros viejos no los traen). */
+  description?: string
+  tags?: string[]
+  status?: SavedTemplateStatus
   serverPdf?: {
     id: string
     uploadedAt: string
     byteSize?: number
   }
+}
+
+export function savedTemplateStatus(
+  saved: Pick<SavedDoc, 'status'>,
+): SavedTemplateStatus {
+  return saved.status ?? 'ready'
 }
 type SavedRecord = SavedDoc & { userKey: string }
 export type SavedFolderColor = 'blue' | 'green' | 'orange' | 'purple' | 'slate'

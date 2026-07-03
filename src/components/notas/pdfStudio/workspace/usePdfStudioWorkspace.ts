@@ -203,7 +203,7 @@ export function usePdfStudioWorkspace({
     toast.show({ message: `Copia con datos "${s.name}" guardada.`, tone: 'success' })
   }
 
-  function duplicateSaved(s: SavedDoc) {
+  function duplicateSaved(s: SavedDoc): SavedDoc {
     const name = uniqueCopyName(s.name, saved)
     const copy: SavedDoc = {
       id: crypto.randomUUID(),
@@ -211,10 +211,16 @@ export function usePdfStudioWorkspace({
       doc: normalizeDoc(clearPdfFormFieldValues(s.doc)),
       savedAt: Date.now(),
       kind: 'template',
+      // La copia hereda los metadatos pero nace como borrador: es una plantilla
+      // derivada que todavía no está lista para usar.
+      ...(s.description ? { description: s.description } : null),
+      ...(s.tags?.length ? { tags: [...s.tags] } : null),
+      status: 'draft',
     }
     setSaved((list) => [copy, ...list])
     void putSavedDoc(userKey, copy)
     toast.show({ message: `Planilla duplicada como "${name}".`, tone: 'success' })
+    return copy
   }
 
   function exportTemplatePackage(s: SavedDoc, format: 'json' | 'csv') {
@@ -258,6 +264,19 @@ export function usePdfStudioWorkspace({
   function renameSaved(id: string, name: string) {
     setSaved((list) => {
       const next = list.map((s) => (s.id === id ? { ...s, name } : s))
+      const target = next.find((s) => s.id === id)
+      if (target) void putSavedDoc(userKey, target)
+      return next
+    })
+  }
+
+  /** Actualiza los metadatos de biblioteca (descripción, tags, estado). */
+  function updateSavedMeta(
+    id: string,
+    meta: Partial<Pick<SavedDoc, 'description' | 'tags' | 'status'>>,
+  ) {
+    setSaved((list) => {
+      const next = list.map((s) => (s.id === id ? { ...s, ...meta } : s))
       const target = next.find((s) => s.id === id)
       if (target) void putSavedDoc(userKey, target)
       return next
@@ -355,6 +374,7 @@ export function usePdfStudioWorkspace({
     saved,
     setPanelCollapsed,
     setDraftSanitizer,
+    updateSavedMeta,
     userKey,
   }
 }
