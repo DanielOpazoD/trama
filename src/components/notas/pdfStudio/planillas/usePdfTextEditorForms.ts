@@ -105,6 +105,7 @@ export function usePdfTextEditorForms({
     pendingFieldBox,
     pendingFormKind,
     placePendingFormField,
+    quickPlaceFormField,
   } = usePdfTextEditorFormPlacement({
     fields: formFields,
     setFields: setFormFields,
@@ -132,6 +133,11 @@ export function usePdfTextEditorForms({
     targetLayout = layout,
   ) {
     placePendingFormField(e, targetPage, targetLayout)
+  }
+
+  /** Shift+clic sobre la página activa crea un casillero de texto al instante. */
+  function quickPlaceDraftFormField(point: { xRatio: number; yRatio: number }): boolean {
+    return quickPlaceFormField(point, page)
   }
 
   function updateDraftFormValue(id: string, value: string | boolean) {
@@ -232,6 +238,7 @@ export function usePdfTextEditorForms({
     pendingFieldBox,
     pendingFormKind,
     placePendingFormField: placePendingFormFieldOnPage,
+    quickPlaceDraftFormField,
     patchSelectedDraftFormFields,
     rememberFieldStyleDefaults,
     selectedDraftFormField:

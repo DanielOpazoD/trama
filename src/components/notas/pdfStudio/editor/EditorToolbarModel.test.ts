@@ -22,7 +22,7 @@ describe('EditorToolbarModel', () => {
     })
     expect(editorToolbarPrimaryInsertAction('templateDesign')).toEqual({
       fieldKind: 'text',
-      hint: 'Crear un casillero rellenable',
+      hint: 'Crear un casillero rellenable · atajo: Shift + clic en la página',
       label: 'Crear casillero de texto',
     })
   })

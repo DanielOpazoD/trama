@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import type { PdfFormFieldAlign } from '../../../../lib/pdfStudio/model/model'
 import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
 import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldArrange'
@@ -7,6 +7,63 @@ import { COLORS, focusRing } from '../editor/EditorToolbarPrimitives'
 
 /** Piezas presentacionales del inspector de casilleros: etiquetas de sección,
  *  botones compactos, filas de swatches y alineación. Sin estado propio. */
+
+/** Cabecera del inspector: título + eliminar, y handle de arrastre (grip). */
+export function InspectorHeader({
+  count,
+  kind,
+  onDelete,
+  onDragHandlePointerDown,
+}: {
+  count: number
+  kind: string
+  onDelete: () => void
+  onDragHandlePointerDown?: (event: ReactPointerEvent<HTMLElement>) => void
+}) {
+  const multi = count > 1
+  return (
+    <div
+      onPointerDown={onDragHandlePointerDown}
+      title="Arrastra para mover el inspector"
+      className={`-mx-1 -mt-1 flex select-none items-center justify-between gap-2 rounded-lg px-1 pt-1 ${
+        onDragHandlePointerDown ? 'cursor-grab active:cursor-grabbing' : ''
+      }`}
+      style={{ touchAction: 'none' }}
+    >
+      <div className="min-w-0">
+        <p className="flex items-center gap-1.5 text-caption font-medium text-ink-700">
+          {onDragHandlePointerDown ? (
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              aria-hidden
+              className="shrink-0 text-ink-300"
+            >
+              {[1.5, 5, 8.5].flatMap((y) =>
+                [2.5, 7.5].map((x) => (
+                  <circle key={`${x}-${y}`} cx={x} cy={y} r="1" fill="currentColor" />
+                )),
+              )}
+            </svg>
+          ) : null}
+          {multi ? `${count} casilleros` : 'Casillero'}
+        </p>
+        <p className="text-micro text-ink-400">
+          {multi ? 'El estilo aplica a toda la selección' : kind}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onDelete}
+        className={`rounded-md px-2 py-1 text-caption font-medium text-[color:var(--accent-clay)] hover:bg-ink-100/60 ${focusRing}`}
+      >
+        Eliminar
+        <span className="sr-only">{multi ? ` ${count} casilleros` : ' casillero'}</span>
+      </button>
+    </div>
+  )
+}
 
 export function InspectorLabel({ children }: { children: ReactNode }) {
   return (

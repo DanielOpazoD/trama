@@ -18,6 +18,7 @@ export type PdfTextEditorFillSidebarProps = {
   /** Lote: CSV con una fila por copia → N copias rellenadas en un solo PDF. */
   onImportBatch?: (file: File) => void | Promise<void>
   onJump: (field: PdfFormFieldDraft) => void
+  onOpenSignature?: (field: PdfFormFieldDraft) => void
   onShowFieldGuidesChange: Dispatch<SetStateAction<boolean>>
   onShowPendingOnlyChange: Dispatch<SetStateAction<boolean>>
 }
@@ -35,6 +36,7 @@ export function PdfTextEditorFillSidebar({
   onImportValues,
   onImportBatch,
   onJump,
+  onOpenSignature,
   onShowFieldGuidesChange,
   onShowPendingOnlyChange,
 }: PdfTextEditorFillSidebarProps) {
@@ -55,6 +57,7 @@ export function PdfTextEditorFillSidebar({
       onShowFieldGuidesChange={onShowFieldGuidesChange}
       onShowPendingOnlyChange={onShowPendingOnlyChange}
       onJump={onJump}
+      onOpenSignature={onOpenSignature}
     />
   )
 }

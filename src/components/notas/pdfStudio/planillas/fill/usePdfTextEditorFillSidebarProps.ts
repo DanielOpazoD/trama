@@ -11,6 +11,7 @@ export function usePdfTextEditorFillSidebarProps({
   formFields,
   jumpToFormField,
   onMailMergeRows,
+  onOpenSignature,
   pageIndexById,
   setActiveFillFieldId,
   updateDraftFormValue,
@@ -22,6 +23,7 @@ export function usePdfTextEditorFillSidebarProps({
   jumpToFormField: (field: PdfFormFieldDraft) => void
   /** Lote: genera N copias rellenadas (una por fila) y abre la vista previa. */
   onMailMergeRows?: (rows: TemplateFillImportValues[]) => void
+  onOpenSignature?: (field: PdfFormFieldDraft) => void
   pageIndexById: Record<string, number>
   setActiveFillFieldId: (id: string | null) => void
   updateDraftFormValue: (id: string, value: string | boolean) => void
@@ -44,6 +46,7 @@ export function usePdfTextEditorFillSidebarProps({
     onImportValues: importTemplateValues,
     onImportBatch: onMailMergeRows ? importTemplateBatch : undefined,
     onJump: jumpToFormField,
+    onOpenSignature,
     onShowFieldGuidesChange: setShowFillGuides,
     onShowPendingOnlyChange: setShowPendingOnly,
   }

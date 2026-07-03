@@ -15,7 +15,7 @@ export function editorToolbarPrimaryInsertAction(context: EditorToolbarContext):
   if (context === 'templateDesign') {
     return {
       fieldKind: 'text',
-      hint: 'Crear un casillero rellenable',
+      hint: 'Crear un casillero rellenable · atajo: Shift + clic en la página',
       label: 'Crear casillero de texto',
     }
   }

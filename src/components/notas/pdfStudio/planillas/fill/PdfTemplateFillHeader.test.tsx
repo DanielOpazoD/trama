@@ -44,6 +44,78 @@ describe('<PdfTemplateFillHeader />', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('con requeridos vacíos imprimir pide confirmación en dos pasos', async () => {
+    const user = userEvent.setup()
+    const onPrint = vi.fn()
+
+    render(
+      <PdfTemplateFillHeader
+        currentPage={0}
+        completedFields={1}
+        requiredPendingFields={2}
+        totalFields={3}
+        totalPages={1}
+        zoom={100}
+        onClose={vi.fn()}
+        onNextPage={vi.fn()}
+        onPrevPage={vi.fn()}
+        onPrepareZoomAnchor={vi.fn()}
+        onPrint={onPrint}
+        onZoomChange={vi.fn()}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('banner')).toHaveTextContent('2 requeridos vacíos')
+
+    // Primer clic: NO imprime, muestra la confirmación.
+    await user.click(screen.getByRole('button', { name: 'Imprimir planilla' }))
+    expect(onPrint).not.toHaveBeenCalled()
+    const confirm = screen.getByRole('group', {
+      name: 'Confirmar impresión con requeridos vacíos',
+    })
+    expect(confirm).toHaveTextContent('Faltan 2 requeridos')
+
+    // "Seguir llenando" vuelve al botón normal sin imprimir.
+    await user.click(screen.getByRole('button', { name: 'Seguir llenando' }))
+    expect(onPrint).not.toHaveBeenCalled()
+
+    // Confirmar explícitamente sí imprime.
+    await user.click(screen.getByRole('button', { name: 'Imprimir planilla' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Imprimir igual con requeridos vacíos' }),
+    )
+    expect(onPrint).toHaveBeenCalledTimes(1)
+  })
+
+  it('sin requeridos vacíos imprimir es directo', async () => {
+    const user = userEvent.setup()
+    const onPrint = vi.fn()
+
+    render(
+      <PdfTemplateFillHeader
+        currentPage={0}
+        completedFields={3}
+        requiredPendingFields={0}
+        totalFields={3}
+        totalPages={1}
+        zoom={100}
+        onClose={vi.fn()}
+        onNextPage={vi.fn()}
+        onPrevPage={vi.fn()}
+        onPrepareZoomAnchor={vi.fn()}
+        onPrint={onPrint}
+        onZoomChange={vi.fn()}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Imprimir planilla' }))
+    expect(onPrint).toHaveBeenCalledTimes(1)
+  })
+
   it('deshabilita guardar con datos mientras no haya datos ingresados', () => {
     render(
       <PdfTemplateFillHeader

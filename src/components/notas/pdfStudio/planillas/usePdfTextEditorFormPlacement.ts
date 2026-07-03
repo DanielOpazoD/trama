@@ -94,6 +94,35 @@ export function usePdfTextEditorFormPlacement({
     })
   }
 
+  /** Shift+clic: crea un casillero de texto centrado en el punto clicado, sin
+   *  pasar por el modo de colocación. Devuelve true si lo creó. */
+  function quickPlaceFormField(
+    point: { xRatio: number; yRatio: number },
+    targetPage: PdfPage | undefined,
+  ): boolean {
+    if (!targetPage) return false
+    const base = initialFieldBox('text', { ...style, ...styleDefaults })
+    const field = makeDraftFormField({
+      kind: 'text',
+      page: targetPage,
+      fields,
+      style,
+      styleDefaults,
+      box: {
+        ...base,
+        xRatio: Math.min(1 - base.wRatio, clamp01(point.xRatio - base.wRatio / 2)),
+        yRatio: Math.min(1 - base.hRatio, clamp01(point.yRatio - base.hRatio / 2)),
+      },
+    })
+    if (!field) return false
+    setFields((current) => [...current, field])
+    setSelectedIds([field.id])
+    setPendingFormKind(null)
+    setEditingId(null)
+    setSelectedId(null)
+    return true
+  }
+
   /** Caja del casillero pendiente (para el fantasma de colocación). */
   const pendingFieldBox = pendingFormKind
     ? initialFieldBox(pendingFormKind, { ...style, ...styleDefaults })
@@ -105,5 +134,6 @@ export function usePdfTextEditorFormPlacement({
     pendingFieldBox,
     pendingFormKind,
     placePendingFormField,
+    quickPlaceFormField,
   }
 }

@@ -206,37 +206,6 @@ export function PdfTextEditor({
       setTool,
       style,
     })
-  // El marco también selecciona casilleros (diseño); el hook de formularios se
-  // instancia después, así que el callback llega por ref (patrón del archivo).
-  const marqueeFieldsRef = useRef<
-    (
-      box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
-      additive: boolean,
-    ) => boolean
-  >(() => false)
-  const { startDrag, startResize, startDraw, startMarquee } =
-    usePdfTextEditorInteractions({
-      layout: activeLayout,
-      layoutRef: activeLayoutRef,
-      zoom,
-      tool,
-      style,
-      xMarkSize,
-      xMarkStroke,
-      editedRef,
-      annotationsRef,
-      setSelectedId,
-      selectAnnotationIds,
-      setDrawing,
-      setSelectionMarquee,
-      setSelectionLasso,
-      setSnapGuides,
-      setHistory,
-      setAnnotations,
-      setTool,
-      editLive,
-      onMarqueeBox: (box, additive) => marqueeFieldsRef.current(box, additive),
-    })
   const {
     addFormField,
     addSuggestedFormFields,
@@ -259,6 +228,7 @@ export function PdfTextEditor({
     patchDraftFormField,
     patchSelectedDraftFormFields,
     placePendingFormField,
+    quickPlaceDraftFormField,
     rememberFieldStyleDefaults,
     selectedDraftFormField,
     selectedDraftFormFields,
@@ -285,7 +255,30 @@ export function PdfTextEditor({
     setEditingId,
     setSelectedId,
   })
-  marqueeFieldsRef.current = designMode ? selectDraftFormFieldsInBox : () => false
+  const { startDrag, startResize, startDraw, startMarquee } =
+    usePdfTextEditorInteractions({
+      layout: activeLayout,
+      layoutRef: activeLayoutRef,
+      zoom,
+      tool,
+      style,
+      xMarkSize,
+      xMarkStroke,
+      editedRef,
+      annotationsRef,
+      setSelectedId,
+      selectAnnotationIds,
+      setDrawing,
+      setSelectionMarquee,
+      setSelectionLasso,
+      setSnapGuides,
+      setHistory,
+      setAnnotations,
+      setTool,
+      editLive,
+      onMarqueeBox: designMode ? selectDraftFormFieldsInBox : undefined,
+      onShiftQuickCreate: designMode ? quickPlaceDraftFormField : undefined,
+    })
   const activeStyle = selectedDraftFormField
     ? { ...annotationStyle, ...formFieldTextStyle(selectedDraftFormField) }
     : annotationStyle
@@ -337,6 +330,7 @@ export function PdfTextEditor({
     jumpToFormField,
     onMailMergeRows:
       fillMode && onMailMerge ? (rows) => onMailMerge(currentEdits(), rows) : undefined,
+    onOpenSignature: openSignature,
     pageIndexById,
     setActiveFillFieldId,
     updateDraftFormValue,

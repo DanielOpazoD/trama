@@ -22,10 +22,19 @@ export function isTemplateFieldFilled(field: PdfFormFieldDraft): boolean {
   return valueAsFillText(field.value).trim().length > 0
 }
 
+/** Campos requeridos que siguen vacíos: el preflight de imprimir y el panel de
+ *  variables los tratan aparte de los pendientes comunes. */
+export function requiredEmptyTemplateFields(
+  fields: PdfFormFieldDraft[],
+): PdfFormFieldDraft[] {
+  return fields.filter((field) => field.required && !isTemplateFieldFilled(field))
+}
+
 export function fillProgressForTemplateFields(fields: PdfFormFieldDraft[]) {
   const total = fields.length
   const pending = fields.filter((field) => !isTemplateFieldFilled(field)).length
-  return { completed: total - pending, pending, total }
+  const requiredPending = requiredEmptyTemplateFields(fields).length
+  return { completed: total - pending, pending, requiredPending, total }
 }
 
 export function rawValueAsText(value: PdfFormValue): string {

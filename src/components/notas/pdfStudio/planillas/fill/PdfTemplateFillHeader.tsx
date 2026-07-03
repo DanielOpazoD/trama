@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from '../../../../Icons'
 import { IconButton } from '../../../../IconButton'
 import { stepBtn } from '../../editor/editorStyle'
@@ -6,6 +7,7 @@ import { ZoomPercentInput } from '../../editor/ZoomPercentInput'
 export function PdfTemplateFillHeader({
   completedFields,
   currentPage,
+  requiredPendingFields = 0,
   totalFields,
   totalPages,
   zoom,
@@ -23,6 +25,8 @@ export function PdfTemplateFillHeader({
 }: {
   completedFields: number
   currentPage: number
+  /** Requeridos aún vacíos: imprimir pide confirmación mientras haya alguno. */
+  requiredPendingFields?: number
   totalFields: number
   totalPages: number
   zoom: number
@@ -38,14 +42,18 @@ export function PdfTemplateFillHeader({
   onZoomIn: () => void
   onZoomOut: () => void
 }) {
+  const [confirmingPrint, setConfirmingPrint] = useState(false)
   const pending = Math.max(0, totalFields - completedFields)
   const hasData = completedFields > 0
+  const needsPreflight = requiredPendingFields > 0
   const status =
     totalFields === 0
       ? 'Sin campos para llenar'
-      : pending === 0
-        ? 'Lista para imprimir'
-        : `${completedFields} de ${totalFields} campos completos`
+      : needsPreflight
+        ? `${requiredPendingFields} ${requiredPendingFields === 1 ? 'requerido vacío' : 'requeridos vacíos'}`
+        : pending === 0
+          ? 'Lista para imprimir'
+          : `${completedFields} de ${totalFields} campos completos`
 
   return (
     <header
@@ -133,15 +141,53 @@ export function PdfTemplateFillHeader({
             Guardar copia con datos
           </button>
         ) : null}
-        <button
-          type="button"
-          onClick={onPrint}
-          aria-label="Imprimir planilla"
-          className="btn-accent inline-flex items-center gap-1 text-xs"
-        >
-          <PrinterIcon size={12} />
-          Imprimir
-        </button>
+        {confirmingPrint && needsPreflight ? (
+          <div
+            role="group"
+            aria-label="Confirmar impresión con requeridos vacíos"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--accent-clay)]/30 bg-[color:var(--accent-clay)]/5 px-2 py-1"
+          >
+            <span className="text-micro font-medium text-[color:var(--accent-clay)]">
+              {requiredPendingFields === 1
+                ? 'Falta 1 requerido'
+                : `Faltan ${requiredPendingFields} requeridos`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setConfirmingPrint(false)}
+              className="btn-ghost h-6 px-1.5 text-micro"
+            >
+              Seguir llenando
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmingPrint(false)
+                onPrint()
+              }}
+              aria-label="Imprimir igual con requeridos vacíos"
+              className="btn-accent inline-flex h-6 items-center gap-1 px-2 text-micro"
+            >
+              <PrinterIcon size={11} />
+              Imprimir igual
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => (needsPreflight ? setConfirmingPrint(true) : onPrint())}
+            aria-label="Imprimir planilla"
+            title={
+              needsPreflight
+                ? 'Hay campos requeridos sin completar: se pedirá confirmación'
+                : 'Imprimir la copia rellenada'
+            }
+            className="btn-accent inline-flex items-center gap-1 text-xs"
+          >
+            <PrinterIcon size={12} />
+            Imprimir
+          </button>
+        )}
       </div>
     </header>
   )

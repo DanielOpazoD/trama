@@ -23,7 +23,7 @@ export function PdfTextEditorHeaderSlot({
   designMode: boolean
   displayZoom: number
   fillMode: boolean
-  fillProgress: { completed: number; total: number }
+  fillProgress: { completed: number; requiredPending: number; total: number }
   headerProps: EditorHeaderProps
   onCreateTemplateField: () => void
   prepareZoomAnchor: () => void
@@ -64,6 +64,7 @@ export function PdfTextEditorHeaderSlot({
     <PdfTemplateFillHeader
       completedFields={fillProgress.completed}
       currentPage={headerProps.currentPage}
+      requiredPendingFields={fillProgress.requiredPending}
       totalFields={fillProgress.total}
       totalPages={headerProps.total}
       zoom={displayZoom}

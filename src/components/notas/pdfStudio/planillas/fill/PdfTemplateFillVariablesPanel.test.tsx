@@ -25,7 +25,102 @@ const filledField = makePdfFormFieldDraft({
   hRatio: 0.05,
 })
 
+const requiredField = makePdfFormFieldDraft({
+  fieldKind: 'text',
+  pageId: 'p1',
+  name: 'diagnostico',
+  value: '',
+  xRatio: 0.1,
+  yRatio: 0.5,
+  wRatio: 0.35,
+  hRatio: 0.05,
+  required: true,
+})
+
+const signatureField = makePdfFormFieldDraft({
+  fieldKind: 'signature',
+  pageId: 'p1',
+  name: 'firma_medico',
+  value: '',
+  xRatio: 0.1,
+  yRatio: 0.7,
+  wRatio: 0.3,
+  hRatio: 0.08,
+})
+
 describe('<PdfTemplateFillVariablesPanel />', () => {
+  it('destaca los requeridos vacíos con chips que saltan al campo', () => {
+    const onJump = vi.fn()
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[emptyField, requiredField, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onJump={onJump}
+      />,
+    )
+
+    expect(screen.getByText('1 requerido vacío')).toBeInTheDocument()
+    const group = screen.getByRole('group', { name: 'Campos requeridos vacíos' })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Ir al campo requerido diagnostico' }),
+    )
+    expect(group).toBeInTheDocument()
+    expect(onJump).toHaveBeenCalledWith(requiredField)
+    // Marca de requerido en la fila.
+    expect(screen.getAllByLabelText('requerido').length).toBeGreaterThan(0)
+  })
+
+  it('con el requerido lleno desaparecen el aviso y los chips', () => {
+    render(
+      <PdfTemplateFillVariablesPanel
+        fields={[{ ...requiredField, value: 'Sano' }, filledField]}
+        pageIndexById={{ p1: 0, p2: 1 }}
+        onChange={vi.fn()}
+        onJump={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.queryByRole('group', { name: 'Campos requeridos vacíos' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Todo listo para imprimir')).toBeInTheDocument()
+  })
+
+  it('los campos de firma se firman con un botón, sin mostrar el dataURL crudo', () => {
+    const onOpenSignature = vi.fn()
+    const onJump = vi.fn()
+    const { rerender } = render(
+      <PdfTemplateFillVariablesPanel
+        fields={[signatureField]}
+        pageIndexById={{ p1: 0 }}
+        onChange={vi.fn()}
+        onJump={onJump}
+        onOpenSignature={onOpenSignature}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Firmar firma_medico' }))
+    expect(onOpenSignature).toHaveBeenCalledWith(signatureField)
+    expect(onJump).toHaveBeenCalledWith(signatureField)
+
+    const signed = { ...signatureField, value: 'data:image/png;base64,AAAA' }
+    rerender(
+      <PdfTemplateFillVariablesPanel
+        fields={[signed]}
+        pageIndexById={{ p1: 0 }}
+        onChange={vi.fn()}
+        onJump={onJump}
+        onOpenSignature={onOpenSignature}
+      />,
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Rehacer firma de firma_medico' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByDisplayValue(/data:image/)).not.toBeInTheDocument()
+  })
+
   it('lista variables, muestra progreso y permite escribir sin buscar en la hoja', () => {
     const onChange = vi.fn()
     const onJump = vi.fn()
