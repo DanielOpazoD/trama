@@ -9,6 +9,7 @@ import type { FormFieldPresetKey } from '../planillas/pdfFormFieldPresets'
 import type { FormFieldVisualPatch } from '../planillas/pdfFormFieldStyle'
 import { FormFieldInspector } from '../planillas/FormFieldInspector'
 import { SignatureCaptureDialog } from '../planillas/SignatureCaptureDialog'
+import { useDraggablePanel } from './useDraggablePanel'
 
 export function PdfTextEditorFloatingFormTools({
   fields,
@@ -48,12 +49,17 @@ export function PdfTextEditorFloatingFormTools({
   onSetSignatureField: (field: PdfFormFieldDraft | null) => void
   onValueChange: (id: string, value: string | boolean) => void
 }) {
+  // El offset del inspector vive acá (este componente persiste): mover el
+  // panel se conserva aunque la selección cambie o se vacíe.
+  const { panelStyle, startPanelDrag } = useDraggablePanel()
   const active = fields[fields.length - 1] ?? null
   return (
     <>
       {active ? (
         <FormFieldInspector
           fields={fields}
+          dragStyle={panelStyle}
+          onDragHandlePointerDown={startPanelDrag}
           onAlignFields={onAlignFields}
           onApplyPreset={onApplyPreset}
           onApplyStyle={onApplyStyle}

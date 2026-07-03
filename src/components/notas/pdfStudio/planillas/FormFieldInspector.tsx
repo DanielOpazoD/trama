@@ -1,3 +1,4 @@
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react'
 import type {
   PdfFormFieldDraft,
   PdfFormValue,
@@ -11,6 +12,7 @@ import type { FormFieldPresetKey } from './pdfFormFieldPresets'
 import {
   InspectorAlignRow,
   InspectorArrangeSection,
+  InspectorHeader,
   InspectorLabel,
   InspectorPresetRow,
   InspectorSwatchRow,
@@ -36,12 +38,14 @@ const fieldInput = `h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-c
  */
 export function FormFieldInspector({
   fields,
+  dragStyle,
   onAlignFields,
   onApplyPreset,
   onApplyStyle,
   onApplyVisual,
   onDelete,
   onDistributeFields,
+  onDragHandlePointerDown,
   onDuplicateFields,
   onMatchFieldSizes,
   onPatchSelection,
@@ -51,12 +55,15 @@ export function FormFieldInspector({
 }: {
   /** Selección actual (1..n); el último es el casillero activo. */
   fields: PdfFormFieldDraft[]
+  /** Offset de arrastre (vive arriba para persistir entre selecciones). */
+  dragStyle?: CSSProperties
   onAlignFields: (alignment: FormFieldAlignment) => void
   onApplyPreset: (key: FormFieldPresetKey) => void
   onApplyStyle: (patch: Partial<TextStyle>) => void
   onApplyVisual: (patch: FormFieldVisualPatch) => void
   onDelete: () => void
   onDistributeFields: (axis: AnnotationDistributionAxis) => void
+  onDragHandlePointerDown?: (event: ReactPointerEvent<HTMLElement>) => void
   onDuplicateFields: () => void
   onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
   onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
@@ -81,31 +88,19 @@ export function FormFieldInspector({
 
   return (
     <aside
+      data-draggable-panel
       aria-label={
         multi ? 'Inspector de casilleros seleccionados' : 'Inspector de casillero'
       }
-      className="absolute right-3 top-28 z-30 max-h-[calc(100vh-9rem)] w-[17rem] overflow-y-auto rounded-lg border border-[color:var(--accent-sage)]/30 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
+      style={dragStyle}
+      className="absolute right-3 top-28 z-30 max-h-[calc(100vh-9rem)] w-[17rem] overflow-y-auto rounded-xl border border-ink-100 bg-paper-50/95 p-2.5 shadow-xl shadow-ink-900/15 backdrop-blur-md"
     >
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-caption font-medium text-ink-700">
-            {multi ? `${fields.length} casilleros` : 'Casillero'}
-          </p>
-          <p className="text-micro text-ink-400">
-            {multi ? 'El estilo aplica a toda la selección' : active.fieldKind}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onDelete}
-          className={`rounded-md px-2 py-1 text-caption font-medium text-[color:var(--accent-clay)] hover:bg-ink-100/60 ${focusRing}`}
-        >
-          Eliminar
-          <span className="sr-only">
-            {multi ? ` ${fields.length} casilleros` : ' casillero'}
-          </span>
-        </button>
-      </div>
+      <InspectorHeader
+        count={fields.length}
+        kind={active.fieldKind}
+        onDelete={onDelete}
+        onDragHandlePointerDown={onDragHandlePointerDown}
+      />
 
       {!multi && (
         <label className="mt-2 grid gap-1 text-micro text-ink-500">
