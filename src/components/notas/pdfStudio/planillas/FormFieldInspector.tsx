@@ -101,7 +101,7 @@ export function FormFieldInspector({
         multi ? 'Inspector de casilleros seleccionados' : 'Inspector de casillero'
       }
       style={dragStyle}
-      className="fixed right-6 top-28 z-[70] max-h-[calc(100vh-9rem)] w-[17rem] overflow-y-auto rounded-xl border border-ink-100 bg-paper-50/95 p-2.5 shadow-xl shadow-ink-900/15 backdrop-blur-md"
+      className="animate-pdf-panel-in fixed right-6 top-28 z-[70] max-h-[calc(100vh-9rem)] w-[17rem] overflow-y-auto rounded-xl border border-ink-100 bg-paper-50/95 p-2.5 shadow-xl shadow-ink-900/15 backdrop-blur-md"
     >
       <InspectorHeader
         count={fields.length}

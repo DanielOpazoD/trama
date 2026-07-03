@@ -292,7 +292,7 @@ export function PdfTemplateFillVariablesPanel({
             <div
               key={field.id}
               aria-label={active ? `Campo activo: ${field.name}` : undefined}
-              className={`rounded-md border bg-paper-50 p-1.5 shadow-sm shadow-ink-900/5 ${
+              className={`rounded-md border bg-paper-50 p-1.5 shadow-sm shadow-ink-900/5 transition-[border-color,box-shadow] duration-150 ${
                 active
                   ? 'border-[color:var(--accent-sage)] ring-2 ring-[color:var(--accent-sage)]/15'
                   : 'border-ink-100'

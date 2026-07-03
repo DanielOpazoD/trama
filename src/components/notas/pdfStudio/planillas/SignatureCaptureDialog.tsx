@@ -82,7 +82,7 @@ export function SignatureCaptureDialog({
         role="dialog"
         aria-modal="true"
         aria-label={`Firmar ${field.name}`}
-        className="w-[min(92vw,420px)] rounded-md border border-ink-100 bg-paper-50 p-3 shadow-xl shadow-ink-900/20"
+        className="animate-pdf-panel-in w-[min(92vw,420px)] rounded-md border border-ink-100 bg-paper-50 p-3 shadow-xl shadow-ink-900/20"
       >
         <div className="mb-2 flex items-center justify-between gap-2">
           <h3 className="text-caption font-semibold text-ink-800">{field.name}</h3>
