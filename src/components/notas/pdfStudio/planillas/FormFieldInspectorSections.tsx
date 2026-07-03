@@ -5,6 +5,7 @@ import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldA
 import { FORM_FIELD_PRESETS, type FormFieldPresetKey } from './pdfFormFieldPresets'
 import { COLORS, focusRing } from '../editor/EditorToolbarPrimitives'
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '../../../Icons'
+import { IconButton } from '../../../IconButton'
 
 /** Fila plegable del inspector: cabecera con vista previa a la derecha; el
  *  contenido solo existe mientras está abierta (el panel se mantiene bajo). */
@@ -132,24 +133,22 @@ export function InspectorHeader({
       <span className="flex shrink-0 items-center gap-0.5">
         {onNavigate && !multi ? (
           <>
-            <button
-              type="button"
-              aria-label="Casillero anterior"
+            <IconButton
+              label="Casillero anterior"
               title="Casillero anterior"
               onClick={() => onNavigate(-1)}
               className={`grid h-6 w-6 place-items-center rounded text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 ${focusRing}`}
             >
               <ChevronLeftIcon size={12} />
-            </button>
-            <button
-              type="button"
-              aria-label="Casillero siguiente"
+            </IconButton>
+            <IconButton
+              label="Casillero siguiente"
               title="Casillero siguiente"
               onClick={() => onNavigate(1)}
               className={`grid h-6 w-6 place-items-center rounded text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 ${focusRing}`}
             >
               <ChevronRightIcon size={12} />
-            </button>
+            </IconButton>
           </>
         ) : null}
         <button

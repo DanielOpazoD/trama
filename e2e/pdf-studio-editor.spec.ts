@@ -320,8 +320,8 @@ async function openTemplateFillEditor(page: Page) {
   await expect(page.getByRole('dialog', { name: 'Crear plantilla' })).toBeVisible()
   await waitForEditableSheetReady(page)
 
-  await page.getByRole('button', { name: 'Campos' }).click()
-  await page.getByRole('menuitem', { name: 'Crear casillero de texto' }).click()
+  // Crear casillero vive solo en el botón primario de la barra (Polish Pack).
+  await page.getByRole('button', { name: /Crear casillero de texto/ }).click()
   await page
     .locator('[data-pdf-editor-sheet="0"]')
     .click({ position: { x: 220, y: 220 } })
