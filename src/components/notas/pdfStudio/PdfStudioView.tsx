@@ -75,6 +75,7 @@ export function PdfStudioView({
     clearSelection,
     doc,
     setHistory,
+    syncTemplatesToCloud: templatesEnabled,
     uploadSavedPdf,
   })
   const {

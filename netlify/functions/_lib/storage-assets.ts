@@ -7,6 +7,7 @@ export type StorageAssetDomain =
   | 'momentos-media'
   | 'recortes-media'
   | 'pdf-studio-saved-pdfs'
+  | 'pdf-studio-templates'
   | 'pdf-stamp-assets'
   | 'library-uploads'
 
