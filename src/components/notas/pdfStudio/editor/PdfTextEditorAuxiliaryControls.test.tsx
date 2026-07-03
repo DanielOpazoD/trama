@@ -51,4 +51,28 @@ describe('<PdfTextEditorAuxiliaryControls />', () => {
       screen.queryByRole('button', { name: /Cancelar creación/i }),
     ).not.toBeInTheDocument()
   })
+
+  it('Escape cancela la colocación pendiente sin llegar al resto del editor', async () => {
+    const user = userEvent.setup()
+    const onCancel = vi.fn()
+    const escapeLeaked = vi.fn()
+    document.addEventListener('keydown', escapeLeaked)
+
+    renderControls({ pendingFormKind: true, onCancelPendingFormField: onCancel })
+    await user.keyboard('{Escape}')
+
+    expect(onCancel).toHaveBeenCalledTimes(1)
+    expect(escapeLeaked).not.toHaveBeenCalled()
+    document.removeEventListener('keydown', escapeLeaked)
+  })
+
+  it('Escape no hace nada si no hay colocación pendiente', async () => {
+    const user = userEvent.setup()
+    const onCancel = vi.fn()
+
+    renderControls({ pendingFormKind: false, onCancelPendingFormField: onCancel })
+    await user.keyboard('{Escape}')
+
+    expect(onCancel).not.toHaveBeenCalled()
+  })
 })

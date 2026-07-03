@@ -13,6 +13,7 @@ export type {
   ImageAnnotation,
   ImageAsset,
   PdfDoc,
+  PdfFormFieldAlign,
   PdfFormFieldDraft,
   PdfFormFieldKind,
   PdfFormValue,

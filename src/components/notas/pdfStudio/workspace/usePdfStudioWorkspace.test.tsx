@@ -128,4 +128,41 @@ describe('usePdfStudioWorkspace', () => {
 
     expect(hook.result.current.autosaveState).toEqual({ kind: 'saving', pages: 2 })
   })
+
+  it('autosaveSnapshot protege un snapshot puntual pasando por el sanitizador', async () => {
+    const hook = renderWorkspace(emptyDoc())
+    await flushAsyncEffects()
+
+    act(() => {
+      hook.result.current.setDraftSanitizer((draft) => ({
+        ...draft,
+        title: 'sanitizado',
+      }))
+    })
+    const snapshot = { ...pdfDoc(1), title: 'ediciones del editor' }
+    await act(async () => {
+      hook.result.current.autosaveSnapshot(snapshot)
+      await Promise.resolve()
+    })
+
+    expect(mocks.saveDraft).toHaveBeenCalledWith(
+      'test-user',
+      expect.objectContaining({ title: 'sanitizado' }),
+      [],
+    )
+    expect(hook.result.current.autosaveState).toMatchObject({ kind: 'saved', pages: 1 })
+  })
+
+  it('autosaveSnapshot con documento vacío vuelve a idle sin guardar', async () => {
+    const hook = renderWorkspace(emptyDoc())
+    await flushAsyncEffects()
+
+    await act(async () => {
+      hook.result.current.autosaveSnapshot(emptyDoc())
+      await Promise.resolve()
+    })
+
+    expect(mocks.saveDraft).not.toHaveBeenCalled()
+    expect(hook.result.current.autosaveState).toEqual({ kind: 'idle', pages: 0 })
+  })
 })

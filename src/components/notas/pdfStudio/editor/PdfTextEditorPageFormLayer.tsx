@@ -8,6 +8,7 @@ import type {
   ResizeHandle,
 } from '../../../../lib/pdfStudio/model/editorGeometry'
 import { FormFieldLayer } from '../planillas/FormFieldLayer'
+import { FormFieldPlacementPreview } from '../planillas/FormFieldPlacementPreview'
 import {
   type DetectedPdfFormForCanvas,
   visualWidgetsForPage,
@@ -32,6 +33,7 @@ export function PdfTextEditorPageFormLayer({
   onStartDraftResize,
   page,
   pageIndex,
+  placementPreviewBox = null,
   selectedDraftId,
   selectedDraftIds,
   showFillGuides,
@@ -61,6 +63,8 @@ export function PdfTextEditorPageFormLayer({
   ) => void
   page: NonNullable<PdfDoc['pages'][number]>
   pageIndex: number
+  /** Caja del casillero pendiente: muestra el fantasma de colocación. */
+  placementPreviewBox?: { wRatio: number; hRatio: number } | null
   selectedDraftId: string | null
   selectedDraftIds: string[]
   showFillGuides?: boolean
@@ -68,64 +72,79 @@ export function PdfTextEditorPageFormLayer({
 }) {
   const visibleFormWidgets = visualWidgetsForPage(page, detectedForms)
   const visibleDraftFields = orderFormFieldsForPage(draftFields, page.id, pageIndex)
-  if (!isActive && visibleFormWidgets.length === 0 && visibleDraftFields.length === 0) {
+  const placementPreview =
+    mode !== 'fill' && placementPreviewBox ? (
+      <FormFieldPlacementPreview box={placementPreviewBox} layout={layout} zoom={zoom} />
+    ) : null
+  if (
+    !isActive &&
+    visibleFormWidgets.length === 0 &&
+    visibleDraftFields.length === 0 &&
+    !placementPreview
+  ) {
     return null
   }
 
   const pageHeightPx = layout?.innerH ?? 1
   if (isActive) {
     return (
-      <PdfTextEditorFormSurface
+      <>
+        <PdfTextEditorFormSurface
+          detectedWidgets={visibleFormWidgets}
+          draftFields={visibleDraftFields}
+          mode={mode}
+          activeDraftId={activeDraftId}
+          showFillGuides={showFillGuides}
+          selectedDraftId={selectedDraftId}
+          selectedDraftIds={selectedDraftIds}
+          pageHeightPx={pageHeightPx}
+          zoom={zoom}
+          onDetectedValueChange={onDetectedValueChange}
+          onDraftValueChange={onDraftValueChange}
+          onDraftFocus={onDraftFocus}
+          onSelectDraft={onSelectDraft}
+          onStartDraftDrag={onStartDraftDrag}
+          onStartDraftResize={onStartDraftResize}
+          onOpenSignature={onOpenSignature}
+        />
+        {placementPreview}
+      </>
+    )
+  }
+
+  return (
+    <>
+      <FormFieldLayer
         detectedWidgets={visibleFormWidgets}
         draftFields={visibleDraftFields}
         mode={mode}
         activeDraftId={activeDraftId}
         showFillGuides={showFillGuides}
-        selectedDraftId={selectedDraftId}
-        selectedDraftIds={selectedDraftIds}
+        selectedDraftId={null}
+        selectedDraftIds={[]}
         pageHeightPx={pageHeightPx}
         zoom={zoom}
         onDetectedValueChange={onDetectedValueChange}
         onDraftValueChange={onDraftValueChange}
         onDraftFocus={onDraftFocus}
-        onSelectDraft={onSelectDraft}
-        onStartDraftDrag={onStartDraftDrag}
-        onStartDraftResize={onStartDraftResize}
-        onOpenSignature={onOpenSignature}
+        onSelectDraft={(id, additive) => {
+          onActivate(pageIndex)
+          onSelectDraft(id, additive)
+        }}
+        onStartDraftDrag={(event) => {
+          event.stopPropagation()
+          onActivate(pageIndex)
+        }}
+        onStartDraftResize={(event) => {
+          event.stopPropagation()
+          onActivate(pageIndex)
+        }}
+        onOpenSignature={(field) => {
+          onActivate(pageIndex)
+          onOpenSignature(field)
+        }}
       />
-    )
-  }
-
-  return (
-    <FormFieldLayer
-      detectedWidgets={visibleFormWidgets}
-      draftFields={visibleDraftFields}
-      mode={mode}
-      activeDraftId={activeDraftId}
-      showFillGuides={showFillGuides}
-      selectedDraftId={null}
-      selectedDraftIds={[]}
-      pageHeightPx={pageHeightPx}
-      zoom={zoom}
-      onDetectedValueChange={onDetectedValueChange}
-      onDraftValueChange={onDraftValueChange}
-      onDraftFocus={onDraftFocus}
-      onSelectDraft={(id, additive) => {
-        onActivate(pageIndex)
-        onSelectDraft(id, additive)
-      }}
-      onStartDraftDrag={(event) => {
-        event.stopPropagation()
-        onActivate(pageIndex)
-      }}
-      onStartDraftResize={(event) => {
-        event.stopPropagation()
-        onActivate(pageIndex)
-      }}
-      onOpenSignature={(field) => {
-        onActivate(pageIndex)
-        onOpenSignature(field)
-      }}
-    />
+      {placementPreview}
+    </>
   )
 }

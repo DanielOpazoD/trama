@@ -4,58 +4,57 @@ import type {
   AnnotationHorizontalAlignment,
 } from './pdfAnnotationArrange'
 import type { TextStyle } from './editorStyle'
+import type { FormFieldVisualPatch } from '../planillas/pdfFormFieldStyle'
 import { FormFieldInspector } from '../planillas/FormFieldInspector'
-import { FormFieldSelectionInspector } from '../planillas/FormFieldSelectionInspector'
 import { SignatureCaptureDialog } from '../planillas/SignatureCaptureDialog'
 
 export function PdfTextEditorFloatingFormTools({
-  field,
-  activeBold,
-  activeSizeRatio,
-  selectionCount = 0,
+  fields,
   signatureField,
   onAlignFields,
   onApplyStyle,
+  onApplyVisual,
   onChooseSignatureImage,
   onDeleteField,
   onDistributeFields,
   onPatchField,
+  onPatchSelection,
+  onRememberStyle,
   onSaveSignature,
   onSetSignatureField,
   onValueChange,
 }: {
-  field: PdfFormFieldDraft | null
-  activeBold?: boolean
-  activeSizeRatio?: number
-  selectionCount?: number
+  /** Selección de casilleros en diseño ([] en modo llenar: sin inspector). */
+  fields: PdfFormFieldDraft[]
   signatureField: PdfFormFieldDraft | null
-  onAlignFields?: (alignment: AnnotationHorizontalAlignment) => void
-  onApplyStyle?: (patch: Partial<TextStyle>) => void
+  onAlignFields: (alignment: AnnotationHorizontalAlignment) => void
+  onApplyStyle: (patch: Partial<TextStyle>) => void
+  onApplyVisual: (patch: FormFieldVisualPatch) => void
   onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
   onDeleteField: (id: string) => void
-  onDistributeFields?: (axis: AnnotationDistributionAxis) => void
+  onDistributeFields: (axis: AnnotationDistributionAxis) => void
   onPatchField: (id: string, patch: Partial<PdfFormFieldDraft>) => void
+  onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
+  onRememberStyle: (field: PdfFormFieldDraft) => void
   onSaveSignature: (dataUrl: string) => void
   onSetSignatureField: (field: PdfFormFieldDraft | null) => void
   onValueChange: (id: string, value: string | boolean) => void
 }) {
+  const active = fields[fields.length - 1] ?? null
   return (
     <>
-      {selectionCount > 1 && onAlignFields && onDistributeFields ? (
-        <FormFieldSelectionInspector
-          count={selectionCount}
-          activeBold={activeBold}
-          activeSizeRatio={activeSizeRatio}
-          onAlign={onAlignFields}
-          onApplyStyle={onApplyStyle}
-          onDistribute={onDistributeFields}
-        />
-      ) : field ? (
+      {active ? (
         <FormFieldInspector
-          field={field}
-          onDelete={() => onDeleteField(field.id)}
-          onPatch={(patch) => onPatchField(field.id, patch)}
-          onValueChange={(value) => onValueChange(field.id, value)}
+          fields={fields}
+          onAlignFields={onAlignFields}
+          onApplyStyle={onApplyStyle}
+          onApplyVisual={onApplyVisual}
+          onDelete={() => fields.forEach((field) => onDeleteField(field.id))}
+          onDistributeFields={onDistributeFields}
+          onPatchSelection={onPatchSelection}
+          onRememberStyle={() => onRememberStyle(active)}
+          onRename={(name) => onPatchField(active.id, { name })}
+          onValueChange={(value) => onValueChange(active.id, value)}
         />
       ) : null}
       {signatureField ? (

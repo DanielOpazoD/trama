@@ -2,7 +2,6 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   type PdfDoc,
   type PdfFormFieldDraft,
-  type PdfFormFieldKind,
   type PdfPage,
 } from '../../../../lib/pdfStudio/model/model'
 import type {
@@ -15,14 +14,8 @@ import {
   applyTemplateFieldValues,
   clearTemplateFieldValues,
 } from './fill/pdfTemplateFillValues'
-import { makeDraftFormField } from './pdfFormFieldFactory'
-import {
-  startFormFieldDrag,
-  startFormFieldResize,
-  trackNewFieldDrag,
-} from './pdfFormFieldPointer'
-import { patchFormFieldTextStyle } from './pdfFormFieldStyle'
-import { initialFieldBox, uniqueFieldName } from './pdfTextEditorFormDefaults'
+import { startFormFieldDrag, startFormFieldResize } from './pdfFormFieldPointer'
+import { uniqueFieldName } from './pdfTextEditorFormDefaults'
 import {
   latestSelectedFormFieldId,
   nextSelectedFormFieldIds,
@@ -30,10 +23,10 @@ import {
   removeSelectedFormFieldId,
 } from './pdfTextEditorFormDraftModel'
 import { usePdfTextEditorFormArrange } from './usePdfTextEditorFormArrange'
+import { usePdfTextEditorFormPlacement } from './usePdfTextEditorFormPlacement'
 import { usePdfTextEditorFormShortcuts } from './usePdfTextEditorFormShortcuts'
 import { usePdfTextEditorFormSignature } from './usePdfTextEditorFormSignature'
-
-const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+import { usePdfTextEditorFormStyling } from './usePdfTextEditorFormStyling'
 
 export function usePdfTextEditorForms({
   doc,
@@ -41,6 +34,7 @@ export function usePdfTextEditorForms({
   layout,
   zoom,
   style,
+  userKey,
   setTool,
   setEditingId,
   setSelectedId,
@@ -50,6 +44,7 @@ export function usePdfTextEditorForms({
   layout: PageLayout | null
   zoom: number
   style: TextStyle
+  userKey?: string
   setTool: (tool: Tool) => void
   setEditingId: (id: string | null) => void
   setSelectedId: (id: string | null) => void
@@ -60,10 +55,10 @@ export function usePdfTextEditorForms({
   const [selectedFormFieldIds, setSelectedFormFieldIds] = useState<string[]>([])
   const formClipboardRef = useRef<PdfFormFieldDraft[]>([])
   const selectedFormFieldId = latestSelectedFormFieldId(selectedFormFieldIds)
-  const [pendingFormKind, setPendingFormKind] = useState<PdfFormFieldKind | null>(null)
 
   usePdfTextEditorFormShortcuts({
     clipboardRef: formClipboardRef,
+    currentPageId: page?.id ?? null,
     fields: formFields,
     selectedIds: selectedFormFieldIds,
     setEditingId,
@@ -78,6 +73,34 @@ export function usePdfTextEditorForms({
     },
   )
   const {
+    applyDraftFieldStyle,
+    applyDraftFieldVisual,
+    fieldStyleDefaults,
+    patchSelectedDraftFormFields,
+    rememberFieldStyleDefaults,
+  } = usePdfTextEditorFormStyling({
+    selectedIds: selectedFormFieldIds,
+    setFields: setFormFields,
+    userKey,
+  })
+  const {
+    addFormField,
+    cancelPendingFormField,
+    pendingFieldBox,
+    pendingFormKind,
+    placePendingFormField,
+  } = usePdfTextEditorFormPlacement({
+    fields: formFields,
+    setFields: setFormFields,
+    setSelectedIds: setSelectedFormFieldIds,
+    setEditingId,
+    setSelectedId,
+    setTool,
+    style,
+    styleDefaults: fieldStyleDefaults,
+    zoom,
+  })
+  const {
     chooseSignatureImage,
     openSignature,
     saveSignatureDataUrl,
@@ -87,53 +110,12 @@ export function usePdfTextEditorForms({
     signatureInputRef,
   } = usePdfTextEditorFormSignature({ updateDraftFormValue })
 
-  function addFormField(kind: PdfFormFieldKind) {
-    setPendingFormKind(kind)
-    setTool('select')
-    setEditingId(null)
-    setSelectedId(null)
-  }
-  function cancelPendingFormField() {
-    setPendingFormKind(null)
-  }
-
-  function placePendingFormField(
+  function placePendingFormFieldOnPage(
     e: ReactPointerEvent,
     targetPage = page,
     targetLayout = layout,
   ) {
-    if (!targetPage || !targetLayout || !pendingFormKind) return
-    e.stopPropagation()
-    e.preventDefault()
-    const base = initialFieldBox(pendingFormKind, style)
-    const xRatio = clamp01(
-      e.nativeEvent.offsetX / Math.max(1, targetLayout.innerW) - base.wRatio / 2,
-    )
-    const yRatio = clamp01(
-      e.nativeEvent.offsetY / Math.max(1, targetLayout.innerH) - base.hRatio / 2,
-    )
-    const field = makeDraftFormField({
-      kind: pendingFormKind,
-      page: targetPage,
-      fields: formFields,
-      style,
-      box: {
-        ...base,
-        xRatio: Math.min(1 - base.wRatio, xRatio),
-        yRatio: Math.min(1 - base.hRatio, yRatio),
-      },
-    })
-    if (!field) return
-    setFormFields((fields) => [...fields, field])
-    setSelectedFormFieldIds([field.id])
-    setPendingFormKind(null)
-    trackNewFieldDrag({
-      event: e,
-      field,
-      layout: targetLayout,
-      setFields: setFormFields,
-      zoom,
-    })
+    placePendingFormField(e, targetPage, targetLayout)
   }
 
   function updateDraftFormValue(id: string, value: string | boolean) {
@@ -197,16 +179,6 @@ export function usePdfTextEditorForms({
     setEditingId(null)
   }
 
-  function applyDraftFieldStyle(patch: Partial<TextStyle>) {
-    if (selectedFormFieldIds.length === 0) return
-    const selected = new Set(selectedFormFieldIds)
-    setFormFields((fields) =>
-      fields.map((field) =>
-        selected.has(field.id) ? patchFormFieldTextStyle(field, patch) : field,
-      ),
-    )
-  }
-
   function startDraftDrag(e: ReactPointerEvent, field: PdfFormFieldDraft) {
     startFormFieldDrag({
       event: e,
@@ -234,21 +206,30 @@ export function usePdfTextEditorForms({
     })
   }
 
+  const selectedDraftFormFields = selectedFormFieldIds
+    .map((id) => formFields.find((field) => field.id === id))
+    .filter((field): field is PdfFormFieldDraft => Boolean(field))
+
   return {
     addFormField,
     addSuggestedFormFields,
     alignDraftFormFields,
     applyDraftFormValues,
     applyDraftFieldStyle,
+    applyDraftFieldVisual,
     cancelPendingFormField,
     clearDraftFormValues,
     deleteDraftFormField,
     distributeDraftFormFields,
     formFields,
+    pendingFieldBox,
     pendingFormKind,
-    placePendingFormField,
+    placePendingFormField: placePendingFormFieldOnPage,
+    patchSelectedDraftFormFields,
+    rememberFieldStyleDefaults,
     selectedDraftFormField:
       formFields.find((field) => field.id === selectedFormFieldId) ?? null,
+    selectedDraftFormFields,
     openSignature,
     selectedFormFieldId,
     selectedFormFieldIds,

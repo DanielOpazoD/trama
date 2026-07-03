@@ -182,6 +182,8 @@ export function PdfStudioView({
   }
   function closeTextEditor(edits: PdfTextEditorResult | null) {
     if (edits) commit((d) => applyPdfTextEditorResult(d, edits))
+    // Cancelar: el borrador local vuelve al doc confirmado (descarta autosaves vivos).
+    else workspace.autosaveSnapshot(doc)
     setTextPage(null)
   }
   const startTemplateSave = usePdfStudioTemplateSaveAction({
@@ -342,6 +344,10 @@ export function PdfStudioView({
         templateToolsEnabled={templatesEnabled}
         onFormValueChange={updateFormValue}
         onInspectForms={templatesEnabled ? () => void inspectForms() : undefined}
+        onAutosave={(edits) =>
+          workspace.autosaveSnapshot(applyPdfTextEditorResult(doc, edits))
+        }
+        autosaveState={workspace.autosaveState}
         onClose={closeTextEditor}
         onDisplayZoomChange={setEditorSessionZoom}
         onPrint={printFilledTemplate}

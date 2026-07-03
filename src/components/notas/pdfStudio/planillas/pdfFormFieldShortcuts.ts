@@ -11,6 +11,8 @@ export type FormFieldShortcutInput = {
   selectedIds: string[]
   clipboard: PdfFormFieldDraft[]
   selectableIds: string[]
+  /** Página visible al pegar: los casilleros copiados aterrizan acá, no en su página de origen. */
+  currentPageId?: string | null
   key: string
   mod: boolean
   shift: boolean
@@ -38,6 +40,25 @@ function offsetField(field: PdfFormFieldDraft, fields: PdfFormFieldDraft[]) {
   }
 }
 
+/** Pega en la página visible: misma página → copia corrida (no tapa el original);
+ *  otra página → misma posición del original, re-anclada a la página actual. */
+function pasteField(
+  field: PdfFormFieldDraft,
+  fields: PdfFormFieldDraft[],
+  currentPageId?: string | null,
+) {
+  if (!currentPageId || currentPageId === field.pageId) {
+    return offsetField(field, fields)
+  }
+  const copied = clonePdfFormField(field, currentPageId)
+  return {
+    ...copied,
+    name: uniqueFieldName(copied.name, fields),
+    xRatio: Math.min(1 - copied.wRatio, Math.max(0, copied.xRatio)),
+    yRatio: Math.min(1 - copied.hRatio, Math.max(0, copied.yRatio)),
+  }
+}
+
 function moveField(field: PdfFormFieldDraft, dx: number, dy: number) {
   const doc: PdfDoc = {
     sources: [],
@@ -60,6 +81,7 @@ export function reduceFormFieldShortcut({
   selectedIds,
   clipboard,
   selectableIds,
+  currentPageId,
   key,
   mod,
   shift,
@@ -80,7 +102,7 @@ export function reduceFormFieldShortcut({
     if (clipboard.length === 0) return { fields, selectedIds, clipboard, handled: false }
     const next = [...fields]
     const pasted = clipboard.map((field) => {
-      const copy = offsetField(field, next)
+      const copy = pasteField(field, next, currentPageId)
       next.push(copy)
       return copy
     })

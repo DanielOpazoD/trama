@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 import {
   initHistory,
   pushHistory,
@@ -94,36 +101,40 @@ export function usePdfStudioWorkspace({
     }
   }, [setHistory, userKey])
 
+  const persistDraftSnapshot = useCallback(
+    async (snapshot: PdfDoc) => {
+      const runId = ++autosaveRunRef.current
+      const sanitized = draftSanitizerRef.current(snapshot)
+      if (sanitized.pages.length === 0) {
+        if (autosaveRunRef.current === runId) {
+          setAutosaveState({ kind: 'idle', pages: 0 })
+        }
+        return
+      }
+      setAutosaveState(createAutosaveSavingState(sanitized.pages.length))
+      const savedOk = await saveDraft(userKey, sanitized, [])
+      if (autosaveRunRef.current !== runId) return
+      setAutosaveState(
+        savedOk === false
+          ? createAutosaveFailedState(sanitized.pages.length)
+          : { kind: 'saved', pages: sanitized.pages.length, savedAt: Date.now() },
+      )
+    },
+    [userKey],
+  )
+
   useEffect(() => {
     if (!loaded) return
-    let cancelled = false
-    const t = window.setTimeout(
-      () =>
-        void (async () => {
-          const runId = ++autosaveRunRef.current
-          const sanitized = draftSanitizerRef.current(doc)
-          if (sanitized.pages.length === 0) {
-            if (!cancelled && autosaveRunRef.current === runId) {
-              setAutosaveState({ kind: 'idle', pages: 0 })
-            }
-            return
-          }
-          setAutosaveState(createAutosaveSavingState(sanitized.pages.length))
-          const savedOk = await saveDraft(userKey, sanitized, [])
-          if (cancelled || autosaveRunRef.current !== runId) return
-          setAutosaveState(
-            savedOk === false
-              ? createAutosaveFailedState(sanitized.pages.length)
-              : { kind: 'saved', pages: sanitized.pages.length, savedAt: Date.now() },
-          )
-        })(),
-      600,
-    )
-    return () => {
-      cancelled = true
-      window.clearTimeout(t)
-    }
-  }, [doc, loaded, userKey])
+    const t = window.setTimeout(() => void persistDraftSnapshot(doc), 600)
+    return () => window.clearTimeout(t)
+  }, [doc, loaded, persistDraftSnapshot])
+
+  /** Protege un snapshot puntual (ediciones vivas del editor modal o reset al
+   *  cancelar), pasando por el mismo sanitizador y estados que el autosave. */
+  function autosaveSnapshot(snapshot: PdfDoc) {
+    if (!loaded) return
+    void persistDraftSnapshot(snapshot)
+  }
 
   function setDraftSanitizer(sanitize: (draft: PdfDoc) => PdfDoc) {
     draftSanitizerRef.current = sanitize
@@ -323,6 +334,7 @@ export function usePdfStudioWorkspace({
 
   return {
     addAssets,
+    autosaveSnapshot,
     autosaveState,
     duplicateSaved,
     exportTemplatePackage,

@@ -1,5 +1,6 @@
 import {
   previewFontFamily,
+  type PdfFormFieldAlign,
   type PdfFormFieldDraft,
   type PdfFontKind,
 } from '../../../../lib/pdfStudio/model/model'
@@ -37,6 +38,24 @@ export function formFieldTextCss(
     fontFamily: previewFontFamily(style.font as PdfFontKind),
     fontSize: `${Math.max(8, style.sizeRatio * pageHeightPx)}px`,
     fontWeight: style.bold ? 700 : 400,
+    ...(field.color ? { color: field.color } : null),
+    ...(field.align ? { textAlign: field.align } : null),
+  }
+}
+
+/** Fondo/borde declarados del casillero, o undefined si conserva el chrome por
+ *  defecto del modo. El grosor compensa el zoom igual que el frame base. */
+export function formFieldChromeCss(
+  field: Pick<PdfFormFieldDraft, 'bgColor' | 'borderColor'>,
+  zoom = 1,
+): CSSProperties | undefined {
+  if (!field.bgColor && !field.borderColor) return undefined
+  const k = 1 / Math.max(0.25, zoom)
+  return {
+    ...(field.bgColor ? { backgroundColor: field.bgColor } : null),
+    ...(field.borderColor
+      ? { borderColor: field.borderColor, borderStyle: 'solid', borderWidth: `${k}px` }
+      : null),
   }
 }
 
@@ -50,4 +69,34 @@ export function patchFormFieldTextStyle(
     sizeRatio: patch.sizeRatio ?? field.sizeRatio,
     bold: patch.bold ?? field.bold,
   }
+}
+
+/** Patch de estilo visual: `null` limpia la propiedad (vuelve al default del
+ *  modo), `undefined` la deja como está. */
+export type FormFieldVisualPatch = {
+  color?: string | null
+  bgColor?: string | null
+  borderColor?: string | null
+  align?: PdfFormFieldAlign | null
+}
+
+export function patchFormFieldVisual(
+  field: PdfFormFieldDraft,
+  patch: FormFieldVisualPatch,
+): PdfFormFieldDraft {
+  return {
+    ...field,
+    color: resolveVisual(field.color, patch.color),
+    bgColor: resolveVisual(field.bgColor, patch.bgColor),
+    borderColor: resolveVisual(field.borderColor, patch.borderColor),
+    align: resolveVisual(field.align, patch.align),
+  }
+}
+
+function resolveVisual<T>(
+  current: T | undefined,
+  next: T | null | undefined,
+): T | undefined {
+  if (next === undefined) return current
+  return next ?? undefined
 }

@@ -4,6 +4,7 @@ import { reduceFormFieldShortcut } from './pdfFormFieldShortcuts'
 
 export function usePdfTextEditorFormShortcuts({
   clipboardRef,
+  currentPageId,
   fields,
   selectedIds,
   setEditingId,
@@ -12,6 +13,7 @@ export function usePdfTextEditorFormShortcuts({
   setSelectedIds,
 }: {
   clipboardRef: { current: PdfFormFieldDraft[] }
+  currentPageId: string | null
   fields: PdfFormFieldDraft[]
   selectedIds: string[]
   setEditingId: (id: string | null) => void
@@ -29,6 +31,7 @@ export function usePdfTextEditorFormShortcuts({
         selectedIds,
         clipboard: clipboardRef.current,
         selectableIds: fields.map((field) => field.id),
+        currentPageId,
         key: e.key,
         mod: e.metaKey || e.ctrlKey,
         shift: e.shiftKey,
@@ -45,6 +48,7 @@ export function usePdfTextEditorFormShortcuts({
     return () => document.removeEventListener('keydown', onKey)
   }, [
     clipboardRef,
+    currentPageId,
     fields,
     selectedIds,
     setEditingId,
