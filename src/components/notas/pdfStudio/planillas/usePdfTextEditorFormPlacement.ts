@@ -12,6 +12,7 @@ import type {
 import type { PageLayout } from '../../../../lib/pdfStudio/model/editorGeometry'
 import type { Tool, TextStyle } from '../editor/editorStyle'
 import { makeDraftFormField } from './pdfFormFieldFactory'
+import { focusFormFieldControl } from './pdfFormFieldFocus'
 import { trackNewFieldDrag } from './pdfFormFieldPointer'
 import { initialFieldBox } from './pdfTextEditorFormDefaults'
 import {
@@ -136,6 +137,9 @@ export function usePdfTextEditorFormPlacement({
     setPendingFormKind(null)
     setEditingId(null)
     setSelectedId(null)
+    // Escribir al tiro: cuando el casillero ya está pintado, el foco cae en
+    // su input sin pasar por el panel.
+    window.setTimeout(() => focusFormFieldControl(field.id, { select: true }), 60)
     return true
   }
 

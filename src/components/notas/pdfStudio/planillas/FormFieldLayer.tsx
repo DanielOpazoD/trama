@@ -166,6 +166,18 @@ export function FormFieldLayer({
               if (isInteractiveFormTarget(event.target, fillMode)) return
               onStartDraftDrag(event, field)
             }}
+            onDoubleClick={(event) => {
+              // Doble clic en diseño: escribir el valor directo en el cuadro.
+              if (fillMode || field.readOnly) return
+              event.stopPropagation()
+              const control = event.currentTarget.querySelector<HTMLElement>(
+                '[data-form-field-control]',
+              )
+              control?.focus({ preventScroll: true })
+              if (control instanceof HTMLInputElement && control.type === 'text') {
+                control.select()
+              }
+            }}
             title={`Campo ${field.name}`}
           >
             {fillMode ? (
