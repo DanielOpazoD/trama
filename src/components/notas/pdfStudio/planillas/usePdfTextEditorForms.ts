@@ -23,6 +23,7 @@ import { usePdfTextEditorFormShortcuts } from './usePdfTextEditorFormShortcuts'
 import { usePdfTextEditorFormSignature } from './usePdfTextEditorFormSignature'
 import { usePdfTextEditorFormStyling } from './usePdfTextEditorFormStyling'
 import { usePdfTextEditorFormValues } from './usePdfTextEditorFormValues'
+import { usePdfFormFieldSnapGuides } from './usePdfFormFieldSnapGuides'
 
 export function usePdfTextEditorForms({
   doc,
@@ -123,6 +124,10 @@ export function usePdfTextEditorForms({
   })
   const { applyDraftFormValues, clearDraftFormValues, updateDraftFormValue } =
     usePdfTextEditorFormValues({ setFields: setFormFields })
+  const { formSnapGuides, snapForDrag, snapForResize } = usePdfFormFieldSnapGuides({
+    fields: formFields,
+    pageId: page?.id ?? null,
+  })
   const {
     chooseSignatureImage,
     openSignature,
@@ -189,6 +194,7 @@ export function usePdfTextEditorForms({
       layout,
       selectedIds: selectedFormFieldIds,
       setFields: setFormFields,
+      snap: snapForDrag(field, selectedFormFieldIds),
       zoom,
     })
   }
@@ -205,6 +211,7 @@ export function usePdfTextEditorForms({
       handle,
       layout,
       setFields: setFormFields,
+      snap: snapForResize(field),
       zoom,
     })
   }
@@ -223,6 +230,7 @@ export function usePdfTextEditorForms({
     distributeDraftFormFields,
     duplicateSelectedDraftFormFields,
     formFields,
+    formSnapGuides,
     matchDraftFormFieldSizes,
     pendingFieldBox,
     pendingFormKind,

@@ -49,14 +49,18 @@ function annotationBox(
   return annotation as HighlightAnnotation | ImageAnnotation
 }
 
-function anchors(box: AnnotationBox): { x: number[]; y: number[] } {
+/** Anclas de una caja en ratios: bordes y centro por eje. Compartido con el
+ *  snap de casilleros. */
+export function snapBoxAnchors(box: AnnotationBox): { x: number[]; y: number[] } {
   return {
     x: [box.xRatio, box.xRatio + box.wRatio / 2, box.xRatio + box.wRatio],
     y: [box.yRatio, box.yRatio + box.hRatio / 2, box.yRatio + box.hRatio],
   }
 }
 
-function nearestSnap(
+const anchors = snapBoxAnchors
+
+export function nearestSnap(
   movingAnchors: number[],
   targets: number[],
   thresholdRatio: number,

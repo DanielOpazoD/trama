@@ -201,6 +201,7 @@ export function PdfTextEditor({
     distributeDraftFormFields,
     duplicateSelectedDraftFormFields,
     formFields,
+    formSnapGuides,
     matchDraftFormFieldSizes,
     chooseSignatureImage,
     applyDraftFieldStyle,
@@ -515,6 +516,7 @@ export function PdfTextEditor({
                   selectionMarquee={selectionMarquee}
                   selectionLasso={selectionLasso}
                   snapGuides={snapGuides}
+                  formSnapGuides={formSnapGuides}
                   drawColor={style.color}
                   detectedForms={detectedForms}
                   draftFields={formFields}

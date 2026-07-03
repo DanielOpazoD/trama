@@ -43,6 +43,7 @@ export function PdfTextEditorPageSurface({
   selectionMarquee,
   selectionLasso,
   snapGuides,
+  formSnapGuides = [],
   drawColor,
   detectedForms,
   draftFields,
@@ -87,6 +88,7 @@ export function PdfTextEditorPageSurface({
   selectionMarquee: DrawingRect | null
   selectionLasso: { x: number; y: number }[] | null
   snapGuides: SnapGuide[]
+  formSnapGuides?: SnapGuide[]
   drawColor: string
   detectedForms: DetectedPdfFormForCanvas[]
   draftFields: PdfFormFieldDraft[]
@@ -239,6 +241,7 @@ export function PdfTextEditorPageSurface({
           activeDraftId={activeDraftId}
           detectedForms={detectedForms}
           draftFields={draftFields}
+          formSnapGuides={formSnapGuides}
           isActive={isActive}
           layout={layout}
           mode={mode}
