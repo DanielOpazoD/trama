@@ -135,7 +135,9 @@ export function WorkspaceTemplatesSection({
           </div>
           {visibleTemplates.length === 0 ? (
             <p className="px-2.5 py-1 text-micro text-ink-400">
-              No hay planillas que calcen con la búsqueda.
+              {templateQuery.trim()
+                ? 'No hay planillas que calcen con la búsqueda.'
+                : 'No hay planillas con este estado.'}
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5 px-2 pt-1">
