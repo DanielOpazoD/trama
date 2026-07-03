@@ -58,10 +58,18 @@ describe('labelSuggestedFields', () => {
     ]
     const labeled = labelSuggestedFields({ fields, items })
     expect(labeled[0]).toMatchObject({ name: 'Fecha de nacimiento', fieldKind: 'date' })
+    expect(labeled[0]!.autoFill).toBeUndefined()
     expect(labeled[1]).toMatchObject({
       name: 'Firma del profesional',
       fieldKind: 'signature',
     })
+  })
+
+  it('«Fecha» simple queda con fecha de hoy automática; nacimiento no', () => {
+    const fields = [suggestion({ xRatio: 0.3, yRatio: 0.2 })]
+    const items = [item('Fecha:', 0.2, 0.21, 0.06)]
+    const [labeled] = labelSuggestedFields({ fields, items })
+    expect(labeled).toMatchObject({ name: 'Fecha', fieldKind: 'date', autoFill: 'today' })
   })
 
   it('descarta el subrayado que ya tiene texto encima y respeta etiquetas lejanas', () => {

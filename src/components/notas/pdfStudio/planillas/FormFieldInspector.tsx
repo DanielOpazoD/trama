@@ -3,10 +3,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import type {
-  PdfFormFieldDraft,
-  PdfFormValue,
-} from '../../../../lib/pdfStudio/model/model'
+import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
 import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
 import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldArrange'
 import { clamp, type TextStyle } from '../editor/editorStyle'
@@ -24,16 +21,15 @@ import {
   InspectorSwatchRow,
   InspectorToolButton,
 } from './FormFieldInspectorSections'
-
-/** Tamaño de letra en puntos (alto carta = 792 pt): pasos de 1 pt y entrada exacta. */
-const PAGE_PT = 792
-const PT_MIN = 6
-const PT_MAX = 96
+import {
+  PAGE_PT,
+  PT_MAX,
+  PT_MIN,
+  inspectorValueAsText as valueAsText,
+  type InspectorFlagsPatch,
+} from './formFieldInspectorModel'
 
 type InspectorSection = 'color' | 'bg' | 'border' | 'presets' | 'advanced'
-
-const valueAsText = (value: PdfFormValue): string =>
-  typeof value === 'string' ? value : Array.isArray(value) ? value.join(', ') : ''
 
 const fieldInput = `h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption text-ink-800 outline-none ${focusRing}`
 
@@ -74,7 +70,7 @@ export function FormFieldInspector({
   onDuplicateFields: () => void
   onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
   onNavigate?: (direction: 1 | -1) => void
-  onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
+  onPatchSelection: (patch: InspectorFlagsPatch) => void
   onRememberStyle?: () => void
   onRename: (name: string) => void
   onValueChange: (value: string | boolean) => void
@@ -258,6 +254,9 @@ export function FormFieldInspector({
           required={active.required ?? false}
           readOnly={active.readOnly ?? false}
           showRememberStyle={!multi && active.fieldKind === 'text'}
+          autoFillToday={
+            !multi && active.fieldKind === 'date' ? active.autoFill === 'today' : null
+          }
           onPatchSelection={onPatchSelection}
           onRememberStyle={onRememberStyle}
         />

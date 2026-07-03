@@ -35,6 +35,7 @@ import {
 import { useCurrentClientUserId } from '../../../../lib/clientIdentity'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
+import { applyTemplateAutoFill } from '../planillas/fill/pdfTemplateFillValues'
 import {
   createAutosaveFailedState,
   createAutosaveRestoredState,
@@ -265,6 +266,8 @@ export function usePdfStudioWorkspace({
   function openTemplate(s: SavedDoc) {
     const hadWork = doc.pages.length > 0
     const restored = normalizeDoc(clearPdfFormFieldValues(s.doc))
+    // Fecha de hoy automática: los casilleros de fecha marcados llegan llenos.
+    restored.formFields = applyTemplateAutoFill(restored.formFields ?? [])
     reseedIds(restored)
     setHistory((h) => pushHistory(h, restored))
     clearSelection()

@@ -80,6 +80,14 @@ function inferFieldKind(label: string): PdfFormFieldKind {
   return 'text'
 }
 
+/** «Fecha» a secas (o de hoy/emisión/atención/consulta) se llena sola al
+ *  rellenar; una fecha de nacimiento o vencimiento jamás. */
+function inferAutoFill(label: string): 'today' | undefined {
+  return /^fecha(\s+de\s+(hoy|emisi[oó]n|atenci[oó]n|consulta))?$/i.test(label.trim())
+    ? 'today'
+    : undefined
+}
+
 /**
  * Renombra y retipa los casilleros sugeridos según las etiquetas del PDF y
  * descarta los que ya tienen texto encima. Los que no encuentran etiqueta
@@ -99,6 +107,13 @@ export function labelSuggestedFields({
       const label = labelLeftOf(usable, field)
       const clean = label ? cleanFieldLabel(label) : ''
       if (clean.length < 2) return field
-      return { ...field, name: clean, fieldKind: inferFieldKind(clean) }
+      const fieldKind = inferFieldKind(clean)
+      const autoFill = fieldKind === 'date' ? inferAutoFill(clean) : undefined
+      return {
+        ...field,
+        name: clean,
+        fieldKind,
+        ...(autoFill ? { autoFill } : null),
+      }
     })
 }
