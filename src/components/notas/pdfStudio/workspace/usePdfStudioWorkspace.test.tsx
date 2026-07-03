@@ -153,6 +153,71 @@ describe('usePdfStudioWorkspace', () => {
     expect(hook.result.current.autosaveState).toMatchObject({ kind: 'saved', pages: 1 })
   })
 
+  it('updateSavedMeta actualiza y persiste descripción, tags y estado', async () => {
+    const putSavedDoc = (await import('../../../../lib/pdfStudio/render/persistence'))
+      .putSavedDoc as ReturnType<typeof vi.fn>
+    const template = {
+      id: 't1',
+      name: 'Ficha',
+      doc: pdfDoc(1),
+      savedAt: 1,
+      kind: 'template' as const,
+    }
+    mocks.listSavedDocs.mockResolvedValue([template])
+    const hook = renderWorkspace(emptyDoc())
+    await flushAsyncEffects()
+
+    act(() => {
+      hook.result.current.updateSavedMeta('t1', {
+        description: 'Ficha de ingreso',
+        tags: ['ingreso', 'medif'],
+        status: 'draft',
+      })
+    })
+
+    const updated = hook.result.current.saved.find((s) => s.id === 't1')
+    expect(updated).toMatchObject({
+      description: 'Ficha de ingreso',
+      tags: ['ingreso', 'medif'],
+      status: 'draft',
+    })
+    expect(putSavedDoc).toHaveBeenCalledWith(
+      'test-user',
+      expect.objectContaining({ id: 't1', status: 'draft' }),
+    )
+  })
+
+  it('duplicateSaved devuelve la copia: hereda metadatos y nace como borrador', async () => {
+    const template = {
+      id: 't1',
+      name: 'Ficha',
+      doc: pdfDoc(1),
+      savedAt: 1,
+      kind: 'template' as const,
+      description: 'Ficha de ingreso',
+      tags: ['ingreso'],
+      status: 'ready' as const,
+    }
+    mocks.listSavedDocs.mockResolvedValue([template])
+    const hook = renderWorkspace(emptyDoc())
+    await flushAsyncEffects()
+
+    let copy: ReturnType<typeof hook.result.current.duplicateSaved> | undefined
+    act(() => {
+      copy = hook.result.current.duplicateSaved(template)
+    })
+
+    expect(copy).toMatchObject({
+      name: 'Ficha copia',
+      description: 'Ficha de ingreso',
+      tags: ['ingreso'],
+      status: 'draft',
+      kind: 'template',
+    })
+    expect(copy?.id).not.toBe('t1')
+    expect(hook.result.current.saved[0]?.id).toBe(copy?.id)
+  })
+
   it('autosaveSnapshot con documento vacío vuelve a idle sin guardar', async () => {
     const hook = renderWorkspace(emptyDoc())
     await flushAsyncEffects()
