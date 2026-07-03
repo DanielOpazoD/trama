@@ -61,9 +61,21 @@ export function usePdfTextEditorFormSuggestions({
       if (items.length === 0 && suggestions.length > 0) {
         setStatus('Leyendo el texto de la página (OCR)…')
         try {
-          const { recognizeImageTextItems } =
-            await import('../../../../lib/pdfStudio/ocr/pdfOcrTextItems')
-          items = await recognizeImageTextItems(image.src)
+          const ocr = await import('../../../../lib/pdfStudio/ocr/pdfOcrTextItems')
+          const source =
+            activePage.kind === 'pdf'
+              ? doc.sources.find((s) => s.id === activePage.sourceId)
+              : undefined
+          if (source && activePage.kind === 'pdf') {
+            // Escaneo dentro de un PDF: render dedicado en alta resolución —
+            // el bitmap del editor se queda corto para texto chico.
+            const { renderPageCanvasForOcr } =
+              await import('../../../../lib/pdfStudio/render/pdfRender')
+            const canvas = await renderPageCanvasForOcr(source.file, activePage.pageIndex)
+            items = await ocr.recognizeCanvasTextItems(canvas)
+          } else {
+            items = await ocr.recognizeImageTextItems(image.src)
+          }
         } catch {
           // Sin OCR disponible: las sugerencias genéricas bastan.
         }

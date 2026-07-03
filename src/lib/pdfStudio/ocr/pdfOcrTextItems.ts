@@ -12,8 +12,8 @@
 import type { PageTextItemRatio } from '../render/pdfRender'
 import type { PdfOcrLanguage } from './pdfOcrTypes'
 
-const MIN_WORD_CONFIDENCE = 40
-const MAX_OCR_WIDTH = 1400
+const MIN_WORD_CONFIDENCE = 55
+const MAX_OCR_WIDTH = 2400
 
 export type TesseractWordData = {
   blocks?: Array<{
@@ -64,8 +64,28 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-/** Reconoce el texto de la imagen de una página y devuelve sus palabras como
- *  cajas en ratios. Lanza si el OCR no puede correr (el caller degrada). */
+/** Reconoce el texto de un canvas ya renderizado (p. ej. la página del PDF a
+ *  alta resolución) y devuelve sus palabras como cajas en ratios. */
+export async function recognizeCanvasTextItems(
+  canvas: HTMLCanvasElement,
+  language: PdfOcrLanguage = 'spa',
+): Promise<PageTextItemRatio[]> {
+  const tesseract = await import('tesseract.js')
+  const worker = await tesseract.createWorker(language)
+  try {
+    const result = await worker.recognize(canvas, {}, { blocks: true })
+    return ocrWordsToTextItems(
+      result.data as TesseractWordData,
+      canvas.width,
+      canvas.height,
+    )
+  } finally {
+    await worker.terminate()
+  }
+}
+
+/** Reconoce el texto de la imagen de una página (páginas-imagen del editor).
+ *  Lanza si el OCR no puede correr (el caller degrada). */
 export async function recognizeImageTextItems(
   src: string,
   language: PdfOcrLanguage = 'spa',
@@ -80,13 +100,5 @@ export async function recognizeImageTextItems(
   const ctx = canvas.getContext('2d')
   if (!ctx) return []
   ctx.drawImage(image, 0, 0, width, height)
-
-  const tesseract = await import('tesseract.js')
-  const worker = await tesseract.createWorker(language)
-  try {
-    const result = await worker.recognize(canvas, {}, { blocks: true })
-    return ocrWordsToTextItems(result.data as TesseractWordData, width, height)
-  } finally {
-    await worker.terminate()
-  }
+  return recognizeCanvasTextItems(canvas, language)
 }

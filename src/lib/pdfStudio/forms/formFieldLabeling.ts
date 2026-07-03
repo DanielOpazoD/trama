@@ -43,12 +43,31 @@ function hasTextInside(items: PageTextItemRatio[], box: RatioBox): boolean {
 
 const MAX_LABEL_GAP = 0.1
 const MAX_WORD_GAP = 0.02
+// Una etiqueta real es corta; más que esto es un párrafo con un blanco
+// adentro ("Yo ___ declaro…") y ahí el nombre genérico es más honesto.
+const MAX_LABEL_WORDS = 5
+const MAX_LABEL_CHARS = 48
+
+/** Items cuyo centro vertical cae SOBRE la línea del subrayado (la caja del
+ *  casillero es más alta que una línea de texto: comparar contra la caja
+ *  entera mezcla renglones vecinos y revuelve el orden). */
+function itemsOnUnderlineRow(
+  items: PageTextItemRatio[],
+  box: RatioBox,
+): PageTextItemRatio[] {
+  // El subrayado queda a ~62% del alto de la caja (initialBox lo posiciona así).
+  const lineY = box.yRatio + box.hRatio * 0.62
+  return items.filter((item) => {
+    const center = item.yRatio + item.hRatio / 2
+    return Math.abs(center - lineY) <= Math.max(item.hRatio * 0.8, 0.008)
+  })
+}
 
 /** Etiqueta a la izquierda del casillero: el item más cercano que termina
  *  justo antes de la caja, extendido hacia la izquierda con los items
- *  contiguos de la misma fila. */
+ *  contiguos del mismo renglón. */
 function labelLeftOf(items: PageTextItemRatio[], box: RatioBox): string | null {
-  const row = sameRowItems(items, box)
+  const row = itemsOnUnderlineRow(items, box)
     .filter((item) => item.xRatio + item.wRatio <= box.xRatio + 0.015)
     .sort((a, b) => a.xRatio - b.xRatio)
   const last = row[row.length - 1]
@@ -58,10 +77,11 @@ function labelLeftOf(items: PageTextItemRatio[], box: RatioBox): string | null {
   for (let i = row.length - 2; i >= 0; i -= 1) {
     const current = row[i]!
     const gap = parts[0]!.xRatio - (current.xRatio + current.wRatio)
-    if (gap > MAX_WORD_GAP) break
+    if (gap > MAX_WORD_GAP || parts.length >= MAX_LABEL_WORDS) break
     parts.unshift(current)
   }
-  return parts.map((part) => part.text).join(' ')
+  const label = parts.map((part) => part.text).join(' ')
+  return label.length > MAX_LABEL_CHARS ? null : label
 }
 
 /** Limpia la etiqueta para usarla como nombre de variable legible. */
@@ -106,7 +126,9 @@ export function labelSuggestedFields({
     .map((field) => {
       const label = labelLeftOf(usable, field)
       const clean = label ? cleanFieldLabel(label) : ''
-      if (clean.length < 2) return field
+      // Una etiqueta real tiene al menos una palabra de 3+ letras: descarta
+      // basura del OCR ("no_a", "|—:", restos de líneas).
+      if (clean.length < 2 || !/[a-zA-ZáéíóúñÁÉÍÓÚÑüÜ]{3,}/.test(clean)) return field
       const fieldKind = inferFieldKind(clean)
       const autoFill = fieldKind === 'date' ? inferAutoFill(clean) : undefined
       return {

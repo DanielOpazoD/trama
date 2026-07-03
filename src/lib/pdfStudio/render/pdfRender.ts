@@ -174,6 +174,31 @@ export async function renderPageBitmap(
 }
 
 /**
+ * Render de UNA página a canvas en alta resolución para OCR (los escaneos
+ * necesitan más píxeles que el bitmap del editor para que tesseract lea el
+ * texto chico de los formularios). Uso puntual disparado por el usuario.
+ */
+export async function renderPageCanvasForOcr(
+  file: File,
+  pageIndex: number,
+  targetWidth = 2200,
+): Promise<HTMLCanvasElement> {
+  const doc = await getDoc(file)
+  const page = await doc.getPage(pageIndex + 1) // pdf.js es 1-based
+  const base = page.getViewport({ scale: 1 })
+  const viewport = page.getViewport({ scale: Math.max(1, targetWidth / base.width) })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.ceil(viewport.width))
+  canvas.height = Math.max(1, Math.ceil(viewport.height))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas no disponible')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  await page.render({ canvas, canvasContext: ctx, viewport }).promise
+  return canvas
+}
+
+/**
  * Capa de texto de una página en RATIOS top-down (para etiquetar casilleros
  * sugeridos). Cada item trae su caja aproximada: x/ancho del propio item y
  * alto derivado de la matriz de transformación (≈ tamaño de fuente). Los PDFs
