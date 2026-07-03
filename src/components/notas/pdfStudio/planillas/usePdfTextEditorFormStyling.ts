@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
 import type { TextStyle } from '../editor/editorStyle'
+import { applyFormFieldPreset, type FormFieldPresetKey } from './pdfFormFieldPresets'
 import {
   patchFormFieldTextStyle,
   patchFormFieldVisual,
@@ -45,6 +46,10 @@ export function usePdfTextEditorFormStyling({
     applyToSelection((field) => patchFormFieldVisual(field, patch))
   }
 
+  function applyDraftFieldPreset(key: FormFieldPresetKey) {
+    applyToSelection((field) => applyFormFieldPreset(field, key))
+  }
+
   function patchSelectedDraftFormFields(
     patch: Partial<Pick<PdfFormFieldDraft, 'required' | 'readOnly'>>,
   ) {
@@ -59,6 +64,7 @@ export function usePdfTextEditorFormStyling({
   }
 
   return {
+    applyDraftFieldPreset,
     applyDraftFieldStyle,
     applyDraftFieldVisual,
     fieldStyleDefaults,

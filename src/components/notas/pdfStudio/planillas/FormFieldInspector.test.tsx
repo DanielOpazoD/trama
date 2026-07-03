@@ -22,6 +22,7 @@ function renderInspector(
 ) {
   const handlers = {
     onAlignFields: vi.fn(),
+    onApplyPreset: vi.fn(),
     onApplyStyle: vi.fn(),
     onApplyVisual: vi.fn(),
     onDelete: vi.fn(),
@@ -84,6 +85,12 @@ describe('<FormFieldInspector />', () => {
 
     expect(handlers.onApplyStyle).toHaveBeenCalledWith({ sizeRatio: 0.045 })
     expect(handlers.onApplyStyle).toHaveBeenCalledWith({ bold: true })
+  })
+
+  it('aplica presets de estilo con un clic (single y multi)', () => {
+    const single = renderInspector()
+    fireEvent.click(screen.getByRole('button', { name: /Preset Firma/ }))
+    expect(single.onApplyPreset).toHaveBeenCalledWith('firma')
   })
 
   it('ofrece fijar el estilo como inicial para nuevos casilleros de texto', () => {

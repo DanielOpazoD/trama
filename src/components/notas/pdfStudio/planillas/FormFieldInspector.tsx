@@ -7,10 +7,12 @@ import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldA
 import { clamp, type TextStyle } from '../editor/editorStyle'
 import { focusRing } from '../editor/EditorToolbarPrimitives'
 import { formFieldTextStyle, type FormFieldVisualPatch } from './pdfFormFieldStyle'
+import type { FormFieldPresetKey } from './pdfFormFieldPresets'
 import {
   InspectorAlignRow,
   InspectorArrangeSection,
   InspectorLabel,
+  InspectorPresetRow,
   InspectorSwatchRow,
   InspectorToolButton,
 } from './FormFieldInspectorSections'
@@ -35,6 +37,7 @@ const fieldInput = `h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-c
 export function FormFieldInspector({
   fields,
   onAlignFields,
+  onApplyPreset,
   onApplyStyle,
   onApplyVisual,
   onDelete,
@@ -49,6 +52,7 @@ export function FormFieldInspector({
   /** Selección actual (1..n); el último es el casillero activo. */
   fields: PdfFormFieldDraft[]
   onAlignFields: (alignment: FormFieldAlignment) => void
+  onApplyPreset: (key: FormFieldPresetKey) => void
   onApplyStyle: (patch: Partial<TextStyle>) => void
   onApplyVisual: (patch: FormFieldVisualPatch) => void
   onDelete: () => void
@@ -128,6 +132,8 @@ export function FormFieldInspector({
           />
         </label>
       )}
+
+      {hasTextControls && <InspectorPresetRow onApplyPreset={onApplyPreset} />}
 
       {hasTextControls && (
         <>
