@@ -4,6 +4,7 @@ import type {
   SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
 import type { SavedTemplateMetaPatch } from './WorkspaceTemplateDetails'
+import type { WorkspaceTemplateCloud } from './useWorkspaceTemplateCloud'
 
 export type WorkspacePanelProps = {
   saved: SavedDoc[]
@@ -29,6 +30,8 @@ export type WorkspacePanelProps = {
   onDeleteSaved: (id: string) => void
   onDownloadSaved: (s: SavedDoc) => void
   onExportTemplatePackage: (s: SavedDoc, format: 'json' | 'csv') => void
+  /** Nube de plantillas (historial de versiones); ausente sin sync activo. */
+  templateCloud?: WorkspaceTemplateCloud
   collapsed: boolean
   onToggleCollapsed: () => void
 }

@@ -12,9 +12,16 @@ import {
 } from './WorkspaceTemplateDetails'
 import { WorkspaceTemplateThumb } from './WorkspaceTemplateThumb'
 import {
+  templateCloudBadge,
   workspaceTemplateFieldCountLabel,
   workspaceTemplateSavedAtLabel,
 } from './workspaceTemplateCardModel'
+
+const CLOUD_DOT_TONES = {
+  cloud: 'bg-[color:var(--accent-sage)]',
+  pending: 'bg-[color:var(--accent-clay)]/80',
+  local: 'bg-ink-300',
+} as const
 
 export function WorkspaceTemplateCard({
   saved,
@@ -32,6 +39,7 @@ export function WorkspaceTemplateCard({
   onDownloadPdf,
   onExportJson,
   onExportCsv,
+  onShowVersions,
 }: {
   saved: SavedDoc
   renameValue: string | null
@@ -48,7 +56,9 @@ export function WorkspaceTemplateCard({
   onDownloadPdf: () => void
   onExportJson: () => void
   onExportCsv: () => void
+  onShowVersions?: () => void
 }) {
+  const cloudBadge = templateCloudBadge(saved)
   const isRenaming = renameValue !== null
   const skipBlurConfirmRef = useRef(false)
   const [editingDetails, setEditingDetails] = useState(false)
@@ -90,6 +100,12 @@ export function WorkspaceTemplateCard({
                     {saved.name}
                   </span>
                   <WorkspaceTemplateStatusBadge status={savedTemplateStatus(saved)} />
+                  <span
+                    role="img"
+                    aria-label={cloudBadge.label}
+                    title={cloudBadge.label}
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${CLOUD_DOT_TONES[cloudBadge.tone]}`}
+                  />
                 </span>
                 <span className="block text-micro text-ink-400 tabular-nums">
                   {workspaceTemplateFieldCountLabel(saved.doc)} · {saved.doc.pages.length}{' '}
@@ -106,6 +122,7 @@ export function WorkspaceTemplateCard({
                 onEditDetails={() => setEditingDetails(true)}
                 onExportCsv={onExportCsv}
                 onExportJson={onExportJson}
+                onShowVersions={onShowVersions}
                 onStartRename={onStartRename}
               />
             </div>

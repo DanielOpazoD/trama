@@ -401,6 +401,7 @@ export function usePdfStudioWorkspace({
     saved,
     setPanelCollapsed,
     setDraftSanitizer,
+    templateCloud,
     updateSavedMeta,
     userKey,
   }

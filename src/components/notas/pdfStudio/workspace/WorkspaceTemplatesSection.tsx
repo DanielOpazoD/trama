@@ -24,6 +24,7 @@ export function WorkspaceTemplatesSection({
   onDeleteSaved,
   onDownloadSaved,
   onExportTemplatePackage,
+  onShowVersions,
 }: {
   templates: SavedDoc[]
   canSaveTemplate: boolean
@@ -38,6 +39,8 @@ export function WorkspaceTemplatesSection({
   onDeleteSaved: (id: string) => void
   onDownloadSaved: (s: SavedDoc) => void
   onExportTemplatePackage: (s: SavedDoc, format: 'json' | 'csv') => void
+  /** Historial en la nube; sólo para plantillas sincronizadas. */
+  onShowVersions?: (s: SavedDoc) => void
 }) {
   const [newTemplateName, setNewTemplateName] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
@@ -159,6 +162,11 @@ export function WorkspaceTemplatesSection({
                   onDownloadPdf={() => onDownloadSaved(s)}
                   onExportJson={() => onExportTemplatePackage(s, 'json')}
                   onExportCsv={() => onExportTemplatePackage(s, 'csv')}
+                  onShowVersions={
+                    onShowVersions && s.cloudTemplate
+                      ? () => onShowVersions(s)
+                      : undefined
+                  }
                 />
               ))}
             </ul>

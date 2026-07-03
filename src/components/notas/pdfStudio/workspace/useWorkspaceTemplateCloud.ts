@@ -2,9 +2,12 @@ import { useRef, type Dispatch, type SetStateAction } from 'react'
 import {
   deletePdfStudioTemplate,
   downloadPdfStudioTemplatePackage,
+  downloadPdfStudioTemplateVersion,
   listPdfStudioTemplates,
+  listPdfStudioTemplateVersions,
   uploadPdfStudioTemplate,
   type PdfStudioTemplateRemote,
+  type PdfStudioTemplateVersion,
 } from '../../../../api/pdfStudioTemplates'
 import {
   packPdfTemplate,
@@ -25,6 +28,10 @@ export type WorkspaceTemplateCloud = {
   pushTemplate: (saved: SavedDoc) => void
   /** Baja (best-effort) la fila remota de una plantilla borrada localmente. */
   removeRemoteTemplate: (saved: SavedDoc) => void
+  /** Historial retenido en el servidor (vacío si la plantilla no está en la nube). */
+  listTemplateVersions: (saved: SavedDoc) => Promise<PdfStudioTemplateVersion[]>
+  /** Restaura una versión: la materializa como estado actual y la re-sube. */
+  restoreTemplateVersion: (saved: SavedDoc, versionId: string) => Promise<boolean>
 }
 
 /**
@@ -136,5 +143,36 @@ export function useWorkspaceTemplateCloud({
     })
   }
 
-  return { syncTemplates, pushTemplate, removeRemoteTemplate }
+  async function listTemplateVersions(
+    saved: SavedDoc,
+  ): Promise<PdfStudioTemplateVersion[]> {
+    if (!active || !saved.cloudTemplate) return []
+    return listPdfStudioTemplateVersions(saved.cloudTemplate.id)
+  }
+
+  async function restoreTemplateVersion(
+    saved: SavedDoc,
+    versionId: string,
+  ): Promise<boolean> {
+    if (!active || !saved.cloudTemplate) return false
+    const pkg = await downloadPdfStudioTemplateVersion(saved.cloudTemplate.id, versionId)
+    const doc = unpackPdfTemplate(pkg)
+    if (!doc) return false
+    // La versión restaurada pasa a ser el estado actual (savedAt nuevo):
+    // el push la convierte en cabeza y el estado anterior queda en el historial.
+    const restored: SavedDoc = { ...saved, doc, savedAt: Date.now() }
+    upsertLocal(restored)
+    await uploadTemplate(restored).catch(() => {
+      // Sin conexión: quedó restaurada localmente; el merge la subirá después.
+    })
+    return true
+  }
+
+  return {
+    syncTemplates,
+    pushTemplate,
+    removeRemoteTemplate,
+    listTemplateVersions,
+    restoreTemplateVersion,
+  }
 }
