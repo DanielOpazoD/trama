@@ -4,6 +4,8 @@ import {
   detectHorizontalRunsFromImage,
   suggestTextFieldsFromHorizontalRuns,
 } from '../../../../lib/pdfStudio/forms/formFieldSuggestions'
+import { labelSuggestedFields } from '../../../../lib/pdfStudio/forms/formFieldLabeling'
+import { extractPageTextItems } from '../../../../lib/pdfStudio/render/pdfRender'
 
 export function usePdfTextEditorFormSuggestions({
   currentPage,
@@ -32,17 +34,36 @@ export function usePdfTextEditorFormSuggestions({
     setStatus('Buscando espacios vacíos…')
     try {
       const { runs, width, height } = await detectHorizontalRunsFromImage(image.src)
-      const suggestions = suggestTextFieldsFromHorizontalRuns({
+      let suggestions = suggestTextFieldsFromHorizontalRuns({
         pageId: activePage.id,
         pageWidth: width,
         pageHeight: height,
         runs,
         existingFields: formFields,
       }).slice(0, 12)
+      // Con capa de texto (PDF vectorial): la etiqueta impresa a la izquierda
+      // nombra la variable e infiere el tipo; los subrayados de texto ya
+      // escrito se descartan. Escaneos/imágenes siguen con nombres genéricos.
+      if (activePage.kind === 'pdf') {
+        try {
+          const source = doc.sources.find((s) => s.id === activePage.sourceId)
+          if (source) {
+            const items = await extractPageTextItems(source.file, activePage.pageIndex)
+            if (items.length > 0) {
+              suggestions = labelSuggestedFields({ fields: suggestions, items })
+            }
+          }
+        } catch {
+          // Sin capa de texto legible: las sugerencias genéricas bastan.
+        }
+      }
+      const named = suggestions.filter((field) => !/^campo_\d+$/.test(field.name)).length
       const count = onAddSuggested(suggestions)
       setStatus(
         count > 0
-          ? `${count} ${count === 1 ? 'casillero sugerido' : 'casilleros sugeridos'}.`
+          ? `${count} ${count === 1 ? 'casillero sugerido' : 'casilleros sugeridos'}${
+              named > 0 ? ` (${named} con nombre del formulario)` : ''
+            }.`
           : 'No encontramos líneas vacías claras en esta página.',
       )
     } catch {

@@ -173,6 +173,46 @@ export async function renderPageBitmap(
   return { url: URL.createObjectURL(blob), w: canvas.width, h: canvas.height }
 }
 
+/**
+ * Capa de texto de una página en RATIOS top-down (para etiquetar casilleros
+ * sugeridos). Cada item trae su caja aproximada: x/ancho del propio item y
+ * alto derivado de la matriz de transformación (≈ tamaño de fuente). Los PDFs
+ * escaneados (sin capa de texto) devuelven [].
+ */
+export type PageTextItemRatio = {
+  text: string
+  xRatio: number
+  yRatio: number
+  wRatio: number
+  hRatio: number
+}
+
+export async function extractPageTextItems(
+  file: File,
+  pageIndex: number,
+): Promise<PageTextItemRatio[]> {
+  const doc = await getDoc(file)
+  const page = await doc.getPage(pageIndex + 1) // pdf.js es 1-based
+  const viewport = page.getViewport({ scale: 1 })
+  const content = await page.getTextContent()
+  const items: PageTextItemRatio[] = []
+  for (const item of content.items) {
+    if (!('str' in item) || !item.str.trim()) continue
+    const height = Math.hypot(item.transform[2] ?? 0, item.transform[3] ?? 0)
+    const x = item.transform[4] ?? 0
+    // transform[5] es la BASELINE en coords PDF (y hacia arriba) → top-down.
+    const baseline = viewport.height - (item.transform[5] ?? 0)
+    items.push({
+      text: item.str,
+      xRatio: x / Math.max(1, viewport.width),
+      yRatio: (baseline - height) / Math.max(1, viewport.height),
+      wRatio: item.width / Math.max(1, viewport.width),
+      hRatio: height / Math.max(1, viewport.height),
+    })
+  }
+  return items
+}
+
 /** Revoca y olvida la miniatura cacheada de una página (al borrarla). */
 export function forgetThumb(key: string): void {
   const url = thumbCache.get(key)

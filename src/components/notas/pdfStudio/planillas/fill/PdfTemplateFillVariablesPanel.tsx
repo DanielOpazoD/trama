@@ -6,6 +6,7 @@ import type { TemplateFillImportFeedback } from './usePdfTemplateFillImport'
 import { orderFormFieldsForFill } from '../pdfFormFieldFillOrder'
 import { FORM_FIELD_EMPTY_HINT } from '../pdfFormFieldStyle'
 import { templateFillValuesJson } from './pdfTemplateFillExport'
+import { PdfTemplateFillProfileSection } from './PdfTemplateFillProfileSection'
 import {
   fillProgressForTemplateFields,
   isTemplateFieldFilled,
@@ -29,8 +30,10 @@ export function PdfTemplateFillVariablesPanel({
   onImportBatch,
   onShowFieldGuidesChange = () => undefined,
   onShowPendingOnlyChange = () => undefined,
+  onApplyProfile,
   onJump,
   onOpenSignature,
+  profileUserKey,
 }: {
   activeFieldId?: string | null
   autoFocusFirstPending?: boolean
@@ -47,9 +50,12 @@ export function PdfTemplateFillVariablesPanel({
   onImportBatch?: (file: File) => void | Promise<void>
   onShowFieldGuidesChange?: (show: boolean) => void
   onShowPendingOnlyChange?: (show: boolean) => void
+  /** «Mis datos»: aplica el perfil propio por nombre; devuelve cuántos llenó. */
+  onApplyProfile?: (values: TemplateFillImportValues) => number
   onJump: (field: PdfFormFieldDraft) => void
   /** Abre el diálogo de firma para un campo de firma (dibujar o elegir imagen). */
   onOpenSignature?: (field: PdfFormFieldDraft) => void
+  profileUserKey?: string
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const importInputRef = useRef<HTMLInputElement | null>(null)
@@ -195,6 +201,12 @@ export function PdfTemplateFillVariablesPanel({
           Borrar datos
         </button>
       </div>
+      {onApplyProfile && profileUserKey ? (
+        <PdfTemplateFillProfileSection
+          userKey={profileUserKey}
+          onApply={onApplyProfile}
+        />
+      ) : null}
       <input
         ref={importInputRef}
         aria-label="Archivo de datos"
