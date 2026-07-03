@@ -59,6 +59,7 @@ export function usePdfTextEditorInteractions({
   setTool,
   editLive,
   onMarqueeBox,
+  onShiftQuickCreate,
 }: {
   layout: PageLayout | null
   layoutRef?: { current: PageLayout | null }
@@ -86,6 +87,10 @@ export function usePdfTextEditorInteractions({
     box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
     additive: boolean,
   ) => boolean
+  /** Shift+clic sin arrastre sobre la página: crear rápido (casillero en
+   *  diseño). Devuelve true si lo consumió; shift+arrastre sigue siendo
+   *  selección aditiva por marco. */
+  onShiftQuickCreate?: (point: { xRatio: number; yRatio: number }) => boolean
 }) {
   const currentLayout = () => layoutRef?.current ?? layout
 
@@ -203,6 +208,7 @@ export function usePdfTextEditorInteractions({
     const startX = e.clientX
     const startY = e.clientY
     const additive = e.metaKey || e.ctrlKey || e.shiftKey
+    const shiftQuickCreate = e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey
     const rot = activeLayout.rot
     const innerW = activeLayout.innerW
     const innerH = activeLayout.innerH
@@ -242,6 +248,15 @@ export function usePdfTextEditorInteractions({
       setSelectionMarquee(null)
       setSelectionLasso(null)
       if (!moved) {
+        if (
+          shiftQuickCreate &&
+          onShiftQuickCreate?.({
+            xRatio: x0 / Math.max(1, innerW),
+            yRatio: y0 / Math.max(1, innerH),
+          })
+        ) {
+          return
+        }
         onMarqueeBox?.({ xRatio: 0, yRatio: 0, wRatio: 0, hRatio: 0 }, additive)
         selectAnnotationIds([])
         return
