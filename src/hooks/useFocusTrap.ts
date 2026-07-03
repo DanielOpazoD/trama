@@ -23,12 +23,17 @@ import { useEffect, type RefObject } from 'react'
  * tabindex, etc.) — eso lo siguen haciendo los modales individualmente.
  * Esto solo cubre el trap + restore, que era el gap concreto del audit.
  */
+// Default a nivel de módulo: un `= []` inline crearía un array nuevo por
+// render y el efecto (que depende de extraRoots) se re-ejecutaría siempre,
+// robando el foco a mitad de escritura en todos los modales.
+const NO_EXTRA_ROOTS: RefObject<HTMLElement | null>[] = []
+
 export function useFocusTrap(
   ref: RefObject<HTMLElement | null>,
   active: boolean,
   /** Contenedores extra que cuentan como "dentro" del trap (p. ej. paneles
    *  flotantes portaleados al body). El array debe ser de identidad estable. */
-  extraRoots: RefObject<HTMLElement | null>[] = [],
+  extraRoots: RefObject<HTMLElement | null>[] = NO_EXTRA_ROOTS,
 ): void {
   useEffect(() => {
     if (!active) return

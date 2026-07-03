@@ -509,7 +509,10 @@ describe('<PdfStudioView />', () => {
 
     const input = screen.getByRole('textbox', { name: 'paciente' })
     expect(input).toHaveAttribute('placeholder', 'Escriba aquí')
-    expect(screen.getAllByText('[paciente]').length).toBeGreaterThanOrEqual(1)
+    // El panel lista la variable con su nombre limpio (sin corchetes).
+    expect(
+      screen.getByRole('button', { name: 'Ir al campo paciente' }),
+    ).toBeInTheDocument()
     await user.type(input, 'Daniel')
     await user.click(
       within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),

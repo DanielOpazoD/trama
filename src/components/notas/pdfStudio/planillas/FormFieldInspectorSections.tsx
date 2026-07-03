@@ -165,7 +165,7 @@ export function InspectorHeader({
   )
 }
 
-export function InspectorLabel({ children }: { children: ReactNode }) {
+function InspectorLabel({ children }: { children: ReactNode }) {
   return (
     <p className="px-0.5 pb-1 pt-2 text-micro uppercase tracking-eyebrow text-ink-300">
       {children}
