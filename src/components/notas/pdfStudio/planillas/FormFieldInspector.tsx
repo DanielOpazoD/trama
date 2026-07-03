@@ -2,10 +2,8 @@ import type {
   PdfFormFieldDraft,
   PdfFormValue,
 } from '../../../../lib/pdfStudio/model/model'
-import type {
-  AnnotationDistributionAxis,
-  AnnotationHorizontalAlignment,
-} from '../editor/pdfAnnotationArrange'
+import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
+import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldArrange'
 import { clamp, type TextStyle } from '../editor/editorStyle'
 import { focusRing } from '../editor/EditorToolbarPrimitives'
 import { formFieldTextStyle, type FormFieldVisualPatch } from './pdfFormFieldStyle'
@@ -41,6 +39,8 @@ export function FormFieldInspector({
   onApplyVisual,
   onDelete,
   onDistributeFields,
+  onDuplicateFields,
+  onMatchFieldSizes,
   onPatchSelection,
   onRememberStyle,
   onRename,
@@ -48,11 +48,13 @@ export function FormFieldInspector({
 }: {
   /** Selección actual (1..n); el último es el casillero activo. */
   fields: PdfFormFieldDraft[]
-  onAlignFields: (alignment: AnnotationHorizontalAlignment) => void
+  onAlignFields: (alignment: FormFieldAlignment) => void
   onApplyStyle: (patch: Partial<TextStyle>) => void
   onApplyVisual: (patch: FormFieldVisualPatch) => void
   onDelete: () => void
   onDistributeFields: (axis: AnnotationDistributionAxis) => void
+  onDuplicateFields: () => void
+  onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
   onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
   onRememberStyle?: () => void
   onRename: (name: string) => void
@@ -220,6 +222,8 @@ export function FormFieldInspector({
           count={fields.length}
           onAlignFields={onAlignFields}
           onDistributeFields={onDistributeFields}
+          onDuplicateFields={onDuplicateFields}
+          onMatchFieldSizes={onMatchFieldSizes}
         />
       )}
 

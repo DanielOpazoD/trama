@@ -59,6 +59,23 @@ function pasteField(
   }
 }
 
+/** Duplica los casilleros indicados con copia corrida y nombres únicos. Lo
+ *  comparten el atajo ⌘D y el botón "Duplicar" del inspector. */
+export function duplicateFormFields(
+  fields: PdfFormFieldDraft[],
+  ids: string[],
+): { fields: PdfFormFieldDraft[]; selectedIds: string[] } {
+  const current = selectedFields(fields, ids)
+  if (current.length === 0) return { fields, selectedIds: ids }
+  const next = [...fields]
+  const copies = current.map((field) => {
+    const copy = offsetField(field, next)
+    next.push(copy)
+    return copy
+  })
+  return { fields: next, selectedIds: copies.map((field) => field.id) }
+}
+
 function moveField(field: PdfFormFieldDraft, dx: number, dy: number) {
   const doc: PdfDoc = {
     sources: [],
@@ -131,15 +148,10 @@ export function reduceFormFieldShortcut({
   }
 
   if (mod && normalizedKey === 'd') {
-    const next = [...fields]
-    const copies = current.map((field) => {
-      const copy = offsetField(field, next)
-      next.push(copy)
-      return copy
-    })
+    const duplicated = duplicateFormFields(fields, selectedIds)
     return {
-      fields: next,
-      selectedIds: copies.map((field) => field.id),
+      fields: duplicated.fields,
+      selectedIds: duplicated.selectedIds,
       clipboard,
       handled: true,
     }

@@ -1,9 +1,10 @@
 import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
-import type {
-  AnnotationDistributionAxis,
-  AnnotationHorizontalAlignment,
-} from './pdfAnnotationArrange'
+import type { AnnotationDistributionAxis } from './pdfAnnotationArrange'
 import type { TextStyle } from './editorStyle'
+import type {
+  FormFieldAlignment,
+  FormFieldSizeDimension,
+} from '../planillas/pdfFormFieldArrange'
 import type { FormFieldVisualPatch } from '../planillas/pdfFormFieldStyle'
 import { FormFieldInspector } from '../planillas/FormFieldInspector'
 import { SignatureCaptureDialog } from '../planillas/SignatureCaptureDialog'
@@ -17,6 +18,8 @@ export function PdfTextEditorFloatingFormTools({
   onChooseSignatureImage,
   onDeleteField,
   onDistributeFields,
+  onDuplicateFields,
+  onMatchFieldSizes,
   onPatchField,
   onPatchSelection,
   onRememberStyle,
@@ -27,12 +30,14 @@ export function PdfTextEditorFloatingFormTools({
   /** Selección de casilleros en diseño ([] en modo llenar: sin inspector). */
   fields: PdfFormFieldDraft[]
   signatureField: PdfFormFieldDraft | null
-  onAlignFields: (alignment: AnnotationHorizontalAlignment) => void
+  onAlignFields: (alignment: FormFieldAlignment) => void
   onApplyStyle: (patch: Partial<TextStyle>) => void
   onApplyVisual: (patch: FormFieldVisualPatch) => void
   onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
   onDeleteField: (id: string) => void
   onDistributeFields: (axis: AnnotationDistributionAxis) => void
+  onDuplicateFields: () => void
+  onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
   onPatchField: (id: string, patch: Partial<PdfFormFieldDraft>) => void
   onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
   onRememberStyle: (field: PdfFormFieldDraft) => void
@@ -51,6 +56,8 @@ export function PdfTextEditorFloatingFormTools({
           onApplyVisual={onApplyVisual}
           onDelete={() => fields.forEach((field) => onDeleteField(field.id))}
           onDistributeFields={onDistributeFields}
+          onDuplicateFields={onDuplicateFields}
+          onMatchFieldSizes={onMatchFieldSizes}
           onPatchSelection={onPatchSelection}
           onRememberStyle={() => onRememberStyle(active)}
           onRename={(name) => onPatchField(active.id, { name })}
