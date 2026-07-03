@@ -34,6 +34,7 @@ import { fillProgressForTemplateFields } from '../planillas/fill/pdfTemplateFill
 import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
 import { usePdfTemplateGuidedFill } from '../planillas/fill/usePdfTemplateGuidedFill'
+import { PdfStudioShortcutsHelp } from '../planillas/PdfStudioShortcutsHelp'
 import { usePdfTextEditorAnnotationSetters } from './usePdfTextEditorAnnotationSetters'
 import { usePdfTextEditorAutosave } from './usePdfTextEditorAutosave'
 import { PdfTextEditorAutosaveBadge } from './PdfTextEditorAutosaveBadge'
@@ -487,6 +488,9 @@ export function PdfTextEditor({
           onValueChange={updateDraftFormValue}
         />
         {designMode ? <PdfTextEditorAutosaveBadge state={autosaveState} /> : null}
+        {designMode || fillMode ? (
+          <PdfStudioShortcutsHelp mode={fillMode ? 'fill' : 'design'} />
+        ) : null}
         <PdfTextEditorAuxiliaryControls
           fillMode={fillMode}
           formSuggestionStatus={formSuggestionStatus}
