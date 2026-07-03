@@ -254,6 +254,10 @@ export function PdfTemplateFillVariablesPanel({
       >
         {visibleFields.map((field, index) => {
           const filled = isTemplateFieldFilled(field)
+          // La firma cuenta como "firmada" solo si el valor es una imagen: el
+          // aria-label y el contenido visible usan la MISMA condición.
+          const signatureImage =
+            filled && valueAsFillText(field.value).startsWith('data:image/')
           const label = `Variable ${field.name}`
           const active = activeFieldId === field.id
           return (
@@ -307,7 +311,9 @@ export function PdfTemplateFillVariablesPanel({
                 <button
                   type="button"
                   aria-label={
-                    filled ? `Rehacer firma de ${field.name}` : `Firmar ${field.name}`
+                    signatureImage
+                      ? `Rehacer firma de ${field.name}`
+                      : `Firmar ${field.name}`
                   }
                   disabled={field.readOnly || !onOpenSignature}
                   onClick={() => {
@@ -316,7 +322,7 @@ export function PdfTemplateFillVariablesPanel({
                   }}
                   className="flex w-full items-center gap-2 rounded-md border border-dashed border-[color:var(--accent-sage)]/50 bg-[color:var(--accent-sage-soft)]/30 px-2 py-1 text-caption font-medium text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)]/60 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {filled && valueAsFillText(field.value).startsWith('data:image/') ? (
+                  {signatureImage ? (
                     <>
                       <img
                         src={valueAsFillText(field.value)}
