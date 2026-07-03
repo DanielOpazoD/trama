@@ -13,6 +13,7 @@ export function usePdfTextEditorFillSidebarProps({
   onMailMergeRows,
   onOpenSignature,
   pageIndexById,
+  profileUserKey,
   setActiveFillFieldId,
   updateDraftFormValue,
 }: {
@@ -25,6 +26,8 @@ export function usePdfTextEditorFillSidebarProps({
   onMailMergeRows?: (rows: TemplateFillImportValues[]) => void
   onOpenSignature?: (field: PdfFormFieldDraft) => void
   pageIndexById: Record<string, number>
+  /** Clave de usuario para el perfil «Mis datos» (localStorage por usuario). */
+  profileUserKey?: string
   setActiveFillFieldId: (id: string | null) => void
   updateDraftFormValue: (id: string, value: string | boolean) => void
 }) {
@@ -49,6 +52,8 @@ export function usePdfTextEditorFillSidebarProps({
     onOpenSignature,
     onShowFieldGuidesChange: setShowFillGuides,
     onShowPendingOnlyChange: setShowPendingOnly,
+    onApplyProfile: applyDraftFormValues,
+    profileUserKey,
   }
 
   return { fillSidebarProps, showFillGuides }

@@ -327,6 +327,7 @@ export function PdfTextEditor({
       fillMode && onMailMerge ? (rows) => onMailMerge(currentEdits(), rows) : undefined,
     onOpenSignature: openSignature,
     pageIndexById,
+    profileUserKey: stampAssetUserKey,
     setActiveFillFieldId,
     updateDraftFormValue,
   })
