@@ -337,6 +337,7 @@ export function PdfTextEditor({
     jumpToFormField,
     onMailMergeRows:
       fillMode && onMailMerge ? (rows) => onMailMerge(currentEdits(), rows) : undefined,
+    onOpenSignature: openSignature,
     pageIndexById,
     setActiveFillFieldId,
     updateDraftFormValue,

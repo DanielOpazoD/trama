@@ -8,6 +8,7 @@ import {
   fillProgressForTemplateFields,
   isTemplateFieldFilled,
   rawValueAsText,
+  requiredEmptyTemplateFields,
   valueAsFillText,
 } from './pdfTemplateFillProgress'
 
@@ -27,6 +28,7 @@ export function PdfTemplateFillVariablesPanel({
   onShowFieldGuidesChange = () => undefined,
   onShowPendingOnlyChange = () => undefined,
   onJump,
+  onOpenSignature,
 }: {
   activeFieldId?: string | null
   autoFocusFirstPending?: boolean
@@ -44,6 +46,8 @@ export function PdfTemplateFillVariablesPanel({
   onShowFieldGuidesChange?: (show: boolean) => void
   onShowPendingOnlyChange?: (show: boolean) => void
   onJump: (field: PdfFormFieldDraft) => void
+  /** Abre el diálogo de firma para un campo de firma (dibujar o elegir imagen). */
+  onOpenSignature?: (field: PdfFormFieldDraft) => void
 }) {
   const fieldInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const importInputRef = useRef<HTMLInputElement | null>(null)
@@ -53,6 +57,7 @@ export function PdfTemplateFillVariablesPanel({
     ? orderedFields.filter((field) => !isTemplateFieldFilled(field))
     : orderedFields
   const { completed, pending } = fillProgressForTemplateFields(orderedFields)
+  const requiredEmpty = requiredEmptyTemplateFields(orderedFields)
   const nextPending = orderedFields.find((field) => !isTemplateFieldFilled(field)) ?? null
   const autoFocusedRef = useRef(false)
   const focusAdjacentField = (index: number, direction: 1 | -1): boolean => {
@@ -69,9 +74,11 @@ export function PdfTemplateFillVariablesPanel({
   const statusText =
     orderedFields.length === 0
       ? 'Sin campos'
-      : pending === 0
-        ? 'Todo listo para imprimir'
-        : `${pending} ${pending === 1 ? 'campo pendiente' : 'campos pendientes'}`
+      : requiredEmpty.length > 0
+        ? `${requiredEmpty.length} ${requiredEmpty.length === 1 ? 'requerido vacío' : 'requeridos vacíos'}`
+        : pending === 0
+          ? 'Todo listo para imprimir'
+          : `${pending} ${pending === 1 ? 'campo pendiente' : 'campos pendientes'}`
 
   useEffect(() => {
     if (!autoFocusFirstPending || autoFocusedRef.current || activeFieldId) return
@@ -98,14 +105,40 @@ export function PdfTemplateFillVariablesPanel({
         </div>
         <span
           className={`rounded-full px-2 py-0.5 text-micro font-medium ${
-            pending > 0
-              ? 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
-              : 'bg-ink-100 text-ink-500'
+            requiredEmpty.length > 0
+              ? 'bg-[color:var(--accent-clay)]/10 text-[color:var(--accent-clay)]'
+              : pending > 0
+                ? 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
+                : 'bg-ink-100 text-ink-500'
           }`}
         >
           {statusText}
         </span>
       </div>
+      {requiredEmpty.length > 0 ? (
+        <div
+          role="group"
+          aria-label="Campos requeridos vacíos"
+          className="mt-2 rounded-md border border-[color:var(--accent-clay)]/25 bg-[color:var(--accent-clay)]/5 px-2 py-1.5"
+        >
+          <p className="text-micro font-medium text-[color:var(--accent-clay)]">
+            Requeridos vacíos
+          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {requiredEmpty.map((field) => (
+              <button
+                key={field.id}
+                type="button"
+                onClick={() => onJump(field)}
+                aria-label={`Ir al campo requerido ${field.name}`}
+                className="rounded-full bg-paper-50 px-1.5 py-0.5 text-micro text-ink-600 ring-1 ring-[color:var(--accent-clay)]/30 transition-colors hover:text-[color:var(--accent-clay)]"
+              >
+                {field.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <button
         type="button"
         disabled={!nextPending}
@@ -241,10 +274,26 @@ export function PdfTemplateFillVariablesPanel({
                   className="min-w-0 flex-1 truncate text-left text-caption font-medium text-ink-800 transition-colors hover:text-[color:var(--accent-sage)]"
                 >
                   [{field.name}]
+                  {field.required ? (
+                    <span
+                      title="Campo requerido"
+                      aria-label="requerido"
+                      className={
+                        filled ? 'text-ink-300' : 'text-[color:var(--accent-clay)]'
+                      }
+                    >
+                      {' '}
+                      *
+                    </span>
+                  ) : null}
                 </button>
                 <span
                   className={`h-2 w-2 rounded-full ${
-                    filled ? 'bg-[color:var(--accent-sage)]' : 'bg-ink-200'
+                    filled
+                      ? 'bg-[color:var(--accent-sage)]'
+                      : field.required
+                        ? 'bg-[color:var(--accent-clay)]/70'
+                        : 'bg-ink-200'
                   }`}
                   aria-label={filled ? 'completa' : 'pendiente'}
                 />
@@ -254,7 +303,33 @@ export function PdfTemplateFillVariablesPanel({
                   </span>
                 ) : null}
               </div>
-              {field.fieldKind === 'checkbox' ? (
+              {field.fieldKind === 'signature' ? (
+                <button
+                  type="button"
+                  aria-label={
+                    filled ? `Rehacer firma de ${field.name}` : `Firmar ${field.name}`
+                  }
+                  disabled={field.readOnly || !onOpenSignature}
+                  onClick={() => {
+                    onJump(field)
+                    onOpenSignature?.(field)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md border border-dashed border-[color:var(--accent-sage)]/50 bg-[color:var(--accent-sage-soft)]/30 px-2 py-1 text-caption font-medium text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage-soft)]/60 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {filled && valueAsFillText(field.value).startsWith('data:image/') ? (
+                    <>
+                      <img
+                        src={valueAsFillText(field.value)}
+                        alt=""
+                        className="h-6 max-w-[6rem] object-contain"
+                      />
+                      <span>Rehacer firma</span>
+                    </>
+                  ) : (
+                    'Firmar'
+                  )}
+                </button>
+              ) : field.fieldKind === 'checkbox' ? (
                 <label className="flex items-center gap-2 text-caption text-ink-600">
                   <input
                     type="checkbox"
