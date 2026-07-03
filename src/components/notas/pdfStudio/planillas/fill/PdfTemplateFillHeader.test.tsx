@@ -72,10 +72,10 @@ describe('<PdfTemplateFillHeader />', () => {
     // Primer clic: NO imprime, muestra la confirmación.
     await user.click(screen.getByRole('button', { name: 'Imprimir planilla' }))
     expect(onPrint).not.toHaveBeenCalled()
-    const dialog = screen.getByRole('alertdialog', {
+    const confirm = screen.getByRole('group', {
       name: 'Confirmar impresión con requeridos vacíos',
     })
-    expect(dialog).toHaveTextContent('Faltan 2 requeridos')
+    expect(confirm).toHaveTextContent('Faltan 2 requeridos')
 
     // "Seguir llenando" vuelve al botón normal sin imprimir.
     await user.click(screen.getByRole('button', { name: 'Seguir llenando' }))

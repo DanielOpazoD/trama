@@ -143,7 +143,7 @@ export function PdfTemplateFillHeader({
         ) : null}
         {confirmingPrint && needsPreflight ? (
           <div
-            role="alertdialog"
+            role="group"
             aria-label="Confirmar impresión con requeridos vacíos"
             className="inline-flex items-center gap-1.5 rounded-md border border-[color:var(--accent-clay)]/30 bg-[color:var(--accent-clay)]/5 px-2 py-1"
           >
