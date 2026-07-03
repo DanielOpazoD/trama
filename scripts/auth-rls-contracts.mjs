@@ -177,6 +177,14 @@ export const PRIVATE_TABLE_CONTRACTS = [
     reason: 'Saved PDFs and edits are private document work products.',
   },
   {
+    table: 'pdf_studio_templates',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership: 'owner scoped editable PDF template packages',
+    reason: 'Template structure reveals private clinical/document workflows per user.',
+  },
+  {
     table: 'pdf_stamp_assets',
     lifecycle: 'soft-delete',
     userId: 'required',
@@ -602,6 +610,16 @@ export const ENDPOINT_PRIVACY_CONTRACTS = [
     ownership:
       'Saved PDFs and blob payloads are validated against the authenticated owner.',
     evidence: ['netlify/functions/_lib/pdf-studio-saved-pdfs-endpoint.test.ts'],
+  },
+  {
+    route: '/api/pdf-studio-templates',
+    files: ['netlify/functions/pdf-studio-templates.mts'],
+    auth: 'required',
+    operations: ['list', 'upload', 'download', 'delete'],
+    tables: ['pdf_studio_templates'],
+    ownership:
+      'Editable template packages and blob payloads are scoped to the authenticated owner.',
+    evidence: ['netlify/functions/_lib/pdf-studio-templates-endpoint.test.ts'],
   },
   {
     route: '/api/pdf-stamp-assets',

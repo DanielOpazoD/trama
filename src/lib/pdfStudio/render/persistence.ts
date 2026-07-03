@@ -51,6 +51,13 @@ export type SavedDoc = {
     uploadedAt: string
     byteSize?: number
   }
+  /** Marcador de sincronización con /api/pdf-studio-templates (sólo plantillas
+   *  limpias). `savedAt` es el reloj del servidor para el merge entre equipos;
+   *  su presencia distingue "nunca sincronizada" de "borrada en otro equipo". */
+  cloudTemplate?: {
+    id: string
+    savedAt: string
+  }
 }
 
 export function savedTemplateStatus(

@@ -26,6 +26,7 @@ vi.mock('../../../../lib/pdfStudio/render/persistence', () => ({
   listSavedDocs: mocks.listSavedDocs,
   putSavedFolder: vi.fn(),
   putSavedDoc: vi.fn(),
+  savedTemplateStatus: (saved: { status?: 'draft' | 'ready' }) => saved.status ?? 'ready',
 }))
 
 vi.mock('../../../../lib/clientIdentity', () => ({

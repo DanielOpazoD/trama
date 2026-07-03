@@ -41,16 +41,20 @@ import {
   createAutosaveSavingState,
   type PdfStudioAutosaveState,
 } from './pdfStudioAutosaveState'
+import { useWorkspaceTemplateCloud } from './useWorkspaceTemplateCloud'
 
 export function usePdfStudioWorkspace({
   clearSelection,
   doc,
   setHistory,
+  syncTemplatesToCloud = false,
   uploadSavedPdf,
 }: {
   clearSelection: () => void
   doc: PdfDoc
   setHistory: Dispatch<SetStateAction<History<PdfDoc>>>
+  /** Sincroniza plantillas limpias con el servidor (mundo Planillas). */
+  syncTemplatesToCloud?: boolean
   uploadSavedPdf?: (saved: SavedDoc) => Promise<NonNullable<SavedDoc['serverPdf']>>
 }) {
   const toast = useToast()
@@ -67,6 +71,14 @@ export function usePdfStudioWorkspace({
   const draftSanitizerRef = useRef<(draft: PdfDoc) => PdfDoc>((draft) => draft)
   const autosaveRunRef = useRef(0)
   toastRef.current = toast
+  const templateCloud = useWorkspaceTemplateCloud({
+    enabled: syncTemplatesToCloud,
+    setSaved,
+    userKey,
+  })
+  // Vía ref: el efecto de carga corre una sola vez por usuario.
+  const templateCloudRef = useRef(templateCloud)
+  templateCloudRef.current = templateCloud
 
   useEffect(() => {
     let alive = true
@@ -90,6 +102,7 @@ export function usePdfStudioWorkspace({
       if (!alive) return
       setSaved(list)
       if (list.length > 0) setPanelCollapsed(false)
+      templateCloudRef.current.syncTemplates(list)
     })
     void listSavedFolders(userKey).then((list) => {
       if (!alive) return
@@ -186,6 +199,7 @@ export function usePdfStudioWorkspace({
     setSaved((list) => [s, ...list])
     void putSavedDoc(userKey, s)
     void syncSavedPdf(s)
+    templateCloud.pushTemplate(s)
     toast.show({ message: `Planilla "${name}" guardada.`, tone: 'success' })
   }
 
@@ -219,6 +233,7 @@ export function usePdfStudioWorkspace({
     }
     setSaved((list) => [copy, ...list])
     void putSavedDoc(userKey, copy)
+    templateCloud.pushTemplate(copy)
     toast.show({ message: `Planilla duplicada como "${name}".`, tone: 'success' })
     return copy
   }
@@ -263,9 +278,14 @@ export function usePdfStudioWorkspace({
 
   function renameSaved(id: string, name: string) {
     setSaved((list) => {
-      const next = list.map((s) => (s.id === id ? { ...s, name } : s))
+      const next = list.map((s) =>
+        s.id === id ? { ...s, name, savedAt: Date.now() } : s,
+      )
       const target = next.find((s) => s.id === id)
-      if (target) void putSavedDoc(userKey, target)
+      if (target) {
+        void putSavedDoc(userKey, target)
+        templateCloud.pushTemplate(target)
+      }
       return next
     })
   }
@@ -276,9 +296,14 @@ export function usePdfStudioWorkspace({
     meta: Partial<Pick<SavedDoc, 'description' | 'tags' | 'status'>>,
   ) {
     setSaved((list) => {
-      const next = list.map((s) => (s.id === id ? { ...s, ...meta } : s))
+      const next = list.map((s) =>
+        s.id === id ? { ...s, ...meta, savedAt: Date.now() } : s,
+      )
       const target = next.find((s) => s.id === id)
-      if (target) void putSavedDoc(userKey, target)
+      if (target) {
+        void putSavedDoc(userKey, target)
+        templateCloud.pushTemplate(target)
+      }
       return next
     })
   }
@@ -347,8 +372,10 @@ export function usePdfStudioWorkspace({
   }
 
   function removeSaved(id: string) {
+    const target = saved.find((s) => s.id === id)
     setSaved((list) => list.filter((s) => s.id !== id))
     void deleteSavedDoc(userKey, id)
+    if (target) templateCloud.removeRemoteTemplate(target)
   }
 
   return {
