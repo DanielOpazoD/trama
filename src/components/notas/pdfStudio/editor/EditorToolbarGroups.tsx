@@ -152,14 +152,12 @@ export function EditorToolbarToolsGroup({
 export function EditorToolbarInsertGroup({
   canStampImage,
   onAddImage,
-  onAddFormField,
   onInspectForms,
   onSuggestFormFields,
   stampAssetMenu,
 }: {
   canStampImage: boolean
   onAddImage: () => void
-  onAddFormField?: (kind: PdfFormFieldKind) => void
   onInspectForms?: () => void
   onSuggestFormFields?: () => void
   stampAssetMenu?: ReactNode
@@ -179,7 +177,6 @@ export function EditorToolbarInsertGroup({
         </Hint>
       ) : null}
       <EditorToolbarFormMenu
-        onAddFormField={onAddFormField}
         onInspectForms={onInspectForms}
         onSuggestFormFields={onSuggestFormFields}
       />

@@ -32,5 +32,7 @@ export function editorToolbarContextCapabilities(context: EditorToolbarContext) 
     canShowPdfMarkupTools: canUsePdfMarkupTools,
     canShowShapeTools: canUsePdfMarkupTools,
     canStampImage: canUsePdfMarkupTools,
+    // El header de diseño de planillas ya trae zoom: una sola lupa en pantalla.
+    canShowToolbarZoom: canUsePdfMarkupTools,
   }
 }
