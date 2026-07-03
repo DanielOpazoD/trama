@@ -16,6 +16,7 @@ export function usePdfTextEditorKeyboard({
   selectedRef,
   annotationsRef,
   annotationClipboardRef,
+  formUndoRef,
   setSelectedId,
   setEditingId,
   setHistory,
@@ -26,6 +27,9 @@ export function usePdfTextEditorKeyboard({
   selectedRef: RefObject<string | null>
   annotationsRef: { current: Annotation[] }
   annotationClipboardRef: { current: Annotation | null }
+  /** Deshacer/rehacer de casilleros (diseño): tiene prioridad sobre el
+   *  historial de anotaciones; si devuelve false, cae a las anotaciones. */
+  formUndoRef?: RefObject<((redo: boolean) => boolean) | null>
   setSelectedId: (id: string | null) => void
   setEditingId: Dispatch<SetStateAction<string | null>>
   setHistory: Dispatch<SetStateAction<History<Record<number, Annotation[]>>>>
@@ -54,18 +58,21 @@ export function usePdfTextEditorKeyboard({
   }, [editingRef, onClose, selectedRef, setEditingId, setSelectedId])
 
   // Undo/redo dentro del modal, sin interceptar inputs/contentEditable.
+  // Los casilleros (diseño) tienen prioridad; sin historia de casilleros,
+  // el ⌘Z cae al historial de anotaciones.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return
       if (isEditableTarget(e.target)) return
       e.preventDefault()
+      if (formUndoRef?.current?.(e.shiftKey)) return
       setSelectedId(null)
       setEditingId(null)
       setHistory((h) => (e.shiftKey ? redo(h) : undo(h)))
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [setEditingId, setHistory, setSelectedId])
+  }, [formUndoRef, setEditingId, setHistory, setSelectedId])
 
   // Copiar/cortar/pegar/duplicar/eliminar/mover anotaciones seleccionadas.
   useEffect(() => {

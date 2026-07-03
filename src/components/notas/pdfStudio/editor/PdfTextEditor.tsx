@@ -1,14 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   type Annotation,
   type TextAnnotation,
 } from '../../../../lib/pdfStudio/model/model'
-import {
-  initHistory,
-  pushHistory,
-  type History,
-} from '../../../../lib/pdfStudio/model/history'
+import { initHistory, type History } from '../../../../lib/pdfStudio/model/history'
 import { useFocusTrap } from '../../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
 import { PdfTextEditorHeaderSlot } from './PdfTextEditorHeaderSlot'
@@ -37,6 +33,7 @@ import { formFieldTextStyle } from '../planillas/pdfFormFieldStyle'
 import { fillProgressForTemplateFields } from '../planillas/fill/pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
+import { usePdfTextEditorAnnotationSetters } from './usePdfTextEditorAnnotationSetters'
 import { usePdfTextEditorAutosave } from './usePdfTextEditorAutosave'
 import { PdfTextEditorAutosaveBadge } from './PdfTextEditorAutosaveBadge'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
@@ -130,31 +127,12 @@ export function PdfTextEditor({
   const annotationsRef = useRef(annotations)
   annotationsRef.current = annotations
   const annClipboardRef = useRef<Annotation | null>(null)
-  const setAnnotations = useCallback(
-    (fn: (list: Annotation[]) => Annotation[]) => {
-      const i = pageRef.current
-      setHistory((h) =>
-        pushHistory(h, {
-          ...h.present,
-          [i]: fn(h.present[i] ?? doc.pages[i]?.annotations ?? []),
-        }),
-      )
-    },
-    [doc],
-  )
-  const editLive = useCallback(
-    (fn: (list: Annotation[]) => Annotation[]) => {
-      const i = pageRef.current
-      setHistory((h) => ({
-        ...h,
-        present: {
-          ...h.present,
-          [i]: fn(h.present[i] ?? doc.pages[i]?.annotations ?? []),
-        },
-      }))
-    },
-    [doc],
-  )
+  const formUndoRef = useRef<((redo: boolean) => boolean) | null>(null)
+  const { editLive, setAnnotations } = usePdfTextEditorAnnotationSetters({
+    doc,
+    pageRef,
+    setHistory,
+  })
   const [style, setStyle] = useState<TextStyle>({ ...defaultEditorTextStyle() })
   const arrangeGeometry = activeLayout
     ? { pageWidthPx: activeLayout.innerW, pageHeightPx: activeLayout.innerH }
@@ -189,6 +167,7 @@ export function PdfTextEditor({
     selectedRef,
     annotationsRef,
     annotationClipboardRef: annClipboardRef,
+    formUndoRef,
     setSelectedId,
     setEditingId,
     setHistory,
@@ -248,6 +227,7 @@ export function PdfTextEditor({
     signatureInputRef,
     startDraftDrag,
     startDraftResize,
+    undoDraftFormFields,
     updateDraftFormValue,
   } = usePdfTextEditorForms({
     doc,
@@ -260,6 +240,7 @@ export function PdfTextEditor({
     setEditingId,
     setSelectedId,
   })
+  formUndoRef.current = designMode ? undoDraftFormFields : null
   const { startDrag, startResize, startDraw, startMarquee } =
     usePdfTextEditorInteractions({
       layout: activeLayout,

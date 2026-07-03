@@ -14,7 +14,10 @@ import type { Tool, TextStyle } from '../editor/editorStyle'
 import { makeDraftFormField } from './pdfFormFieldFactory'
 import { trackNewFieldDrag } from './pdfFormFieldPointer'
 import { initialFieldBox } from './pdfTextEditorFormDefaults'
-import type { FormFieldStyleDefaults } from './pdfFormFieldStyleDefaults'
+import {
+  applyDefaultsToInitialBox,
+  type FormFieldStyleDefaults,
+} from './pdfFormFieldStyleDefaults'
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 
@@ -23,6 +26,7 @@ const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
 export function usePdfTextEditorFormPlacement({
   fields,
   setFields,
+  setFieldsLive,
   setSelectedIds,
   setEditingId,
   setSelectedId,
@@ -32,7 +36,10 @@ export function usePdfTextEditorFormPlacement({
   zoom,
 }: {
   fields: PdfFormFieldDraft[]
+  /** Setter con historia (⌘Z): crear un casillero es una operación discreta. */
   setFields: Dispatch<SetStateAction<PdfFormFieldDraft[]>>
+  /** Setter crudo para el arrastre de dimensionado post-colocación. */
+  setFieldsLive?: Dispatch<SetStateAction<PdfFormFieldDraft[]>>
   setSelectedIds: Dispatch<SetStateAction<string[]>>
   setEditingId: (id: string | null) => void
   setSelectedId: (id: string | null) => void
@@ -42,6 +49,15 @@ export function usePdfTextEditorFormPlacement({
   zoom: number
 }) {
   const [pendingFormKind, setPendingFormKind] = useState<PdfFormFieldKind | null>(null)
+
+  /** Caja inicial del casillero: la calculada por tipo, con el tamaño
+   *  recordado del estilo default cuando es de texto. */
+  function initialBoxFor(kind: PdfFormFieldKind) {
+    return applyDefaultsToInitialBox(
+      initialFieldBox(kind, { ...style, ...styleDefaults }),
+      kind === 'text' ? styleDefaults : null,
+    )
+  }
 
   function addFormField(kind: PdfFormFieldKind) {
     setPendingFormKind(kind)
@@ -62,7 +78,7 @@ export function usePdfTextEditorFormPlacement({
     if (!targetPage || !targetLayout || !pendingFormKind) return
     e.stopPropagation()
     e.preventDefault()
-    const base = initialFieldBox(pendingFormKind, { ...style, ...styleDefaults })
+    const base = initialBoxFor(pendingFormKind)
     const xRatio = clamp01(
       e.nativeEvent.offsetX / Math.max(1, targetLayout.innerW) - base.wRatio / 2,
     )
@@ -89,7 +105,7 @@ export function usePdfTextEditorFormPlacement({
       event: e,
       field,
       layout: targetLayout,
-      setFields,
+      setFields: setFieldsLive ?? setFields,
       zoom,
     })
   }
@@ -101,7 +117,7 @@ export function usePdfTextEditorFormPlacement({
     targetPage: PdfPage | undefined,
   ): boolean {
     if (!targetPage) return false
-    const base = initialFieldBox('text', { ...style, ...styleDefaults })
+    const base = initialBoxFor('text')
     const field = makeDraftFormField({
       kind: 'text',
       page: targetPage,
@@ -124,9 +140,7 @@ export function usePdfTextEditorFormPlacement({
   }
 
   /** Caja del casillero pendiente (para el fantasma de colocación). */
-  const pendingFieldBox = pendingFormKind
-    ? initialFieldBox(pendingFormKind, { ...style, ...styleDefaults })
-    : null
+  const pendingFieldBox = pendingFormKind ? initialBoxFor(pendingFormKind) : null
 
   return {
     addFormField,

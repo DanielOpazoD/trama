@@ -32,11 +32,8 @@ const PT_MAX = 96
 
 type InspectorSection = 'color' | 'bg' | 'border' | 'presets' | 'advanced'
 
-function valueAsText(value: PdfFormValue): string {
-  if (typeof value === 'string') return value
-  if (Array.isArray(value)) return value.join(', ')
-  return ''
-}
+const valueAsText = (value: PdfFormValue): string =>
+  typeof value === 'string' ? value : Array.isArray(value) ? value.join(', ') : ''
 
 const fieldInput = `h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption text-ink-800 outline-none ${focusRing}`
 
