@@ -19,6 +19,16 @@ export function removeSelectedFormFieldId(selectedIds: string[], id: string): st
   return selectedIds.filter((fieldId) => fieldId !== id)
 }
 
+/** Une la selección actual con los ids capturados (marco aditivo con shift),
+ *  sin duplicar y conservando el orden de selección. */
+export function mergeSelectedFormFieldIds(
+  selectedIds: string[],
+  ids: string[],
+): string[] {
+  const seen = new Set(selectedIds)
+  return [...selectedIds, ...ids.filter((id) => !seen.has(id))]
+}
+
 export function patchDraftFormFields(
   fields: PdfFormFieldDraft[],
   id: string,

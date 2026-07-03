@@ -26,6 +26,8 @@ function renderInspector(
     onApplyVisual: vi.fn(),
     onDelete: vi.fn(),
     onDistributeFields: vi.fn(),
+    onDuplicateFields: vi.fn(),
+    onMatchFieldSizes: vi.fn(),
     onPatchSelection: vi.fn(),
     onRememberStyle: vi.fn(),
     onRename: vi.fn(),
@@ -121,5 +123,29 @@ describe('<FormFieldInspector />', () => {
     expect(
       screen.queryByRole('button', { name: 'Distribuir casilleros horizontalmente' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('alinea verticalmente, iguala tamaños y duplica la selección', () => {
+    const handlers = renderInspector([field, second])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alinear casilleros arriba' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Alinear casilleros al medio' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Alinear casilleros abajo' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Igualar ancho de casilleros al activo' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Igualar alto de casilleros al activo' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Duplicar casilleros seleccionados' }),
+    )
+
+    expect(handlers.onAlignFields).toHaveBeenCalledWith('top')
+    expect(handlers.onAlignFields).toHaveBeenCalledWith('middle')
+    expect(handlers.onAlignFields).toHaveBeenCalledWith('bottom')
+    expect(handlers.onMatchFieldSizes).toHaveBeenCalledWith('width')
+    expect(handlers.onMatchFieldSizes).toHaveBeenCalledWith('height')
+    expect(handlers.onDuplicateFields).toHaveBeenCalledOnce()
   })
 })

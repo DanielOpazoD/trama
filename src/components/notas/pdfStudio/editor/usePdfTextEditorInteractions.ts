@@ -58,6 +58,7 @@ export function usePdfTextEditorInteractions({
   setAnnotations,
   setTool,
   editLive,
+  onMarqueeBox,
 }: {
   layout: PageLayout | null
   layoutRef?: { current: PageLayout | null }
@@ -78,6 +79,13 @@ export function usePdfTextEditorInteractions({
   setAnnotations: (fn: (list: Annotation[]) => Annotation[]) => void
   setTool: (tool: Tool) => void
   editLive: (fn: (list: Annotation[]) => Annotation[]) => void
+  /** Marco en ratios de página al soltar. Devuelve true si capturó casilleros
+   *  (modo diseño): entonces las anotaciones no se seleccionan. Un marco sin
+   *  área (clic simple) limpia la selección de casilleros y devuelve false. */
+  onMarqueeBox?: (
+    box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
+    additive: boolean,
+  ) => boolean
 }) {
   const currentLayout = () => layoutRef?.current ?? layout
 
@@ -234,10 +242,12 @@ export function usePdfTextEditorInteractions({
       setSelectionMarquee(null)
       setSelectionLasso(null)
       if (!moved) {
+        onMarqueeBox?.({ xRatio: 0, yRatio: 0, wRatio: 0, hRatio: 0 }, additive)
         selectAnnotationIds([])
         return
       }
       if (freehand) {
+        onMarqueeBox?.({ xRatio: 0, yRatio: 0, wRatio: 0, hRatio: 0 }, additive)
         selectAnnotationIds(
           selectAnnotationsInPolygon(
             annotationsRef.current,
@@ -255,12 +265,18 @@ export function usePdfTextEditorInteractions({
       const top = Math.min(last.y0, last.y1) / Math.max(1, innerH)
       const width = Math.abs(last.x1 - last.x0) / Math.max(1, innerW)
       const height = Math.abs(last.y1 - last.y0) / Math.max(1, innerH)
+      const box = { xRatio: left, yRatio: top, wRatio: width, hRatio: height }
+      if (onMarqueeBox?.(box, additive)) {
+        // El marco capturó casilleros: la selección de anotaciones se apaga
+        // para no abrir dos inspectores a la vez.
+        selectAnnotationIds([])
+        return
+      }
       selectAnnotationIds(
-        selectAnnotationsInBox(
-          annotationsRef.current,
-          { xRatio: left, yRatio: top, wRatio: width, hRatio: height },
-          { pageWidthPx: innerW, pageHeightPx: innerH },
-        ),
+        selectAnnotationsInBox(annotationsRef.current, box, {
+          pageWidthPx: innerW,
+          pageHeightPx: innerH,
+        }),
         additive,
       )
     }

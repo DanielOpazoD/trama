@@ -17,13 +17,12 @@ import {
 import { startFormFieldDrag, startFormFieldResize } from './pdfFormFieldPointer'
 import { uniqueFieldName } from './pdfTextEditorFormDefaults'
 import {
-  latestSelectedFormFieldId,
-  nextSelectedFormFieldIds,
   patchDraftFormFields,
   removeSelectedFormFieldId,
 } from './pdfTextEditorFormDraftModel'
 import { usePdfTextEditorFormArrange } from './usePdfTextEditorFormArrange'
 import { usePdfTextEditorFormPlacement } from './usePdfTextEditorFormPlacement'
+import { usePdfTextEditorFormSelection } from './usePdfTextEditorFormSelection'
 import { usePdfTextEditorFormShortcuts } from './usePdfTextEditorFormShortcuts'
 import { usePdfTextEditorFormSignature } from './usePdfTextEditorFormSignature'
 import { usePdfTextEditorFormStyling } from './usePdfTextEditorFormStyling'
@@ -52,9 +51,20 @@ export function usePdfTextEditorForms({
   const [formFields, setFormFields] = useState<PdfFormFieldDraft[]>(
     () => doc.formFields ?? [],
   )
-  const [selectedFormFieldIds, setSelectedFormFieldIds] = useState<string[]>([])
   const formClipboardRef = useRef<PdfFormFieldDraft[]>([])
-  const selectedFormFieldId = latestSelectedFormFieldId(selectedFormFieldIds)
+  const {
+    selectDraftFormField,
+    selectDraftFormFieldsInBox,
+    selectedDraftFormFields,
+    selectedFormFieldId,
+    selectedFormFieldIds,
+    setSelectedFormFieldIds,
+  } = usePdfTextEditorFormSelection({
+    fields: formFields,
+    pageId: page?.id ?? null,
+    setEditingId,
+    setSelectedId,
+  })
 
   usePdfTextEditorFormShortcuts({
     clipboardRef: formClipboardRef,
@@ -66,12 +76,17 @@ export function usePdfTextEditorForms({
     setSelectedId,
     setSelectedIds: setSelectedFormFieldIds,
   })
-  const { alignDraftFormFields, distributeDraftFormFields } = usePdfTextEditorFormArrange(
-    {
-      selectedIds: selectedFormFieldIds,
-      setFields: setFormFields,
-    },
-  )
+  const {
+    alignDraftFormFields,
+    distributeDraftFormFields,
+    duplicateSelectedDraftFormFields,
+    matchDraftFormFieldSizes,
+  } = usePdfTextEditorFormArrange({
+    fields: formFields,
+    selectedIds: selectedFormFieldIds,
+    setFields: setFormFields,
+    setSelectedIds: setSelectedFormFieldIds,
+  })
   const {
     applyDraftFieldStyle,
     applyDraftFieldVisual,
@@ -171,14 +186,6 @@ export function usePdfTextEditorForms({
     setSelectedFormFieldIds((selected) => removeSelectedFormFieldId(selected, id))
   }
 
-  function selectDraftFormField(id: string, additive = false) {
-    setSelectedFormFieldIds((selected) =>
-      nextSelectedFormFieldIds(selected, id, additive),
-    )
-    setSelectedId(null)
-    setEditingId(null)
-  }
-
   function startDraftDrag(e: ReactPointerEvent, field: PdfFormFieldDraft) {
     startFormFieldDrag({
       event: e,
@@ -206,10 +213,6 @@ export function usePdfTextEditorForms({
     })
   }
 
-  const selectedDraftFormFields = selectedFormFieldIds
-    .map((id) => formFields.find((field) => field.id === id))
-    .filter((field): field is PdfFormFieldDraft => Boolean(field))
-
   return {
     addFormField,
     addSuggestedFormFields,
@@ -221,7 +224,9 @@ export function usePdfTextEditorForms({
     clearDraftFormValues,
     deleteDraftFormField,
     distributeDraftFormFields,
+    duplicateSelectedDraftFormFields,
     formFields,
+    matchDraftFormFieldSizes,
     pendingFieldBox,
     pendingFormKind,
     placePendingFormField: placePendingFormFieldOnPage,
@@ -234,6 +239,7 @@ export function usePdfTextEditorForms({
     selectedFormFieldId,
     selectedFormFieldIds,
     selectDraftFormField,
+    selectDraftFormFieldsInBox,
     chooseSignatureImage,
     saveSignatureDataUrl,
     setSignatureFile,

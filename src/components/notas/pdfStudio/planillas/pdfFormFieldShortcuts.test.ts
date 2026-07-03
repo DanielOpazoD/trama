@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makePdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
-import { reduceFormFieldShortcut } from './pdfFormFieldShortcuts'
+import { duplicateFormFields, reduceFormFieldShortcut } from './pdfFormFieldShortcuts'
 
 const base = makePdfFormFieldDraft({
   fieldKind: 'text',
@@ -108,6 +108,23 @@ describe('reduceFormFieldShortcut', () => {
     expect(pasted.selectedIds).toEqual(copies.map((field) => field.id))
     const names = pasted.fields.map((field) => field.name)
     expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('duplica un grupo con copias corridas, seleccionadas y de nombre único', () => {
+    const duplicated = duplicateFormFields([base, other], [base.id, other.id])
+
+    expect(duplicated.fields).toHaveLength(4)
+    const copies = duplicated.fields.slice(2)
+    expect(duplicated.selectedIds).toEqual(copies.map((field) => field.id))
+    expect(copies[0]?.xRatio).toBeCloseTo(base.xRatio + 0.025)
+    expect(copies[0]?.pageId).toBe(base.pageId)
+    const names = duplicated.fields.map((field) => field.name)
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('duplicar sin selección devuelve el estado tal cual', () => {
+    const fields = [base]
+    expect(duplicateFormFields(fields, []).fields).toBe(fields)
   })
 
   it('acota al pegar en otra página un casillero que quedaría fuera de los límites', () => {

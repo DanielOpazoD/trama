@@ -1,8 +1,10 @@
 import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
-import type {
-  AnnotationDistributionAxis,
-  AnnotationHorizontalAlignment,
-} from '../editor/pdfAnnotationArrange'
+import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
+
+/** Alineación de casilleros: horizontal (izq/centro/der) o vertical (arriba/medio/abajo). */
+export type FormFieldAlignment = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'
+
+export type FormFieldSizeDimension = 'width' | 'height'
 
 type FieldBox = Pick<PdfFormFieldDraft, 'xRatio' | 'yRatio' | 'wRatio' | 'hRatio'>
 
@@ -43,15 +45,18 @@ function selectedFields(fields: PdfFormFieldDraft[], ids: string[]) {
 export function alignFormFields(
   fields: PdfFormFieldDraft[],
   ids: string[],
-  alignment: AnnotationHorizontalAlignment,
+  alignment: FormFieldAlignment,
 ): PdfFormFieldDraft[] {
   const { selectedIds, selected } = selectedFields(fields, ids)
   if (selected.length === 0) return fields
+  // Con un solo casillero se alinea contra la página completa.
   const target =
     selected.length === 1
       ? { xRatio: 0, yRatio: 0, wRatio: 1, hRatio: 1 }
       : unionBox(selected)
   if (!target) return fields
+  const horizontal =
+    alignment === 'left' || alignment === 'center' || alignment === 'right'
 
   let changed = false
   const next = fields.map((field) => {
@@ -62,11 +67,72 @@ export function alignFormFields(
         : alignment === 'right'
           ? target.xRatio + target.wRatio - field.wRatio
           : target.xRatio + (target.wRatio - field.wRatio) / 2
-    const moved = moveField(field, left, field.yRatio)
+    const top =
+      alignment === 'top'
+        ? target.yRatio
+        : alignment === 'bottom'
+          ? target.yRatio + target.hRatio - field.hRatio
+          : target.yRatio + (target.hRatio - field.hRatio) / 2
+    const moved = horizontal
+      ? moveField(field, left, field.yRatio)
+      : moveField(field, field.xRatio, top)
     if (moved !== field) changed = true
     return moved
   })
   return changed ? next : fields
+}
+
+/** Iguala ancho o alto de la selección al casillero de referencia (el activo:
+ *  último de `ids`, que llegan en orden de selección). El tamaño se acota para
+ *  no salirse de la página. */
+export function matchFormFieldsSize(
+  fields: PdfFormFieldDraft[],
+  ids: string[],
+  dimension: FormFieldSizeDimension,
+  referenceId?: string,
+): PdfFormFieldDraft[] {
+  const { selectedIds, selected } = selectedFields(fields, ids)
+  if (selected.length < 2) return fields
+  const reference =
+    selected.find((field) => field.id === (referenceId ?? ids[ids.length - 1])) ??
+    selected[selected.length - 1]!
+
+  let changed = false
+  const next = fields.map((field) => {
+    if (!selectedIds.has(field.id) || field.id === reference.id) return field
+    const resized =
+      dimension === 'width'
+        ? { ...field, wRatio: clamp(reference.wRatio, 0.018, 1 - field.xRatio) }
+        : { ...field, hRatio: clamp(reference.hRatio, 0.018, 1 - field.yRatio) }
+    const delta =
+      dimension === 'width'
+        ? Math.abs(resized.wRatio - field.wRatio)
+        : Math.abs(resized.hRatio - field.hRatio)
+    if (delta < 1e-9) return field
+    changed = true
+    return resized
+  })
+  return changed ? next : fields
+}
+
+/** Ids de los casilleros de la página que tocan el marco de selección. Un marco
+ *  sin área (clic) no captura nada. */
+export function formFieldIdsInBox(
+  fields: PdfFormFieldDraft[],
+  pageId: string | null,
+  box: FieldBox,
+): string[] {
+  if (!pageId || box.wRatio <= 0 || box.hRatio <= 0) return []
+  return fields
+    .filter(
+      (field) =>
+        field.pageId === pageId &&
+        field.xRatio < box.xRatio + box.wRatio &&
+        field.xRatio + field.wRatio > box.xRatio &&
+        field.yRatio < box.yRatio + box.hRatio &&
+        field.yRatio + field.hRatio > box.yRatio,
+    )
+    .map((field) => field.id)
 }
 
 export function distributeFormFields(

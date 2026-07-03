@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import type { PdfFormFieldAlign } from '../../../../lib/pdfStudio/model/model'
+import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
+import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldArrange'
 import { COLORS, focusRing } from '../editor/EditorToolbarPrimitives'
 
 /** Piezas presentacionales del inspector de casilleros: etiquetas de sección,
@@ -115,15 +117,20 @@ export function InspectorSwatchRow({
   )
 }
 
-/** Orden de la selección múltiple: alinear siempre; distribuir requiere ≥3. */
+/** Orden de la selección múltiple: alinear en 6 ejes, igualar tamaños al
+ *  casillero activo, duplicar el grupo; distribuir requiere ≥3. */
 export function InspectorArrangeSection({
   count,
   onAlignFields,
   onDistributeFields,
+  onDuplicateFields,
+  onMatchFieldSizes,
 }: {
   count: number
-  onAlignFields: (alignment: 'left' | 'center' | 'right') => void
-  onDistributeFields: (axis: 'x' | 'y') => void
+  onAlignFields: (alignment: FormFieldAlignment) => void
+  onDistributeFields: (axis: AnnotationDistributionAxis) => void
+  onDuplicateFields: () => void
+  onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
 }) {
   return (
     <>
@@ -147,6 +154,38 @@ export function InspectorArrangeSection({
         >
           Der
         </InspectorToolButton>
+        <InspectorToolButton
+          label="Alinear casilleros arriba"
+          onClick={() => onAlignFields('top')}
+        >
+          Arriba
+        </InspectorToolButton>
+        <InspectorToolButton
+          label="Alinear casilleros al medio"
+          onClick={() => onAlignFields('middle')}
+        >
+          Medio
+        </InspectorToolButton>
+        <InspectorToolButton
+          label="Alinear casilleros abajo"
+          onClick={() => onAlignFields('bottom')}
+        >
+          Abajo
+        </InspectorToolButton>
+      </div>
+      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+        <InspectorToolButton
+          label="Igualar ancho de casilleros al activo"
+          onClick={() => onMatchFieldSizes('width')}
+        >
+          = Ancho
+        </InspectorToolButton>
+        <InspectorToolButton
+          label="Igualar alto de casilleros al activo"
+          onClick={() => onMatchFieldSizes('height')}
+        >
+          = Alto
+        </InspectorToolButton>
       </div>
       {count >= 3 && (
         <div className="mt-1.5 grid grid-cols-2 gap-1.5">
@@ -164,6 +203,14 @@ export function InspectorArrangeSection({
           </InspectorToolButton>
         </div>
       )}
+      <div className="mt-1.5 grid">
+        <InspectorToolButton
+          label="Duplicar casilleros seleccionados"
+          onClick={onDuplicateFields}
+        >
+          Duplicar selección
+        </InspectorToolButton>
+      </div>
     </>
   )
 }

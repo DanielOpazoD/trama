@@ -206,6 +206,14 @@ export function PdfTextEditor({
       setTool,
       style,
     })
+  // El marco también selecciona casilleros (diseño); el hook de formularios se
+  // instancia después, así que el callback llega por ref (patrón del archivo).
+  const marqueeFieldsRef = useRef<
+    (
+      box: { xRatio: number; yRatio: number; wRatio: number; hRatio: number },
+      additive: boolean,
+    ) => boolean
+  >(() => false)
   const { startDrag, startResize, startDraw, startMarquee } =
     usePdfTextEditorInteractions({
       layout: activeLayout,
@@ -227,6 +235,7 @@ export function PdfTextEditor({
       setAnnotations,
       setTool,
       editLive,
+      onMarqueeBox: (box, additive) => marqueeFieldsRef.current(box, additive),
     })
   const {
     addFormField,
@@ -237,7 +246,9 @@ export function PdfTextEditor({
     clearDraftFormValues,
     deleteDraftFormField,
     distributeDraftFormFields,
+    duplicateSelectedDraftFormFields,
     formFields,
+    matchDraftFormFieldSizes,
     chooseSignatureImage,
     applyDraftFieldStyle,
     applyDraftFieldVisual,
@@ -254,6 +265,7 @@ export function PdfTextEditor({
     selectedFormFieldId,
     selectedFormFieldIds,
     selectDraftFormField,
+    selectDraftFormFieldsInBox,
     setSignatureFile,
     setSignatureField,
     signatureField,
@@ -272,6 +284,7 @@ export function PdfTextEditor({
     setEditingId,
     setSelectedId,
   })
+  marqueeFieldsRef.current = designMode ? selectDraftFormFieldsInBox : () => false
   const activeStyle = selectedDraftFormField
     ? { ...annotationStyle, ...formFieldTextStyle(selectedDraftFormField) }
     : annotationStyle
@@ -468,6 +481,8 @@ export function PdfTextEditor({
           onChooseSignatureImage={chooseSignatureImage}
           onDeleteField={deleteDraftFormField}
           onDistributeFields={distributeDraftFormFields}
+          onDuplicateFields={duplicateSelectedDraftFormFields}
+          onMatchFieldSizes={matchDraftFormFieldSizes}
           onPatchField={patchDraftFormField}
           onPatchSelection={patchSelectedDraftFormFields}
           onRememberStyle={rememberFieldStyleDefaults}

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { makePdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
 import {
   latestSelectedFormFieldId,
+  mergeSelectedFormFieldIds,
   nextSelectedFormFieldIds,
   patchDraftFormFields,
   removeSelectedFormFieldId,
@@ -38,6 +39,11 @@ describe('pdfTextEditorFormDraftModel', () => {
 
   it('remueve un campo eliminado desde la seleccion', () => {
     expect(removeSelectedFormFieldId(['a', 'b', 'c'], 'b')).toEqual(['a', 'c'])
+  })
+
+  it('une la seleccion con los ids del marco sin duplicar y conservando orden', () => {
+    expect(mergeSelectedFormFieldIds(['a', 'b'], ['b', 'c'])).toEqual(['a', 'b', 'c'])
+    expect(mergeSelectedFormFieldIds([], ['x'])).toEqual(['x'])
   })
 
   it('normaliza nombre al parchear y conserva fallback si queda vacio', () => {
