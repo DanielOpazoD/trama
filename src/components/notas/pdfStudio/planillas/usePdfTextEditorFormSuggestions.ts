@@ -5,7 +5,10 @@ import {
   suggestTextFieldsFromHorizontalRuns,
 } from '../../../../lib/pdfStudio/forms/formFieldSuggestions'
 import { labelSuggestedFields } from '../../../../lib/pdfStudio/forms/formFieldLabeling'
-import { extractPageTextItems } from '../../../../lib/pdfStudio/render/pdfRender'
+import {
+  extractPageTextItems,
+  type PageTextItemRatio,
+} from '../../../../lib/pdfStudio/render/pdfRender'
 
 export function usePdfTextEditorFormSuggestions({
   currentPage,
@@ -41,21 +44,32 @@ export function usePdfTextEditorFormSuggestions({
         runs,
         existingFields: formFields,
       }).slice(0, 12)
-      // Con capa de texto (PDF vectorial): la etiqueta impresa a la izquierda
-      // nombra la variable e infiere el tipo; los subrayados de texto ya
-      // escrito se descartan. Escaneos/imágenes siguen con nombres genéricos.
+      // La etiqueta impresa a la izquierda nombra la variable e infiere el
+      // tipo; los subrayados con texto encima se descartan. Primero la capa de
+      // texto del PDF (vectorial); si no existe —escaneos, fotos— cae al OCR.
+      let items: PageTextItemRatio[] = []
       if (activePage.kind === 'pdf') {
         try {
           const source = doc.sources.find((s) => s.id === activePage.sourceId)
           if (source) {
-            const items = await extractPageTextItems(source.file, activePage.pageIndex)
-            if (items.length > 0) {
-              suggestions = labelSuggestedFields({ fields: suggestions, items })
-            }
+            items = await extractPageTextItems(source.file, activePage.pageIndex)
           }
         } catch {
-          // Sin capa de texto legible: las sugerencias genéricas bastan.
+          // Sin capa de texto legible: probamos con OCR abajo.
         }
+      }
+      if (items.length === 0 && suggestions.length > 0) {
+        setStatus('Leyendo el texto de la página (OCR)…')
+        try {
+          const { recognizeImageTextItems } =
+            await import('../../../../lib/pdfStudio/ocr/pdfOcrTextItems')
+          items = await recognizeImageTextItems(image.src)
+        } catch {
+          // Sin OCR disponible: las sugerencias genéricas bastan.
+        }
+      }
+      if (items.length > 0) {
+        suggestions = labelSuggestedFields({ fields: suggestions, items })
       }
       const named = suggestions.filter((field) => !/^campo_\d+$/.test(field.name)).length
       const count = onAddSuggested(suggestions)
