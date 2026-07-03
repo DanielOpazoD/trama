@@ -206,10 +206,11 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
     expect(screen.getByTestId('template-fill-fields-scroll')).toHaveClass(
       'overflow-y-auto',
     )
+    // Nombres limpios, sin corchetes duplicados.
     expect(labels.map((label) => label.textContent)).toEqual([
-      '[izquierda]',
-      '[derecha]',
-      '[abajo]',
+      'izquierda',
+      'derecha',
+      'abajo',
     ])
     expect(screen.queryByText(/Página \d+/i)).not.toBeInTheDocument()
   })
@@ -303,12 +304,14 @@ describe('<PdfTemplateFillVariablesPanel />', () => {
       />,
     )
 
-    expect(screen.getByText(/La plantilla original no cambia/i)).toBeInTheDocument()
+    // El texto explicativo largo se fue: el panel queda para trabajar.
+    expect(screen.queryByText(/La plantilla original no cambia/i)).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /Borrar datos/i }))
     expect(onClearValues).toHaveBeenCalledTimes(1)
 
     expect(screen.getByRole('button', { name: /Importar datos/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Exportar datos/i })).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText(/Archivo de datos/i), {
       target: { files: [file] },
