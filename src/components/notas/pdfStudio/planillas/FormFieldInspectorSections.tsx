@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { PdfFormFieldAlign } from '../../../../lib/pdfStudio/model/model'
 import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
 import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldArrange'
+import { FORM_FIELD_PRESETS, type FormFieldPresetKey } from './pdfFormFieldPresets'
 import { COLORS, focusRing } from '../editor/EditorToolbarPrimitives'
 
 /** Piezas presentacionales del inspector de casilleros: etiquetas de sección,
@@ -111,6 +112,34 @@ export function InspectorSwatchRow({
             }`}
             style={{ backgroundColor: color.hex }}
           />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Presets de estilo: un clic deja el casillero (o toda la selección) con un
+ *  look completo. El tooltip explica qué toca cada uno. */
+export function InspectorPresetRow({
+  onApplyPreset,
+}: {
+  onApplyPreset: (key: FormFieldPresetKey) => void
+}) {
+  return (
+    <div>
+      <InspectorLabel>Presets</InspectorLabel>
+      <div className="grid grid-cols-2 gap-1.5">
+        {FORM_FIELD_PRESETS.map((preset) => (
+          <button
+            key={preset.key}
+            type="button"
+            aria-label={`Preset ${preset.label}: ${preset.hint}`}
+            title={preset.hint}
+            onClick={() => onApplyPreset(preset.key)}
+            className={`h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption font-medium text-ink-650 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:bg-[color:var(--accent-sage)]/8 ${focusRing}`}
+          >
+            {preset.label}
+          </button>
         ))}
       </div>
     </div>

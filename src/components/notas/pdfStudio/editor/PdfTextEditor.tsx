@@ -241,6 +241,7 @@ export function PdfTextEditor({
     addFormField,
     addSuggestedFormFields,
     alignDraftFormFields,
+    applyDraftFieldPreset,
     applyDraftFormValues,
     cancelPendingFormField,
     clearDraftFormValues,
@@ -476,6 +477,7 @@ export function PdfTextEditor({
           fields={fillMode ? [] : selectedDraftFormFields}
           signatureField={signatureField}
           onAlignFields={alignDraftFormFields}
+          onApplyPreset={applyDraftFieldPreset}
           onApplyStyle={applyEditorStyle}
           onApplyVisual={applyDraftFieldVisual}
           onChooseSignatureImage={chooseSignatureImage}

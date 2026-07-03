@@ -88,6 +88,7 @@ export function usePdfTextEditorForms({
     setSelectedIds: setSelectedFormFieldIds,
   })
   const {
+    applyDraftFieldPreset,
     applyDraftFieldStyle,
     applyDraftFieldVisual,
     fieldStyleDefaults,
@@ -218,6 +219,7 @@ export function usePdfTextEditorForms({
     addSuggestedFormFields,
     alignDraftFormFields,
     applyDraftFormValues,
+    applyDraftFieldPreset,
     applyDraftFieldStyle,
     applyDraftFieldVisual,
     cancelPendingFormField,

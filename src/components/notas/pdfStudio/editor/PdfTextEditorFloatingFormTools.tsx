@@ -5,6 +5,7 @@ import type {
   FormFieldAlignment,
   FormFieldSizeDimension,
 } from '../planillas/pdfFormFieldArrange'
+import type { FormFieldPresetKey } from '../planillas/pdfFormFieldPresets'
 import type { FormFieldVisualPatch } from '../planillas/pdfFormFieldStyle'
 import { FormFieldInspector } from '../planillas/FormFieldInspector'
 import { SignatureCaptureDialog } from '../planillas/SignatureCaptureDialog'
@@ -13,6 +14,7 @@ export function PdfTextEditorFloatingFormTools({
   fields,
   signatureField,
   onAlignFields,
+  onApplyPreset,
   onApplyStyle,
   onApplyVisual,
   onChooseSignatureImage,
@@ -31,6 +33,7 @@ export function PdfTextEditorFloatingFormTools({
   fields: PdfFormFieldDraft[]
   signatureField: PdfFormFieldDraft | null
   onAlignFields: (alignment: FormFieldAlignment) => void
+  onApplyPreset: (key: FormFieldPresetKey) => void
   onApplyStyle: (patch: Partial<TextStyle>) => void
   onApplyVisual: (patch: FormFieldVisualPatch) => void
   onChooseSignatureImage: (field?: PdfFormFieldDraft | null) => void
@@ -52,6 +55,7 @@ export function PdfTextEditorFloatingFormTools({
         <FormFieldInspector
           fields={fields}
           onAlignFields={onAlignFields}
+          onApplyPreset={onApplyPreset}
           onApplyStyle={onApplyStyle}
           onApplyVisual={onApplyVisual}
           onDelete={() => fields.forEach((field) => onDeleteField(field.id))}
