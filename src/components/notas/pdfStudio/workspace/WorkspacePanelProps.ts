@@ -3,6 +3,7 @@ import type {
   SavedFolder,
   SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
+import type { SavedTemplateMetaPatch } from './WorkspaceTemplateDetails'
 
 export type WorkspacePanelProps = {
   saved: SavedDoc[]
@@ -21,6 +22,8 @@ export type WorkspacePanelProps = {
   onOpenSaved: (s: SavedDoc) => void
   onUseTemplate: (s: SavedDoc) => void
   onDuplicateSaved: (s: SavedDoc) => void
+  onDuplicateAndEditSaved: (s: SavedDoc) => void
+  onUpdateSavedMeta: (id: string, meta: SavedTemplateMetaPatch) => void
   onRenameSaved: (id: string, name: string) => void
   onMoveSavedToFolder: (id: string, folderId: string | null) => void
   onDeleteSaved: (id: string) => void

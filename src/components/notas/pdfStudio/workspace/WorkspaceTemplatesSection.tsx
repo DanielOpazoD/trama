@@ -3,6 +3,12 @@ import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
 import { FilePdfIcon, SearchIcon } from '../../../Icons'
 import { WorkspaceTemplateCard } from './WorkspaceTemplateCard'
 import { WorkspaceTemplateCreateBox } from './WorkspaceTemplateCreateBox'
+import type { SavedTemplateMetaPatch } from './WorkspaceTemplateDetails'
+import {
+  countSavedTemplatesByStatus,
+  filterSavedTemplates,
+  type SavedTemplateStatusFilter,
+} from './workspaceTemplateFilter'
 
 export function WorkspaceTemplatesSection({
   templates,
@@ -12,6 +18,8 @@ export function WorkspaceTemplatesSection({
   onOpenSaved,
   onUseTemplate,
   onDuplicateSaved,
+  onDuplicateAndEditSaved,
+  onUpdateSavedMeta,
   onRenameSaved,
   onDeleteSaved,
   onDownloadSaved,
@@ -24,6 +32,8 @@ export function WorkspaceTemplatesSection({
   onOpenSaved: (s: SavedDoc) => void
   onUseTemplate: (s: SavedDoc) => void
   onDuplicateSaved: (s: SavedDoc) => void
+  onDuplicateAndEditSaved: (s: SavedDoc) => void
+  onUpdateSavedMeta: (id: string, meta: SavedTemplateMetaPatch) => void
   onRenameSaved: (id: string, name: string) => void
   onDeleteSaved: (id: string) => void
   onDownloadSaved: (s: SavedDoc) => void
@@ -32,9 +42,14 @@ export function WorkspaceTemplatesSection({
   const [newTemplateName, setNewTemplateName] = useState<string | null>(null)
   const [renaming, setRenaming] = useState<{ id: string; value: string } | null>(null)
   const [templateQuery, setTemplateQuery] = useState('')
-  const visibleTemplates = templates.filter((s) =>
-    s.name.toLowerCase().includes(templateQuery.trim().toLowerCase()),
-  )
+  const [statusFilter, setStatusFilter] = useState<SavedTemplateStatusFilter>('all')
+  const visibleTemplates = filterSavedTemplates(templates, templateQuery, statusFilter)
+  const statusCounts = countSavedTemplatesByStatus(templates)
+  const statusChips: { key: SavedTemplateStatusFilter; label: string }[] = [
+    { key: 'all', label: `Todas (${templates.length})` },
+    { key: 'ready', label: `Listas (${statusCounts.ready})` },
+    { key: 'draft', label: `Borradores (${statusCounts.draft})` },
+  ]
 
   useEffect(() => {
     if (canSaveTemplate && saveTemplateSignal > 0) {
@@ -90,16 +105,37 @@ export function WorkspaceTemplatesSection({
             <input
               type="search"
               role="searchbox"
-              aria-label="Buscar planillas"
+              aria-label="Buscar planillas por nombre, descripción o tags"
               value={templateQuery}
               onChange={(e) => setTemplateQuery(e.target.value)}
               placeholder="Buscar planillas"
               className="min-w-0 flex-1 bg-transparent text-caption text-ink-700 placeholder:text-ink-300 outline-none"
             />
           </label>
+          <div
+            role="group"
+            aria-label="Filtrar planillas por estado"
+            className="mx-2 mb-1 flex flex-wrap gap-1"
+          >
+            {statusChips.map((chip) => (
+              <button
+                key={chip.key}
+                type="button"
+                aria-pressed={statusFilter === chip.key}
+                onClick={() => setStatusFilter(chip.key)}
+                className={`rounded-full px-2 py-0.5 text-micro font-medium transition-colors ${
+                  statusFilter === chip.key
+                    ? 'bg-[color:var(--accent-sage-soft)]/70 text-[color:var(--accent-sage)]'
+                    : 'text-ink-400 hover:bg-ink-100/50 hover:text-ink-700'
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
           {visibleTemplates.length === 0 ? (
             <p className="px-2.5 py-1 text-micro text-ink-400">
-              No hay planillas con ese nombre.
+              No hay planillas que calcen con la búsqueda.
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5 px-2 pt-1">
@@ -115,6 +151,8 @@ export function WorkspaceTemplatesSection({
                   onUseTemplate={() => onUseTemplate(s)}
                   onEditStructure={() => onOpenSaved(s)}
                   onDuplicate={() => onDuplicateSaved(s)}
+                  onDuplicateAndEdit={() => onDuplicateAndEditSaved(s)}
+                  onUpdateMeta={(meta) => onUpdateSavedMeta(s.id, meta)}
                   onDelete={() => onDeleteSaved(s.id)}
                   onDownloadPdf={() => onDownloadSaved(s)}
                   onExportJson={() => onExportTemplatePackage(s, 'json')}

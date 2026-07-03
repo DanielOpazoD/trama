@@ -23,6 +23,8 @@ export function WorkspacePanel({
   onOpenSaved,
   onUseTemplate,
   onDuplicateSaved,
+  onDuplicateAndEditSaved,
+  onUpdateSavedMeta,
   onRenameSaved,
   onMoveSavedToFolder,
   onDeleteSaved,
@@ -80,6 +82,8 @@ export function WorkspacePanel({
               onOpenSaved={onOpenSaved}
               onUseTemplate={onUseTemplate}
               onDuplicateSaved={onDuplicateSaved}
+              onDuplicateAndEditSaved={onDuplicateAndEditSaved}
+              onUpdateSavedMeta={onUpdateSavedMeta}
               onRenameSaved={onRenameSaved}
               onDeleteSaved={onDeleteSaved}
               onDownloadSaved={onDownloadSaved}

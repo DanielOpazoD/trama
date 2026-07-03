@@ -61,6 +61,8 @@ function setup(overrides: Partial<Parameters<typeof WorkspacePanel>[0]> = {}) {
     onOpenSaved: vi.fn(),
     onUseTemplate: vi.fn(),
     onDuplicateSaved: vi.fn(),
+    onDuplicateAndEditSaved: vi.fn(),
+    onUpdateSavedMeta: vi.fn(),
     onRenameSaved: vi.fn(),
     onDeleteSaved: vi.fn(),
     onDownloadSaved: vi.fn(),
@@ -193,6 +195,83 @@ describe('<WorkspacePanel /> · planillas', () => {
     expect(screen.getByText('Control HTA')).toBeInTheDocument()
   })
 
+  it('filtra planillas por estado con chips y muestra el badge de borrador', () => {
+    setup({
+      saved: [
+        { id: 'tpl-1', name: 'Ingreso', doc: templateDoc(), savedAt: 1000 },
+        {
+          id: 'tpl-2',
+          name: 'Alta',
+          doc: templateDoc(),
+          savedAt: 900,
+          status: 'draft',
+        },
+      ],
+    })
+
+    // Sin status guardado (registro viejo) cuenta como lista.
+    expect(screen.getByRole('button', { name: 'Listas (1)' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Borradores (1)' }))
+
+    expect(screen.queryByText('Ingreso')).not.toBeInTheDocument()
+    expect(screen.getByText('Alta')).toBeInTheDocument()
+    expect(screen.getByText('Borrador')).toBeInTheDocument()
+  })
+
+  it('busca planillas por tags y descripción, no solo por nombre', () => {
+    setup({
+      saved: [
+        {
+          id: 'tpl-1',
+          name: 'Ingreso',
+          doc: templateDoc(),
+          savedAt: 1000,
+          tags: ['medif'],
+        },
+        { id: 'tpl-2', name: 'Alta', doc: templateDoc(), savedAt: 900 },
+      ],
+    })
+
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'medif' } })
+
+    expect(screen.getByText('Ingreso')).toBeInTheDocument()
+    expect(screen.queryByText('Alta')).not.toBeInTheDocument()
+  })
+
+  it('permite crear una planilla nueva desde una existente (duplicar y editar)', () => {
+    const props = setup()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Más acciones de Ingreso paciente' }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Duplicar y editar copia/i }))
+
+    expect(props.onDuplicateAndEditSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'tpl-1' }),
+    )
+    expect(props.onDuplicateSaved).not.toHaveBeenCalled()
+  })
+
+  it('edita los detalles de una plantilla desde el card', () => {
+    const props = setup()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Más acciones de Ingreso paciente' }),
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: /Editar detalles/i }))
+    fireEvent.change(screen.getByLabelText('Descripción de la plantilla'), {
+      target: { value: 'Ficha de ingreso' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Guardar detalles de Ingreso paciente' }),
+    )
+
+    expect(props.onUpdateSavedMeta).toHaveBeenCalledWith(
+      'tpl-1',
+      expect.objectContaining({ description: 'Ficha de ingreso' }),
+    )
+  })
+
   it('expone acciones profesionales para duplicar y exportar variables de una planilla', () => {
     const props = setup()
 
@@ -203,7 +282,7 @@ describe('<WorkspacePanel /> · planillas', () => {
       )
 
     openMenu()
-    fireEvent.click(screen.getByRole('menuitem', { name: /Duplicar/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicar' }))
     expect(props.onDuplicateSaved).toHaveBeenCalledWith(props.saved[0])
 
     openMenu()
