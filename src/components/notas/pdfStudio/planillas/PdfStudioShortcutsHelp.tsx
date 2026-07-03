@@ -44,7 +44,7 @@ function ShortcutsDialog({ mode, onClose }: { mode: Mode; onClose: () => void })
         className="w-[min(92vw,440px)] rounded-md border border-ink-100 bg-paper-50 p-4 shadow-xl shadow-ink-900/20"
       >
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-ink-800">
+          <h3 className="text-body font-semibold text-ink-800">
             {mode === 'design' ? 'Atajos del diseño de planillas' : 'Atajos del relleno'}
           </h3>
           <button

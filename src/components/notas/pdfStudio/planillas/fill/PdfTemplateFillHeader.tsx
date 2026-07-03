@@ -110,9 +110,9 @@ export function PdfTemplateFillHeader({
           <button
             type="button"
             onClick={onGuidedFill}
-            aria-label="Ir al siguiente campo pendiente"
+            aria-label={hasData ? 'Siguiente pendiente' : 'Empezar a llenar'}
             title="Salta al siguiente campo pendiente. Enter avanza, ⇧Enter retrocede."
-            className="btn-ghost text-xs"
+            className="btn-ghost text-caption"
           >
             {hasData ? 'Siguiente pendiente ⏎' : 'Empezar a llenar ⏎'}
           </button>
