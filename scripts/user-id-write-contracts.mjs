@@ -11,7 +11,15 @@ const FUNCTIONS_DIR = join(ROOT, 'netlify/functions')
 const INSERT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\s*\(([^)]*)\)/gi
 const INSERT_STATEMENT_RE = /\bINSERT\s+INTO\s+([a-z_]+)\b([\s\S]*?)(?=;|`|$)/gi
 
-export const USER_ID_WRITE_WARNING_ALLOWLIST = []
+export const USER_ID_WRITE_WARNING_ALLOWLIST = [
+  {
+    file: 'netlify/functions/_lib/pdf-studio-templates-endpoint.ts',
+    table: 'pdf_studio_template_versions',
+    kind: 'insert_select_manual_review',
+    reason:
+      'El INSERT…SELECT copia user_id desde la CTE `head`, que ya filtra por el user_id autenticado; el snapshot hereda el owner correcto por construcción.',
+  },
+]
 
 // Funciones de producción: `.ts`/`.mts`, sin tests.
 function isProductionFunctionFile(file) {

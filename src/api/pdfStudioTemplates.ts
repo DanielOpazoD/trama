@@ -57,6 +57,32 @@ export async function downloadPdfStudioTemplatePackage(id: string): Promise<unkn
   return request<unknown>(`/api/pdf-studio-templates/${encodeURIComponent(id)}`)
 }
 
+/** Una versión retenida del historial (metadatos; el paquete se baja aparte). */
+export type PdfStudioTemplateVersion = {
+  id: string
+  name: string
+  byteSize: number
+  savedAt: string
+  createdAt: string
+}
+
+export async function listPdfStudioTemplateVersions(
+  id: string,
+): Promise<PdfStudioTemplateVersion[]> {
+  return request<PdfStudioTemplateVersion[]>(
+    `/api/pdf-studio-templates/${encodeURIComponent(id)}/versions`,
+  )
+}
+
+export async function downloadPdfStudioTemplateVersion(
+  id: string,
+  versionId: string,
+): Promise<unknown> {
+  return request<unknown>(
+    `/api/pdf-studio-templates/${encodeURIComponent(id)}/versions/${encodeURIComponent(versionId)}`,
+  )
+}
+
 export async function deletePdfStudioTemplate(id: string): Promise<void> {
   await request(`/api/pdf-studio-templates/${encodeURIComponent(id)}`, {
     method: 'DELETE',
