@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 import type { PdfFormFieldDraft } from '../../../../../lib/pdfStudio/model/model'
+import { downloadBlob } from '../../../../../lib/downloadBlob'
 import type { TemplateFillImportValues } from './pdfTemplateFillImport'
 import type { TemplateFillImportFeedback } from './usePdfTemplateFillImport'
 import { orderFormFieldsForFill } from '../pdfFormFieldFillOrder'
 import { FORM_FIELD_EMPTY_HINT } from '../pdfFormFieldStyle'
+import { templateFillValuesJson } from './pdfTemplateFillExport'
 import {
   fillProgressForTemplateFields,
   isTemplateFieldFilled,
@@ -147,38 +149,52 @@ export function PdfTemplateFillVariablesPanel({
       >
         {nextPending ? 'Ir al siguiente campo' : 'Lista para imprimir'}
       </button>
-      <p className="mt-2 rounded-md bg-ink-50 px-2 py-1.5 text-micro leading-snug text-ink-500">
-        Modo relleno: escribe e imprime. La plantilla original no cambia salvo que guardes
-        una copia con datos.
-      </p>
       <div className="mt-2 grid grid-cols-2 gap-1.5">
         <button
           type="button"
           onClick={() => importInputRef.current?.click()}
           disabled={!onImportValues}
+          title="Cargar valores desde un JSON o CSV"
           className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)] disabled:cursor-not-allowed disabled:text-ink-300"
         >
           Importar datos
         </button>
         <button
           type="button"
+          onClick={() =>
+            downloadBlob(
+              new Blob([templateFillValuesJson(orderedFields)], {
+                type: 'application/json',
+              }),
+              'planilla-datos.json',
+            )
+          }
+          disabled={orderedFields.length === 0}
+          title="Descargar los valores actuales como JSON (re-importable)"
+          className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)] disabled:cursor-not-allowed disabled:text-ink-300"
+        >
+          Exportar datos
+        </button>
+        {onImportBatch ? (
+          <button
+            type="button"
+            onClick={() => batchInputRef.current?.click()}
+            title="CSV con cabecera de nombres de casillero y una fila por copia: genera todas las copias rellenadas en un solo PDF."
+            className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)]"
+          >
+            Lote (CSV)
+          </button>
+        ) : null}
+        <button
+          type="button"
           onClick={onClearValues}
           disabled={!onClearValues || orderedFields.length === 0}
+          title="Vaciar todos los valores de esta copia"
           className="rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] disabled:cursor-not-allowed disabled:text-ink-300"
         >
           Borrar datos
         </button>
       </div>
-      {onImportBatch ? (
-        <button
-          type="button"
-          onClick={() => batchInputRef.current?.click()}
-          title="CSV con cabecera de nombres de casillero y una fila por copia: genera todas las copias rellenadas en un solo PDF."
-          className="mt-1.5 w-full rounded-md border border-ink-200 bg-paper-50 px-2 py-1.5 text-caption font-medium text-ink-700 transition-colors hover:border-[color:var(--accent-sage)]/40 hover:text-[color:var(--accent-sage)]"
-        >
-          Rellenar en lote (CSV)
-        </button>
-      ) : null}
       <input
         ref={importInputRef}
         aria-label="Archivo de datos"
@@ -277,7 +293,7 @@ export function PdfTemplateFillVariablesPanel({
                   aria-label={`Ir al campo ${field.name}`}
                   className="min-w-0 flex-1 truncate text-left text-caption font-medium text-ink-800 transition-colors hover:text-[color:var(--accent-sage)]"
                 >
-                  [{field.name}]
+                  {field.name}
                   {field.required ? (
                     <span
                       title="Campo requerido"
@@ -371,7 +387,6 @@ export function PdfTemplateFillVariablesPanel({
                     )
                     if (event.key === 'Enter' || moved) event.preventDefault()
                   }}
-                  placeholder={`[${field.name}]`}
                   className="input-paper w-full rounded-md border border-ink-200 px-2 py-1 text-caption text-ink-800 placeholder:text-ink-300"
                 />
               )}

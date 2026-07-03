@@ -4,8 +4,9 @@ import type {
   PdfFontKind,
 } from '../../../../lib/pdfStudio/model/model'
 
-/** Estilo inicial recordado para nuevos casilleros de texto. Se fija explícito
- *  desde el inspector ("usar como estilo inicial") y persiste por dispositivo. */
+/** Estilo inicial recordado para nuevos casilleros de texto: letra + estilo
+ *  visual + TAMAÑO del cuadro (ancho/alto). Se fija explícito desde el
+ *  inspector ("usar como estilo inicial") y persiste por dispositivo. */
 export type FormFieldStyleDefaults = {
   font?: PdfFontKind
   sizeRatio?: number
@@ -14,6 +15,8 @@ export type FormFieldStyleDefaults = {
   bgColor?: string
   borderColor?: string
   align?: PdfFormFieldAlign
+  wRatio?: number
+  hRatio?: number
 }
 
 const FONTS = new Set(['sans', 'serif', 'mono', 'script'])
@@ -35,7 +38,23 @@ export function formFieldStyleDefaultsFromField(
     bgColor: field.bgColor,
     borderColor: field.borderColor,
     align: field.align,
+    wRatio: field.wRatio,
+    hRatio: field.hRatio,
   })
+}
+
+/** Aplica el tamaño de cuadro recordado sobre la caja inicial calculada:
+ *  "usar como estilo de nuevos casilleros" replica también alto y ancho. */
+export function applyDefaultsToInitialBox<Box extends { wRatio: number; hRatio: number }>(
+  box: Box,
+  defaults: FormFieldStyleDefaults | null,
+): Box {
+  if (!defaults) return box
+  return {
+    ...box,
+    ...(defaults.wRatio ? { wRatio: defaults.wRatio } : null),
+    ...(defaults.hRatio ? { hRatio: defaults.hRatio } : null),
+  }
 }
 
 const isHexColor = (value: unknown): value is string =>
@@ -62,9 +81,14 @@ export function parseFormFieldStyleDefaults(raw: unknown): FormFieldStyleDefault
       typeof input.align === 'string' && ALIGNS.has(input.align)
         ? (input.align as PdfFormFieldAlign)
         : undefined,
+    wRatio: isBoxRatio(input.wRatio) ? input.wRatio : undefined,
+    hRatio: isBoxRatio(input.hRatio) ? input.hRatio : undefined,
   })
   return Object.keys(defaults).length > 0 ? defaults : null
 }
+
+const isBoxRatio = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= 1
 
 export function loadFormFieldStyleDefaults(
   userKey: string | undefined,

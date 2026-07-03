@@ -146,6 +146,8 @@ describe('<EditorToolbar />', () => {
       screen.queryByRole('button', { name: /Estampar imagen/i }),
     ).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Campos' })).toBeInTheDocument()
+    // Una sola lupa: el header de diseño ya trae zoom, el toolbar no lo duplica.
+    expect(screen.queryByRole('group', { name: 'Vista' })).not.toBeInTheDocument()
   })
 
   it('evita bordes anidados en los grupos principales', () => {
@@ -191,7 +193,7 @@ describe('<EditorToolbar />', () => {
     expect(p.onToolChange).toHaveBeenCalledWith('highlight')
   })
 
-  it('deja el menú Campos limitado a casilleros de texto en planillas v1', () => {
+  it('deja el menú Campos para detectar/sugerir, sin duplicar crear casillero', () => {
     const p = setup({
       onAddFormField: vi.fn(),
       onInspectForms: vi.fn(),
@@ -206,9 +208,10 @@ describe('<EditorToolbar />', () => {
     expect(
       screen.getByRole('menuitem', { name: 'Sugerir casilleros vacíos' }),
     ).toBeInTheDocument()
+    // Crear casillero vive solo en el botón primario de la barra.
     expect(
-      screen.getByRole('menuitem', { name: 'Crear casillero de texto' }),
-    ).toBeInTheDocument()
+      screen.queryByRole('menuitem', { name: 'Crear casillero de texto' }),
+    ).toBeNull()
     expect(screen.queryByRole('menuitem', { name: 'Crear campo Firma' })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: 'Crear campo Fecha' })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: 'Crear campo Checkbox' })).toBeNull()
@@ -216,10 +219,9 @@ describe('<EditorToolbar />', () => {
 
     fireEvent.click(screen.getByRole('menuitem', { name: 'Sugerir casilleros vacíos' }))
     expect(p.onSuggestFormFields).toHaveBeenCalledOnce()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Campos' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Crear casillero de texto' }))
-    expect(p.onAddFormField).toHaveBeenCalledWith('text')
+    // La creación de casilleros queda cubierta por el botón primario en el
+    // test de modo planilla ("prioriza crear casillero...").
+    expect(p.onAddFormField).not.toHaveBeenCalled()
   })
 
   it('abre todos sus menús por delante del modal del editor PDF', () => {

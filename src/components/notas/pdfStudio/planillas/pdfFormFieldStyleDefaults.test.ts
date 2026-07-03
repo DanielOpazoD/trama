@@ -28,7 +28,7 @@ afterEach(() => {
 })
 
 describe('formFieldStyleDefaultsFromField', () => {
-  it('captura solo el estilo declarado, sin geometría ni identidad', () => {
+  it('captura estilo Y tamaño del cuadro (los nuevos casilleros lo replican)', () => {
     const defaults = formFieldStyleDefaultsFromField(styled)
 
     expect(defaults).toEqual({
@@ -37,7 +37,25 @@ describe('formFieldStyleDefaultsFromField', () => {
       color: '#b3412c',
       bgColor: '#ffffff',
       align: 'center',
+      wRatio: 0.3,
+      hRatio: 0.05,
     })
+  })
+})
+
+describe('applyDefaultsToInitialBox', () => {
+  it('reemplaza alto y ancho de la caja inicial con el tamaño recordado', async () => {
+    const { applyDefaultsToInitialBox } = await import('./pdfFormFieldStyleDefaults')
+    const base = { xRatio: 0.2, yRatio: 0.4, wRatio: 0.25, hRatio: 0.04 }
+
+    expect(applyDefaultsToInitialBox(base, { wRatio: 0.5, hRatio: 0.1 })).toEqual({
+      xRatio: 0.2,
+      yRatio: 0.4,
+      wRatio: 0.5,
+      hRatio: 0.1,
+    })
+    expect(applyDefaultsToInitialBox(base, null)).toBe(base)
+    expect(applyDefaultsToInitialBox(base, { bold: true })).toEqual(base)
   })
 })
 

@@ -1,3 +1,5 @@
+import type { RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
 import type { AnnotationDistributionAxis } from './pdfAnnotationArrange'
 import type { TextStyle } from './editorStyle'
@@ -13,6 +15,7 @@ import { useDraggablePanel } from './useDraggablePanel'
 
 export function PdfTextEditorFloatingFormTools({
   fields,
+  portalHostRef,
   signatureField,
   onAlignFields,
   onApplyPreset,
@@ -23,6 +26,7 @@ export function PdfTextEditorFloatingFormTools({
   onDistributeFields,
   onDuplicateFields,
   onMatchFieldSizes,
+  onNavigateFields,
   onPatchField,
   onPatchSelection,
   onRememberStyle,
@@ -32,6 +36,8 @@ export function PdfTextEditorFloatingFormTools({
 }: {
   /** Selección de casilleros en diseño ([] en modo llenar: sin inspector). */
   fields: PdfFormFieldDraft[]
+  /** Host del portal al body: el focus trap del editor lo cuenta como propio. */
+  portalHostRef?: RefObject<HTMLDivElement>
   signatureField: PdfFormFieldDraft | null
   onAlignFields: (alignment: FormFieldAlignment) => void
   onApplyPreset: (key: FormFieldPresetKey) => void
@@ -42,6 +48,7 @@ export function PdfTextEditorFloatingFormTools({
   onDistributeFields: (axis: AnnotationDistributionAxis) => void
   onDuplicateFields: () => void
   onMatchFieldSizes: (dimension: FormFieldSizeDimension) => void
+  onNavigateFields?: (direction: 1 | -1) => void
   onPatchField: (id: string, patch: Partial<PdfFormFieldDraft>) => void
   onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
   onRememberStyle: (field: PdfFormFieldDraft) => void
@@ -50,11 +57,13 @@ export function PdfTextEditorFloatingFormTools({
   onValueChange: (id: string, value: string | boolean) => void
 }) {
   // El offset del inspector vive acá (este componente persiste): mover el
-  // panel se conserva aunque la selección cambie o se vacíe.
+  // panel se conserva aunque la selección cambie o se vacíe. Va portaleado al
+  // body para poder arrastrarse fuera de la ventana del editor.
   const { panelStyle, startPanelDrag } = useDraggablePanel()
   const active = fields[fields.length - 1] ?? null
-  return (
-    <>
+  if (typeof document === 'undefined') return null
+  return createPortal(
+    <div ref={portalHostRef}>
       {active ? (
         <FormFieldInspector
           fields={fields}
@@ -68,6 +77,7 @@ export function PdfTextEditorFloatingFormTools({
           onDistributeFields={onDistributeFields}
           onDuplicateFields={onDuplicateFields}
           onMatchFieldSizes={onMatchFieldSizes}
+          onNavigate={onNavigateFields}
           onPatchSelection={onPatchSelection}
           onRememberStyle={() => onRememberStyle(active)}
           onRename={(name) => onPatchField(active.id, { name })}
@@ -82,6 +92,7 @@ export function PdfTextEditorFloatingFormTools({
           onSave={onSaveSignature}
         />
       ) : null}
-    </>
+    </div>,
+    document.body,
   )
 }

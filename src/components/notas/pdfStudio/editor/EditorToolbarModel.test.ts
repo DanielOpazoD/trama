@@ -32,11 +32,14 @@ describe('EditorToolbarModel', () => {
       canShowPdfMarkupTools: true,
       canShowShapeTools: true,
       canStampImage: true,
+      canShowToolbarZoom: true,
     })
     expect(editorToolbarContextCapabilities('templateDesign')).toEqual({
       canShowPdfMarkupTools: false,
       canShowShapeTools: false,
       canStampImage: false,
+      // El header de diseño ya trae zoom: el toolbar no duplica la lupa.
+      canShowToolbarZoom: false,
     })
   })
 })

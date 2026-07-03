@@ -23,11 +23,38 @@ import { useEffect, type RefObject } from 'react'
  * tabindex, etc.) — eso lo siguen haciendo los modales individualmente.
  * Esto solo cubre el trap + restore, que era el gap concreto del audit.
  */
-export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean): void {
+// Default a nivel de módulo: un `= []` inline crearía un array nuevo por
+// render y el efecto (que depende de extraRoots) se re-ejecutaría siempre,
+// robando el foco a mitad de escritura en todos los modales.
+const NO_EXTRA_ROOTS: RefObject<HTMLElement | null>[] = []
+
+export function useFocusTrap(
+  ref: RefObject<HTMLElement | null>,
+  active: boolean,
+  /** Contenedores extra que cuentan como "dentro" del trap (p. ej. paneles
+   *  flotantes portaleados al body). El array debe ser de identidad estable. */
+  extraRoots: RefObject<HTMLElement | null>[] = NO_EXTRA_ROOTS,
+): void {
   useEffect(() => {
     if (!active) return
     const root = ref.current
     if (!root) return
+    const allRoots = () =>
+      [root, ...extraRoots.map((extra) => extra.current)].filter(
+        (candidate): candidate is HTMLElement => Boolean(candidate),
+      )
+    const containsFocus = (el: Element | null) =>
+      Boolean(el && allRoots().some((candidate) => candidate.contains(el)))
+    const allFocusables = () => {
+      // En orden de documento, para que Tab cicle de forma predecible entre
+      // el modal y los paneles extra.
+      const focusables = allRoots().flatMap((candidate) =>
+        getFocusableElements(candidate),
+      )
+      return focusables.sort((a, b) =>
+        a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+      )
+    }
 
     // Guardar el elemento que tenía foco antes de abrir — el browser
     // lo persiste en document.activeElement, pero solo en ese instante.
@@ -37,8 +64,8 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     // modal. Damos un microtick para que el DOM se haya pintado y los
     // refs internos del modal (si los hay) estén listos.
     const id = window.setTimeout(() => {
-      const focusables = getFocusableElements(root)
-      const alreadyInside = root.contains(document.activeElement)
+      const focusables = allFocusables()
+      const alreadyInside = containsFocus(document.activeElement)
       if (!alreadyInside && focusables.length > 0) {
         focusables[0]!.focus()
       }
@@ -47,7 +74,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Tab') return
       if (!root) return
-      const focusables = getFocusableElements(root)
+      const focusables = allFocusables()
       if (focusables.length === 0) {
         // Sin focuseables el modal igual no debería tragar el Tab.
         return
@@ -68,9 +95,9 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
         first.focus()
         return
       }
-      // Si el foco escapó del root (puede pasar por errores upstream),
+      // Si el foco escapó del trap (puede pasar por errores upstream),
       // re-anclar al primero.
-      if (current && !root.contains(current)) {
+      if (current && !containsFocus(current)) {
         e.preventDefault()
         first.focus()
       }
@@ -86,7 +113,7 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
         previousFocus.focus()
       }
     }
-  }, [active, ref])
+  }, [active, ref, extraRoots])
 }
 
 /**

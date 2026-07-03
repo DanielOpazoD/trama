@@ -111,7 +111,6 @@ export function EditorToolbar({
       <EditorToolbarInsertGroup
         canStampImage={capabilities.canStampImage}
         onAddImage={onAddImage}
-        onAddFormField={onAddFormField}
         onInspectForms={onInspectForms}
         onSuggestFormFields={onSuggestFormFields}
         stampAssetMenu={stampAssetMenu}
@@ -137,13 +136,15 @@ export function EditorToolbar({
         onDelete={onDelete}
         onDuplicate={onDuplicate}
       />
-      <ToolbarGroup label="Vista" grow>
-        <EditorToolbarZoomControl
-          zoom={zoom}
-          onBeforeChange={onPrepareZoomAnchor}
-          onZoomChange={onZoomChange}
-        />
-      </ToolbarGroup>
+      {capabilities.canShowToolbarZoom ? (
+        <ToolbarGroup label="Vista" grow>
+          <EditorToolbarZoomControl
+            zoom={zoom}
+            onBeforeChange={onPrepareZoomAnchor}
+            onZoomChange={onZoomChange}
+          />
+        </ToolbarGroup>
+      ) : null}
     </div>
   )
 }

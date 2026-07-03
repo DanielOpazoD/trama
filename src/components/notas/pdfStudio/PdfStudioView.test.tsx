@@ -291,8 +291,12 @@ describe('<PdfStudioView />', () => {
       await screen.findByRole('dialog', { name: /Crear plantilla/i }),
     ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Campos' }))
+    // Crear casillero vive solo en el botón primario de la barra (sin duplicado).
     expect(
-      screen.getByRole('menuitem', { name: /Crear casillero de texto/i }),
+      screen.queryByRole('menuitem', { name: /Crear casillero de texto/i }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('menuitem', { name: /Sugerir casilleros vacíos/i }),
     ).toBeInTheDocument()
   })
 
@@ -505,7 +509,10 @@ describe('<PdfStudioView />', () => {
 
     const input = screen.getByRole('textbox', { name: 'paciente' })
     expect(input).toHaveAttribute('placeholder', 'Escriba aquí')
-    expect(screen.getAllByText('[paciente]').length).toBeGreaterThanOrEqual(1)
+    // El panel lista la variable con su nombre limpio (sin corchetes).
+    expect(
+      screen.getByRole('button', { name: 'Ir al campo paciente' }),
+    ).toBeInTheDocument()
     await user.type(input, 'Daniel')
     await user.click(
       within(fillDialog).getByRole('button', { name: /Imprimir planilla/i }),
@@ -619,18 +626,22 @@ describe('<PdfStudioView />', () => {
     expect(dialog.firstElementChild).toHaveClass('max-w-[min(1360px,85vw)]')
   })
 
-  it('en planillas v1 permite crear solo casilleros de texto', async () => {
+  it('en planillas v1 crear casillero vive solo en el botón primario de la barra', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView studioMode="templates" />)
     await user.upload(fileInput(), pdfFile())
     await user.dblClick(await screen.findByAltText('Página 1'))
     await screen.findByRole('dialog', { name: /Crear plantilla/i })
 
+    expect(
+      screen.getByRole('button', { name: /Crear casillero de texto/i }),
+    ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Campos' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Campos' }))
+    // El menú Campos ya no duplica la creación de casilleros.
     expect(
-      screen.getByRole('menuitem', { name: /Crear casillero de texto/i }),
-    ).toBeInTheDocument()
+      screen.queryByRole('menuitem', { name: /Crear casillero de texto/i }),
+    ).toBeNull()
     expect(screen.queryByRole('menuitem', { name: /Crear campo Firma/i })).toBeNull()
     expect(screen.queryByRole('menuitem', { name: /Crear campo Checkbox/i })).toBeNull()
   })

@@ -103,6 +103,25 @@ describe('<FormFieldLayer />', () => {
     expect(props.onStartDraftDrag).toHaveBeenCalledWith(expect.anything(), draftCheckbox)
   })
 
+  it('doble clic en diseño enfoca el input para escribir directo en el cuadro', () => {
+    const draftText = makePdfFormFieldDraft({
+      fieldKind: 'text',
+      pageId: 'p1',
+      name: 'paciente',
+      value: 'hola',
+      xRatio: 0.1,
+      yRatio: 0.1,
+      wRatio: 0.3,
+      hRatio: 0.05,
+    })
+    setup({ draftFields: [draftText], detectedWidgets: [] })
+
+    const input = screen.getByRole('textbox', { name: 'paciente' })
+    fireEvent.doubleClick(input.closest('.z-20')!)
+
+    expect(input).toHaveFocus()
+  })
+
   it('muestra campo de firma simple con acción para firmar', () => {
     const signature = makePdfFormFieldDraft({
       fieldKind: 'signature',

@@ -11,7 +11,10 @@ import {
   initialFieldBox,
 } from './pdfTextEditorFormDefaults'
 import { formFieldTextStyleFromEditor } from './pdfFormFieldStyle'
-import type { FormFieldStyleDefaults } from './pdfFormFieldStyleDefaults'
+import {
+  applyDefaultsToInitialBox,
+  type FormFieldStyleDefaults,
+} from './pdfFormFieldStyleDefaults'
 
 function nextFormFieldName(kind: PdfFormFieldKind, fields: PdfFormFieldDraft[]): string {
   const prefix = fieldNamePrefix(kind)
@@ -47,6 +50,10 @@ export function makeDraftFormField({
     ...(kind === 'text'
       ? { ...formFieldTextStyleFromEditor(style), ...styleDefaults }
       : {}),
-    ...(box ?? initialFieldBox(kind, style)),
+    ...(box ??
+      applyDefaultsToInitialBox(
+        initialFieldBox(kind, style),
+        kind === 'text' ? (styleDefaults ?? null) : null,
+      )),
   })
 }

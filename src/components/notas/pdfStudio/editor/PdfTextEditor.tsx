@@ -1,14 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   type Annotation,
   type TextAnnotation,
 } from '../../../../lib/pdfStudio/model/model'
-import {
-  initHistory,
-  pushHistory,
-  type History,
-} from '../../../../lib/pdfStudio/model/history'
+import { initHistory, type History } from '../../../../lib/pdfStudio/model/history'
 import { useFocusTrap } from '../../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
 import { PdfTextEditorHeaderSlot } from './PdfTextEditorHeaderSlot'
@@ -37,6 +33,7 @@ import { formFieldTextStyle } from '../planillas/pdfFormFieldStyle'
 import { fillProgressForTemplateFields } from '../planillas/fill/pdfTemplateFillProgress'
 import { usePdfTextEditorFillFocus } from '../planillas/fill/usePdfTextEditorFillFocus'
 import { usePdfTextEditorFillSidebarProps } from '../planillas/fill/usePdfTextEditorFillSidebarProps'
+import { usePdfTextEditorAnnotationSetters } from './usePdfTextEditorAnnotationSetters'
 import { usePdfTextEditorAutosave } from './usePdfTextEditorAutosave'
 import { PdfTextEditorAutosaveBadge } from './PdfTextEditorAutosaveBadge'
 import { usePdfTextEditorHeaderProps } from './usePdfTextEditorHeaderProps'
@@ -110,7 +107,11 @@ export function PdfTextEditor({
   const stampInputRef = useRef<HTMLInputElement>(null)
   const backdropDownRef = useRef<{ x: number; y: number } | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
-  useFocusTrap(dialogRef, true)
+  // El inspector flotante vive portaleado al body (se puede arrastrar fuera
+  // del modal): el focus trap lo cuenta como parte del editor.
+  const floatingToolsRef = useRef<HTMLDivElement>(null)
+  const focusTrapRoots = useRef([floatingToolsRef]).current
+  useFocusTrap(dialogRef, true, focusTrapRoots)
   useEffect(() => {
     dialogRef.current?.focus()
     // Calienta las fuentes del menú de estilo. Caveat ("Manuscrita") puede no
@@ -126,31 +127,12 @@ export function PdfTextEditor({
   const annotationsRef = useRef(annotations)
   annotationsRef.current = annotations
   const annClipboardRef = useRef<Annotation | null>(null)
-  const setAnnotations = useCallback(
-    (fn: (list: Annotation[]) => Annotation[]) => {
-      const i = pageRef.current
-      setHistory((h) =>
-        pushHistory(h, {
-          ...h.present,
-          [i]: fn(h.present[i] ?? doc.pages[i]?.annotations ?? []),
-        }),
-      )
-    },
-    [doc],
-  )
-  const editLive = useCallback(
-    (fn: (list: Annotation[]) => Annotation[]) => {
-      const i = pageRef.current
-      setHistory((h) => ({
-        ...h,
-        present: {
-          ...h.present,
-          [i]: fn(h.present[i] ?? doc.pages[i]?.annotations ?? []),
-        },
-      }))
-    },
-    [doc],
-  )
+  const formUndoRef = useRef<((redo: boolean) => boolean) | null>(null)
+  const { editLive, setAnnotations } = usePdfTextEditorAnnotationSetters({
+    doc,
+    pageRef,
+    setHistory,
+  })
   const [style, setStyle] = useState<TextStyle>({ ...defaultEditorTextStyle() })
   const arrangeGeometry = activeLayout
     ? { pageWidthPx: activeLayout.innerW, pageHeightPx: activeLayout.innerH }
@@ -185,6 +167,7 @@ export function PdfTextEditor({
     selectedRef,
     annotationsRef,
     annotationClipboardRef: annClipboardRef,
+    formUndoRef,
     setSelectedId,
     setEditingId,
     setHistory,
@@ -230,6 +213,7 @@ export function PdfTextEditor({
     placePendingFormField,
     quickPlaceDraftFormField,
     rememberFieldStyleDefaults,
+    selectAdjacentDraftFormField,
     selectedDraftFormField,
     selectedDraftFormFields,
     saveSignatureDataUrl,
@@ -243,6 +227,7 @@ export function PdfTextEditor({
     signatureInputRef,
     startDraftDrag,
     startDraftResize,
+    undoDraftFormFields,
     updateDraftFormValue,
   } = usePdfTextEditorForms({
     doc,
@@ -255,6 +240,7 @@ export function PdfTextEditor({
     setEditingId,
     setSelectedId,
   })
+  formUndoRef.current = designMode ? undoDraftFormFields : null
   const { startDrag, startResize, startDraw, startMarquee } =
     usePdfTextEditorInteractions({
       layout: activeLayout,
@@ -469,6 +455,7 @@ export function PdfTextEditor({
         ) : null}
         <PdfTextEditorFloatingFormTools
           fields={fillMode ? [] : selectedDraftFormFields}
+          portalHostRef={floatingToolsRef}
           signatureField={signatureField}
           onAlignFields={alignDraftFormFields}
           onApplyPreset={applyDraftFieldPreset}
@@ -479,6 +466,10 @@ export function PdfTextEditor({
           onDistributeFields={distributeDraftFormFields}
           onDuplicateFields={duplicateSelectedDraftFormFields}
           onMatchFieldSizes={matchDraftFormFieldSizes}
+          onNavigateFields={(direction) => {
+            const next = selectAdjacentDraftFormField(direction)
+            if (next) activatePage(pageIndexById[next.pageId] ?? 0)
+          }}
           onPatchField={patchDraftFormField}
           onPatchSelection={patchSelectedDraftFormFields}
           onRememberStyle={rememberFieldStyleDefaults}
