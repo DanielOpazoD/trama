@@ -15,14 +15,14 @@ export const composerTitleClass =
 export const composerIconButtonClass =
   'flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40'
 
-/** Marco de una tarjeta EN EDICIÓN: apenas un borde de acento tenue (ring =
- *  25%) con un halo mínimo — la señal de «estás editando» sin gritar. Los
- *  tokens se remapean por mundo (sage en Notas). El campo interno tampoco
- *  dibuja su propio anillo de foco, así el marco es UNO solo, no dos. */
+/** Marco de una tarjeta EN EDICIÓN: apenas un borde GRIS-VERDE apagado con un
+ *  halo mínimo — la señal de «estás editando» sin el verde saturado que
+ *  distrae al leer/escribir. El campo interno tampoco dibuja su propio anillo
+ *  de foco, así el marco es UNO solo, no dos. */
 export function editingFrameStyle(): CSSProperties {
   return {
-    borderColor: 'var(--accent-primary-ring)',
-    boxShadow: '0 0 0 1px var(--accent-primary-soft)',
+    borderColor: 'rgb(122 134 116 / 0.6)',
+    boxShadow: '0 0 0 1px rgb(122 134 116 / 0.12)',
   }
 }
 

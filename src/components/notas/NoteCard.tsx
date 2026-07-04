@@ -224,21 +224,14 @@ export function NoteCard({
         >
           {renderMarkdown(note.content)}
         </div>
-        {/* «Leer más» vive SOBRE el degradado — cero altura extra, el fade
-            invita a expandir en el mismo lugar donde el texto se corta. */}
+        {/* Degradado corto, SOLO visual: desvanece el texto cortado. El
+            control de expandir vive en la fila inferior (una sola fila con
+            las acciones), así no queda blanco muerto debajo. */}
         {overflowing && !expanded && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            aria-expanded={false}
-            aria-label="Leer la nota completa"
-            className="group/more absolute inset-x-0 bottom-0 flex h-14 items-end justify-center bg-gradient-to-b from-transparent to-paper-100"
-          >
-            <span className="inline-flex items-center gap-1 text-micro font-medium text-ink-400 transition-colors group-hover/more:text-ink-700">
-              Leer más
-              <ChevronDownIcon size={13} />
-            </span>
-          </button>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-paper-100"
+          />
         )}
       </div>
 
@@ -247,17 +240,21 @@ export function NoteCard({
       {/* Fila inferior: a la IZQUIERDA lo informativo (mostrar menos + estado);
           a la DERECHA las acciones. justify-between mantiene el borde inferior
           simétrico, sin el espacio muerto de la vieja fila del chevron. */}
-      <div className="mt-2.5 flex items-center justify-between gap-2">
+      <div className="mt-1.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          {overflowing && expanded && (
+          {overflowing && (
             <button
               type="button"
-              onClick={() => setExpanded(false)}
-              aria-expanded
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Mostrar menos' : 'Leer la nota completa'}
               className="inline-flex shrink-0 items-center gap-1 text-micro font-medium text-ink-400 transition-colors hover:text-ink-700"
             >
-              <ChevronDownIcon size={13} className="rotate-180" />
-              Mostrar menos
+              <ChevronDownIcon
+                size={13}
+                className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+              />
+              {expanded ? 'Mostrar menos' : 'Leer más'}
             </button>
           )}
           <WhatsAppSourceTag source={note.source} />

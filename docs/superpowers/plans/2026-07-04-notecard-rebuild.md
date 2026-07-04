@@ -38,6 +38,19 @@
   marco de la tarjeta es el único que marca el foco. `outline-style: none`
   confirmado en vivo.
 
+## Segunda pasada (feedback del usuario)
+
+- **Espacio inferior «prácticamente virtual»**: el «Leer más» dejó de
+  flotar sobre un degradado alto (que dejaba hueco hasta las acciones) y
+  ahora comparte UNA fila con las acciones (`justify-between`, mismo toggle
+  para colapsar/expandir). El degradado quedó corto (`h-8`) y solo visual;
+  el borde inferior queda pegado a esa fila, sin blanco muerto.
+- **Borde verde → gris-verde apagado**: (1) `editingFrameStyle` pasó de
+  sage 25% a `rgb(122 134 116 / 0.6)` con halo mínimo — verificado en vivo.
+  (2) La nota activa del feed usa una variante nueva `.selection-ring-soft`
+  (gris-verde a 50%, 3px) en vez del `.selection-ring` sage saturado; los
+  otros contextos (biblioteca, pdf-studio) conservan el sage.
+
 ## Validación
 
 - Suite completa 4964 pass, typecheck, lint, prettier, gates

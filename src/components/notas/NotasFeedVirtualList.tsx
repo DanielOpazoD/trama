@@ -99,7 +99,7 @@ export function NotasFeedVirtualList({
             }}
           >
             <div
-              className={`${reducedMotion ? '' : 'animate-fade-up'} ${isSelected ? 'selection-ring rounded-xl' : ''}`}
+              className={`${reducedMotion ? '' : 'animate-fade-up'} ${isSelected ? 'selection-ring-soft rounded-xl' : ''}`}
               style={{ animationDelay: delay }}
             >
               {item.type === 'note' ? (
