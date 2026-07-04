@@ -1,132 +1,82 @@
-.trama-login-shell {
-  --trama-login-cyan-rgb: 42 154 166;
-  --trama-login-gold-rgb: 160 121 0;
-  --trama-login-sage-rgb: 74 124 58;
+/* Login «El telar»: panel de tinta donde la trama se teje (marca, frase del
+   día, pilares de confianza y la mascota asomada) + panel de papel limpio
+   para entrar. Split en desktop, apilado en móvil. */
 
+.trama-login-shell {
+  --trama-loom-ink: 26 25 23;
+  --trama-loom-ink-deep: 18 17 16;
+
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(20rem, 30%) 1fr;
+  background: linear-gradient(180deg, rgb(var(--paper-50)) 0%, rgb(var(--paper-100)) 100%);
+}
+
+/* ── Panel del telar (tinta) ─────────────────────────────────────────── */
+
+.trama-login-loom {
   position: relative;
   isolation: isolate;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
-  padding: calc(var(--space-6) + env(safe-area-inset-top, 0px)) 1.5rem
-    calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  color: rgb(var(--paper-50));
   background:
-    radial-gradient(ellipse 72% 46% at 50% 4%, var(--accent-gold-soft), transparent 70%),
-    radial-gradient(circle at 68% 22%, var(--accent-sage-soft), transparent 24%),
-    linear-gradient(180deg, rgb(var(--paper-50)) 0%, rgb(var(--paper-100)) 100%);
+    radial-gradient(ellipse 120% 60% at 15% 0%, rgb(var(--trama-loom-ink)) 0%, transparent 70%),
+    radial-gradient(ellipse 90% 70% at 85% 100%, rgb(42 44 38) 0%, transparent 65%),
+    linear-gradient(165deg, rgb(var(--trama-loom-ink)) 0%, rgb(var(--trama-loom-ink-deep)) 100%);
 }
 
-.trama-login-shell::before {
+.trama-login-loom::after {
+  /* Grano sutil: que la tinta se sienta materia, no un rectángulo plano. */
   content: '';
   position: absolute;
-  inset: -18%;
-  z-index: -3;
-  background:
-    linear-gradient(
-      115deg,
-      transparent 0 42%,
-      rgb(var(--ink-700) / 0.012) 49%,
-      transparent 56%
-    ),
-    radial-gradient(ellipse at 78% 18%, var(--accent-sage-soft), transparent 26%),
-    radial-gradient(ellipse at 82% 72%, var(--accent-gold-soft), transparent 28%);
-  filter: blur(18px);
-}
-
-.trama-login-shell::after {
-  content: '';
-  position: absolute;
-  inset: -8%;
-  z-index: -2;
+  inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, rgb(var(--ink-700) / 0.028) 1px, transparent 1px),
-    linear-gradient(0deg, rgb(var(--ink-700) / 0.022) 1px, transparent 1px),
-    radial-gradient(
-      circle at 24% 26%,
-      rgb(var(--trama-login-cyan-rgb) / 0.09),
-      transparent 24%
-    ),
-    radial-gradient(
-      circle at 78% 23%,
-      rgb(var(--trama-login-gold-rgb) / 0.08),
-      transparent 22%
-    );
-  background-size:
-    5.25rem 5.25rem,
-    5.25rem 5.25rem,
-    100% 100%,
-    100% 100%;
-  mask-image: radial-gradient(
-    ellipse 28rem 18rem at 50% 26%,
-    transparent 0 34%,
-    rgb(0 0 0 / 0.24) 56%,
-    rgb(0 0 0) 100%
-  );
-  opacity: 0.42;
+  background-image: radial-gradient(rgb(var(--paper-50) / 0.05) 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
 }
 
 .trama-login-thread-field {
   position: absolute;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  opacity: 0.46;
+  opacity: 0.9;
+  animation: trama-login-fade 1200ms ease-out both;
 }
 
-.trama-login-content {
-  width: min(100%, 25rem);
-  animation: trama-login-enter 640ms cubic-bezier(0.25, 1, 0.5, 1) both;
-}
-
-.trama-login-brand {
+.trama-login-loomInner {
   position: relative;
-  margin-bottom: var(--space-5);
-  text-align: center;
-}
-
-.trama-login-brandTrace {
-  position: absolute;
-  left: 50%;
-  top: -2.2rem;
-  width: min(31rem, 96vw);
-  height: 8rem;
-  color: var(--accent-gold);
-  opacity: 0.15;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.trama-login-brandTrace path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: trama-login-trace 1500ms cubic-bezier(0.25, 1, 0.5, 1) 140ms both;
-}
-
-.trama-login-titleRow {
-  position: relative;
-  display: grid;
-  place-items: center;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-6);
+  width: 100%;
+  padding: clamp(2rem, 4vw, 3.25rem);
+  padding-top: calc(clamp(2rem, 4vw, 3.25rem) + env(safe-area-inset-top, 0px));
+  animation: trama-login-enter 700ms cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
 .trama-login-lockup {
-  display: inline-flex;
+  display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.38rem;
+  align-items: flex-start;
+  gap: 0.9rem;
 }
 
 .trama-login-mark {
-  width: clamp(5.4rem, 22vw, 6.9rem);
-  height: clamp(5.4rem, 22vw, 6.9rem);
-  object-fit: contain;
-  filter: drop-shadow(0 1px 0 rgb(var(--paper-50) / 0.64))
-    drop-shadow(0 12px 24px rgb(var(--ink-900) / 0.06));
+  width: 3.4rem;
+  height: 3.4rem;
+  object-fit: cover;
+  border-radius: 0.9rem;
+  box-shadow:
+    0 0 0 1px rgb(var(--paper-50) / 0.14),
+    0 14px 34px rgb(0 0 0 / 0.35);
 }
 
 .trama-login-wordmarkTitle {
@@ -135,65 +85,112 @@
 
 .trama-login-wordmark {
   display: block;
-  width: clamp(12.6rem, 29vw, 16rem);
+  width: clamp(9.5rem, 12vw, 12rem);
   height: auto;
   line-height: 1;
-  color: rgb(var(--ink-700));
+  color: rgb(var(--paper-50));
   overflow: visible;
-  text-shadow: 0 1px 0 rgb(var(--paper-50) / 0.7);
+}
+
+.trama-login-subtitle {
+  margin-top: -0.2rem;
+  color: rgb(var(--paper-50) / 0.55);
+  letter-spacing: 0.34em;
+}
+
+.trama-login-quote {
+  margin: 0;
+  max-width: 24rem;
+}
+
+.trama-login-quote blockquote {
+  margin: 0;
+  font-family: 'Spectral', Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: clamp(1.25rem, 1.9vw, 1.6rem);
+  line-height: 1.45;
+  color: rgb(var(--paper-50) / 0.88);
+  text-wrap: balance;
+}
+
+.trama-login-pillars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.4rem;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgb(var(--paper-50) / 0.5);
+}
+
+.trama-login-pillars li {
+  position: relative;
+  padding-left: 0.95rem;
+}
+
+.trama-login-pillars li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: var(--accent-gold);
+  opacity: 0.85;
 }
 
 .trama-login-mascotSeal {
   position: absolute;
-  top: -0.05rem;
-  left: calc(50% + clamp(8.8rem, 20vw, 12.4rem));
+  right: 1.4rem;
+  bottom: calc(1.35rem + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
   display: inline-grid;
   place-items: center;
-  width: 3.15rem;
-  height: 3.15rem;
+  width: 2.9rem;
+  height: 2.9rem;
   border-radius: 999px;
-  border: 1px solid rgb(var(--ink-100) / 0.42);
+  border: 1px solid rgb(var(--paper-50) / 0.18);
+  background: rgb(var(--paper-50) / 0.08);
+  backdrop-filter: blur(6px);
+}
+
+/* ── Panel de entrada (papel) ────────────────────────────────────────── */
+
+.trama-login-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--space-6) + env(safe-area-inset-top, 0px)) 1.5rem
+    calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   background:
-    radial-gradient(
-      circle at 50% 42%,
-      rgb(var(--trama-login-sage-rgb) / 0.22),
-      transparent 58%
-    ),
-    rgb(var(--paper-50) / 0.5);
-  box-shadow:
-    0 10px 26px rgb(var(--ink-900) / 0.055),
-    0 1px 0 rgb(var(--paper-50) / 0.76) inset;
-  transform: translateY(-0.1rem);
+    radial-gradient(ellipse 70% 40% at 60% 0%, var(--accent-gold-soft), transparent 70%),
+    linear-gradient(180deg, rgb(var(--paper-50)) 0%, rgb(var(--paper-100)) 100%);
 }
 
-.trama-login-mascotSeal::before,
-.trama-login-mascotSeal::after {
-  content: '';
-  position: absolute;
-  left: -0.62rem;
-  right: -0.62rem;
-  height: 1px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
-  opacity: 0.18;
+.trama-login-entryInner {
+  width: min(100%, 24.5rem);
+  animation: trama-login-enter 640ms cubic-bezier(0.25, 1, 0.5, 1) 120ms both;
 }
 
-.trama-login-mascotSeal::before {
-  top: 0.62rem;
+.trama-login-entryHeader {
+  margin-bottom: var(--space-4);
 }
 
-.trama-login-mascotSeal::after {
-  bottom: 0.58rem;
-}
-
-.trama-login-subtitle {
-  margin-top: var(--space-4);
-  color: rgb(var(--ink-400));
+.trama-login-entryTitle {
+  margin-top: 0.45rem;
+  font-size: clamp(1.7rem, 2.6vw, 2.1rem);
+  line-height: 1.12;
 }
 
 .trama-login-panel {
   position: relative;
-  animation: trama-login-panel 720ms cubic-bezier(0.25, 1, 0.5, 1) 130ms both;
+  animation: trama-login-enter 720ms cubic-bezier(0.25, 1, 0.5, 1) 220ms both;
 }
 
 .trama-login-panel::before {
@@ -202,45 +199,32 @@
   inset: -1px;
   z-index: -1;
   border-radius: 1.05rem;
-  background:
-    linear-gradient(135deg, rgb(var(--paper-50) / 0.7), rgb(var(--paper-50) / 0.44)),
-    linear-gradient(180deg, rgb(var(--paper-50) / 0.4), transparent 48%),
-    radial-gradient(
-      circle at 20% 0%,
-      rgb(var(--trama-login-gold-rgb) / 0.11),
-      transparent 42%
-    ),
-    radial-gradient(
-      circle at 90% 12%,
-      rgb(var(--trama-login-cyan-rgb) / 0.08),
-      transparent 34%
-    );
+  border: 1px solid rgb(var(--ink-100) / 0.6);
+  background: rgb(var(--paper-50) / 0.72);
   box-shadow:
-    0 20px 54px rgb(var(--ink-900) / 0.07),
-    0 1px 0 rgb(var(--paper-50) / 0.7) inset;
-  backdrop-filter: blur(22px) saturate(1.08);
+    0 22px 60px rgb(var(--ink-900) / 0.08),
+    0 1px 0 rgb(var(--paper-50) / 0.85) inset;
+  backdrop-filter: blur(18px) saturate(1.06);
 }
 
 .trama-login-demoAction {
   margin-top: var(--space-4);
 }
 
+.trama-login-privacy {
+  margin-top: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* ── Movimiento ──────────────────────────────────────────────────────── */
+
 @keyframes trama-login-enter {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.992);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes trama-login-panel {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(12px);
   }
 
   to {
@@ -249,42 +233,59 @@
   }
 }
 
-@keyframes trama-login-trace {
+@keyframes trama-login-fade {
+  from {
+    opacity: 0;
+  }
+
   to {
-    stroke-dashoffset: 0;
+    opacity: 0.9;
   }
 }
 
-@media (max-width: 640px) {
+/* ── Apilado en pantallas angostas ───────────────────────────────────── */
+
+@media (max-width: 860px) {
   .trama-login-shell {
-    padding-inline: 1rem;
+    grid-template-columns: 1fr;
   }
 
-  .trama-login-content {
-    width: min(100%, 22rem);
+  .trama-login-loom {
+    min-height: 17rem;
   }
 
-  .trama-login-titleRow {
-    min-height: 8.2rem;
+  .trama-login-loomInner {
+    gap: var(--space-4);
+    padding: 1.6rem 1.4rem;
+    padding-top: calc(1.6rem + env(safe-area-inset-top, 0px));
+  }
+
+  .trama-login-quote blockquote {
+    font-size: 1.1rem;
+    max-width: 19rem;
+  }
+
+  .trama-login-pillars {
+    display: none;
   }
 
   .trama-login-mascotSeal {
-    top: 0.16rem;
-    left: calc(50% + 7.3rem);
+    right: 1.1rem;
+    bottom: 1.1rem;
     width: 2.5rem;
     height: 2.5rem;
-    transform: translateY(-0.08rem);
   }
 
-  .trama-login-wordmark {
-    width: clamp(9.35rem, 42vw, 10.9rem);
+  .trama-login-entry {
+    padding-top: var(--space-5);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trama-login-content,
+  .trama-login-loomInner,
+  .trama-login-entryInner,
   .trama-login-panel,
-  .trama-login-brandTrace path {
+  .trama-login-thread-field {
     animation: none;
   }
 }

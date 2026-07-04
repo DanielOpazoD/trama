@@ -11,8 +11,8 @@ type ThreadPoint = {
 const POINT_COUNT = 38
 const LINK_DISTANCE = 184
 const POINTER_FORCE = 0.0007
-const THREAD_ALPHA = 0.045
-const POINT_ALPHA = 0.055
+const THREAD_ALPHA = 0.085
+const POINT_ALPHA = 0.12
 
 function prefersReducedMotion() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -62,8 +62,9 @@ export function LoginThreadField() {
     let points: ThreadPoint[] = []
     const pointer = { x: 0, y: 0, active: false }
     const reducedMotion = prefersReducedMotion()
-    const ink = readCssColor('--ink-700', '24 24 27')
-    const gold = readCssColor('--accent-gold', '#a07900')
+    // Vive sobre el panel TINTA del login: los hilos son de papel.
+    const thread = readCssColor('--paper-50', '250 249 246')
+    const gold = readCssColor('--accent-gold', '#c9a227')
     const cyan = readCssColor('--accent-cyan', '#2a9aa6')
 
     const resize = () => {
@@ -110,7 +111,7 @@ export function LoginThreadField() {
           const distance = Math.hypot(a.x - b.x, a.y - b.y)
           if (distance > LINK_DISTANCE) continue
           const alpha = ((1 - distance / LINK_DISTANCE) * THREAD_ALPHA).toFixed(3)
-          ctx.strokeStyle = `rgb(${ink} / ${alpha})`
+          ctx.strokeStyle = `rgb(${thread} / ${alpha})`
           ctx.lineWidth = 0.7
           ctx.beginPath()
           ctx.moveTo(a.x, a.y)
@@ -120,35 +121,14 @@ export function LoginThreadField() {
       }
 
       for (const point of points) {
-        ctx.fillStyle = `rgb(${ink} / ${POINT_ALPHA})`
+        ctx.fillStyle = `rgb(${thread} / ${POINT_ALPHA})`
         ctx.beginPath()
         ctx.arc(point.x, point.y, 1.25, 0, Math.PI * 2)
         ctx.fill()
       }
 
-      const centerX = width * 0.5
-      const centerY = height * 0.255
-      const clearRadius = Math.min(width * 0.18, 190)
-      const fade = ctx.createRadialGradient(
-        centerX,
-        centerY,
-        clearRadius * 0.58,
-        centerX,
-        centerY,
-        clearRadius,
-      )
-      fade.addColorStop(0, 'rgb(255 255 255 / 0.54)')
-      fade.addColorStop(1, 'rgb(255 255 255 / 0)')
-      ctx.fillStyle = fade
-      ctx.fillRect(
-        centerX - clearRadius,
-        centerY - clearRadius,
-        clearRadius * 2,
-        clearRadius * 2,
-      )
-
       ctx.strokeStyle = gold
-      ctx.globalAlpha = reducedMotion ? 0.08 : 0.045 + Math.sin(frame * 0.035) * 0.014
+      ctx.globalAlpha = reducedMotion ? 0.3 : 0.22 + Math.sin(frame * 0.03) * 0.08
       ctx.lineWidth = 0.95
       ctx.beginPath()
       ctx.moveTo(width * 0.32, height * 0.23)
@@ -162,7 +142,7 @@ export function LoginThreadField() {
       )
       ctx.stroke()
       ctx.strokeStyle = cyan
-      ctx.globalAlpha = reducedMotion ? 0.045 : 0.026 + Math.sin(frame * 0.028) * 0.01
+      ctx.globalAlpha = reducedMotion ? 0.2 : 0.14 + Math.sin(frame * 0.024) * 0.06
       ctx.beginPath()
       ctx.moveTo(width * 0.25, height * 0.37)
       ctx.bezierCurveTo(
