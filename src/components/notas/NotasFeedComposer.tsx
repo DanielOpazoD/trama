@@ -86,7 +86,11 @@ export function NotasFeedComposer({
   return (
     <div
       onFocusCapture={onComposerFocus}
-      onBlurCapture={onComposerBlur}
+      onBlurCapture={(event) => {
+        // El foco moviéndose dentro (título → adjuntar) no pliega el composer.
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+        onComposerBlur()
+      }}
       onDragOver={onComposerDragOver}
       onDragLeave={onComposerDragLeave}
       onDrop={onComposerDrop}

@@ -303,6 +303,8 @@ export function TareasView() {
         title="Tareas"
         eyebrow="recordatorios de la semana"
         accent={ACCENT}
+        spacing="tight"
+        density="compact"
         subtitle="Cada semana es una hoja. Lo pendiente se arrastra hasta resolverse."
       />
 

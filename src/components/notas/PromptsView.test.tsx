@@ -106,12 +106,10 @@ describe('<PromptsView />', () => {
 
     renderWithProviders(<PromptsView />)
 
-    await user.type(screen.getByPlaceholderText(/Título del prompt/i), 'Nuevo ritual')
-    await user.type(screen.getByPlaceholderText(/Colección/i), 'Diario')
-    await user.type(
-      screen.getByPlaceholderText(/Escribe el prompt/i),
-      'Pregunta por foco',
-    )
+    // Plegado en reposo: el título es la única línea; escribir despliega el resto.
+    await user.type(screen.getByLabelText('Título del prompt'), 'Nuevo ritual')
+    await user.type(screen.getByLabelText('Colección'), 'Diario')
+    await user.type(screen.getByLabelText('Contenido del prompt'), 'Pregunta por foco')
     await user.click(screen.getByRole('button', { name: /guardar prompt/i }))
 
     await waitFor(() =>

@@ -90,6 +90,8 @@ export function PromptsView() {
         title="Prompts"
         eyebrow="biblioteca reutilizable"
         accent={ACCENT}
+        spacing="tight"
+        density="compact"
         subtitle="Guarda los prompts que funcionan, clasifícalos por colección y cópialos donde los necesites."
       />
 

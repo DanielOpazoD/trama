@@ -12,7 +12,12 @@ const ACCENT = 'var(--accent-sage)'
 export function NotasTopBar({ section }: { section: NotasSection }) {
   return (
     <div>
-      <TopBar view="inicio" titleOverride={NOTAS_SECTION_TITLES[section]} />
+      {/* Solo el título utilitario: el descriptor duplicaba al hero de la
+          vista (jerarquía doble) y el subtítulo ya vive allí. */}
+      <TopBar
+        view="inicio"
+        titleOverride={{ title: NOTAS_SECTION_TITLES[section].title }}
+      />
       <div
         aria-hidden
         className="h-[2px] w-full shrink-0 transition-[background] duration-300 ease-out"

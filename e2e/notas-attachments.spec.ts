@@ -172,8 +172,10 @@ test('mundo notas: prompt con anexo sube, lista y descarga archivo privado', asy
   })
   await page.goto('/')
   await page.getByRole('button', { name: 'Prompts' }).click()
-  await page.getByPlaceholder('Título del prompt').fill('Prompt con anexo')
-  await page.getByPlaceholder('Escribe el prompt...').fill('Usa el contexto adjunto.')
+  // El composer vive plegado: el título es la única línea y escribirlo
+  // despliega el resto (los aria-labels son estables; el placeholder no).
+  await page.getByLabel('Título del prompt').fill('Prompt con anexo')
+  await page.getByLabel('Contenido del prompt').fill('Usa el contexto adjunto.')
   await page.locator('input[type="file"]').setInputFiles({
     name: 'brief.md',
     mimeType: 'text/markdown',
