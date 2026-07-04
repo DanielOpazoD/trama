@@ -110,7 +110,7 @@ export function ViewHeader({
               y se sentía sobredimensionado al abrir una vista en el teléfono. */}
           <h2
             className={`font-serif text-ink-700 leading-none ${
-              compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'
+              compact ? 'text-3xl' : 'text-3xl sm:text-4xl'
             }`}
           >
             {title}

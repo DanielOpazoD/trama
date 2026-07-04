@@ -169,7 +169,7 @@ export function NotasFeedComposer({
           title="Capturar imagen o video"
           disabled={createRecorteBusy}
           onClick={() => captureMediaInputRef.current?.click()}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-ink-300 transition-colors hover:bg-ink-100/60 hover:text-ink-600"
+          className="absolute right-10 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-ink-300 transition-colors hover:bg-ink-100/60 hover:text-ink-600"
         >
           <CameraIcon size={13} />
         </IconButton>
