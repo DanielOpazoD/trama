@@ -11,8 +11,8 @@ type ThreadPoint = {
 const POINT_COUNT = 38
 const LINK_DISTANCE = 184
 const POINTER_FORCE = 0.0007
-const THREAD_ALPHA = 0.085
-const POINT_ALPHA = 0.12
+const THREAD_ALPHA = 0.1
+const POINT_ALPHA = 0.14
 
 function prefersReducedMotion() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -34,8 +34,8 @@ function makePoints(width: number, height: number): ThreadPoint[] {
     return {
       x: width * (xStart + column * xRange) + Math.sin(index * 2.1) * 26,
       y: height * (0.04 + row * 0.86) + Math.cos(index * 1.7) * 24,
-      vx: Math.sin(index * 1.9) * 0.018,
-      vy: Math.cos(index * 2.3) * 0.016,
+      vx: Math.sin(index * 1.9) * 0.008,
+      vy: Math.cos(index * 2.3) * 0.007,
       phase: index * 0.8,
     }
   })
@@ -82,11 +82,11 @@ export function LoginThreadField() {
       ctx.clearRect(0, 0, width, height)
       frame += reducedMotion ? 0 : 1
 
-      const drift = frame * 0.012
+      const drift = frame * 0.005
       for (const point of points) {
         if (!reducedMotion) {
-          point.x += point.vx + Math.sin(drift + point.phase) * 0.014
-          point.y += point.vy + Math.cos(drift + point.phase) * 0.012
+          point.x += point.vx + Math.sin(drift + point.phase) * 0.008
+          point.y += point.vy + Math.cos(drift + point.phase) * 0.007
 
           if (pointer.active) {
             const dx = pointer.x - point.x

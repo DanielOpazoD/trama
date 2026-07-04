@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react'
 import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
 import { IconButton } from './IconButton'
 import { shouldUseClerk } from '../lib/clerkRuntime'
-import { EyeIcon, LockIcon, TramaMark, TramaWordmark } from './Icons'
+import { EyeIcon, TramaMark, TramaWordmark } from './Icons'
 import { LoginThreadField } from './LoginThreadField'
 import { TramaMascot } from './TramaMascot'
 import './AuthGate.css'
@@ -157,25 +157,6 @@ function DemoBanner() {
   )
 }
 
-/** Una frase del telar por día: acompaña sin repetirse en cada visita. */
-const LOOM_QUOTES = [
-  'Lo que anotas permanece; lo que permanece, teje.',
-  'Cada hilo suelto encuentra su lugar en la trama.',
-  'La memoria no se guarda: se cultiva.',
-]
-
-function loomQuoteOfTheDay(now = new Date()): string {
-  const day = Math.floor(now.getTime() / 86_400_000)
-  return LOOM_QUOTES[day % LOOM_QUOTES.length]!
-}
-
-function greetingForHour(hour = new Date().getHours()): string {
-  if (hour < 6) return 'buenas noches'
-  if (hour < 13) return 'buenos días'
-  if (hour < 20) return 'buenas tardes'
-  return 'buenas noches'
-}
-
 function AuthScreen() {
   const mode = useAuthScreenMode()
 
@@ -200,14 +181,6 @@ function AuthScreen() {
               tu archivo vivo
             </p>
           </div>
-          <figure className="trama-login-quote">
-            <blockquote>«{loomQuoteOfTheDay()}»</blockquote>
-          </figure>
-          <ul className="trama-login-pillars" aria-label="Compromisos de Trama">
-            <li>Privado por diseño</li>
-            <li>Tus datos son solo tuyos</li>
-            <li>Sin anuncios, sin rastreo</li>
-          </ul>
         </div>
         <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
           <TramaMascot
@@ -220,9 +193,6 @@ function AuthScreen() {
       <main className="trama-login-entry">
         <div className="trama-login-entryInner">
           <header className="trama-login-entryHeader">
-            <p className="text-micro uppercase tracking-eyebrow text-ink-400">
-              {greetingForHour()}
-            </p>
             <h2 className="trama-login-entryTitle font-serif text-ink-700">
               {mode === 'sign-up' ? 'Empieza tu trama.' : 'Retoma el hilo.'}
             </h2>
@@ -250,10 +220,6 @@ function AuthScreen() {
               explorar sin cuenta
             </button>
           </div>
-          <p className="trama-login-privacy text-micro text-ink-300">
-            <LockIcon size={11} aria-hidden="true" />
-            Privado por diseño: tu contenido es solo tuyo.
-          </p>
         </div>
       </main>
     </div>
