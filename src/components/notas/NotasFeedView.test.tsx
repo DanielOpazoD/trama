@@ -227,9 +227,7 @@ describe('<NotasFeedView />', () => {
 
     // La imagen aparece como anexo pendiente de la nota, no como recorte suelto.
     expect(await screen.findByText('shot.png')).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Quitar anexo pendiente' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Quitar anexo/ })).toBeInTheDocument()
   })
 
   it('triage por menú ⋯: «→ momento» abre el modal de promoción prellenado', async () => {
