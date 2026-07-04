@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   useCreatePrompt,
   useDeletePrompt,
@@ -34,6 +34,15 @@ export function PromptsView() {
   const [content, setContent] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [filter, setFilter] = useState<string | null>(null)
+  const [justSaved, setJustSaved] = useState(false)
+  const savedTimer = useRef<number | null>(null)
+
+  useEffect(
+    () => () => {
+      if (savedTimer.current) window.clearTimeout(savedTimer.current)
+    },
+    [],
+  )
 
   const rawPrompts = promptsQuery.data
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
@@ -58,6 +67,9 @@ export function PromptsView() {
           setCollection('')
           setContent('')
           setPendingFiles([])
+          setJustSaved(true)
+          if (savedTimer.current) window.clearTimeout(savedTimer.current)
+          savedTimer.current = window.setTimeout(() => setJustSaved(false), 700)
           if (files.length === 0) return
           try {
             await Promise.all(
@@ -101,6 +113,7 @@ export function PromptsView() {
         content={content}
         pendingFiles={pendingFiles}
         busy={createPrompt.isPending || uploadAttachment.isPending}
+        justSaved={justSaved}
         onTitleChange={setTitle}
         onCollectionChange={setCollection}
         onContentChange={setContent}

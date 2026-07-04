@@ -12,6 +12,7 @@ import { MarkdownField } from './MarkdownField'
 import { NotasFeedComposerFooter } from './NotasFeedComposerFooter'
 import { PendingAttachmentChips } from './PendingAttachmentsInput'
 import { buildNotasComposerCta } from './notasComposerModel'
+import { ComposerCard, composerTitleClass } from './composerChrome'
 
 export function NotasFeedComposer({
   accent,
@@ -62,9 +63,9 @@ export function NotasFeedComposer({
   onPendingFilesChange: (next: File[]) => void
   onComposerFocus: () => void
   onComposerBlur: () => void
-  onComposerDragOver: (event: DragEvent<HTMLDivElement>) => void
+  onComposerDragOver: (event: DragEvent<HTMLElement>) => void
   onComposerDragLeave: () => void
-  onComposerDrop: (event: DragEvent<HTMLDivElement>) => void
+  onComposerDrop: (event: DragEvent<HTMLElement>) => void
   onComposerPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void
   onComposerKeyDown: (
     event: KeyboardEvent<HTMLInputElement> | KeyboardEvent<HTMLTextAreaElement>,
@@ -84,26 +85,17 @@ export function NotasFeedComposer({
   })
 
   return (
-    <div
-      onFocusCapture={onComposerFocus}
-      onBlurCapture={(event) => {
-        // El foco moviéndose dentro (título → adjuntar) no pliega el composer.
-        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
-        onComposerBlur()
-      }}
+    <ComposerCard
+      accent={accent}
+      accentSoft="var(--accent-sage-soft)"
+      focused={composerFocused}
+      dragging={dragging}
+      className="mb-4"
+      onFocusWithin={onComposerFocus}
+      onBlurWithin={onComposerBlur}
       onDragOver={onComposerDragOver}
       onDragLeave={onComposerDragLeave}
       onDrop={onComposerDrop}
-      className={`card-paper-soft relative rounded-xl border p-3 mb-4 transition ${
-        dragging ? 'border-dashed' : 'border-ink-100/70'
-      }`}
-      style={
-        dragging
-          ? { borderColor: accent, background: 'var(--accent-sage-soft)' }
-          : composerFocused
-            ? { borderColor: accent, boxShadow: '0 0 0 3px var(--accent-sage-soft)' }
-            : undefined
-      }
     >
       {composerActive && (
         <input
@@ -120,7 +112,7 @@ export function NotasFeedComposer({
           maxLength={200}
           placeholder="Título (opcional)"
           aria-label="Título de la nota (opcional)"
-          className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1 animate-fade-up"
+          className={composerTitleClass}
         />
       )}
       <MarkdownField
@@ -210,6 +202,6 @@ export function NotasFeedComposer({
           onSave={onSave}
         />
       )}
-    </div>
+    </ComposerCard>
   )
 }
