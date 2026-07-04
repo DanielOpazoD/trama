@@ -105,7 +105,7 @@ export function PromptCard({
   }
 
   return (
-    <article className="card-paper-soft group rounded-xl border border-ink-100/70 p-4">
+    <article className="card-hover-lift card-paper-soft group rounded-xl border border-ink-100/70 p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">

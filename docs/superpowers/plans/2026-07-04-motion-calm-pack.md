@@ -24,6 +24,27 @@ HomeSkeleton, EmptyMessage editorial) pero estaban subutilizados.
   esqueletos — el feed usa el `FeedSkeleton` que ya tenía para su carga
   interna; ahora también cubre la carga del chunk.
 
+### Segunda tanda — micro-movimiento (más ambición)
+
+- **Stagger de entrada en listas**: `.stagger-children` escalona la
+  entrada de los hijos directos (fade + rise, 45ms entre cada uno, tope a
+  los primeros ~8 con `:nth-child`). Aplicado a la lista de Prompts
+  (cards con `space-y-3`). La animación corre una vez al montar cada hijo,
+  así que cambiar de filtro solo anima lo NUEVO. Reduce-motion la apaga.
+- **Micro-lift al hover en cards**: `.card-hover-lift` eleva la tarjeta
+  1px con una sombra suave (160ms) — el tacto premium de «esto es
+  interactivo». En NoteCard y PromptCard (caras de lectura, no edición).
+  Solo con `hover: hover`; reduce-motion conserva la sombra y quita el
+  movimiento.
+- **Toast entra y SALE con gracia + fix de centrado**: el toast salía en
+  seco (se desmontaba). Ahora `ToastHost` lo mantiene ~200ms para animar
+  la salida (`animate-toast-out`). De paso corrige un bug real: el
+  `animate-fade-up` vivía en el MISMO nodo que `-translate-x-1/2`, y su
+  `transform: translateY` pisaba el translateX — el toast quedaba
+  descentrado media anchura (medido: **200px** de offset con un toast de
+  400px). El fix separa el centrado (contenedor) de la animación (hijo):
+  offset **0px**. Las animaciones van solo opacity + translateY.
+
 ## Decisiones
 
 - No se agregó coreografía extra vía View Transitions API a las

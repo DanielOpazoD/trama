@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useToast } from '../state/toast'
 import { CloseButton } from './CloseButton'
 
+// Debe coincidir con la duración de `.animate-toast-out` en index.css.
+const TOAST_LEAVE_MS = 200
+
 /**
  * Renderiza el toast actual (si lo hay) en una zona fija abajo-centro.
  *
@@ -11,19 +14,38 @@ import { CloseButton } from './CloseButton'
  *     `durationMs`, dando feedback visual de cuánto tiempo queda.
  *   - Botón de acción (opcional) a la derecha, en el accent primario.
  *   - Botón ✕ para cerrar manualmente.
+ *   - Entra y SALE con movimiento: cuando el store cierra el toast, lo
+ *     mantenemos montado ~200ms para animar la salida en vez de que
+ *     desaparezca en seco.
  *
- * Solo se renderiza si hay un toast activo (no se monta vacío para no
- * meter ruido en el DOM).
+ * El centrado (`-translate-x-1/2`) vive en el contenedor de posición y la
+ * animación (opacity + translateY) en un hijo aparte: así el movimiento
+ * nunca pisa el translateX que centra el toast.
  */
 export function ToastHost() {
   const { current, dismiss } = useToast()
+  // `shown` sigue vivo durante la salida aunque el store ya sea null.
+  const [shown, setShown] = useState(current)
+  const [leaving, setLeaving] = useState(false)
   const [progress, setProgress] = useState(1)
 
+  // Sincroniza el toast visible con el store, animando la salida.
   useEffect(() => {
-    if (!current) {
-      setProgress(1)
+    if (current) {
+      setShown(current)
+      setLeaving(false)
       return
     }
+    // El store se vació: si había algo en pantalla, anímalo hacia afuera
+    // antes de desmontarlo.
+    setLeaving(true)
+    const t = window.setTimeout(() => setShown(null), TOAST_LEAVE_MS)
+    return () => window.clearTimeout(t)
+  }, [current])
+
+  // Barra de progreso: corre mientras el toast está activo (no en salida).
+  useEffect(() => {
+    if (!current) return
     const duration = current.durationMs ?? 5000
     if (duration <= 0) {
       setProgress(1)
@@ -42,16 +64,16 @@ export function ToastHost() {
     return () => window.clearInterval(interval)
   }, [current])
 
-  if (!current) return null
+  if (!shown) return null
 
   // λ6: 'achievement' usa inline style porque depende de --accent-gold
   // (que se mueve con la hora del día gracias a δ6). El resto usa clases
   // semánticas para que el color viva con los tokens visuales, no en JSX.
-  const isAchievement = current.tone === 'achievement'
+  const isAchievement = shown.tone === 'achievement'
   const toneClass =
-    current.tone === 'error'
+    shown.tone === 'error'
       ? 'toast-error'
-      : current.tone === 'success'
+      : shown.tone === 'success'
         ? 'toast-success'
         : isAchievement
           ? 'toast-achievement' // bg + border van inline abajo
@@ -76,39 +98,41 @@ export function ToastHost() {
       aria-live="polite"
       // bottom-20 en mobile para no quedar tapado por la MobileBottomNav
       // (que vive en flex-col root). Desktop mantiene bottom-6 estándar.
-      className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 animate-fade-up pointer-events-none"
+      className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
     >
-      <div className={`toast-surface ${toneClass}`} style={achievementStyle}>
-        <span className="text-body leading-snug flex-1">{current.message}</span>
-        {current.action && (
-          <button
-            onClick={async () => {
-              const fn = current.action!.onAction
-              dismiss()
-              await fn()
-            }}
-            className="text-xs uppercase tracking-eyebrow font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-paper-50/15"
-          >
-            {current.action.label}
-          </button>
-        )}
-        <CloseButton
-          onClick={dismiss}
-          label="Cerrar aviso"
-          title="Cerrar"
-          size={12}
-          className="p-1 rounded-md transition-colors hover:bg-paper-50/15 opacity-70 hover:opacity-100"
-        />
-      </div>
-      {/* Barra de progreso — solo si hay duración finita. */}
-      {(current.durationMs ?? 5000) > 0 && (
-        <div className="mt-1 mx-2 h-px bg-paper-50/0">
-          <div
-            className="h-px bg-paper-50/30 transition-[width] duration-[60ms] ease-linear"
-            style={{ width: `${Math.round(progress * 100)}%` }}
+      <div className={leaving ? 'animate-toast-out' : 'animate-toast-in'}>
+        <div className={`toast-surface ${toneClass}`} style={achievementStyle}>
+          <span className="text-body leading-snug flex-1">{shown.message}</span>
+          {shown.action && (
+            <button
+              onClick={async () => {
+                const fn = shown.action!.onAction
+                dismiss()
+                await fn()
+              }}
+              className="text-xs uppercase tracking-eyebrow font-medium px-2.5 py-1 rounded-md transition-colors hover:bg-paper-50/15"
+            >
+              {shown.action.label}
+            </button>
+          )}
+          <CloseButton
+            onClick={dismiss}
+            label="Cerrar aviso"
+            title="Cerrar"
+            size={12}
+            className="p-1 rounded-md transition-colors hover:bg-paper-50/15 opacity-70 hover:opacity-100"
           />
         </div>
-      )}
+        {/* Barra de progreso — solo si hay duración finita. */}
+        {(shown.durationMs ?? 5000) > 0 && (
+          <div className="mt-1 mx-2 h-px bg-paper-50/0">
+            <div
+              className="h-px bg-paper-50/30 transition-[width] duration-[60ms] ease-linear"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

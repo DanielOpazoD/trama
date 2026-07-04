@@ -1082,6 +1082,103 @@ html.dark .paper-grain::before {
       animation: none;
     }
   }
+
+  /* Stagger de entrada: los hijos directos entran escalonados (fade + rise),
+     45ms entre cada uno, con tope a los ~8 primeros para no penalizar listas
+     largas. La animación corre una sola vez al montar cada hijo, así que
+     cambiar de filtro solo anima lo NUEVO. Reduce-motion la apaga. */
+  .stagger-children > * {
+    animation: view-fade 320ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+  .stagger-children > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  .stagger-children > *:nth-child(2) {
+    animation-delay: 45ms;
+  }
+  .stagger-children > *:nth-child(3) {
+    animation-delay: 90ms;
+  }
+  .stagger-children > *:nth-child(4) {
+    animation-delay: 135ms;
+  }
+  .stagger-children > *:nth-child(5) {
+    animation-delay: 180ms;
+  }
+  .stagger-children > *:nth-child(6) {
+    animation-delay: 225ms;
+  }
+  .stagger-children > *:nth-child(7) {
+    animation-delay: 270ms;
+  }
+  .stagger-children > *:nth-child(n + 8) {
+    animation-delay: 315ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stagger-children > * {
+      animation: none;
+    }
+  }
+
+  /* Micro-lift al hover: la tarjeta se eleva 1px con una sombra suave — el
+     tacto premium de "esto es interactivo" sin ruido. Solo en dispositivos
+     con hover real; reduce-motion mantiene la sombra pero quita el
+     movimiento. */
+  .card-hover-lift {
+    transition:
+      transform 160ms cubic-bezier(0.25, 1, 0.5, 1),
+      box-shadow 160ms ease-out;
+  }
+  @media (hover: hover) {
+    .card-hover-lift:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgb(var(--ink-900) / 0.07);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover-lift {
+      transition: box-shadow 160ms ease-out;
+    }
+    .card-hover-lift:hover {
+      transform: none;
+    }
+  }
+
+  /* Toast: entra y sale con gracia. Van SOLO opacity + translateY (nunca
+     translateX) para no pisar el -translate-x-1/2 del contenedor que lo
+     centra. Reduce-motion colapsa la duración. */
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes toast-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  .animate-toast-in {
+    animation: toast-in 260ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+  .animate-toast-out {
+    animation: toast-out 200ms ease-in both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-toast-in,
+    .animate-toast-out {
+      animation-duration: 1ms;
+    }
+  }
 }
 
 @layer components {

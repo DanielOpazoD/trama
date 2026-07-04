@@ -206,7 +206,7 @@ export function NoteCard({
   }
 
   return (
-    <article className="group card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-colors">
+    <article className="group card-hover-lift card-paper-soft rounded-xl border border-ink-100/70 p-3.5">
       {note.title && (
         <h3 className="mb-1 break-words font-serif text-lead leading-snug text-ink-800">
           {note.title}
