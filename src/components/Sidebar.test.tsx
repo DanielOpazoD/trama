@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Sidebar } from './Sidebar'
@@ -171,6 +171,86 @@ describe('<Sidebar />', () => {
     await user.click(screen.getByRole('button', { name: /mundo trama expandido/i }))
 
     expect(props.onChangeWorld).toHaveBeenCalledWith('notas')
+  })
+
+  it('ajusta el ancho con el asa: arrastre, doble clic y teclado', async () => {
+    const user = userEvent.setup()
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    const aside = document.querySelector('aside') as HTMLElement
+    expect(aside.style.width).toBe('256px')
+
+    // Arrastre: pointerdown en el asa + move/up en window
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent.pointerUp(window, { clientX: 320 })
+    expect(aside.style.width).toBe('320px')
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('320')
+
+    // Teclado: flechas ±16 con clamp
+    handle.focus()
+    await user.keyboard('{ArrowRight}')
+    expect(aside.style.width).toBe('336px')
+    await user.keyboard('{ArrowLeft}{ArrowLeft}')
+    expect(aside.style.width).toBe('304px')
+
+    // Doble clic restaura el default
+    fireEvent.doubleClick(handle)
+    expect(aside.style.width).toBe('256px')
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('256')
+  })
+
+  it('el asa expone su valor a lectores y encaja con imán en el ancho por defecto', () => {
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    expect(handle).toHaveAttribute('aria-valuenow', '256')
+    expect(handle).toHaveAttribute('aria-valuemin', '208')
+    expect(handle).toHaveAttribute('aria-valuemax', '384')
+
+    // Suelta a 6px del default: el imán encaja en 256
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent.pointerUp(window, { clientX: 262 })
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('256')
+    expect(handle).toHaveAttribute('aria-valuenow', '256')
+
+    // Fuera del rango del imán, el ancho es el que pediste
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent.pointerUp(window, { clientX: 268 })
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('268')
+    expect(handle).toHaveAttribute('aria-valuenow', '268')
+  })
+
+  it('bloquea cursor y selección del documento solo mientras dura el arrastre', () => {
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    expect(document.body.style.cursor).toBe('col-resize')
+    expect(document.body.style.userSelect).toBe('none')
+
+    fireEvent.pointerUp(window, { clientX: 300 })
+    expect(document.body.style.cursor).toBe('')
+    expect(document.body.style.userSelect).toBe('')
+  })
+
+  it('cancela el arrastre sin fugas cuando el gesto se interrumpe (pointercancel)', () => {
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    const aside = document.querySelector('aside') as HTMLElement
+
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent(window, new Event('pointercancel'))
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('256')
+
+    // Tras el cancel los listeners quedaron removidos: mover ya no redimensiona
+    fireEvent.pointerMove(window, { clientX: 380 })
+    expect(aside.style.width).toBe('256px')
   })
 
   it('muestra badge de invitaciones pendientes en Momentos', () => {
