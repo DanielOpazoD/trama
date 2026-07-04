@@ -1,4 +1,4 @@
-import type { DragEvent, ReactNode } from 'react'
+import type { CSSProperties, DragEvent, ReactNode } from 'react'
 
 /**
  * Chrome COMPARTIDO de los composers del mundo Notas (feed de capturas y
@@ -14,6 +14,13 @@ export const composerTitleClass =
 /** Acción de ícono del pie (adjuntar, capturar…): mismo gesto en todos. */
 export const composerIconButtonClass =
   'flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40'
+
+/** Marco encendido de una tarjeta EN EDICIÓN: el mismo lenguaje del foco del
+ *  composer (borde de acento + halo), fijo mientras dura la edición — editar
+ *  es volver a poner la pluma sobre el mismo papel. */
+export function editingFrameStyle(accent: string, accentSoft: string): CSSProperties {
+  return { borderColor: accent, boxShadow: `0 0 0 3px ${accentSoft}` }
+}
 
 /** Tarjeta del composer: papel suave en reposo, marco de acento + halo al
  *  enfocar, borde punteado al arrastrar archivos encima. El blur interno
@@ -80,6 +87,8 @@ export function ComposerFooter({
   ctaLabel,
   ctaDisabled,
   justSaved = false,
+  secondaryLabel,
+  onSecondary,
   onSave,
   children,
 }: {
@@ -88,6 +97,8 @@ export function ComposerFooter({
   ctaLabel: string
   ctaDisabled: boolean
   justSaved?: boolean
+  secondaryLabel?: string
+  onSecondary?: () => void
   onSave: () => void
   children?: ReactNode
 }) {
@@ -101,21 +112,28 @@ export function ComposerFooter({
           </span>
         )}
       </div>
-      <div className="relative shrink-0">
-        <button
-          onClick={onSave}
-          disabled={ctaDisabled}
-          className="btn-ink text-xs disabled:opacity-40"
-        >
-          {ctaLabel}
-        </button>
-        {justSaved && (
-          <span
-            aria-hidden
-            className="animate-saved-ripple pointer-events-none absolute inset-0 rounded-md"
-            style={{ boxShadow: `0 0 0 2px ${accent}` }}
-          />
+      <div className="flex shrink-0 items-center gap-2">
+        {secondaryLabel && onSecondary && (
+          <button onClick={onSecondary} className="btn-ghost text-xs">
+            {secondaryLabel}
+          </button>
         )}
+        <span className="relative">
+          <button
+            onClick={onSave}
+            disabled={ctaDisabled}
+            className="btn-ink text-xs disabled:opacity-40"
+          >
+            {ctaLabel}
+          </button>
+          {justSaved && (
+            <span
+              aria-hidden
+              className="animate-saved-ripple pointer-events-none absolute inset-0 rounded-md"
+              style={{ boxShadow: `0 0 0 2px ${accent}` }}
+            />
+          )}
+        </span>
       </div>
     </div>
   )

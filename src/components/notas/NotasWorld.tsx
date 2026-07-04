@@ -1,5 +1,4 @@
 import { lazy, Suspense, useCallback, useState } from 'react'
-import { ClavesView } from './ClavesView'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
 import { NotasMobileTabs, NotasSidebar, NotasTopBar } from './NotasWorldChrome'
@@ -36,10 +35,16 @@ const NotasFeedView = lazy(() =>
 const BibliotecaView = lazy(() =>
   import('../BibliotecaView').then((m) => ({ default: m.BibliotecaView })),
 )
+// El vault de claves vive detrás de un gate de PIN: casi nunca es el primer
+// paint del mundo, así que no debe pesar en el chunk base de NotasWorld.
+const ClavesView = lazy(() =>
+  import('./ClavesView').then((m) => ({ default: m.ClavesView })),
+)
 
 function preloadNotasSection(section: NotasSection): void {
   if (section === 'notas') void import('./NotasFeedView')
   if (section === 'biblioteca') void import('../BibliotecaView')
+  if (section === 'claves') void import('./ClavesView')
   if (section === 'pdf' || section === 'planillas') preloadPdfStudioView()
 }
 
@@ -213,7 +218,17 @@ export function NotasWorld({
                     )}
                     {section === 'tareas' && <TareasView />}
                     {section === 'prompts' && <PromptsView />}
-                    {section === 'claves' && <ClavesView />}
+                    {section === 'claves' && (
+                      <Suspense
+                        fallback={
+                          <div className="py-10 flex justify-center">
+                            <LoadingHint text="cargando Claves" size="sm" />
+                          </div>
+                        }
+                      >
+                        <ClavesView />
+                      </Suspense>
+                    )}
                     {section === 'biblioteca' && (
                       <Suspense
                         fallback={

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   useTasksRange,
   usePendingTasks,
@@ -405,6 +405,15 @@ function WeekComposer({
 }) {
   const [title, setTitle] = useState('')
   const [priority, setPriority] = useState<TaskPriority>('baja')
+  const [justAdded, setJustAdded] = useState(false)
+  const addedTimer = useRef<number | null>(null)
+
+  useEffect(
+    () => () => {
+      if (addedTimer.current) window.clearTimeout(addedTimer.current)
+    },
+    [],
+  )
 
   function submit() {
     const t = title.trim()
@@ -412,13 +421,25 @@ function WeekComposer({
     onAdd(t, priority)
     setTitle('')
     setPriority('media')
+    // El mismo ripple de «guardado» de los composers del mundo: confirma el
+    // gesto sin toast ni salto de layout.
+    setJustAdded(true)
+    if (addedTimer.current) window.clearTimeout(addedTimer.current)
+    addedTimer.current = window.setTimeout(() => setJustAdded(false), 700)
   }
 
   return (
     <div
       data-testid="week-composer"
-      className="flex min-h-[44px] items-center gap-2.5 py-1.5"
+      className="relative flex min-h-[44px] items-center gap-2.5 py-1.5"
     >
+      {justAdded && (
+        <span
+          aria-hidden
+          className="animate-saved-ripple pointer-events-none absolute inset-0 rounded-lg"
+          style={{ boxShadow: '0 0 0 2px var(--accent-sage)' }}
+        />
+      )}
       <span className="section-eyebrow text-ink-300">Nueva</span>
       <PlusIcon size={14} className="text-ink-300 shrink-0" />
       <PriorityDots value={priority} onChange={setPriority} />

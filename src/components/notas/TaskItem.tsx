@@ -17,6 +17,7 @@ import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { AttachmentPhotos } from './AttachmentPhotos'
 import { PriorityDots, PriorityMenu } from './PriorityDots'
 import { formatWeekRange, relativeWeekLabel, shiftWeeks } from './notasUtils'
+import { editingFrameStyle } from './composerChrome'
 
 // Tono único del mundo Notas: el primario (--accent-primary), remapeado a
 // salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
@@ -142,7 +143,10 @@ export function TaskItem({
 
   if (editing) {
     return (
-      <li className="list-none rounded-lg bg-paper-50 border border-ink-100/70 p-3 my-1">
+      <li
+        className="list-none rounded-lg bg-paper-50 border border-ink-100/70 p-3 my-1"
+        style={editingFrameStyle(ACCENT, 'var(--accent-primary-soft)')}
+      >
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -156,16 +160,20 @@ export function TaskItem({
           }}
           placeholder="Título de la tarea"
           aria-label="Título de la tarea"
-          className="input-paper w-full text-ink-700 mb-2"
+          className="w-full bg-transparent font-medium text-ink-800 placeholder:font-normal placeholder:text-ink-300 mb-1"
           autoFocus
         />
         <textarea
           value={detail}
           onChange={(e) => setDetail(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setEditing(false)
+          }}
           placeholder="Detalle (opcional) · usa #etiquetas"
           aria-label="Detalle de la tarea"
           rows={2}
-          className="input-paper w-full resize-none text-sm mb-2"
+          // focus-ring-exempt: el marco de la tarjeta ya marca el foco (borde acento + halo)
+          className="w-full resize-none bg-transparent text-body text-ink-700 placeholder:text-ink-300 leading-relaxed mb-2 focus-visible:outline-none"
         />
         {/* Fotos de esta tarea */}
         <div className="mb-2">
@@ -174,7 +182,7 @@ export function TaskItem({
           </span>
           <AttachmentPhotos ownerType="task" ownerId={task.id} title={task.title} />
         </div>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center justify-between gap-3 flex-wrap border-t border-ink-100/60 pt-2">
           <div className="flex items-center gap-3 flex-wrap">
             <PriorityDots value={priority} onChange={setPriority} disabled={busy} />
             {/* Mover de semana */}

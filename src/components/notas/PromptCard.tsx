@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { Prompt } from '../../api'
-import { ClipboardIcon, PencilIcon, TrashIcon } from '../Icons'
+import { ArchiveIcon, ClipboardIcon, PencilIcon, TrashIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { AttachmentsPanel } from './AttachmentsPanel'
+import { ComposerFooter, composerTitleClass, editingFrameStyle } from './composerChrome'
 
 // Tono único del mundo Notas: el primario (--accent-primary), remapeado a
 // salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
@@ -35,48 +36,70 @@ export function PromptCard({
   const [content, setContent] = useState(prompt.content)
 
   if (editing) {
+    // El mismo papel del composer: marco encendido, título serif desnudo,
+    // colección sutil en el pie. ⌘↵ guarda, Escape cancela.
+    const saveEdit = () => {
+      onSave({
+        title: title.trim(),
+        collection: collection.trim() || null,
+        content: content.trim(),
+      })
+      setEditing(false)
+    }
+    const onEditKey = (e: React.KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault()
+        if (title.trim() && content.trim() && !busy) saveEdit()
+      } else if (e.key === 'Escape') {
+        setEditing(false)
+      }
+    }
     return (
-      <article className="card-paper-soft rounded-xl border border-ink-100/70 p-4">
-        <div className="grid sm:grid-cols-[1fr_180px] gap-2 mb-2">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            aria-label="Título del prompt"
-            className="input-paper w-full text-sm"
-          />
-          <input
-            value={collection}
-            onChange={(e) => setCollection(e.target.value)}
-            aria-label="Colección"
-            className="input-paper w-full text-sm"
-          />
-        </div>
+      <article
+        className="card-paper-soft rounded-xl border border-ink-100/70 p-4"
+        style={editingFrameStyle(ACCENT, 'var(--accent-primary-soft)')}
+      >
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={onEditKey}
+          maxLength={200}
+          placeholder="Título del prompt"
+          aria-label="Título del prompt"
+          className={composerTitleClass}
+        />
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onKeyDown={onEditKey}
           rows={6}
+          autoFocus
+          placeholder="Escribe el prompt… usa {{variables}} para las partes que cambian"
           aria-label="Contenido del prompt"
-          className="input-paper w-full resize-y text-sm"
+          // focus-ring-exempt: el marco de la tarjeta ya marca el foco (borde acento + halo)
+          className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed focus-visible:outline-none"
         />
-        <div className="mt-2 flex justify-end gap-2">
-          <button onClick={() => setEditing(false)} className="btn-ghost text-xs">
-            cancelar
-          </button>
-          <button
-            onClick={() => {
-              onSave({
-                title: title.trim(),
-                collection: collection.trim() || null,
-                content: content.trim(),
-              })
-              setEditing(false)
-            }}
-            disabled={!title.trim() || !content.trim() || busy}
-            className="btn-ink text-xs disabled:opacity-50"
-          >
-            guardar
-          </button>
-        </div>
+        <ComposerFooter
+          accent={ACCENT}
+          hint="⌘↵ guarda · Esc cancela"
+          ctaLabel="guardar"
+          ctaDisabled={!title.trim() || !content.trim() || busy}
+          secondaryLabel="cancelar"
+          onSecondary={() => setEditing(false)}
+          onSave={saveEdit}
+        >
+          <span className="flex min-w-0 items-center gap-1">
+            <ArchiveIcon size={12} className="shrink-0 text-ink-300" />
+            <input
+              value={collection}
+              onChange={(e) => setCollection(e.target.value)}
+              onKeyDown={onEditKey}
+              placeholder="Colección"
+              aria-label="Colección"
+              className="w-24 bg-transparent text-micro text-ink-500 placeholder:text-ink-300 sm:w-32"
+            />
+          </span>
+        </ComposerFooter>
       </article>
     )
   }

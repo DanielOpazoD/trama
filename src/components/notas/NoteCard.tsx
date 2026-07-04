@@ -20,6 +20,7 @@ import { AttachmentAudio } from './AttachmentAudio'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { useToast, useUploadNotasAttachment } from '../../state'
 import { compressImage } from '../../lib/imageCompression'
+import { ComposerFooter, composerTitleClass, editingFrameStyle } from './composerChrome'
 
 // Lazy: la superficie de escritura enfocada (overlay fullscreen + serif) solo
 // se descarga cuando el usuario la abre, así no infla el chunk de NotasWorld.
@@ -143,16 +144,22 @@ export function NoteCard({
     if (photoInputRef.current) photoInputRef.current.value = ''
   }
 
-  // Modo edición — título opcional + textarea con el markdown en crudo, ⌘↵ guarda.
+  // Modo edición — el mismo papel del composer: marco encendido, título serif
+  // desnudo y pie sereno. ⌘↵ guarda, Escape cancela.
   if (editing) {
     const onEditKey = (e: React.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault()
         saveEdit()
+      } else if (e.key === 'Escape') {
+        setEditing(false)
       }
     }
     return (
-      <article className="card-paper-soft rounded-xl border border-ink-100/70 p-3.5">
+      <article
+        className="card-paper-soft rounded-xl border border-ink-100/70 p-3.5"
+        style={editingFrameStyle(ACCENT, 'var(--accent-primary-soft)')}
+      >
         <input
           value={titleDraft}
           onChange={(e) => setTitleDraft(e.target.value)}
@@ -160,7 +167,7 @@ export function NoteCard({
           maxLength={200}
           placeholder="Título (opcional)"
           aria-label="Título de la nota (opcional)"
-          className="w-full bg-transparent font-serif text-lead text-ink-800 placeholder:font-sans placeholder:not-italic placeholder:text-ink-300 mb-1.5"
+          className={composerTitleClass}
         />
         <MarkdownField
           value={draft}
@@ -173,18 +180,15 @@ export function NoteCard({
           onRequestFocusMode={() => setFocusMode(true)}
           className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8"
         />
-        <div className="mt-2 flex items-center justify-end gap-2">
-          <button onClick={() => setEditing(false)} className="btn-ghost text-xs">
-            cancelar
-          </button>
-          <button
-            onClick={saveEdit}
-            disabled={!draft.trim() || busy}
-            className="btn-ink text-xs disabled:opacity-50"
-          >
-            guardar
-          </button>
-        </div>
+        <ComposerFooter
+          accent={ACCENT}
+          hint="⌘↵ guarda · Esc cancela"
+          ctaLabel="guardar"
+          ctaDisabled={!draft.trim() || busy}
+          secondaryLabel="cancelar"
+          onSecondary={() => setEditing(false)}
+          onSave={saveEdit}
+        />
 
         {focusMode && (
           <Suspense fallback={null}>
