@@ -139,8 +139,8 @@ describe('<NotasHomeView />', () => {
     expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/2 pendientes/i)
     expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/2 heredadas/i)
     expect(screen.getByLabelText('Turno del día')).toHaveTextContent(/1 crítica/i)
-    expect(screen.getByRole('button', { name: /capturar nota/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /capturar tarea/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /nueva nota/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /nueva tarea/i })).toBeInTheDocument()
     expect(screen.getByLabelText('Notas fijadas')).toHaveTextContent(
       /Nota fijada del día/i,
     )

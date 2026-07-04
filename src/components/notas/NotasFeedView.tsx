@@ -229,7 +229,9 @@ export function NotasFeedView({
         title="Notas"
         eyebrow="notas y capturas"
         accent={ACCENT}
-        subtitle="Tus apuntes y tus recortes en un solo hilo. Escribe una nota o filtra por lo que buscas."
+        spacing="tight"
+        density="compact"
+        subtitle="Tus apuntes y tus recortes en un solo hilo."
       />
 
       {/* Composer (captura unificada: nota · enlace · imagen). Pegar o soltar
