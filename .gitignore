@@ -41,8 +41,11 @@ dev.log
 *.tsbuildinfo
 coverage
 
-# Local tooling state
-.claude/
+# Local tooling state — se ignora todo lo personal de Claude Code (worktrees,
+# launch.json, settings)…
+.claude/*
+# …excepto las skills versionadas del repo (proceso compartido con el equipo/Codex).
+!.claude/skills/
 
 # Playwright
 test-results/
