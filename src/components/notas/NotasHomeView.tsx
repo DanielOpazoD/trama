@@ -60,16 +60,19 @@ export function NotasHomeView({
             <QuickAction
               icon={NotesIcon}
               label="Nota"
+              ariaLabel="Nueva nota"
               onClick={() => onNavigate('notas')}
             />
             <QuickAction
               icon={TasksIcon}
               label="Tarea"
+              ariaLabel="Nueva tarea"
               onClick={() => onNavigate('tareas')}
             />
             <QuickAction
               icon={PromptIcon}
               label="Prompt"
+              ariaLabel="Nuevo prompt"
               onClick={() => onNavigate('prompts')}
             />
           </div>
@@ -246,16 +249,18 @@ function NotasHomeLoading() {
 function QuickAction({
   icon: Icon,
   label,
+  ariaLabel,
   onClick,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>
   label: string
+  ariaLabel: string
   onClick: () => void
 }) {
   return (
     <button
       onClick={onClick}
-      aria-label={`Nueva ${label.toLowerCase()}`}
+      aria-label={ariaLabel}
       className="card-paper-soft min-h-[44px] rounded-lg border border-ink-100/70 px-3 py-2 flex items-center justify-between text-left hover:border-ink-200 transition-colors"
     >
       <span className="inline-flex items-center gap-2 text-body text-ink-700">
