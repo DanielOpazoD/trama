@@ -69,10 +69,10 @@
 }
 
 .trama-login-mark {
-  width: 3.4rem;
-  height: 3.4rem;
+  width: 5.2rem;
+  height: 5.2rem;
   object-fit: cover;
-  border-radius: 0.9rem;
+  border-radius: 1.3rem;
   box-shadow:
     0 0 0 1px rgb(var(--paper-50) / 0.14),
     0 14px 34px rgb(0 0 0 / 0.35);
@@ -84,7 +84,7 @@
 
 .trama-login-wordmark {
   display: block;
-  width: clamp(9.5rem, 12vw, 12rem);
+  width: clamp(10.5rem, 13vw, 13.5rem);
   height: auto;
   line-height: 1;
   color: rgb(var(--paper-50));
