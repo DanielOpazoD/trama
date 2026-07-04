@@ -134,8 +134,7 @@ export function NotasFeedComposer({
         aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen o video"
         onRequestFocusMode={onRequestFocusMode}
         tagUniverse={allNoteTags}
-        // focus-ring-exempt: el marco de la tarjeta ya marca el foco del
-        // composer (borde acento + halo); el anillo duro duplicado ensucia.
+        // focus-ring-exempt: el marco de la tarjeta ya marca el foco (borde acento + halo)
         className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8 focus-visible:outline-none"
       />
       <input
