@@ -30,8 +30,10 @@ HomeSkeleton, EmptyMessage editorial) pero estaban subutilizados.
   secciones: `useClampedSection` ya envuelve el cambio en
   `startViewTransition` y sumar una capa nombrada duplicaría el motion.
   La mejora vive en la animación CSS que ya disparaba el `key`.
-- El esqueleto es `aria-hidden`: los lectores anuncian la sección por el
-  h1 del top bar, no el placeholder.
+- El esqueleto anuncia `role="status"` + «Cargando…» sr-only (hallazgo de
+  CodeRabbit: el LoadingHint anterior sí exponía texto a lectores); las
+  siluetas visuales quedan en un subárbol `aria-hidden`. FeedSkeleton
+  recibió el mismo tratamiento por consistencia.
 
 ## Validación
 
@@ -40,5 +42,7 @@ HomeSkeleton, EmptyMessage editorial) pero estaban subutilizados.
   `check-bundle-size.mjs` tras el build — todos los chunks dentro).
 - E2e de navegación de secciones (deeplinks, mobile-demo, capture): 7/7.
 - Navegador: la entrada de sección computa `view-fade 220ms
-cubic-bezier(0.25,1,0.5,1)`; los esqueletos solo brillan en cargas
-  frías (en dev el chunk resuelve instantáneo — cubierto por tests).
+cubic-bezier(0.25,1,0.5,1)`. Los esqueletos solo se ven en cargas
+  frías (en dev el chunk resuelve instantáneo); su render está cubierto
+  por tests unitarios — la verificación visual del shimmer en producción
+  queda pendiente del primer deploy.

@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { SectionSkeleton } from './SectionSkeleton'
 
 describe('<SectionSkeleton />', () => {
-  it('pinta el hero y siluetas de cards con shimmer, oculto a lectores', () => {
-    const { container } = render(<SectionSkeleton />)
-    const root = container.firstElementChild as HTMLElement
-    expect(root).toHaveAttribute('aria-hidden')
-    expect(container.querySelectorAll('.animate-shimmer').length).toBeGreaterThan(4)
+  it('anuncia la carga a lectores y pinta siluetas de cards ocultas', () => {
+    const { container, getByRole } = render(<SectionSkeleton />)
+    expect(getByRole('status')).toHaveTextContent('Cargando…')
+    const visuals = container.querySelector('[aria-hidden]') as HTMLElement
+    expect(visuals.querySelectorAll('.animate-shimmer').length).toBeGreaterThan(4)
     expect(container.querySelectorAll('.card-paper-soft').length).toBe(3)
   })
 

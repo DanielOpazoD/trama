@@ -10,10 +10,14 @@
  */
 export function FeedSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <div className="space-y-2.5" aria-hidden>
+    // role=status: los lectores de pantalla reciben el «Cargando…»; las
+    // siluetas visuales quedan ocultas en el subárbol aria-hidden.
+    <div className="space-y-2.5" role="status">
+      <span className="sr-only">Cargando…</span>
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
+          aria-hidden
           className="card-paper-soft rounded-xl border border-ink-100/70 p-3.5 space-y-2.5"
         >
           {/* título */}
