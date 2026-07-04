@@ -6,10 +6,11 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from 'react'
-import { CameraIcon, ScissorsIcon, UploadIcon } from '../Icons'
+import { CameraIcon, ScissorsIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { MarkdownField } from './MarkdownField'
-import { PendingAttachmentsInput } from './PendingAttachmentsInput'
+import { NotasFeedComposerFooter } from './NotasFeedComposerFooter'
+import { PendingAttachmentChips } from './PendingAttachmentsInput'
 import { buildNotasComposerCta } from './notasComposerModel'
 
 export function NotasFeedComposer({
@@ -74,6 +75,7 @@ export function NotasFeedComposer({
   onSave: () => void
 }) {
   const captureMediaInputRef = useRef<HTMLInputElement>(null)
+  const attachInputRef = useRef<HTMLInputElement>(null)
   const cta = buildNotasComposerCta({
     draft,
     isLinkDraft,
@@ -132,7 +134,9 @@ export function NotasFeedComposer({
         aria-label="Captura: escribe una nota, pega un enlace o pega/suelta una imagen o video"
         onRequestFocusMode={onRequestFocusMode}
         tagUniverse={allNoteTags}
-        className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8"
+        // focus-ring-exempt: el marco de la tarjeta ya marca el foco del
+        // composer (borde acento + halo); el anillo duro duplicado ensucia.
+        className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8 focus-visible:outline-none"
       />
       <input
         ref={captureMediaInputRef}
@@ -144,25 +148,25 @@ export function NotasFeedComposer({
         disabled={createRecorteBusy}
         onChange={onCaptureMediaInput}
       />
+      <input
+        ref={attachInputRef}
+        type="file"
+        multiple
+        className="sr-only"
+        aria-label="Adjuntar archivo"
+        disabled={createNoteBusy || uploadAttachmentBusy}
+        onChange={(event) => {
+          const list = event.currentTarget.files
+          if (list?.length) onPendingFilesChange([...pendingFiles, ...Array.from(list)])
+          event.currentTarget.value = ''
+        }}
+      />
       {composerActive ? (
-        <>
-          <PendingAttachmentsInput
-            files={pendingFiles}
-            onChange={onPendingFilesChange}
-            busy={createNoteBusy || uploadAttachmentBusy}
-          />
-          <div className="mt-2 flex justify-end">
-            <button
-              type="button"
-              onClick={() => captureMediaInputRef.current?.click()}
-              disabled={createRecorteBusy}
-              className="inline-flex items-center gap-1.5 rounded-md border border-ink-100 bg-paper-50 px-2.5 py-1.5 text-micro uppercase tracking-eyebrow text-ink-500 transition-colors hover:border-ink-200 hover:text-ink-800"
-            >
-              <UploadIcon size={12} />
-              Capturar imagen o video
-            </button>
-          </div>
-        </>
+        <PendingAttachmentChips
+          files={pendingFiles}
+          onChange={onPendingFilesChange}
+          busy={createNoteBusy || uploadAttachmentBusy}
+        />
       ) : (
         <IconButton
           label="Capturar imagen o video"
@@ -190,28 +194,18 @@ export function NotasFeedComposer({
       )}
 
       {composerActive && (
-        <div className="flex items-center justify-between gap-3 pt-2 mt-1 border-t border-ink-100/60 animate-fade-up">
-          <span className="flex items-center gap-1.5 text-micro text-ink-300">
-            <CameraIcon size={11} />
-            {cta.mediaHint}
-          </span>
-          <div className="relative">
-            <button
-              onClick={onSave}
-              disabled={cta.disabled}
-              className="btn-ink text-xs disabled:opacity-40"
-            >
-              {cta.label}
-            </button>
-            {justSaved && (
-              <span
-                aria-hidden
-                className="animate-saved-ripple pointer-events-none absolute inset-0 rounded-md"
-                style={{ boxShadow: `0 0 0 2px ${accent}` }}
-              />
-            )}
-          </div>
-        </div>
+        <NotasFeedComposerFooter
+          accent={accent}
+          mediaHint={cta.mediaHint}
+          ctaLabel={cta.label}
+          ctaDisabled={cta.disabled}
+          attachDisabled={createNoteBusy || uploadAttachmentBusy}
+          captureDisabled={createRecorteBusy}
+          justSaved={justSaved}
+          onAttach={() => attachInputRef.current?.click()}
+          onCapture={() => captureMediaInputRef.current?.click()}
+          onSave={onSave}
+        />
       )}
     </div>
   )
