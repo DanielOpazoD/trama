@@ -86,6 +86,15 @@ describe('<ToastHost />', () => {
     await waitFor(() => expect(screen.queryByText('Algo')).toBeNull())
   })
 
+  it('envuelve el toast en la capa de animación de entrada', () => {
+    const { show } = setup()
+    show({ message: 'Con movimiento' })
+    const status = screen.getByRole('status')
+    // El centrado vive en el contenedor status; la animación en un hijo
+    // aparte para no pisar el translateX que centra el toast.
+    expect(status.querySelector('.animate-toast-in')).not.toBeNull()
+  })
+
   it('aplica el estilo "error" cuando tone === "error"', () => {
     const { show } = setup()
     show({ message: 'Algo falló', tone: 'error' })

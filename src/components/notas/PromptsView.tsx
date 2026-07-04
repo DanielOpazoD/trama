@@ -168,7 +168,7 @@ export function PromptsView() {
           body={<>Guarda aquí instrucciones reutilizables.</>}
         />
       ) : (
-        <div className="space-y-3">
+        <div className="stagger-children space-y-3">
           {filtered.map((prompt) => (
             <PromptCard
               key={prompt.id}
