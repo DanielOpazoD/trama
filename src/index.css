@@ -1062,16 +1062,25 @@ html.dark .paper-grain::before {
     transform-origin: center;
   }
 
+  /* Entrada de sección: fade + un rise breve — la página "se asienta" en vez
+     de aparecer en seco. Curva de la casa (ease-out-quart). */
   @keyframes view-fade {
     from {
       opacity: 0;
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
+      transform: translateY(0);
     }
   }
   .animate-view-fade {
-    animation: view-fade 180ms ease-out;
+    animation: view-fade 220ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-view-fade {
+      animation: none;
+    }
   }
 }
 

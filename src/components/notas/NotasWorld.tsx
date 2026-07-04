@@ -9,7 +9,8 @@ import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useClampedSection } from '../../hooks/useClampedSection'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useTheme } from '../../hooks/useTheme'
-import { LoadingHint } from '../LoadingHint'
+import { FeedSkeleton } from './FeedSkeleton'
+import { SectionSkeleton } from './SectionSkeleton'
 import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
@@ -172,20 +173,7 @@ export function NotasWorld({
         <div key={section} className="h-full animate-view-fade">
           <SectionPinGate sectionId={`notas:${section}`}>
             {section === 'pdf' || section === 'planillas' ? (
-              <Suspense
-                fallback={
-                  <div className="py-10 flex justify-center">
-                    <LoadingHint
-                      text={
-                        section === 'planillas'
-                          ? 'cargando Planillas'
-                          : 'cargando Imprenta'
-                      }
-                      size="sm"
-                    />
-                  </div>
-                }
-              >
+              <Suspense fallback={<SectionSkeleton variant="grid" />}>
                 <PdfStudioView
                   externalFiles={section === 'pdf' ? pendingPdfFiles : []}
                   onExternalFilesConsumed={() => setPendingPdfFiles([])}
@@ -206,37 +194,19 @@ export function NotasWorld({
                   >
                     {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
                     {section === 'notas' && (
-                      <Suspense
-                        fallback={
-                          <div className="py-10 flex justify-center">
-                            <LoadingHint text="cargando Notas" size="sm" />
-                          </div>
-                        }
-                      >
+                      <Suspense fallback={<FeedSkeleton />}>
                         <NotasFeedView onSendImagesToPdf={sendImagesToPdf} />
                       </Suspense>
                     )}
                     {section === 'tareas' && <TareasView />}
                     {section === 'prompts' && <PromptsView />}
                     {section === 'claves' && (
-                      <Suspense
-                        fallback={
-                          <div className="py-10 flex justify-center">
-                            <LoadingHint text="cargando Claves" size="sm" />
-                          </div>
-                        }
-                      >
+                      <Suspense fallback={<SectionSkeleton />}>
                         <ClavesView />
                       </Suspense>
                     )}
                     {section === 'biblioteca' && (
-                      <Suspense
-                        fallback={
-                          <div className="py-10 flex justify-center">
-                            <LoadingHint text="cargando Biblioteca" size="sm" />
-                          </div>
-                        }
-                      >
+                      <Suspense fallback={<SectionSkeleton variant="grid" />}>
                         <BibliotecaView
                           onSendToImprenta={(files) => {
                             // Mismo camino que `sendImagesToPdf` (capturas): los
