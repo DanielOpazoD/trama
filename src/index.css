@@ -1255,6 +1255,13 @@ html.dark .paper-grain::before {
       0 0 0 2px rgb(var(--paper-50)),
       0 0 0 4px var(--accent-sage);
   }
+  /* Variante SUAVE para la nota activa del feed: un gris-verde apagado en vez
+     del sage saturado — marca la selección sin gritar mientras se lee. */
+  .selection-ring-soft {
+    box-shadow:
+      0 0 0 2px rgb(var(--paper-50)),
+      0 0 0 3px rgb(122 134 116 / 0.5);
+  }
   .selection-ring-gold {
     box-shadow:
       0 0 0 2px rgb(var(--paper-50)),

@@ -15,11 +15,15 @@ export const composerTitleClass =
 export const composerIconButtonClass =
   'flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40'
 
-/** Marco encendido de una tarjeta EN EDICIÓN: el mismo lenguaje del foco del
- *  composer (borde de acento + halo), fijo mientras dura la edición — editar
- *  es volver a poner la pluma sobre el mismo papel. */
-export function editingFrameStyle(accent: string, accentSoft: string): CSSProperties {
-  return { borderColor: accent, boxShadow: `0 0 0 3px ${accentSoft}` }
+/** Marco de una tarjeta EN EDICIÓN: apenas un borde GRIS-VERDE apagado con un
+ *  halo mínimo — la señal de «estás editando» sin el verde saturado que
+ *  distrae al leer/escribir. El campo interno tampoco dibuja su propio anillo
+ *  de foco, así el marco es UNO solo, no dos. */
+export function editingFrameStyle(): CSSProperties {
+  return {
+    borderColor: 'rgb(122 134 116 / 0.6)',
+    boxShadow: '0 0 0 1px rgb(122 134 116 / 0.12)',
+  }
 }
 
 /** Tarjeta del composer: papel suave en reposo, marco de acento + halo al

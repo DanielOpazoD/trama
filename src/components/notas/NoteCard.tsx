@@ -31,10 +31,12 @@ const FocusedWriting = lazy(() =>
 // Tono único del mundo Notas: el primario (--accent-primary), remapeado a
 // salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
 const ACCENT = 'var(--accent-primary)'
-// Alto (px) a partir del cual una nota larga se colapsa con "leer más". Calibrado
-// para ~9-10 líneas: alcanza para leer el comienzo sin que una nota domine la
-// lista. El colapso es la pieza que mantiene la lista compacta.
-const COLLAPSED_MAX_PX = 220
+// Alto (px) a partir del cual una nota larga se colapsa con "leer más".
+// Calibrado para ~14 líneas: aprovecha el ancho de la tarjeta para mostrar
+// bastante del comienzo antes de cortar, sin que una nota domine la lista.
+// El affordance de expandir vive SOBRE el degradado, no en una fila aparte,
+// así el borde inferior no acumula espacio muerto.
+const COLLAPSED_MAX_PX = 320
 
 function formatDate(iso: string): string {
   try {
@@ -158,7 +160,7 @@ export function NoteCard({
     return (
       <article
         className="card-paper-soft rounded-xl border border-ink-100/70 p-3.5"
-        style={editingFrameStyle(ACCENT, 'var(--accent-primary-soft)')}
+        style={editingFrameStyle()}
       >
         <input
           value={titleDraft}
@@ -178,7 +180,8 @@ export function NoteCard({
           autoFocus
           aria-label="Contenido de la nota"
           onRequestFocusMode={() => setFocusMode(true)}
-          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8"
+          // focus-ring-exempt: el marco de la tarjeta ya marca el foco — el campo no añade un segundo anillo
+          className="w-full bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed pr-8 focus-visible:outline-none"
         />
         <ComposerFooter
           accent={ACCENT}
@@ -221,162 +224,169 @@ export function NoteCard({
         >
           {renderMarkdown(note.content)}
         </div>
+        {/* Degradado corto, SOLO visual: desvanece el texto cortado. El
+            control de expandir vive en la fila inferior (una sola fila con
+            las acciones), así no queda blanco muerto debajo. */}
         {overflowing && !expanded && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-b from-transparent to-paper-100"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-paper-100"
           />
         )}
       </div>
 
-      {overflowing && (
-        <div className="mt-1.5 flex justify-center">
-          <IconButton
-            onClick={() => setExpanded((v) => !v)}
-            aria-expanded={expanded}
-            label={expanded ? 'Mostrar menos' : 'Leer la nota completa'}
-            title={expanded ? 'Mostrar menos' : 'Leer completa'}
-            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
-          >
-            <ChevronDownIcon
-              size={16}
-              className={`transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
-            />
-          </IconButton>
-        </div>
-      )}
-
       {note.hasAudio && <AttachmentAudio ownerType="note" ownerId={note.id} />}
 
-      {/* Fila de afordancia: estado (fijada/fotos) + acciones rápidas al hover + menú. */}
-      <div className="mt-2 flex items-center justify-end gap-1.5">
-        <WhatsAppSourceTag source={note.source} />
-        {note.pinned && (
-          <>
-            <span
-              aria-hidden
-              title="fijada"
-              className="size-1.5 rounded-full"
-              style={{ backgroundColor: ACCENT }}
-            />
-            <span className="sr-only">Nota fijada</span>
-          </>
-        )}
-        {note.hasImages && (
-          <AttachmentPhotos ownerType="note" ownerId={note.id} compact />
-        )}
-
-        {/* Acciones rápidas: aparecen al hover/focus. En touch (sin hover) quedan
-            igualmente accesibles dentro del menú de 3 puntos. */}
-        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-          <IconButton
-            onClick={onTogglePin}
-            disabled={busy}
-            label={note.pinned ? 'Soltar nota' : 'Fijar nota'}
-            title={note.pinned ? 'Soltar' : 'Fijar'}
-            className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
-          >
-            <PinIcon size={13} />
-          </IconButton>
-          <IconButton
-            onClick={openEdit}
-            disabled={busy}
-            label="Editar nota"
-            title="Editar"
-            className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
-          >
-            <PencilIcon size={13} />
-          </IconButton>
-        </div>
-
-        <OverflowMenu
-          label="Acciones de la nota"
-          width="w-52"
-          triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
-        >
-          {(close) => (
+      {/* Fila inferior: a la IZQUIERDA lo informativo (mostrar menos + estado);
+          a la DERECHA las acciones. justify-between mantiene el borde inferior
+          simétrico, sin el espacio muerto de la vieja fila del chevron. */}
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {overflowing && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Mostrar menos' : 'Leer la nota completa'}
+              className="inline-flex shrink-0 items-center gap-1 text-micro font-medium text-ink-400 transition-colors hover:text-ink-700"
+            >
+              <ChevronDownIcon
+                size={13}
+                className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+              />
+              {expanded ? 'Mostrar menos' : 'Leer más'}
+            </button>
+          )}
+          <WhatsAppSourceTag source={note.source} />
+          {note.pinned && (
             <>
-              {!promoted && (
-                <OverflowMenuItem
-                  onClick={() => {
-                    onPromote()
-                    close()
-                  }}
-                  disabled={busy || promoting}
-                >
-                  <MomentosIcon size={13} /> {promoting ? 'Promoviendo…' : '→ Momento'}
-                </OverflowMenuItem>
-              )}
-              <OverflowMenuItem
-                onClick={() => {
-                  openEdit()
-                  close()
-                }}
-                disabled={busy}
-              >
-                <PencilIcon size={13} /> Editar
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                onClick={() => {
-                  photoInputRef.current?.click()
-                  close()
-                }}
-                disabled={upload.isPending}
-              >
-                <CameraIcon size={13} /> Agregar foto
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                onClick={() => {
-                  onTogglePin()
-                  close()
-                }}
-                disabled={busy}
-              >
-                <PinIcon size={13} /> {note.pinned ? 'Soltar' : 'Fijar'}
-              </OverflowMenuItem>
-              <OverflowMenuItem
-                onClick={() => {
-                  setShowFiles((v) => !v)
-                  close()
-                }}
-              >
-                <FileIcon size={13} /> {showFiles ? 'Ocultar anexos' : 'Anexos'}
-              </OverflowMenuItem>
-
-              <p className="px-2.5 pt-1.5 pb-0.5 text-micro text-ink-300 tabular-nums">
-                {promoted
-                  ? 'Ya vive como Momento'
-                  : `Creada · ${formatDate(note.createdAt)}`}
-              </p>
-
-              {confirming ? (
-                <>
-                  <OverflowMenuItem
-                    danger
-                    onClick={() => {
-                      onDelete()
-                      close()
-                    }}
-                    disabled={busy}
-                  >
-                    <TrashIcon size={13} /> Sí, borrar
-                  </OverflowMenuItem>
-                  <OverflowMenuItem onClick={() => setConfirming(false)}>
-                    Cancelar
-                  </OverflowMenuItem>
-                </>
-              ) : (
-                <OverflowMenuItem
-                  danger
-                  onClick={() => setConfirming(true)}
-                  disabled={busy}
-                >
-                  <TrashIcon size={13} /> Borrar
-                </OverflowMenuItem>
-              )}
+              <span
+                aria-hidden
+                title="fijada"
+                className="size-1.5 rounded-full"
+                style={{ backgroundColor: ACCENT }}
+              />
+              <span className="sr-only">Nota fijada</span>
             </>
           )}
-        </OverflowMenu>
+          {note.hasImages && (
+            <AttachmentPhotos ownerType="note" ownerId={note.id} compact />
+          )}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1.5">
+          {/* Acciones rápidas: aparecen al hover/focus. En touch (sin hover) quedan
+              igualmente accesibles dentro del menú de 3 puntos. */}
+          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            <IconButton
+              onClick={onTogglePin}
+              disabled={busy}
+              label={note.pinned ? 'Soltar nota' : 'Fijar nota'}
+              title={note.pinned ? 'Soltar' : 'Fijar'}
+              className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
+            >
+              <PinIcon size={13} />
+            </IconButton>
+            <IconButton
+              onClick={openEdit}
+              disabled={busy}
+              label="Editar nota"
+              title="Editar"
+              className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
+            >
+              <PencilIcon size={13} />
+            </IconButton>
+          </div>
+
+          <OverflowMenu
+            label="Acciones de la nota"
+            width="w-52"
+            triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+          >
+            {(close) => (
+              <>
+                {!promoted && (
+                  <OverflowMenuItem
+                    onClick={() => {
+                      onPromote()
+                      close()
+                    }}
+                    disabled={busy || promoting}
+                  >
+                    <MomentosIcon size={13} /> {promoting ? 'Promoviendo…' : '→ Momento'}
+                  </OverflowMenuItem>
+                )}
+                <OverflowMenuItem
+                  onClick={() => {
+                    openEdit()
+                    close()
+                  }}
+                  disabled={busy}
+                >
+                  <PencilIcon size={13} /> Editar
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    photoInputRef.current?.click()
+                    close()
+                  }}
+                  disabled={upload.isPending}
+                >
+                  <CameraIcon size={13} /> Agregar foto
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    onTogglePin()
+                    close()
+                  }}
+                  disabled={busy}
+                >
+                  <PinIcon size={13} /> {note.pinned ? 'Soltar' : 'Fijar'}
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    setShowFiles((v) => !v)
+                    close()
+                  }}
+                >
+                  <FileIcon size={13} /> {showFiles ? 'Ocultar anexos' : 'Anexos'}
+                </OverflowMenuItem>
+
+                <p className="px-2.5 pt-1.5 pb-0.5 text-micro text-ink-300 tabular-nums">
+                  {promoted
+                    ? 'Ya vive como Momento'
+                    : `Creada · ${formatDate(note.createdAt)}`}
+                </p>
+
+                {confirming ? (
+                  <>
+                    <OverflowMenuItem
+                      danger
+                      onClick={() => {
+                        onDelete()
+                        close()
+                      }}
+                      disabled={busy}
+                    >
+                      <TrashIcon size={13} /> Sí, borrar
+                    </OverflowMenuItem>
+                    <OverflowMenuItem onClick={() => setConfirming(false)}>
+                      Cancelar
+                    </OverflowMenuItem>
+                  </>
+                ) : (
+                  <OverflowMenuItem
+                    danger
+                    onClick={() => setConfirming(true)}
+                    disabled={busy}
+                  >
+                    <TrashIcon size={13} /> Borrar
+                  </OverflowMenuItem>
+                )}
+              </>
+            )}
+          </OverflowMenu>
+        </div>
       </div>
 
       <input
