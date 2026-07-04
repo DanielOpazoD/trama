@@ -1,10 +1,12 @@
-import type { Dispatch, SetStateAction, CSSProperties } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { ENTITY_TYPES } from '../../types'
 import { typeAccent } from '../graph/GraphNode'
+import { FilterChip } from '../FilterChip'
 
 /**
  * FF3 — barra de chips de filtro para Citas. Extraída de `QuotesView.tsx`
- * para que la vista quede más concentrada en orquestación.
+ * para que la vista quede más concentrada en orquestación. Usa el
+ * `FilterChip` compartido con Entidades.
  *
  * Dos filtros que se acumulan (AND):
  *   - "favoritas" — solo si hay al menos una pinneada
@@ -35,84 +37,54 @@ export function QuotesFiltersBar({
   if (availableTypes.length <= 1 && pinnedCount === 0) return null
 
   return (
-    <div className="pb-2 mb-4 border-b border-ink-100/60 flex flex-wrap gap-1.5">
+    <div className="pb-2 mb-4 flex flex-wrap gap-1.5 border-b border-ink-100/60">
       {/* ω-E: chip "favoritas" — solo aparece cuando hay al menos una
-          pinneada. Cuando se activa, el filtro de tipo no se toca (se
-          acumulan: solo favoritas Y de un cierto tipo si está seleccionado). */}
+          pinneada. Se acumula (AND) con el filtro de tipo. */}
       {pinnedCount > 0 && (
-        <button
+        <FilterChip
+          active={favoritesOnly}
           onClick={() => setFavoritesOnly((v) => !v)}
-          className={
-            favoritesOnly
-              ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors inline-flex items-center gap-1'
-              : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors inline-flex items-center gap-1'
-          }
-          style={
-            favoritesOnly
-              ? {
-                  backgroundColor: 'var(--accent-gold-soft)',
-                  color: 'var(--accent-gold)',
-                }
-              : undefined
-          }
-          aria-pressed={favoritesOnly}
+          label="favoritas"
+          count={pinnedCount}
+          icon={<span aria-hidden>★</span>}
+          ariaPressed={favoritesOnly}
           title={
             favoritesOnly
               ? 'Mostrando solo favoritas — click para mostrar todas'
               : 'Mostrar solo favoritas'
           }
-        >
-          <span aria-hidden>★</span>
-          favoritas
-          <span className="ml-0.5 text-micro tabular-nums opacity-70">{pinnedCount}</span>
-        </button>
+          activeStyle={{
+            backgroundColor: 'var(--accent-gold-soft)',
+            color: 'var(--accent-gold)',
+          }}
+        />
       )}
-      <button
+      <FilterChip
+        active={typeFilter === null}
         onClick={() => setTypeFilter(null)}
-        className={
-          typeFilter === null
-            ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
-            : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
-        }
-        style={
-          typeFilter === null
-            ? {
-                backgroundColor: 'var(--accent-primary-soft)',
-                color: 'var(--accent-primary)',
-              }
-            : undefined
-        }
-      >
-        Todas
-        <span className="ml-1.5 text-micro tabular-nums opacity-70">{totalCount}</span>
-      </button>
+        label="Todas"
+        count={totalCount}
+        activeStyle={{
+          backgroundColor: 'var(--accent-primary-soft)',
+          color: 'var(--accent-primary)',
+        }}
+      />
       {availableTypes.map(({ type, count }) => {
         const active = typeFilter === type
         const label = ENTITY_TYPES.find((t) => t.value === type)?.label ?? type
-        // λ3: typeAccent devuelve `var(--type-X)`; usamos color-mix para
-        // producir el wash de fondo sin tener que mantener un mapeo paralelo
-        // de softs.
         const accentColor = typeAccent(type)
-        const activeStyle: CSSProperties | undefined = active
-          ? {
+        return (
+          <FilterChip
+            key={type}
+            active={active}
+            onClick={() => setTypeFilter(active ? null : type)}
+            label={label}
+            count={count}
+            activeStyle={{
               backgroundColor: `color-mix(in srgb, ${accentColor} 13%, transparent)`,
               color: accentColor,
-            }
-          : undefined
-        return (
-          <button
-            key={type}
-            onClick={() => setTypeFilter(active ? null : type)}
-            className={
-              active
-                ? 'px-2.5 py-1 rounded-full text-xs font-medium transition-colors'
-                : 'px-2.5 py-1 rounded-full text-xs text-ink-500 hover:text-ink-800 hover:bg-ink-100 transition-colors'
-            }
-            style={activeStyle}
-          >
-            {label}
-            <span className="ml-1.5 text-micro tabular-nums opacity-70">{count}</span>
-          </button>
+            }}
+          />
         )
       })}
     </div>

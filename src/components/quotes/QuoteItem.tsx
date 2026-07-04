@@ -120,15 +120,27 @@ function QuoteItemInternal({
               }
             : undefined
         }
-        className={`quote-block font-serif italic border-l-2 border-ink-200 pl-4 ${
+        className={`quote-block relative border-l-2 border-ink-200 font-serif italic ${
           compact
-            ? 'text-sm leading-snug text-ink-600'
-            : `leading-relaxed ${
-                isFeature ? 'text-xl text-ink-700' : 'text-base md:text-lg text-ink-600'
+            ? 'pl-4 text-body leading-snug text-ink-600'
+            : `pl-5 leading-relaxed ${
+                isFeature ? 'text-h2 text-ink-800' : 'text-lead text-ink-700'
               }`
         }`}
       >
-        «{quote.text}»
+        {/* Tratamiento editorial: una comilla ornamental en oro (acento de la
+            sección) abre la cita como un epígrafe impreso. En compacto se omite
+            para no recargar la densidad. */}
+        {!compact && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-3 left-2 select-none font-serif not-italic leading-none text-[color:var(--accent-gold)]"
+            style={{ fontSize: '2.6rem', opacity: 0.22 }}
+          >
+            &ldquo;
+          </span>
+        )}
+        {quote.text}
       </blockquote>
 
       <div
@@ -136,8 +148,8 @@ function QuoteItemInternal({
           compact ? 'mt-1.5 pl-4' : 'mt-3 pl-5'
         }`}
       >
-        {/* Atribución + fecha */}
-        <div className="text-sm min-w-0">
+        {/* Atribución + fecha — la firma discreta bajo la cita. */}
+        <div className="text-caption min-w-0">
           {author && entity ? (
             <>
               <button

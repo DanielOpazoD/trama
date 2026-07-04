@@ -3,6 +3,7 @@ import { ENTITY_TYPES, type Entity } from '../../types'
 import { ChevronRightIcon, SparkleIcon } from '../Icons'
 import { typeAccent } from '../graph/GraphNode'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
+import { EntitySigil } from '../EntitySigil'
 
 /**
  * Fila clickable en EntitiesView. Muestra nombre + año + chip de tipo
@@ -33,34 +34,41 @@ function EntityRowInternal({
     <button
       type="button"
       onClick={() => onSelectEntity?.(entity.id)}
-      style={
-        {
-          viewTransitionName: `entity-card-${entity.id}`,
-          borderLeftColor: typeAccent(entity.type),
-        } as React.CSSProperties
-      }
-      className={`group card-paper-hover w-full text-left border-l-[3px] hover:shadow-ink-900/5 active:scale-[0.995] ${
-        compact ? 'p-2 pl-3' : 'p-3 pl-4'
+      style={{ viewTransitionName: `entity-card-${entity.id}` } as React.CSSProperties}
+      className={`group card-paper-hover flex w-full items-start gap-3 text-left hover:shadow-ink-900/5 active:scale-[0.995] ${
+        compact ? 'p-2' : 'p-3'
       }`}
       aria-label={`Abrir ${entity.name}, ${quoteCount} ${
         quoteCount === 1 ? 'cita' : 'citas'
       }`}
     >
-      <div className="flex justify-between items-baseline gap-4">
-        <div className="min-w-0">
-          <span className="text-ink-700">{entity.name}</span>
+      {/* El sello (monograma) es el ancla cromática del tipo: sustituye la
+          vieja barra lateral y le da cara única a cada entidad. */}
+      <EntitySigil
+        name={entity.name}
+        type={entity.type}
+        size={compact ? 'sm' : 'md'}
+        className="mt-0.5"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="font-serif text-lead leading-snug text-ink-800">
+            {entity.name}
+          </span>
           {entity.year !== undefined && (
-            <span className="ml-2 text-ink-300 text-sm">({entity.year})</span>
+            <span className="text-caption tabular-nums text-ink-300">
+              ({entity.year})
+            </span>
           )}
           <span
-            className="ml-3 text-micro uppercase tracking-eyebrow align-middle"
+            className="text-micro uppercase tracking-eyebrow"
             style={{ color: typeAccent(entity.type) }}
           >
             {ENTITY_TYPES.find((t) => t.value === entity.type)?.label}
           </span>
           {entity.origin.kind === 'ai' && (
             <span
-              className="ml-1.5 inline-flex items-center text-[color:var(--accent-primary)] align-middle"
+              className="inline-flex items-center text-[color:var(--accent-primary)]"
               title="añadido por IA"
             >
               <SparkleIcon size={10} />
@@ -68,31 +76,31 @@ function EntityRowInternal({
           )}
           <WhatsAppSourceTag origin={entity.origin} />
         </div>
-        {/* Chevron estático: señala que la tarjeta abre el panel lateral. */}
-        <ChevronRightIcon
-          size={12}
-          className="text-ink-200 group-hover:text-ink-400 transition-colors shrink-0"
-        />
+        {!compact && entity.description && (
+          <p className="mt-1 text-body leading-relaxed text-ink-500 line-clamp-1">
+            {entity.description}
+          </p>
+        )}
+        {!compact && (quoteCount > 0 || relCount > 0) && (
+          <div className="mt-1.5 flex gap-3 text-micro uppercase tracking-eyebrow text-ink-300">
+            {quoteCount > 0 && (
+              <span>
+                {quoteCount} {quoteCount === 1 ? 'cita' : 'citas'}
+              </span>
+            )}
+            {relCount > 0 && (
+              <span>
+                {relCount} {relCount === 1 ? 'relación' : 'relaciones'}
+              </span>
+            )}
+          </div>
+        )}
       </div>
-      {!compact && entity.description && (
-        <p className="mt-1 text-ink-500 text-body leading-relaxed line-clamp-1">
-          {entity.description}
-        </p>
-      )}
-      {!compact && (quoteCount > 0 || relCount > 0) && (
-        <div className="mt-1.5 flex gap-3 text-micro uppercase tracking-eyebrow text-ink-300">
-          {quoteCount > 0 && (
-            <span>
-              {quoteCount} {quoteCount === 1 ? 'cita' : 'citas'}
-            </span>
-          )}
-          {relCount > 0 && (
-            <span>
-              {relCount} {relCount === 1 ? 'relación' : 'relaciones'}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Chevron estático: señala que la tarjeta abre el panel lateral. */}
+      <ChevronRightIcon
+        size={12}
+        className="mt-1.5 shrink-0 text-ink-200 transition-colors group-hover:text-ink-400"
+      />
     </button>
   )
 }

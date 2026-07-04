@@ -183,7 +183,8 @@ export function EntitiesView({
         eyebrow="personas, obras, conceptos"
         accent="var(--type-persona)"
         eyebrowColor="var(--accent-gold)"
-        spacing="normal"
+        spacing="tight"
+        density="compact"
         subtitle="Las cosas que conectas: personas, libros, canciones, álbumes, películas, obras, conceptos, ideas. Cada nodo del grafo es una entidad."
         action={
           <div className="flex items-center gap-3 mt-1">
