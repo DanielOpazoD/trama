@@ -1,13 +1,22 @@
 import { useRef, useState } from 'react'
-import { UploadIcon } from '../Icons'
+import { ArchiveIcon, UploadIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { PendingAttachmentChips } from './PendingAttachmentsInput'
+import {
+  ComposerCard,
+  ComposerFooter,
+  composerIconButtonClass,
+  composerTitleClass,
+} from './composerChrome'
+
+const ACCENT = 'var(--accent-sage)'
+const ACCENT_SOFT = 'var(--accent-sage-soft)'
 
 /**
- * Composer de prompts, plegable: en reposo es una línea limpia de título; al
- * enfocar o con contenido despliega colección, cuerpo, chips de anexos y un
- * pie sereno (ícono de adjuntar + pista + guardar) — el mismo lenguaje del
- * composer de Notas.
+ * Composer de prompts sobre el chrome compartido: en reposo es una línea de
+ * papel («Nuevo prompt…»); al enfocar, la línea SE CONVIERTE en el título
+ * serif y se despliegan cuerpo, chips de anexos y el pie sereno. La colección
+ * —uso poco frecuente— vive sutil en el pie, no como campo protagonista.
  */
 export function PromptComposer({
   title,
@@ -15,6 +24,7 @@ export function PromptComposer({
   content,
   pendingFiles,
   busy,
+  justSaved = false,
   onTitleChange,
   onCollectionChange,
   onContentChange,
@@ -26,6 +36,7 @@ export function PromptComposer({
   content: string
   pendingFiles: File[]
   busy: boolean
+  justSaved?: boolean
   onTitleChange: (value: string) => void
   onCollectionChange: (value: string) => void
   onContentChange: (value: string) => void
@@ -34,6 +45,7 @@ export function PromptComposer({
 }) {
   const [focused, setFocused] = useState(false)
   const attachInputRef = useRef<HTMLInputElement>(null)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
   const active =
     focused ||
     title.trim() !== '' ||
@@ -42,44 +54,43 @@ export function PromptComposer({
     pendingFiles.length > 0
 
   return (
-    <section
-      onFocusCapture={() => setFocused(true)}
-      onBlurCapture={(event) => {
-        // Mover el foco DENTRO del composer (título → adjuntar/colección) no
-        // debe plegarlo: con los campos vacíos desmontaría el botón antes de
-        // que llegue el clic.
-        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
-        setFocused(false)
-      }}
-      className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5"
+    <ComposerCard
+      accent={ACCENT}
+      accentSoft={ACCENT_SOFT}
+      focused={focused}
+      className="mb-5"
+      onFocusWithin={() => setFocused(true)}
+      onBlurWithin={() => setFocused(false)}
     >
-      <div className={active ? 'grid sm:grid-cols-[1fr_180px] gap-2 mb-2' : ''}>
-        <input
-          value={title}
-          onChange={(e) => onTitleChange(e.target.value)}
-          placeholder={active ? 'Título del prompt' : 'Nuevo prompt…'}
-          aria-label="Título del prompt"
-          className="input-paper w-full text-body"
-        />
-        {active && (
-          <input
-            value={collection}
-            onChange={(e) => onCollectionChange(e.target.value)}
-            placeholder="Colección"
-            aria-label="Colección"
-            className="input-paper w-full text-body animate-fade-up"
-          />
-        )}
-      </div>
+      <input
+        value={title}
+        onChange={(event) => onTitleChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            contentRef.current?.focus()
+          }
+        }}
+        maxLength={200}
+        placeholder={active ? 'Título del prompt' : 'Nuevo prompt…'}
+        aria-label="Título del prompt"
+        className={
+          active
+            ? composerTitleClass
+            : 'w-full bg-transparent text-body text-ink-700 placeholder:text-ink-300'
+        }
+      />
       {active && (
         <>
           <textarea
+            ref={contentRef}
             value={content}
-            onChange={(e) => onContentChange(e.target.value)}
-            rows={5}
-            placeholder="Escribe el prompt..."
+            onChange={(event) => onContentChange(event.target.value)}
+            rows={4}
+            placeholder="Escribe el prompt… usa {{variables}} para las partes que cambian"
             aria-label="Contenido del prompt"
-            className="input-paper w-full resize-y text-body leading-relaxed animate-fade-up"
+            // focus-ring-exempt: el marco de la tarjeta ya marca el foco (borde acento + halo)
+            className="w-full resize-y bg-transparent text-ink-700 placeholder:text-ink-300 leading-relaxed animate-fade-up focus-visible:outline-none"
           />
           <input
             ref={attachInputRef}
@@ -101,32 +112,37 @@ export function PromptComposer({
             onChange={onPendingFilesChange}
             busy={busy}
           />
-          <div className="mt-2 flex items-center justify-between gap-3 border-t border-ink-100/60 pt-2 animate-fade-up">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <IconButton
-                label="Adjuntar archivo"
-                title="Adjuntar archivo"
-                disabled={busy}
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => attachInputRef.current?.click()}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40"
-              >
-                <UploadIcon size={13} />
-              </IconButton>
-              <span className="hidden min-w-0 truncate text-micro text-ink-300 sm:block">
-                variables con {'{{nombre}}'}
-              </span>
-            </div>
-            <button
-              onClick={onSave}
-              disabled={!title.trim() || !content.trim() || busy}
-              className="btn-ink text-xs disabled:opacity-40"
+          <ComposerFooter
+            accent={ACCENT}
+            hint={`variables con ${'{{nombre}}'}`}
+            ctaLabel="guardar prompt"
+            ctaDisabled={!title.trim() || !content.trim() || busy}
+            justSaved={justSaved}
+            onSave={onSave}
+          >
+            <IconButton
+              label="Adjuntar archivo"
+              title="Adjuntar archivo"
+              disabled={busy}
+              onPointerDown={(event) => event.preventDefault()}
+              onClick={() => attachInputRef.current?.click()}
+              className={composerIconButtonClass}
             >
-              guardar prompt
-            </button>
-          </div>
+              <UploadIcon size={13} />
+            </IconButton>
+            <span className="ml-1 flex min-w-0 items-center gap-1">
+              <ArchiveIcon size={12} className="shrink-0 text-ink-300" />
+              <input
+                value={collection}
+                onChange={(event) => onCollectionChange(event.target.value)}
+                placeholder="Colección"
+                aria-label="Colección"
+                className="w-24 bg-transparent text-micro text-ink-500 placeholder:text-ink-300 sm:w-32"
+              />
+            </span>
+          </ComposerFooter>
         </>
       )}
-    </section>
+    </ComposerCard>
   )
 }
