@@ -39,6 +39,7 @@ export function NotasFeedComposerFooter({
           label="Adjuntar archivo"
           title="Adjuntar archivo"
           disabled={attachDisabled}
+          onPointerDown={(event) => event.preventDefault()}
           onClick={onAttach}
           className={iconBtn}
         >
@@ -48,6 +49,7 @@ export function NotasFeedComposerFooter({
           label="Capturar imagen o video"
           title="Capturar imagen o video"
           disabled={captureDisabled}
+          onPointerDown={(event) => event.preventDefault()}
           onClick={onCapture}
           className={iconBtn}
         >

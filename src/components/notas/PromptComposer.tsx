@@ -44,7 +44,13 @@ export function PromptComposer({
   return (
     <section
       onFocusCapture={() => setFocused(true)}
-      onBlurCapture={() => setFocused(false)}
+      onBlurCapture={(event) => {
+        // Mover el foco DENTRO del composer (título → adjuntar/colección) no
+        // debe plegarlo: con los campos vacíos desmontaría el botón antes de
+        // que llegue el clic.
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+        setFocused(false)
+      }}
       className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5"
     >
       <div className={active ? 'grid sm:grid-cols-[1fr_180px] gap-2 mb-2' : ''}>
@@ -101,6 +107,7 @@ export function PromptComposer({
                 label="Adjuntar archivo"
                 title="Adjuntar archivo"
                 disabled={busy}
+                onPointerDown={(event) => event.preventDefault()}
                 onClick={() => attachInputRef.current?.click()}
                 className="flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40"
               >
