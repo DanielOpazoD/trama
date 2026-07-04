@@ -150,6 +150,8 @@ export function ClavesView({
           title="Claves"
           eyebrow="bajo llave"
           accent={ACCENT}
+          spacing="tight"
+          density="compact"
           subtitle="Cifradas con tu clave de acceso. Sin ella, nadie puede leerlas — ni siquiera el servidor."
         />
         <VaultGate scope={vaultScope} onUnlock={setVaultKey} />
@@ -281,6 +283,8 @@ export function ClavesView({
         title="Claves"
         eyebrow="bajo llave"
         accent={ACCENT}
+        spacing="tight"
+        density="compact"
         subtitle="Cifradas con tu clave de acceso. El vault se bloquea solo tras unos minutos sin uso."
         action={
           <button
