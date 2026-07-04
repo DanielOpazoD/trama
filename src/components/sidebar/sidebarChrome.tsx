@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, SettingsIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { Tooltip } from '../Tooltip'
@@ -46,11 +46,17 @@ export function useSidebarWidth() {
   )
   const [resizing, setResizing] = useState(false)
   const frameRef = useRef(0)
+  const cleanupRef = useRef<(() => void) | null>(null)
+
+  // Si el componente se desmonta a mitad de arrastre (cambio de mundo),
+  // los listeners de window quedarían vivos — se limpian aquí.
+  useEffect(() => () => cleanupRef.current?.(), [])
 
   const startResize = useCallback((event: React.PointerEvent) => {
     event.preventDefault()
     const startX = event.clientX
     const startWidth = readStoredWidth()
+    cleanupRef.current?.()
     setResizing(true)
     const move = (ev: PointerEvent) => {
       cancelAnimationFrame(frameRef.current)
@@ -58,17 +64,33 @@ export function useSidebarWidth() {
         setWidth(clampWidth(startWidth + (ev.clientX - startX)))
       })
     }
-    const up = (ev: PointerEvent) => {
+    const cleanup = () => {
       window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', cancel)
       cancelAnimationFrame(frameRef.current)
+      cleanupRef.current = null
+    }
+    const finish = (ev: PointerEvent) => {
+      cleanup()
       const final = clampWidth(startWidth + (ev.clientX - startX))
       setWidth(final)
       storeWidth(final)
       setResizing(false)
     }
+    const cancel = () => {
+      // pointercancel no trae coordenadas útiles: se conserva el ancho vigente.
+      cleanup()
+      setWidth((current) => {
+        storeWidth(current)
+        return current
+      })
+      setResizing(false)
+    }
+    cleanupRef.current = cleanup
     window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', up)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', cancel)
   }, [])
 
   const resetWidth = useCallback(() => {
@@ -215,7 +237,8 @@ export function SidebarSettingsButton({
 export function SidebarBrandLine() {
   return (
     <span className="select-none text-micro uppercase tracking-wider text-ink-300">
-      trama · v{import.meta.env.VITE_APP_VERSION}
+      trama
+      {import.meta.env.VITE_APP_VERSION ? ` · v${import.meta.env.VITE_APP_VERSION}` : ''}
     </span>
   )
 }

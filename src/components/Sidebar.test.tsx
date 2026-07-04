@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Sidebar } from './Sidebar'
@@ -171,6 +171,50 @@ describe('<Sidebar />', () => {
     await user.click(screen.getByRole('button', { name: /mundo trama expandido/i }))
 
     expect(props.onChangeWorld).toHaveBeenCalledWith('notas')
+  })
+
+  it('ajusta el ancho con el asa: arrastre, doble clic y teclado', async () => {
+    const user = userEvent.setup()
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    const aside = document.querySelector('aside') as HTMLElement
+    expect(aside.style.width).toBe('256px')
+
+    // Arrastre: pointerdown en el asa + move/up en window
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent.pointerUp(window, { clientX: 320 })
+    expect(aside.style.width).toBe('320px')
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('320')
+
+    // Teclado: flechas ±16 con clamp
+    handle.focus()
+    await user.keyboard('{ArrowRight}')
+    expect(aside.style.width).toBe('336px')
+    await user.keyboard('{ArrowLeft}{ArrowLeft}')
+    expect(aside.style.width).toBe('304px')
+
+    // Doble clic restaura el default
+    fireEvent.doubleClick(handle)
+    expect(aside.style.width).toBe('256px')
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('256')
+  })
+
+  it('cancela el arrastre sin fugas cuando el gesto se interrumpe (pointercancel)', () => {
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    const aside = document.querySelector('aside') as HTMLElement
+
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent(window, new Event('pointercancel'))
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('256')
+
+    // Tras el cancel los listeners quedaron removidos: mover ya no redimensiona
+    fireEvent.pointerMove(window, { clientX: 380 })
+    expect(aside.style.width).toBe('256px')
   })
 
   it('muestra badge de invitaciones pendientes en Momentos', () => {
