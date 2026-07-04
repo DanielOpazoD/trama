@@ -38,12 +38,17 @@ export function useNotasComposer() {
 
   const [draft, setDraft] = useState('')
   const [title, setTitle] = useState('')
-  const composerRef = useAutosizeTextarea(draft, { minRows: 3, maxRows: 12 })
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [forceNote, setForceNote] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [uploadingImages, setUploadingImages] = useState(0)
   const [composerFocused, setComposerFocused] = useState(false)
+  // Plegado en reposo (una línea limpia), tres líneas al enfocar o con
+  // contenido: minRows dinámico para que el autosize colapse de vuelta.
+  const composerRef = useAutosizeTextarea(draft, {
+    minRows: composerFocused || draft.trim() !== '' ? 3 : 1,
+    maxRows: 12,
+  })
   const [focusMode, setFocusMode] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
   const savedTimer = useRef<number | null>(null)

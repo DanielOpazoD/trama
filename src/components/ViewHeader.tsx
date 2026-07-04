@@ -23,6 +23,9 @@ import { sectionWashStyle } from '../lib/sectionWash'
  *   - action?     slot para botones a la derecha (alineados al baseline).
  *   - spacing?    margen inferior — 'tight' (mb-6), 'normal' (mb-8),
  *                 'wide' (mb-10). Default 'normal'.
+ *   - density?    'compact' reduce el gesto (título menor, regla y
+ *                 subtítulo apretados) para vistas de uso diario donde el
+ *                 hero grande cuesta scroll. Default 'default'.
  *   - sticky?     si true, el header se queda fijo al hacer scroll con
  *                 backdrop-blur. Útil para vistas largas (Citas,
  *                 Momentos, Entidades) donde el contexto se pierde al
@@ -39,6 +42,7 @@ export function ViewHeader({
   action,
   icon,
   spacing = 'normal',
+  density = 'default',
   sticky = false,
 }: {
   title: string
@@ -51,8 +55,10 @@ export function ViewHeader({
   /** Logo/marca opcional junto al título (ej. logo oficial de X o Spotify). */
   icon?: ReactNode
   spacing?: 'tight' | 'normal' | 'wide'
+  density?: 'default' | 'compact'
   sticky?: boolean
 }) {
+  const compact = density === 'compact'
   const spacingClass =
     spacing === 'tight' ? 'mb-6' : spacing === 'wide' ? 'mb-10' : 'mb-8'
 
@@ -91,7 +97,10 @@ export function ViewHeader({
       style={useWash ? sectionWashStyle(accent) : undefined}
     >
       <div className="min-w-0">
-        <p className="section-eyebrow-serif mb-2" style={{ color: finalEyebrowColor }}>
+        <p
+          className={`section-eyebrow-serif ${compact ? 'mb-1' : 'mb-2'}`}
+          style={{ color: finalEyebrowColor }}
+        >
           {eyebrow}
         </p>
         <div className="flex items-center gap-2.5">
@@ -99,13 +108,21 @@ export function ViewHeader({
           {/* Título fluido: 30px en móvil (menos ceremonial en pantallas
               chicas), 36px de sm hacia arriba — donde antes era text-4xl fijo
               y se sentía sobredimensionado al abrir una vista en el teléfono. */}
-          <h2 className="font-serif text-3xl sm:text-4xl text-ink-700 leading-none">
+          <h2
+            className={`font-serif text-ink-700 leading-none ${
+              compact ? 'text-3xl' : 'text-3xl sm:text-4xl'
+            }`}
+          >
             {title}
           </h2>
         </div>
-        <div className="accent-rule mt-3 mb-2" />
+        <div className={`accent-rule ${compact ? 'mt-2 mb-1' : 'mt-3 mb-2'}`} />
         {subtitle && (
-          <p className="mt-2 text-body text-ink-400 leading-relaxed max-w-2xl">
+          <p
+            className={`text-ink-400 leading-relaxed max-w-2xl ${
+              compact ? 'mt-1 text-caption' : 'mt-2 text-body'
+            }`}
+          >
             {subtitle}
           </p>
         )}

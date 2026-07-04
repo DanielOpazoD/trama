@@ -36,7 +36,13 @@ export function NotasHomeView({
 
   return (
     <>
-      <ViewHeader title="Hoy" eyebrow="mundo notas" accent={ACCENT} spacing="wide" />
+      <ViewHeader
+        title="Hoy"
+        eyebrow="mundo notas"
+        accent={ACCENT}
+        spacing="tight"
+        density="compact"
+      />
 
       <section
         aria-label="Turno del día"
@@ -50,36 +56,28 @@ export function NotasHomeView({
             <p className="mt-1 font-serif text-h2 text-ink-700">{home.daily.headline}</p>
             <p className="mt-1 text-caption text-ink-400">{home.daily.subline}</p>
           </div>
-          <div className="grid grid-cols-2 gap-2 md:w-72">
+          <div className="grid grid-cols-3 gap-2 md:w-96">
             <QuickAction
               icon={NotesIcon}
-              label="nota"
-              verb="capturar"
+              label="Nota"
+              ariaLabel="Nueva nota"
               onClick={() => onNavigate('notas')}
             />
             <QuickAction
               icon={TasksIcon}
-              label="tarea"
-              verb="capturar"
+              label="Tarea"
+              ariaLabel="Nueva tarea"
               onClick={() => onNavigate('tareas')}
+            />
+            <QuickAction
+              icon={PromptIcon}
+              label="Prompt"
+              ariaLabel="Nuevo prompt"
+              onClick={() => onNavigate('prompts')}
             />
           </div>
         </div>
       </section>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-5">
-        <QuickAction icon={NotesIcon} label="nota" onClick={() => onNavigate('notas')} />
-        <QuickAction
-          icon={TasksIcon}
-          label="tarea"
-          onClick={() => onNavigate('tareas')}
-        />
-        <QuickAction
-          icon={PromptIcon}
-          label="prompt"
-          onClick={() => onNavigate('prompts')}
-        />
-      </div>
 
       {initialLoading ? (
         <NotasHomeLoading />
@@ -251,24 +249,25 @@ function NotasHomeLoading() {
 function QuickAction({
   icon: Icon,
   label,
-  verb = 'nueva',
+  ariaLabel,
   onClick,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>
   label: string
-  verb?: 'nueva' | 'capturar'
+  ariaLabel: string
   onClick: () => void
 }) {
   return (
     <button
       onClick={onClick}
+      aria-label={ariaLabel}
       className="card-paper-soft min-h-[44px] rounded-lg border border-ink-100/70 px-3 py-2 flex items-center justify-between text-left hover:border-ink-200 transition-colors"
     >
       <span className="inline-flex items-center gap-2 text-body text-ink-700">
         <span className="inline-flex" style={{ color: ACCENT }}>
           <Icon size={14} />
         </span>
-        {verb} {label}
+        {label}
       </span>
       <PlusIcon size={12} className="text-ink-300" />
     </button>
@@ -293,7 +292,9 @@ function HubCard({
     >
       <div className="flex items-center justify-between gap-2 mb-2">
         <h3 className="section-eyebrow text-ink-400">{title}</h3>
-        <span className="text-micro tabular-nums text-ink-300">{count}</span>
+        {count > 0 ? (
+          <span className="text-micro tabular-nums text-ink-300">{count}</span>
+        ) : null}
       </div>
       {children}
     </section>

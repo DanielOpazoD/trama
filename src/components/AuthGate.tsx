@@ -15,6 +15,7 @@
 import { Show, SignIn, SignUp } from '@clerk/react'
 import { useEffect, useState } from 'react'
 import { enterDemoMode, exitDemoMode, isDemoMode } from '../lib/demo'
+import { IconButton } from './IconButton'
 import { shouldUseClerk } from '../lib/clerkRuntime'
 import { EyeIcon, TramaMark, TramaWordmark } from './Icons'
 import { LoginThreadField } from './LoginThreadField'
@@ -99,9 +100,31 @@ function useAuthScreenMode() {
 }
 
 /** Banner discreto que recuerda que se está en modo prueba + salida. El
- *  detalle ("datos solo en este navegador") vive en el tooltip para que el
- *  píldora quede a un icono sutil + texto brevísimo. */
+ *  detalle ("datos solo en este navegador") vive en el tooltip para que la
+ *  píldora quede a un icono sutil + texto brevísimo. Tras unos segundos se
+ *  repliega a solo el ojito (clic la reabre): flotante fijo, no debe seguir
+ *  tapando contenido una vez que ya cumplió su aviso. */
 function DemoBanner() {
+  const [minimized, setMinimized] = useState(false)
+  useEffect(() => {
+    const id = window.setTimeout(() => setMinimized(true), 6000)
+    return () => window.clearTimeout(id)
+  }, [])
+
+  if (minimized) {
+    return (
+      <IconButton
+        label="Modo prueba (mostrar opciones)"
+        onClick={() => setMinimized(false)}
+        title="Modo prueba · los datos viven solo en este navegador"
+        className="fixed left-3 bottom-28 md:bottom-3 z-50 flex h-7 w-7 items-center justify-center rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10 text-ink-400 hover:text-ink-700 transition-colors"
+        style={{ marginBottom: 'var(--safe-bottom)' }}
+      >
+        <EyeIcon size={12} />
+      </IconButton>
+    )
+  }
+
   return (
     <div
       // En mobile vive ABAJO, por encima de la barra de captura (con top-14
