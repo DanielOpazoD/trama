@@ -1,8 +1,4 @@
-import {
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-} from 'react'
+import { type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import type { PdfFormFieldDraft } from '../../../../lib/pdfStudio/model/model'
 import type { AnnotationDistributionAxis } from '../editor/pdfAnnotationArrange'
 import type { FormFieldAlignment, FormFieldSizeDimension } from './pdfFormFieldArrange'
@@ -11,16 +7,12 @@ import { focusRing } from '../editor/EditorToolbarPrimitives'
 import { formFieldTextStyle, type FormFieldVisualPatch } from './pdfFormFieldStyle'
 import type { FormFieldPresetKey } from './pdfFormFieldPresets'
 import {
-  InspectorAdvancedSection,
   InspectorAlignRow,
   InspectorArrangeSection,
-  InspectorColorPreview,
-  InspectorDisclosure,
   InspectorHeader,
-  InspectorPresetRow,
-  InspectorSwatchRow,
   InspectorToolButton,
 } from './FormFieldInspectorSections'
+import { FormFieldInspectorMoreOptions } from './FormFieldInspectorMoreOptions'
 import {
   PAGE_PT,
   PT_MAX,
@@ -29,14 +21,12 @@ import {
   type InspectorFlagsPatch,
 } from './formFieldInspectorModel'
 
-type InspectorSection = 'color' | 'bg' | 'border' | 'presets' | 'advanced'
-
 const fieldInput = `h-8 rounded-md border border-ink-100 bg-paper-50 px-2 text-caption text-ink-800 outline-none ${focusRing}`
 
 /**
  * Inspector de la selección de casilleros (uno o varios). Lo esencial queda a
  * la vista (variable, valor, tamaño, alineación); colores, presets y opciones
- * avanzadas viven en filas plegables para que el panel respire.
+ * avanzadas —uso poco frecuente— viven detrás de un «Más opciones» sutil.
  */
 export function FormFieldInspector({
   fields,
@@ -75,7 +65,6 @@ export function FormFieldInspector({
   onRename: (name: string) => void
   onValueChange: (value: string | boolean) => void
 }) {
-  const [openSection, setOpenSection] = useState<InspectorSection | null>(null)
   const active = fields[fields.length - 1]
   if (!active) return null
   const multi = fields.length > 1
@@ -91,8 +80,6 @@ export function FormFieldInspector({
   )
   const setPt = (pt: number) =>
     onApplyStyle({ sizeRatio: clamp(Math.round(pt), PT_MIN, PT_MAX) / PAGE_PT })
-  const toggle = (section: InspectorSection) =>
-    setOpenSection((current) => (current === section ? null : section))
 
   return (
     <aside
@@ -178,61 +165,7 @@ export function FormFieldInspector({
               onAlign={(align) => onApplyVisual({ align })}
             />
           </div>
-          <InspectorDisclosure
-            label="Color de texto"
-            open={openSection === 'color'}
-            preview={<InspectorColorPreview color={active.color} />}
-            onToggle={() => toggle('color')}
-          >
-            <InspectorSwatchRow
-              label="Color de texto"
-              activeColor={active.color}
-              clearLabel="Color de texto por defecto"
-              onClear={() => onApplyVisual({ color: null })}
-              onSelect={(hex) => onApplyVisual({ color: hex })}
-            />
-          </InspectorDisclosure>
         </>
-      )}
-
-      <InspectorDisclosure
-        label="Fondo"
-        open={openSection === 'bg'}
-        preview={<InspectorColorPreview color={active.bgColor} />}
-        onToggle={() => toggle('bg')}
-      >
-        <InspectorSwatchRow
-          label="Fondo"
-          activeColor={active.bgColor}
-          clearLabel="Sin fondo"
-          onClear={() => onApplyVisual({ bgColor: null })}
-          onSelect={(hex) => onApplyVisual({ bgColor: hex })}
-        />
-      </InspectorDisclosure>
-      <InspectorDisclosure
-        label="Borde"
-        open={openSection === 'border'}
-        preview={<InspectorColorPreview color={active.borderColor} />}
-        onToggle={() => toggle('border')}
-      >
-        <InspectorSwatchRow
-          label="Borde"
-          activeColor={active.borderColor}
-          clearLabel="Sin borde"
-          onClear={() => onApplyVisual({ borderColor: null })}
-          onSelect={(hex) => onApplyVisual({ borderColor: hex })}
-        />
-      </InspectorDisclosure>
-
-      {hasTextControls && (
-        <InspectorDisclosure
-          label="Presets"
-          hint="Estilos completos de un clic"
-          open={openSection === 'presets'}
-          onToggle={() => toggle('presets')}
-        >
-          <InspectorPresetRow onApplyPreset={onApplyPreset} />
-        </InspectorDisclosure>
       )}
 
       {multi && (
@@ -245,22 +178,15 @@ export function FormFieldInspector({
         />
       )}
 
-      <InspectorDisclosure
-        label="Avanzado"
-        open={openSection === 'advanced'}
-        onToggle={() => toggle('advanced')}
-      >
-        <InspectorAdvancedSection
-          required={active.required ?? false}
-          readOnly={active.readOnly ?? false}
-          showRememberStyle={!multi && active.fieldKind === 'text'}
-          autoFillToday={
-            !multi && active.fieldKind === 'date' ? active.autoFill === 'today' : null
-          }
-          onPatchSelection={onPatchSelection}
-          onRememberStyle={onRememberStyle}
-        />
-      </InspectorDisclosure>
+      <FormFieldInspectorMoreOptions
+        active={active}
+        hasTextControls={hasTextControls}
+        multi={multi}
+        onApplyPreset={onApplyPreset}
+        onApplyVisual={onApplyVisual}
+        onPatchSelection={onPatchSelection}
+        onRememberStyle={onRememberStyle}
+      />
     </aside>
   )
 }
