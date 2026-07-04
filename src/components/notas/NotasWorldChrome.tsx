@@ -13,6 +13,7 @@ import {
   SidebarResizeHandle,
   SidebarSearchTrigger,
   SidebarSettingsButton,
+  sidebarWidthTransitionClass,
   useSidebarWidth,
 } from '../sidebar/sidebarChrome'
 
@@ -119,10 +120,11 @@ export function NotasSidebar({
 
   return (
     <aside
-      className="surface-sidebar relative shrink-0 border-r border-ink-100 hidden md:flex flex-col"
+      className={`surface-sidebar relative shrink-0 border-r border-ink-100 hidden md:flex flex-col ${sidebarWidthTransitionClass(sidebarWidth.resizing)}`}
       style={{ width: sidebarWidth.width }}
     >
       <SidebarResizeHandle
+        width={sidebarWidth.width}
         resizing={sidebarWidth.resizing}
         onPointerDown={sidebarWidth.startResize}
         onDoubleClick={sidebarWidth.resetWidth}

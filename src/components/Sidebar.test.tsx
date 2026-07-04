@@ -201,6 +201,42 @@ describe('<Sidebar />', () => {
     expect(window.localStorage.getItem('trama:sidebar-width')).toBe('256')
   })
 
+  it('el asa expone su valor a lectores y encaja con imán en el ancho por defecto', () => {
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    expect(handle).toHaveAttribute('aria-valuenow', '256')
+    expect(handle).toHaveAttribute('aria-valuemin', '208')
+    expect(handle).toHaveAttribute('aria-valuemax', '384')
+
+    // Suelta a 6px del default: el imán encaja en 256
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent.pointerUp(window, { clientX: 262 })
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('256')
+    expect(handle).toHaveAttribute('aria-valuenow', '256')
+
+    // Fuera del rango del imán, el ancho es el que pediste
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    fireEvent.pointerUp(window, { clientX: 268 })
+    expect(window.localStorage.getItem('trama:sidebar-width')).toBe('268')
+    expect(handle).toHaveAttribute('aria-valuenow', '268')
+  })
+
+  it('bloquea cursor y selección del documento solo mientras dura el arrastre', () => {
+    window.localStorage.removeItem('trama:sidebar-width')
+    renderSidebar()
+
+    const handle = screen.getByRole('separator', { name: /ajustar ancho/i })
+    fireEvent.pointerDown(handle, { clientX: 256 })
+    expect(document.body.style.cursor).toBe('col-resize')
+    expect(document.body.style.userSelect).toBe('none')
+
+    fireEvent.pointerUp(window, { clientX: 300 })
+    expect(document.body.style.cursor).toBe('')
+    expect(document.body.style.userSelect).toBe('')
+  })
+
   it('cancela el arrastre sin fugas cuando el gesto se interrumpe (pointercancel)', () => {
     window.localStorage.removeItem('trama:sidebar-width')
     renderSidebar()

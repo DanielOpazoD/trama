@@ -36,6 +36,23 @@ colapsado), Configuración solo ícono y el pie con la misma firma.
   early-return de collapsed (rules of hooks). El wrapper de cada ítem
   conserva `onSectionIntent` (prefetch por hover/foco).
 
+## Pulido de máxima calidad (segunda pasada)
+
+Tras autoevaluación multiparamétrica (5.9/7), cuatro mejoras de alto valor:
+
+- **Imán al ancho por defecto**: al arrastrar, ±8px alrededor de 256 encaja
+  en 256 y la línea del asa brilla suave al encajar — el gesto «volver a
+  casa» no exige puntería. El teclado NO tiene imán (precisión).
+- **Cursor y selección globales durante el arrastre**: `col-resize` y
+  `user-select: none` en `document.body` mientras dura el gesto — sin
+  parpadeo de cursor ni texto seleccionado al mover rápido.
+- **Transición serena del ancho** (150ms ease-out, `motion-reduce` la
+  apaga) para reset y teclado; suspendida durante el arrastre, donde manda
+  la mano (`sidebarWidthTransitionClass`).
+- **Semántica ARIA completa**: el separador expone
+  `aria-valuenow/valuemin/valuemax` — lectores de pantalla anuncian el
+  ancho al ajustarlo.
+
 ## Decisiones
 
 - Un solo ancho compartido entre mundos (misma key): la barra se siente

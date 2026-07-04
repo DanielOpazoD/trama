@@ -17,6 +17,7 @@ import {
   SidebarResizeHandle,
   SidebarSearchTrigger,
   SidebarSettingsButton,
+  sidebarWidthTransitionClass,
   useSidebarWidth,
 } from './sidebar/sidebarChrome'
 import { NAV_GROUPS } from '../lib/navigation'
@@ -238,12 +239,13 @@ export function Sidebar({
         className={
           isMobile
             ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-lg'
-            : 'surface-sidebar relative shrink-0 border-r border-ink-100 flex flex-col'
+            : `surface-sidebar relative shrink-0 border-r border-ink-100 flex flex-col ${sidebarWidthTransitionClass(sidebarWidth.resizing)}`
         }
         style={isMobile ? undefined : { width: sidebarWidth.width }}
       >
         {!isMobile && (
           <SidebarResizeHandle
+            width={sidebarWidth.width}
             resizing={sidebarWidth.resizing}
             onPointerDown={sidebarWidth.startResize}
             onDoubleClick={sidebarWidth.resetWidth}

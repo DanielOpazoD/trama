@@ -15,9 +15,18 @@ const SIDEBAR_DEFAULT_WIDTH = 256
 const SIDEBAR_MIN_WIDTH = 208
 const SIDEBAR_MAX_WIDTH = 384
 const KEYBOARD_STEP = 16
+const SNAP_RANGE = 8
 
 function clampWidth(value: number): number {
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(value)))
+}
+
+/** Imán sutil: cerca del ancho por defecto, el arrastre encaja en él. */
+function snapWidth(value: number): number {
+  const clamped = clampWidth(value)
+  return Math.abs(clamped - SIDEBAR_DEFAULT_WIDTH) <= SNAP_RANGE
+    ? SIDEBAR_DEFAULT_WIDTH
+    : clamped
 }
 
 function readStoredWidth(): number {
@@ -52,6 +61,20 @@ export function useSidebarWidth() {
   // los listeners de window quedarían vivos — se limpian aquí.
   useEffect(() => () => cleanupRef.current?.(), [])
 
+  // Durante el arrastre, el cursor col-resize y la no-selección aplican a
+  // TODO el documento: sin esto el cursor parpadea al salirse del asa y el
+  // movimiento rápido va seleccionando texto a su paso.
+  useEffect(() => {
+    if (!resizing) return
+    const { cursor, userSelect } = document.body.style
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      document.body.style.cursor = cursor
+      document.body.style.userSelect = userSelect
+    }
+  }, [resizing])
+
   const startResize = useCallback((event: React.PointerEvent) => {
     event.preventDefault()
     const startX = event.clientX
@@ -61,7 +84,7 @@ export function useSidebarWidth() {
     const move = (ev: PointerEvent) => {
       cancelAnimationFrame(frameRef.current)
       frameRef.current = requestAnimationFrame(() => {
-        setWidth(clampWidth(startWidth + (ev.clientX - startX)))
+        setWidth(snapWidth(startWidth + (ev.clientX - startX)))
       })
     }
     const cleanup = () => {
@@ -73,7 +96,7 @@ export function useSidebarWidth() {
     }
     const finish = (ev: PointerEvent) => {
       cleanup()
-      const final = clampWidth(startWidth + (ev.clientX - startX))
+      const final = snapWidth(startWidth + (ev.clientX - startX))
       setWidth(final)
       storeWidth(final)
       setResizing(false)
@@ -118,23 +141,30 @@ export function useSidebarWidth() {
 }
 
 /** Asa de redimensión en el borde derecho: invisible hasta el hover/foco,
- *  con la línea de acento al agarrarla. Doble clic vuelve al ancho default. */
+ *  con la línea de acento al agarrarla y un brillo suave al encajar en el
+ *  ancho por defecto. Doble clic vuelve al ancho default. */
 export function SidebarResizeHandle({
+  width,
   resizing,
   onPointerDown,
   onDoubleClick,
   onKeyDown,
 }: {
+  width: number
   resizing: boolean
   onPointerDown: (event: React.PointerEvent) => void
   onDoubleClick: () => void
   onKeyDown: (event: KeyboardEvent) => void
 }) {
+  const snapped = resizing && width === SIDEBAR_DEFAULT_WIDTH
   return (
     <div
       role="separator"
       aria-orientation="vertical"
       aria-label="Ajustar ancho de la barra lateral (flechas ← →, doble clic restaura)"
+      aria-valuenow={width}
+      aria-valuemin={SIDEBAR_MIN_WIDTH}
+      aria-valuemax={SIDEBAR_MAX_WIDTH}
       tabIndex={0}
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick}
@@ -144,14 +174,23 @@ export function SidebarResizeHandle({
     >
       <span
         aria-hidden
-        className={`absolute inset-y-0 right-0 w-[2px] rounded-full transition-opacity ${
+        className={`absolute inset-y-0 right-0 w-[2px] rounded-full transition-[opacity,box-shadow] ${
           resizing
             ? 'opacity-100 bg-[color:var(--accent-primary)]'
             : 'opacity-0 bg-ink-200 group-hover:opacity-100 group-focus-visible:opacity-100'
         }`}
+        style={snapped ? { boxShadow: '0 0 8px 1px var(--accent-primary)' } : undefined}
       />
     </div>
   )
+}
+
+/** Clases del `aside` redimensionable: transición serena del ancho para el
+ *  reset y el teclado, suspendida durante el arrastre (ahí manda la mano). */
+export function sidebarWidthTransitionClass(resizing: boolean): string {
+  return resizing
+    ? ''
+    : 'transition-[width] duration-150 ease-out motion-reduce:transition-none'
 }
 
 /** Botón de colapso/expansión: mismo gesto sutil en ambos mundos. */
