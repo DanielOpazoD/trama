@@ -145,7 +145,7 @@ export function TaskItem({
     return (
       <li
         className="list-none rounded-lg bg-paper-50 border border-ink-100/70 p-3 my-1"
-        style={editingFrameStyle(ACCENT, 'var(--accent-primary-soft)')}
+        style={editingFrameStyle()}
       >
         <input
           value={title}

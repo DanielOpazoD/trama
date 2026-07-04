@@ -57,7 +57,7 @@ export function PromptCard({
     return (
       <article
         className="card-paper-soft rounded-xl border border-ink-100/70 p-4"
-        style={editingFrameStyle(ACCENT, 'var(--accent-primary-soft)')}
+        style={editingFrameStyle()}
       >
         <input
           value={title}
