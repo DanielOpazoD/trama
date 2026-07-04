@@ -35,11 +35,17 @@ const clerkAppearance = {
   },
   elements: {
     rootBox: { width: '100%' },
+    // El marco lo pone .trama-login-panel: la tarjeta de Clerk va desnuda
+    // para no duplicar bordes ni vidrios superpuestos.
     card: {
       boxShadow: 'none',
-      border: '1px solid rgb(var(--ink-100) / 0.56)',
-      backgroundColor: 'rgb(var(--paper-50) / 0.6)',
-      backdropFilter: 'blur(22px) saturate(1.08)',
+      border: 'none',
+      backgroundColor: 'transparent',
+    },
+    cardBox: {
+      boxShadow: 'none',
+      border: 'none',
+      backgroundColor: 'transparent',
     },
     header: { display: 'none' },
     socialButtonsBlockButton: {
@@ -156,77 +162,66 @@ function AuthScreen() {
 
   return (
     <div className="trama-login-shell">
-      <LoginThreadField />
-      <div className="trama-login-content">
-        <header className="trama-login-brand">
-          <svg
-            aria-hidden="true"
-            className="trama-login-brandTrace"
-            fill="none"
-            viewBox="0 0 420 130"
-          >
-            <path
-              d="M18 75C72 22 112 111 164 64C214 20 246 104 303 58C340 28 370 39 402 23"
-              pathLength="1"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="1.1"
-            />
-            <path
-              d="M78 104C134 74 182 94 229 82C279 70 324 104 374 77"
-              pathLength="1"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="0.8"
-            />
-          </svg>
-          <div className="trama-login-titleRow">
-            <div className="trama-login-lockup" aria-label="Trama">
-              <span data-testid="login-brand-mark">
-                <TramaMark size={104} className="trama-login-mark" />
-              </span>
-              <h1 aria-label="TRAMA" className="trama-login-wordmarkTitle">
-                <TramaWordmark
-                  className="trama-login-wordmark text-ink-700"
-                  data-testid="login-brand-wordmark"
-                />
-              </h1>
-            </div>
-            <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
-              <TramaMascot
-                className="trama-mascot--wordmark trama-mascot--loginAwake"
-                tabIndex={0}
-              />
+      {/* Panel del telar: la trama tejiéndose en tinta, con la marca y la
+          promesa. El formulario vive aparte, en papel limpio. */}
+      <aside className="trama-login-loom">
+        <LoginThreadField />
+        <div className="trama-login-loomInner">
+          <div className="trama-login-lockup" aria-label="Trama">
+            <span data-testid="login-brand-mark">
+              <TramaMark size={104} className="trama-login-mark" />
             </span>
+            <h1 aria-label="TRAMA" className="trama-login-wordmarkTitle">
+              <TramaWordmark
+                className="trama-login-wordmark"
+                data-testid="login-brand-wordmark"
+              />
+            </h1>
+            <p className="trama-login-subtitle text-micro uppercase tracking-eyebrow">
+              tu archivo vivo
+            </p>
           </div>
-          <p className="trama-login-subtitle text-micro uppercase tracking-eyebrow">
-            tu archivo vivo
-          </p>
-        </header>
-        <div className="trama-login-panel">
-          {mode === 'sign-up' ? (
-            <SignUp routing="hash" signInUrl="/#sign-in" appearance={clerkAppearance} />
-          ) : (
-            <SignIn routing="hash" signUpUrl="/#sign-up" appearance={clerkAppearance} />
-          )}
         </div>
-        <div className="trama-login-demoAction flex justify-center">
-          <button
-            onClick={() => {
-              enterDemoMode()
-              window.location.reload()
-            }}
-            title="Sin cuenta · los datos viven solo en este navegador"
-            className="group inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-600 transition-colors"
-          >
-            <EyeIcon
-              size={12}
-              className="opacity-70 transition-opacity group-hover:opacity-100"
-            />
-            explorar sin cuenta
-          </button>
+        <span className="trama-login-mascotSeal" data-testid="login-mascot-seal">
+          <TramaMascot
+            className="trama-mascot--wordmark trama-mascot--loginAwake"
+            tabIndex={0}
+          />
+        </span>
+      </aside>
+
+      <main className="trama-login-entry">
+        <div className="trama-login-entryInner">
+          <header className="trama-login-entryHeader">
+            <h2 className="trama-login-entryTitle font-serif text-ink-700">
+              {mode === 'sign-up' ? 'Empieza tu trama.' : 'Retoma el hilo.'}
+            </h2>
+          </header>
+          <div className="trama-login-panel">
+            {mode === 'sign-up' ? (
+              <SignUp routing="hash" signInUrl="/#sign-in" appearance={clerkAppearance} />
+            ) : (
+              <SignIn routing="hash" signUpUrl="/#sign-up" appearance={clerkAppearance} />
+            )}
+          </div>
+          <div className="trama-login-demoAction flex justify-center">
+            <button
+              onClick={() => {
+                enterDemoMode()
+                window.location.reload()
+              }}
+              title="Sin cuenta · los datos viven solo en este navegador"
+              className="group inline-flex items-center gap-1.5 text-micro uppercase tracking-eyebrow text-ink-300 hover:text-ink-600 transition-colors"
+            >
+              <EyeIcon
+                size={12}
+                className="opacity-70 transition-opacity group-hover:opacity-100"
+              />
+              explorar sin cuenta
+            </button>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
