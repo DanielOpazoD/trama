@@ -11,7 +11,7 @@ export function SnapGuideLines({ guides }: { guides: SnapGuide[] }) {
           key={`${guide.axis}-${guide.ratio}`}
           aria-hidden="true"
           data-pdf-snap-guide={guide.axis}
-          className="pointer-events-none absolute z-20 bg-[color:var(--accent-sage)]/70"
+          className="animate-pdf-guide-in pointer-events-none absolute z-20 bg-[color:var(--accent-sage)]/70"
           style={
             guide.axis === 'x'
               ? {

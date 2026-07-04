@@ -147,7 +147,7 @@ export function FormFieldLayer({
           ? ''
           : field.readOnly
             ? 'cursor-not-allowed'
-            : `cursor-move rounded-sm ${
+            : `cursor-move rounded-sm transition-shadow duration-150 ${
                 selected
                   ? 'ring-2 ring-[color:var(--accent-sage)]/40'
                   : 'hover:ring-1 hover:ring-[color:var(--accent-sage)]/30'

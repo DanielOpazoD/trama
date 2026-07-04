@@ -84,7 +84,7 @@ export function WorkspaceTemplateVersionsDialog({
         role="dialog"
         aria-modal="true"
         aria-label={`Versiones de ${saved.name}`}
-        className="flex max-h-[70vh] w-[min(92vw,420px)] flex-col rounded-md border border-ink-100 bg-paper-50 p-3 shadow-xl shadow-ink-900/20"
+        className="animate-pdf-panel-in flex max-h-[70vh] w-[min(92vw,420px)] flex-col rounded-md border border-ink-100 bg-paper-50 p-3 shadow-xl shadow-ink-900/20"
       >
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="min-w-0">

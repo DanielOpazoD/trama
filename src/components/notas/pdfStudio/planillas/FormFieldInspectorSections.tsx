@@ -301,16 +301,23 @@ export function InspectorPresetRow({
 /** Sección Avanzado: flags con su explicación y el estilo default de nuevos
  *  casilleros. Lo que confunde a primera vista vive plegado y explicado. */
 export function InspectorAdvancedSection({
+  autoFillToday = null,
   readOnly,
   required,
   showRememberStyle,
   onPatchSelection,
   onRememberStyle,
 }: {
+  /** null oculta la opción (no es un casillero de fecha único). */
+  autoFillToday?: boolean | null
   readOnly: boolean
   required: boolean
   showRememberStyle: boolean
-  onPatchSelection: (patch: { required?: boolean; readOnly?: boolean }) => void
+  onPatchSelection: (patch: {
+    required?: boolean
+    readOnly?: boolean
+    autoFill?: 'today' | undefined
+  }) => void
   onRememberStyle?: () => void
 }) {
   return (
@@ -349,6 +356,28 @@ export function InspectorAdvancedSection({
           </span>
         </span>
       </label>
+      {autoFillToday !== null ? (
+        <label htmlFor="form-field-auto-today" className="flex items-start gap-2">
+          <input
+            id="form-field-auto-today"
+            type="checkbox"
+            checked={autoFillToday}
+            onChange={(event) =>
+              onPatchSelection({
+                autoFill: event.currentTarget.checked ? 'today' : undefined,
+              })
+            }
+            className="mt-0.5 accent-[color:var(--accent-sage)]"
+          />
+          <span>
+            Fecha de hoy automática
+            <span className="block text-micro text-ink-400">
+              Al abrir la planilla para rellenar, este casillero llega con la fecha del
+              día (si está vacío).
+            </span>
+          </span>
+        </label>
+      ) : null}
       {showRememberStyle && onRememberStyle ? (
         <div className="border-t border-ink-100/70 pt-2">
           <button

@@ -119,6 +119,9 @@ export type PdfFormFieldDraft = {
   bgColor?: string
   borderColor?: string
   align?: PdfFormFieldAlign
+  /** Relleno automático al abrir la plantilla para rellenar. Sólo fechas:
+   *  'today' completa el casillero vacío con la fecha local de hoy. */
+  autoFill?: 'today'
 }
 
 export type PdfPage = {

@@ -38,6 +38,28 @@ export function clearTemplateFieldValues(
   }))
 }
 
+/** Fecha local YYYY-MM-DD (el input date y el export esperan ese formato). */
+export function localTodayIso(now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+/** Al abrir la plantilla para rellenar: los casilleros de fecha marcados con
+ *  autoFill 'today' que estén vacíos llegan con la fecha del día. */
+export function applyTemplateAutoFill(
+  fields: PdfFormFieldDraft[],
+  todayIso = localTodayIso(),
+): PdfFormFieldDraft[] {
+  return fields.map((field) =>
+    field.autoFill === 'today' &&
+    field.fieldKind === 'date' &&
+    (field.value == null ||
+      (typeof field.value === 'string' && field.value.trim() === ''))
+      ? { ...field, value: todayIso }
+      : field,
+  )
+}
+
 export function applyTemplateFieldValues(
   fields: PdfFormFieldDraft[],
   values: TemplateFillImportValues,

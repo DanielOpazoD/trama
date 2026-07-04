@@ -39,6 +39,10 @@ function renderInspector(
   return handlers
 }
 
+function openMoreOptions() {
+  fireEvent.click(screen.getByRole('button', { name: /Más opciones/ }))
+}
+
 describe('<FormFieldInspector />', () => {
   it('permite renombrar la variable; los flags viven explicados en Avanzado', () => {
     const handlers = renderInspector()
@@ -46,6 +50,10 @@ describe('<FormFieldInspector />', () => {
     fireEvent.change(screen.getByLabelText('Nombre del casillero'), {
       target: { value: 'diagnostico' },
     })
+    // Todo lo poco frecuente vive detrás de «Más opciones»: nada visible antes.
+    expect(screen.queryByRole('button', { name: 'Avanzado' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Fondo' })).toBeNull()
+    openMoreOptions()
     fireEvent.click(screen.getByRole('button', { name: 'Avanzado' }))
     fireEvent.click(screen.getByRole('checkbox', { name: /Requerido/ }))
     fireEvent.click(screen.getByRole('checkbox', { name: /Solo lectura/ }))
@@ -75,6 +83,7 @@ describe('<FormFieldInspector />', () => {
     // Cerrados por defecto: ninguna paleta visible.
     expect(screen.queryByRole('button', { name: 'Fondo Amarillo' })).toBeNull()
 
+    openMoreOptions()
     fireEvent.click(screen.getByRole('button', { name: 'Color de texto' }))
     fireEvent.click(screen.getByRole('button', { name: 'Color de texto Rojo' }))
     fireEvent.click(screen.getByRole('button', { name: 'Fondo' }))
@@ -116,6 +125,7 @@ describe('<FormFieldInspector />', () => {
     const handlers = renderInspector()
 
     expect(screen.queryByRole('button', { name: /Preset Firma/ })).toBeNull()
+    openMoreOptions()
     fireEvent.click(screen.getByRole('button', { name: 'Presets' }))
 
     for (const preset of ['Limpio', 'Formulario', 'Firma', 'Destacado']) {
@@ -130,6 +140,7 @@ describe('<FormFieldInspector />', () => {
   it('ofrece fijar el estilo de nuevos casilleros con su explicación de tamaño', () => {
     const handlers = renderInspector()
 
+    openMoreOptions()
     fireEvent.click(screen.getByRole('button', { name: 'Avanzado' }))
     expect(screen.getByText(/mismo tamaño de cuadro, letra y estilo/)).toBeVisible()
     fireEvent.click(
@@ -150,6 +161,7 @@ describe('<FormFieldInspector />', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Distribuir casilleros horizontalmente' }),
     )
+    openMoreOptions()
     fireEvent.click(screen.getByRole('button', { name: 'Fondo' }))
     fireEvent.click(screen.getByRole('button', { name: 'Fondo Papel' }))
 
