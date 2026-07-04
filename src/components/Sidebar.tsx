@@ -7,10 +7,18 @@ import {
 } from '../state'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useSectionVisibility } from '../hooks/useSectionVisibility'
-import { ChevronLeftIcon, ChevronRightIcon, SearchIcon, SettingsIcon } from './Icons'
+import { SearchIcon } from './Icons'
 import { IconButton } from './IconButton'
 import { AIModeToggle } from './AIModeToggle'
 import { NavButton } from './sidebar/NavButton'
+import {
+  SidebarBrandLine,
+  SidebarCollapseButton,
+  SidebarResizeHandle,
+  SidebarSearchTrigger,
+  SidebarSettingsButton,
+  useSidebarWidth,
+} from './sidebar/sidebarChrome'
 import { NAV_GROUPS } from '../lib/navigation'
 import { Tooltip } from './Tooltip'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
@@ -121,14 +129,8 @@ export function Sidebar({
       : healthAlerts.maxSeverity === 'warn'
         ? 'var(--accent-gold)'
         : 'var(--accent-primary)'
-  const healthToneSoft =
-    healthAlerts.maxSeverity === 'error'
-      ? 'rgb(185 28 28 / 0.12)'
-      : healthAlerts.maxSeverity === 'warn'
-        ? 'var(--accent-gold-soft)'
-        : 'var(--accent-primary-soft)'
-
   const sectionVis = useSectionVisibility()
+  const sidebarWidth = useSidebarWidth()
 
   // ο2: Sugerencias auto-hide del nav cuando no hay propuestas pendientes.
   // El CommandPalette mantiene la entrada accesible siempre (para forzar
@@ -159,19 +161,17 @@ export function Sidebar({
           />
         </div>
 
-        <IconButton
-          onClick={onToggleCollapsed}
+        <SidebarCollapseButton
+          collapsed
           label="Expandir sidebar"
-          className="touch-target p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
-        >
-          <ChevronRightIcon size={14} />
-        </IconButton>
+          onClick={onToggleCollapsed}
+        />
 
         <Tooltip content={`Buscar (${SHORTCUT_KEY} K)`} side="bottom">
           <IconButton
             onClick={onOpenPalette}
             label={`Buscar (${SHORTCUT_KEY} K)`}
-            className="touch-target p-2 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors"
+            className="touch-target flex size-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-700 hover:bg-ink-100/70 transition-colors"
           >
             <SearchIcon size={14} />
           </IconButton>
@@ -212,35 +212,11 @@ export function Sidebar({
             />
           )}
           <AIModeToggle collapsed />
-          <Tooltip
-            content={
-              healthAlerts.maxSeverity
-                ? `Configuración — ${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'}`
-                : 'Configuración'
-            }
-            side="bottom"
-          >
-            <button
-              onClick={handleOpenSettings}
-              aria-label={
-                healthAlerts.maxSeverity
-                  ? `Configuración (${healthAlerts.count} ${healthAlerts.count === 1 ? 'alerta' : 'alertas'})`
-                  : 'Configuración'
-              }
-              className="touch-target relative p-2 text-ink-300 hover:text-ink-700 hover:bg-ink-50 rounded-md transition-colors active:scale-95"
-            >
-              <SettingsIcon size={14} />
-              {healthAlerts.maxSeverity && (
-                <span
-                  aria-hidden
-                  className={`absolute top-1 right-1 size-1.5 rounded-full ${
-                    healthAlerts.maxSeverity !== 'info' ? 'animate-pulse-subtle' : ''
-                  }`}
-                  style={{ backgroundColor: healthTone }}
-                />
-              )}
-            </button>
-          </Tooltip>
+          <SidebarSettingsButton
+            onClick={handleOpenSettings}
+            alertCount={healthAlerts.maxSeverity ? healthAlerts.count : 0}
+            alertTone={healthTone}
+          />
         </div>
       </aside>
     )
@@ -262,9 +238,18 @@ export function Sidebar({
         className={
           isMobile
             ? 'surface-sidebar fixed inset-y-0 left-0 w-64 z-40 border-r border-ink-100 flex flex-col shadow-lg'
-            : 'surface-sidebar w-64 shrink-0 border-r border-ink-100 flex flex-col'
+            : 'surface-sidebar relative shrink-0 border-r border-ink-100 flex flex-col'
         }
+        style={isMobile ? undefined : { width: sidebarWidth.width }}
       >
+        {!isMobile && (
+          <SidebarResizeHandle
+            resizing={sidebarWidth.resizing}
+            onPointerDown={sidebarWidth.startResize}
+            onDoubleClick={sidebarWidth.resetWidth}
+            onKeyDown={sidebarWidth.nudgeWidth}
+          />
+        )}
         <header className="px-3 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             {/* τ-worlds: el logo es el conmutador de mundos (abre el menú). */}
@@ -283,13 +268,11 @@ export function Sidebar({
               </span>
             )}
           </div>
-          <IconButton
-            onClick={onToggleCollapsed}
+          <SidebarCollapseButton
+            collapsed={false}
             label="Contraer sidebar"
-            className="touch-target p-1 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors shrink-0"
-          >
-            <ChevronLeftIcon size={14} />
-          </IconButton>
+            onClick={onToggleCollapsed}
+          />
         </header>
 
         {/* σ-followup: buscador del sidebar con fondo blanco (paper-50)
@@ -298,14 +281,10 @@ export function Sidebar({
           más limpio y reserva el kbd para el contexto donde aporta
           (la herramienta abierta), no en el trigger. */}
         <div className="px-2 mb-1.5">
-          <button
+          <SidebarSearchTrigger
+            ariaLabel={`Buscar (${SHORTCUT_KEY} K)`}
             onClick={onOpenPalette}
-            aria-label={`Buscar (${SHORTCUT_KEY} K)`}
-            className="touch-target w-full flex items-center gap-2 px-2.5 py-1.5 text-caption text-ink-400 hover:text-ink-700 bg-paper-50 hover:bg-paper-100 border border-ink-100/60 hover:border-ink-200 rounded-md transition-colors"
-          >
-            <SearchIcon size={12} />
-            <span className="flex-1 text-left leading-none">Buscar</span>
-          </button>
+          />
         </div>
 
         {/* τ-IA: la nav es la zona flexible con scroll propio. Antes un
@@ -343,32 +322,19 @@ export function Sidebar({
           ))}
         </nav>
 
-        <div className="px-2 pt-2 pb-2 mt-2 border-t border-ink-100 space-y-px">
+        <div className="px-2 pt-2 pb-2 mt-2 border-t border-ink-100 space-y-1">
           <AIModeToggle />
-          <button
-            onClick={handleOpenSettings}
-            className="touch-target w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-body text-ink-500 hover:text-ink-800 hover:bg-ink-100/60 transition-colors"
-          >
-            <SettingsIcon size={14} className="text-ink-400" />
-            <span className="flex-1 text-left">Configuración</span>
-            {healthAlerts.maxSeverity && (
-              <span
-                className="text-micro uppercase tracking-eyebrow tabular-nums px-1.5 py-0.5 rounded-full font-medium"
-                style={{ backgroundColor: healthToneSoft, color: healthTone }}
-                aria-label={`${healthAlerts.count} ${
-                  healthAlerts.count === 1 ? 'alerta' : 'alertas'
-                }`}
-              >
-                {healthAlerts.count}
-              </span>
-            )}
-          </button>
-          {/* Versión leída del package.json en build-time (vite.config.ts
-            inyecta VITE_APP_VERSION). Single source of truth — no hay
-            que recordar actualizar este string a mano. */}
-          <p className="text-micro uppercase tracking-wider text-ink-300 text-center pt-2 pb-0.5">
-            trama · v{import.meta.env.VITE_APP_VERSION}
-          </p>
+          {/* Configuración es solo el ícono (tooltip + dot de alertas); la
+              firma de versión ancla el borde inferior con el mismo estilo
+              en ambos mundos. */}
+          <div className="flex items-center justify-between gap-2 px-1 pt-0.5">
+            <SidebarSettingsButton
+              onClick={handleOpenSettings}
+              alertCount={healthAlerts.maxSeverity ? healthAlerts.count : 0}
+              alertTone={healthTone}
+            />
+            <SidebarBrandLine />
+          </div>
         </div>
       </aside>
     </>

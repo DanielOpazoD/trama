@@ -154,7 +154,7 @@ describe('<NotasWorld />', () => {
     // El trigger por defecto es el botón "Buscar…" del sidebar expandido; el
     // diálogo (aria-label "Buscar en Notas") es lo que abre. El icon-button
     // "Buscar en Notas" solo existe con el sidebar colapsado.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Buscar…' })[0]!)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Buscar en Notas' })[0]!)
 
     const dialog = await screen.findByRole('dialog', { name: 'Buscar en Notas' })
     expect(dialog).toHaveAttribute('aria-modal', 'true')

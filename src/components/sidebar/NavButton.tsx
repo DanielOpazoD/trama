@@ -18,8 +18,8 @@ import type { ViewMode } from '../../types/view'
  * `tone` se aplica al badge: 'default' = ink gris normal,
  * 'accent' = accent-primary (usado en Sugerencias para llamar la atención).
  */
-export type NavItem = {
-  value: ViewMode
+export type NavItem<V extends string = ViewMode> = {
+  value: V
   label: string
   icon: React.ComponentType<{ size?: number; className?: string }>
 }
@@ -34,7 +34,7 @@ export function NavButton({
   accentColor,
   onClick,
 }: {
-  item: NavItem
+  item: NavItem<string>
   active: boolean
   /** null = no count (oculta badge). number = mostrar (animado con NumberTicker). */
   count: number | null
