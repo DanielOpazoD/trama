@@ -61,7 +61,8 @@ export function MomentosView() {
   )
   // Espejo estable de los primitivos de paginación para el efecto de auto-carga:
   // exhaustive-deps prefiere las claves, no el objeto query que muta cada render.
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = momentosQuery
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } =
+    momentosQuery
   const deleteMomento = useDeleteMomento()
   const { data: entities = [] } = useEntitiesQuery()
   const toast = useToast()
@@ -168,10 +169,20 @@ export function MomentosView() {
   useEffect(() => {
     const wantsAllPages = viewMode === 'album' || contentFilter === 'video'
     if (!wantsAllPages) return
-    if (hasNextPage && !isFetchingNextPage) {
+    // Guard contra tormenta de reintentos: si `fetchNextPage` falló tras sus
+    // retries, `isFetchingNextPage` vuelve a false con `hasNextPage` aún true;
+    // sin `isFetchNextPageError` el efecto lo re-dispararía en cada render.
+    if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) {
       void fetchNextPage()
     }
-  }, [viewMode, contentFilter, hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [
+    viewMode,
+    contentFilter,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    fetchNextPage,
+  ])
 
   return (
     <>
