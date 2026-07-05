@@ -193,7 +193,7 @@ function TimelineRow({
               <span className="text-micro uppercase tracking-eyebrow text-ink-300">
                 cita
               </span>
-              <span className="text-ink-500 text-sm">— {entity?.name ?? '?'}</span>
+              <span className="text-ink-500 text-caption">— {entity?.name ?? '?'}</span>
               {event.payload.isAI && (
                 <span
                   className="inline-flex items-center text-[color:var(--accent-primary)]"
@@ -204,7 +204,7 @@ function TimelineRow({
               )}
             </div>
             <p className="mt-1 font-serif italic text-ink-600 text-body leading-snug truncate">
-              «{event.payload.text}»
+              {event.payload.text}
             </p>
           </div>
           <div className="flex items-baseline gap-2 shrink-0">
@@ -224,7 +224,7 @@ function TimelineRow({
   const to = entities.find((e) => e.id === event.payload.toId)
   return (
     <div className="card-paper p-3">
-      <div className="flex items-baseline justify-between gap-3 text-sm">
+      <div className="flex items-baseline justify-between gap-3 text-caption">
         <div className="min-w-0">
           <span className="text-micro uppercase tracking-eyebrow text-ink-300 mr-2">
             relación

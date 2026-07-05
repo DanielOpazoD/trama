@@ -101,7 +101,7 @@ function MomentoEntryInternal({
                     setActionsOpen(false)
                     setEditOpen(true)
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
                 >
                   <PencilIcon size={12} />
                   Editar
@@ -115,7 +115,7 @@ function MomentoEntryInternal({
                     setActionsOpen(false)
                     onDelete()
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]"
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]"
                 >
                   <TrashIcon size={12} />
                   Eliminar
@@ -166,7 +166,7 @@ function RecorteBody({ momento }: { momento: Momento }) {
         </p>
       )}
       {title && (
-        <h4 className="font-serif text-lg text-ink-700 leading-snug">
+        <h4 className="font-serif text-lead text-ink-700 leading-snug">
           {url ? (
             <a
               href={url}
@@ -175,7 +175,7 @@ function RecorteBody({ momento }: { momento: Momento }) {
               className="hover:text-ink-800 transition-colors border-b border-dotted border-transparent hover:border-ink-400"
             >
               {title}
-              <span className="text-ink-300 text-sm ml-1">↗</span>
+              <span className="text-ink-300 text-caption ml-1">↗</span>
             </a>
           ) : (
             title
@@ -187,7 +187,7 @@ function RecorteBody({ momento }: { momento: Momento }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-ink-500 hover:text-ink-700 transition-colors underline decoration-dotted"
+          className="text-caption text-ink-500 hover:text-ink-700 transition-colors underline decoration-dotted"
         >
           {url} ↗
         </a>
@@ -264,7 +264,7 @@ function FotoBody({ momento }: { momento: Momento }) {
         )}
       </div>
       {caption && (
-        <p className="font-serif text-sm italic text-ink-500 max-w-md">{caption}</p>
+        <p className="font-serif text-caption italic text-ink-500 max-w-md">{caption}</p>
       )}
       {momento.note && (
         // Mismo estilo que las notas de texto — coherencia con NotaBody.

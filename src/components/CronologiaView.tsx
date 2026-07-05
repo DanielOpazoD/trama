@@ -110,6 +110,7 @@ export function CronologiaView({
         accent="var(--accent-sage)"
         subtitle="Las cuatro corrientes del archivo en un solo hilo: lo que el lenguaje fijó, lo que capturaste, lo que sonó, lo que la IA escribió del mes. Leído como un diario, por estaciones."
         spacing="tight"
+        density="compact"
       />
 
       {query.isLoading ? (
@@ -201,7 +202,7 @@ function EntryBody({
           className="text-left w-full group"
         >
           <p className="font-serif text-ink-700 italic leading-relaxed group-hover:text-ink-800 transition-colors">
-            «{entry.text}»
+            {entry.text}
           </p>
           <p className="mt-1 text-caption text-ink-400">
             — {entry.entityName}

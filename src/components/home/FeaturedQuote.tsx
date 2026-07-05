@@ -58,26 +58,26 @@ export function FeaturedQuote({
         {onReroll && (
           <button
             onClick={onReroll}
-            className="text-xs uppercase tracking-wider text-ink-300 hover:text-ink-700 transition-colors"
+            className="text-caption uppercase tracking-wider text-ink-300 hover:text-ink-700 transition-colors"
             title="Rotar a otra cita"
           >
             Otra
           </button>
         )}
       </div>
-      {/* La cita misma: tamaño más generoso (text-2xl en desktop), serif
+      {/* La cita misma: tamaño más generoso en desktop, serif
           con leading relajado, y el drop-cap cuando la longitud justifica.
           Comillas tipográficas decorativas no embebidas en el texto: una
           comilla grande gris bajando como ornamento del lado izquierdo
           superior, sin interferir con el texto leíble. */}
       <blockquote
-        className={`quote-block font-serif text-xl md:text-2xl text-ink-700 leading-relaxed clear-both overflow-hidden ${
+        className={`quote-block font-serif text-h2 md:text-3xl text-ink-700 leading-relaxed clear-both overflow-hidden ${
           useDropCap ? 'drop-cap' : ''
         }`}
       >
         {quote.text}
       </blockquote>
-      <div className="mt-5 text-sm text-ink-400 text-right">
+      <div className="mt-5 text-caption text-ink-400 text-right">
         {entity ? (
           <button
             onClick={() => onSelectEntity(entity.id)}

@@ -48,7 +48,7 @@ export function FirstMomentPreview() {
             'radial-gradient(ellipse 80% 60% at 20% 30%, var(--accent-gold-soft) 0%, transparent 60%)',
         }}
       >
-        <blockquote className="quote-block text-lg md:text-xl text-ink-700 leading-snug clear-both overflow-hidden">
+        <blockquote className="quote-block text-lead md:text-h2 text-ink-700 leading-snug clear-both overflow-hidden">
           <span
             className="float-left mr-1.5 mt-1 text-4xl leading-[0.85] font-serif select-none"
             style={{ color: 'var(--accent-gold)' }}
@@ -58,7 +58,7 @@ export function FirstMomentPreview() {
           l tiempo es la sustancia de que estoy hecho. El tiempo es un río que me
           arrebata, pero yo soy el río.
         </blockquote>
-        <div className="mt-3 flex justify-between items-baseline gap-4 text-sm">
+        <div className="mt-3 flex justify-between items-baseline gap-4 text-caption">
           <span className="text-ink-500">— Jorge Luis Borges</span>
           <span
             className="inline-flex items-center px-2 py-0.5 rounded-full text-micro tracking-eyebrow"

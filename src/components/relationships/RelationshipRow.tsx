@@ -8,6 +8,10 @@ import { IconButton } from '../IconButton'
  * con buttons en from/to que despachan al panel de detalle de cada
  * entidad. Toolbar de borrado en hover-right.
  *
+ * La vista pasa `from`/`to` como undefined a propósito (usa fromName/toName
+ * para no disparar el query wholesale de entidades), así que la fila no puede
+ * conocer el TIPO de cada extremo — de ahí que pinte nombres, no sellos.
+ *
  * El label del tipo viene de RELATIONSHIP_TYPES; si la fila tiene un
  * type nuevo que el cliente todavía no conoce (tabla `relationship_types`
  * en DB extendida), usamos un fallback defensivo: reemplazamos `_` por
@@ -30,50 +34,40 @@ function RelationshipRowInternal({
   const typeLabel =
     RELATIONSHIP_TYPES.find((t) => t.value === rel.type)?.label ??
     rel.type.replace(/_/g, ' ')
+  const linkClass =
+    'truncate border-b border-transparent text-ink-700 transition-colors hover:border-ink-300 hover:text-ink-800'
   return (
     <div className="group card-paper-hover p-3 hover:shadow-ink-900/5">
-      <div className="flex justify-between items-baseline gap-4">
-        <div className="text-ink-600 leading-relaxed">
-          {from ? (
+      <div className="flex items-center justify-between gap-3">
+        {/* La relación como «línea del grafo»: sujeto · tipo (conector) ·
+            objeto. flex-wrap para que no desborde en pantallas angostas. */}
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1 leading-relaxed text-ink-600">
+          {from || rel.fromName ? (
             <button
-              onClick={() => onSelectEntity?.(from.id)}
-              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
+              onClick={() => onSelectEntity?.(from?.id ?? rel.fromId)}
+              className={linkClass}
             >
-              {from.name}
-            </button>
-          ) : rel.fromName ? (
-            <button
-              onClick={() => onSelectEntity?.(rel.fromId)}
-              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
-            >
-              {rel.fromName}
+              {from?.name ?? rel.fromName}
             </button>
           ) : (
             <span className="text-ink-700">—</span>
           )}
-          <span className="mx-2 text-micro uppercase tracking-eyebrow text-ink-300">
+          <span className="shrink-0 text-micro uppercase tracking-eyebrow text-ink-300">
             {typeLabel}
           </span>
-          {to ? (
+          {to || rel.toName ? (
             <button
-              onClick={() => onSelectEntity?.(to.id)}
-              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
+              onClick={() => onSelectEntity?.(to?.id ?? rel.toId)}
+              className={linkClass}
             >
-              {to.name}
-            </button>
-          ) : rel.toName ? (
-            <button
-              onClick={() => onSelectEntity?.(rel.toId)}
-              className="text-ink-700 hover:text-ink-800 transition-colors border-b border-transparent hover:border-ink-300"
-            >
-              {rel.toName}
+              {to?.name ?? rel.toName}
             </button>
           ) : (
             <span className="text-ink-700">—</span>
           )}
           {rel.origin.kind === 'ai' && (
             <span
-              className="ml-1.5 inline-flex items-center text-[color:var(--accent-primary)] align-middle"
+              className="inline-flex items-center text-[color:var(--accent-primary)]"
               title="propuesta por IA"
             >
               <SparkleIcon size={10} />
@@ -82,7 +76,7 @@ function RelationshipRowInternal({
         </div>
         <IconButton
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-ink-400 hover:text-[color:var(--accent-clay)] hover:bg-ink-100 rounded"
+          className="shrink-0 rounded p-1.5 text-ink-400 opacity-0 transition-opacity hover:bg-ink-100 hover:text-[color:var(--accent-clay)] focus-visible:opacity-100 group-hover:opacity-100"
           label="Eliminar"
           title="Eliminar"
         >
@@ -90,7 +84,7 @@ function RelationshipRowInternal({
         </IconButton>
       </div>
       {rel.notes && (
-        <p className="mt-1 text-body text-ink-400 leading-relaxed">{rel.notes}</p>
+        <p className="mt-1.5 text-body leading-relaxed text-ink-400">{rel.notes}</p>
       )}
     </div>
   )

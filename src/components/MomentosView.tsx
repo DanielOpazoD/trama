@@ -154,6 +154,7 @@ export function MomentosView() {
         eyebrow="✦ memoria fechada"
         accent="var(--accent-gold)"
         spacing="tight"
+        density="compact"
       />
 
       {/* Si se llega por `?compose=` (QR/celular), el composer arranca expandido;
