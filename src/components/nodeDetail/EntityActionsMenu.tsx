@@ -64,7 +64,7 @@ export function EntityActionsMenu({
   }
 
   const ROW =
-    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors'
+    'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-body text-left transition-colors'
 
   return (
     <>
@@ -98,20 +98,20 @@ export function EntityActionsMenu({
           >
             {confirming ? (
               <div className="px-1 py-0.5">
-                <p className="text-sm text-ink-600 px-1.5 py-1">
+                <p className="text-body text-ink-600 px-1.5 py-1">
                   ¿Eliminar esta entidad?
                 </p>
                 <div className="flex items-center justify-end gap-2 mt-1">
                   <button
                     onClick={() => setConfirming(false)}
-                    className="btn-ghost text-xs"
+                    className="btn-ghost text-caption"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={remove}
                     disabled={deleteEntity.isPending}
-                    className="text-xs uppercase tracking-eyebrow text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] disabled:opacity-50"
+                    className="text-caption uppercase tracking-eyebrow text-[color:var(--accent-clay)] hover:text-[color:var(--accent-clay)] disabled:opacity-50"
                   >
                     {deleteEntity.isPending ? 'eliminando…' : 'Eliminar'}
                   </button>

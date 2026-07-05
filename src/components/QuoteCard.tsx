@@ -9,6 +9,8 @@ import type { Quote } from '../types'
 import { SparkleIcon, TrashIcon } from './Icons'
 import { OverflowMenu, OverflowMenuItem } from './OverflowMenu'
 import { QuoteEditMode } from './quotes/QuoteEditMode'
+import { QuoteMark } from './QuoteMark'
+import { typeAccent } from './graph/GraphNode'
 
 /**
  * Una cita, expandida — versión del panel de entidad.
@@ -31,6 +33,10 @@ export function QuoteCard({
   const reflectQuote = useReflectQuote()
   const deleteQuote = useDeleteQuote()
   const { data: entities = [] } = useEntitiesQuery()
+  // La entidad fuente tiñe el filete por tipo (mismo criterio que QuoteItem).
+  const entity = quote.entityId
+    ? entities.find((e) => e.id === quote.entityId)
+    : undefined
 
   const [editingUserRefl, setEditingUserRefl] = useState(false)
   const [userReflDraft, setUserReflDraft] = useState(quote.userReflection ?? '')
@@ -141,16 +147,28 @@ export function QuoteCard({
   }
 
   return (
-    <li className="group border-l-2 border-ink-200/70 pl-3">
+    <li
+      className="group border-l-2 border-ink-200/70 pl-3"
+      style={
+        entity
+          ? {
+              borderLeftColor: `color-mix(in srgb, ${typeAccent(entity.type)} 65%, rgb(var(--ink-200)))`,
+            }
+          : undefined
+      }
+    >
       <blockquote
         onDoubleClick={startFullEdit}
-        className="font-serif text-ink-600 italic leading-relaxed text-body cursor-text select-text"
+        className="relative font-serif text-ink-600 italic leading-relaxed text-body cursor-text select-text"
         title="Doble click para editar"
       >
-        «{quote.text}»
+        {/* Comilla ornamental en oro — el mismo epígrafe impreso de la vista
+            Citas, ahora también en la ficha. */}
+        <QuoteMark size="md" className="absolute -top-2 -left-1" />
+        {quote.text}
       </blockquote>
 
-      <div className="mt-1 flex items-center gap-3 text-xs">
+      <div className="mt-1 flex items-center gap-3 text-caption">
         {quote.source && <span className="text-ink-400">{quote.source}</span>}
         {quote.origin.kind === 'ai' && (
           <span
@@ -241,7 +259,7 @@ export function QuoteCard({
             placeholder="tu reflexión sobre esta cita…"
             aria-label="Tu reflexión sobre esta cita"
             rows={3}
-            className="input-paper w-full resize-none text-sm"
+            className="input-paper w-full resize-none text-body"
             autoFocus
           />
           <div className="flex items-center justify-end gap-2">
@@ -250,14 +268,14 @@ export function QuoteCard({
                 setEditingUserRefl(false)
                 setUserReflDraft(quote.userReflection ?? '')
               }}
-              className="btn-ghost text-xs"
+              className="btn-ghost text-caption"
             >
               cancelar
             </button>
             <button
               onClick={handleSaveUserReflection}
               disabled={updateQuote.isPending}
-              className="btn-accent text-xs"
+              className="btn-accent text-caption"
             >
               {updateQuote.isPending ? 'guardando…' : 'guardar reflexión'}
             </button>
@@ -336,13 +354,13 @@ export function QuoteCard({
             {pendingAi.text}
           </p>
           <div className="mt-2 flex items-center justify-end gap-2">
-            <button onClick={() => setPendingAi(null)} className="btn-ghost text-xs">
+            <button onClick={() => setPendingAi(null)} className="btn-ghost text-caption">
               descartar
             </button>
             <button
               onClick={handleAcceptAi}
               disabled={updateQuote.isPending}
-              className="btn-accent text-xs"
+              className="btn-accent text-caption"
             >
               {updateQuote.isPending ? 'guardando…' : 'guardar'}
             </button>
@@ -351,7 +369,9 @@ export function QuoteCard({
       )}
 
       {reflectError && (
-        <p className="mt-1 text-xs text-[color:var(--accent-clay)]">{reflectError}</p>
+        <p className="mt-1 text-caption text-[color:var(--accent-clay)]">
+          {reflectError}
+        </p>
       )}
 
       {/* Citas vinculadas — chips */}
@@ -368,7 +388,7 @@ export function QuoteCard({
                   className="text-caption px-2 py-0.5 rounded-full bg-paper-100 border border-ink-100/60 text-ink-500 hover:text-ink-700 hover:border-ink-200 transition-colors"
                   title={q.text}
                 >
-                  «{truncate(q.text, 40)}»
+                  {truncate(q.text, 40)}
                 </button>
               </li>
             ))}

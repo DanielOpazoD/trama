@@ -46,7 +46,7 @@ export function QuickNoteForm({
         onChange={(e) => setNoteDraft(e.target.value)}
         placeholder="Una cita…"
         rows={2}
-        className="input-paper w-full resize-none text-sm"
+        className="input-paper w-full resize-none text-body"
         autoFocus
         aria-label="Cita"
       />
@@ -56,7 +56,7 @@ export function QuickNoteForm({
           onChange={(e) => setReflectionDraft(e.target.value)}
           placeholder="Tu reflexión…"
           rows={2}
-          className="input-paper w-full resize-none text-sm"
+          className="input-paper w-full resize-none text-body"
           aria-label="Reflexión"
         />
       ) : (
@@ -69,13 +69,13 @@ export function QuickNoteForm({
         </button>
       )}
       <div className="flex items-center justify-end gap-2">
-        <button type="button" onClick={onDone} className="btn-ghost text-xs">
+        <button type="button" onClick={onDone} className="btn-ghost text-caption">
           cancelar
         </button>
         <button
           type="submit"
           disabled={!noteDraft.trim() || addQuote.isPending}
-          className="btn-accent text-xs"
+          className="btn-accent text-caption"
         >
           {addQuote.isPending ? 'añadiendo…' : 'añadir'}
         </button>

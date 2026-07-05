@@ -82,7 +82,7 @@ export function EntityHeader({
         </p>
         {/* Nombre serif text-h1 (32px) con leading apretado para que un
             nombre largo entre en una o dos líneas elegantes. */}
-        <h2 className="font-serif text-xl text-ink-800 leading-[1.2] tracking-tight break-words">
+        <h2 className="font-serif text-h1 text-ink-800 leading-[1.2] tracking-tight break-words">
           {entity.name}
         </h2>
         {/* Descripción inmediatamente debajo del título — el editor se
@@ -100,7 +100,7 @@ export function EntityHeader({
           ) : (
             <p
               onDoubleClick={onEditDescription}
-              className="text-ink-300 italic text-sm cursor-text"
+              className="text-ink-300 italic text-caption cursor-text"
               title="Doble clic para añadir descripción"
             >
               sin descripción.
@@ -112,7 +112,7 @@ export function EntityHeader({
               href={entity.spotifyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-[color:var(--accent-sage)] hover:text-[color:var(--accent-sage)] transition-colors"
+              className="inline-flex items-center gap-1 text-caption text-[color:var(--accent-sage)] hover:text-[color:var(--accent-sage)] transition-colors"
             >
               ↗ abrir en Spotify
             </a>
@@ -122,7 +122,7 @@ export function EntityHeader({
               href={entity.wikipediaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-ink-700 transition-colors"
+              className="inline-flex items-center gap-1 text-caption text-ink-400 hover:text-ink-700 transition-colors"
             >
               ↗ Wikipedia
             </a>
@@ -134,7 +134,7 @@ export function EntityHeader({
             href={grokipediaHref(entity)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-ink-400 hover:text-ink-700 transition-colors"
+            className="inline-flex items-center gap-1 text-caption text-ink-400 hover:text-ink-700 transition-colors"
             title={
               entity.grokipediaUrl
                 ? 'Abrir el artículo de Grokipedia'

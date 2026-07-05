@@ -88,6 +88,16 @@ export function NodeDetailPanel({
               onDone={() => setEditingDescription(false)}
             />
           )}
+          {entity.essay && (
+            <section>
+              <h3 className="section-eyebrow-serif mb-2">Ensayo</h3>
+              {/* El ensayo largo como cuerpo de libro: serif, leading
+                  relajado, respetando los saltos de línea del texto. */}
+              <p className="whitespace-pre-wrap font-serif text-body leading-relaxed text-ink-600">
+                {entity.essay}
+              </p>
+            </section>
+          )}
           <QuotesList entity={entity} />
           <VozDe entity={entity} />
         </div>
