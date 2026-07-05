@@ -61,7 +61,7 @@ export function MomentoComposer({
         type="button"
         onClick={() => setExpanded(true)}
         aria-label="Escribir un nuevo momento"
-        className="mb-6 w-full p-2.5 bg-paper-100/40 border border-ink-100/60 rounded-lg text-left flex items-baseline gap-2.5 hover:border-ink-200 transition-colors animate-fade-up"
+        className="mb-4 w-full p-2.5 bg-paper-100/40 border border-ink-100/60 rounded-lg text-left flex items-baseline gap-2.5 hover:border-ink-200 transition-colors animate-fade-up"
       >
         <span
           className="section-eyebrow-serif shrink-0"
@@ -82,7 +82,7 @@ export function MomentoComposer({
       // AA-A: aún más apretado — p-2.5 + space-y-1.5 + header pb-1.5
       // + rounded-lg (era xl). El composer ahora tiene la silueta de
       // un input grande, no una card-page.
-      className="mb-6 p-2.5 bg-paper-100/40 border border-ink-100/60 rounded-lg space-y-1.5 animate-fade-up"
+      className="mb-4 p-2.5 bg-paper-100/40 border border-ink-100/60 rounded-lg space-y-1.5 animate-fade-up"
     >
       <header className="pb-1.5 border-b border-ink-100/60 flex items-baseline justify-between gap-4">
         <div className="min-w-0">

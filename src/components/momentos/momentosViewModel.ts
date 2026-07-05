@@ -62,6 +62,26 @@ export function shouldUseAlbumView({
   return viewMode === 'album' && (filterKind === 'foto' || filterKind === null)
 }
 
+/**
+ * Filtro de contenido de la barra de Momentos. Extiende los kinds reales con
+ * 'all' (sin filtro) y 'video' — que no es un kind sino un item dentro de
+ * kind='foto'. La query solo entiende kinds reales, así que 'video' consulta
+ * fotos y se refina client-side con `momentoHasVideo`.
+ */
+export type ContentFilter = 'all' | MomentoKind | 'video'
+
+/** Traduce el filtro de contenido al kind real que entiende la query. */
+export function contentFilterToKind(filter: ContentFilter): MomentoKind | null {
+  if (filter === 'all') return null
+  if (filter === 'video') return 'foto'
+  return filter
+}
+
+/** ¿El momento trae al menos un clip de video? (items[].type === 'video'). */
+export function momentoHasVideo(momento: Momento): boolean {
+  return momento.payload.items?.some((item) => item.type === 'video') ?? false
+}
+
 export function formatDayLabel(iso: string): string {
   const [year, month, day] = iso.split('-').map(Number)
   if (

@@ -24,11 +24,14 @@ import {
 } from './momentos/MomentosViewSections'
 import {
   buildEntitiesById,
+  contentFilterToKind,
   filterMomentosByDay,
-  readDayParamFromSearch,
+  momentoHasVideo,
   readInitialComposeFromSearch,
   shouldUseAlbumView,
+  type ContentFilter,
 } from './momentos/momentosViewModel'
+import { clearDayFilter, useDayFilter } from './momentos/useDayFilter'
 
 /**
  * Vista Momentos — orquestador.
@@ -44,15 +47,21 @@ import {
  * entre sí. Toda la lógica vive en los sub-archivos.
  */
 export function MomentosView() {
-  // Filtros y modo de vista. null = todos. La queryKey de useInfiniteMomentosQuery
-  // cambia con `filterKind`, así cada filtro tiene su cache + paginación.
-  const [filterKind, setFilterKind] = useState<MomentoKind | null>(null)
+  // Filtros y modo de vista. 'all' = todos. La queryKey de useInfiniteMomentosQuery
+  // cambia con el kind derivado, así cada filtro tiene su cache + paginación.
+  const [contentFilter, setContentFilter] = useState<ContentFilter>('all')
   const [viewMode, setViewMode] = useState<'timeline' | 'album'>('album')
   const [shareOpen, setShareOpen] = useState(false)
 
+  // El filtro de contenido se traduce a un kind real para la query; 'video'
+  // consulta fotos (el clip vive dentro de kind='foto') y se refina abajo.
+  const queryKind = contentFilterToKind(contentFilter)
   const momentosQuery = useInfiniteMomentosQuery(
-    filterKind ? { kind: filterKind } : undefined,
+    queryKind ? { kind: queryKind } : undefined,
   )
+  // Espejo estable de los primitivos de paginación para el efecto de auto-carga:
+  // exhaustive-deps prefiere las claves, no el objeto query que muta cada render.
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = momentosQuery
   const deleteMomento = useDeleteMomento()
   const { data: entities = [] } = useEntitiesQuery()
   const toast = useToast()
@@ -78,8 +87,12 @@ export function MomentosView() {
 
   const items = useMemo(() => {
     const all = momentosQuery.data?.pages.flatMap((p) => p.items) ?? []
-    return filterMomentosByDay(all, dayFilter)
-  }, [momentosQuery.data, dayFilter])
+    const byDay = filterMomentosByDay(all, dayFilter)
+    // 'video' no es un kind: se refina client-side a los momentos que traen al
+    // menos un clip. El álbum ya cargó todas las páginas (auto-load de abajo),
+    // así que ve todos los videos y no solo los de la primera página.
+    return contentFilter === 'video' ? byDay.filter(momentoHasVideo) : byDay
+  }, [momentosQuery.data, dayFilter, contentFilter])
   const groups = useMemo(() => groupByDay(items), [items])
   const entitiesById = useMemo(() => buildEntitiesById(entities), [entities])
 
@@ -134,7 +147,7 @@ export function MomentosView() {
   }
   function showAllMomentos(): void {
     if (dayFilter) clearDayFilter()
-    if (filterKind) setFilterKind(null)
+    if (contentFilter !== 'all') setContentFilter('all')
   }
 
   // EE: si el usuario cambia a vista álbum mientras selectionMode=true,
@@ -146,6 +159,19 @@ export function MomentosView() {
       exitSelection()
     }
   }, [viewMode, selectionMode])
+
+  // ω-álbum: el álbum es una galería completa por año, no una página, y el
+  // filtro Videos junta clips de cualquier año — ambos necesitan TODAS las
+  // páginas. Así cargamos una tras otra hasta agotar `hasNextPage` para que se
+  // vean todos los años y no solo el más reciente. El timeline (sin video)
+  // conserva su carga manual con el Paginator.
+  useEffect(() => {
+    const wantsAllPages = viewMode === 'album' || contentFilter === 'video'
+    if (!wantsAllPages) return
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage()
+    }
+  }, [viewMode, contentFilter, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   return (
     <>
@@ -167,11 +193,11 @@ export function MomentosView() {
       )}
 
       <MomentosToolbar
-        filterKind={filterKind}
+        contentFilter={contentFilter}
         viewMode={viewMode}
         itemCount={items.length}
         selectionMode={selectionMode}
-        onChangeFilterKind={setFilterKind}
+        onChangeContentFilter={setContentFilter}
         onChangeViewMode={setViewMode}
         onShare={() => setShareOpen(true)}
         onToggleSelectionMode={toggleSelectionMode}
@@ -189,26 +215,35 @@ export function MomentosView() {
         />
       ) : items.length === 0 ? (
         <MomentosEmptyState
-          filterKind={filterKind}
+          contentFilter={contentFilter}
           dayFilter={dayFilter}
           onShowAll={showAllMomentos}
         />
-      ) : shouldUseAlbumView({ viewMode, filterKind }) ? (
+      ) : shouldUseAlbumView({ viewMode, filterKind: queryKind }) ? (
         // AA-D: álbum visible también en "Todos" — AlbumGrid filtra
         // internamente a kind=foto, así que el usuario ve solo las
         // fotos en grid sin tener que cambiar de pestaña antes.
-        <AlbumGrid items={items} entitiesById={entitiesById} onDelete={handleDelete} />
+        <>
+          <AlbumGrid items={items} entitiesById={entitiesById} onDelete={handleDelete} />
+          {/* ω-álbum: mientras se recogen las páginas anteriores (todos los
+              años), un pie sereno para que no parezca que faltan fotos. */}
+          {isFetchingNextPage && (
+            <p className="mt-6 text-center text-caption font-serif italic text-ink-400">
+              recogiendo años anteriores…
+            </p>
+          )}
+        </>
       ) : (
         <MomentosTimeline
           groups={groups}
           entitiesById={entitiesById}
           selectionMode={selectionMode}
           selectedIds={selectedIds}
-          hasNext={momentosQuery.hasNextPage ?? false}
-          loadingNext={momentosQuery.isFetchingNextPage}
+          hasNext={hasNextPage ?? false}
+          loadingNext={isFetchingNextPage}
           onToggleSelect={toggleSelect}
           onDelete={handleDelete}
-          onLoadMore={() => momentosQuery.fetchNextPage()}
+          onLoadMore={() => fetchNextPage()}
         />
       )}
 
@@ -243,34 +278,4 @@ export function MomentosView() {
 function readInitialCompose(): MomentoKind | undefined {
   if (typeof window === 'undefined') return undefined
   return readInitialComposeFromSearch(window.location.search)
-}
-
-/**
- * ω-D: lee `?day=YYYY-MM-DD` de la URL y se actualiza si cambia por
- * navegación (popstate). Valida el formato — un día con caracteres no
- * numéricos queda null. Devuelve la string ISO o null.
- */
-function useDayFilter(): string | null {
-  const [day, setDay] = useState<string | null>(() => readDayParam())
-  useEffect(() => {
-    function onPop() {
-      setDay(readDayParam())
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-  return day
-}
-
-function readDayParam(): string | null {
-  if (typeof window === 'undefined') return null
-  return readDayParamFromSearch(window.location.search)
-}
-
-function clearDayFilter() {
-  if (typeof window === 'undefined') return
-  const url = new URL(window.location.href)
-  url.searchParams.delete('day')
-  window.history.pushState({}, '', url.toString())
-  window.dispatchEvent(new PopStateEvent('popstate'))
 }

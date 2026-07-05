@@ -86,6 +86,35 @@ describe('<MomentosView />', () => {
     expect(screen.getByRole('button', { name: 'Álbum' })).toHaveClass('bg-paper-100')
   })
 
+  it('en álbum carga todas las páginas (todos los años), no solo la más reciente', async () => {
+    // Regresión del bug: el álbum mostraba solo la primera página (el año más
+    // reciente). El Paginator vive en el timeline, así que en álbum hay que
+    // auto-cargar hasta agotar `nextCursor`. Aquí la página 1 trae cursor y la
+    // 2 lo cierra; sin el fix, `cursor=p2` nunca se pediría.
+    const momentosUrls: string[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL) => {
+        const url = String(input)
+        if (url.includes('/api/momentos')) {
+          momentosUrls.push(url)
+          return jsonResp({
+            items: [],
+            nextCursor: url.includes('cursor=') ? null : 'p2',
+          })
+        }
+        return jsonResp([])
+      }),
+    )
+
+    renderWithProviders(<MomentosView />)
+
+    // La vista por defecto es Álbum → la página 2 se pide sola, sin clicks.
+    await waitFor(() => {
+      expect(momentosUrls.some((u) => u.includes('cursor=p2'))).toBe(true)
+    })
+  })
+
   it('abre el control general para compartir todos los Momentos', async () => {
     renderWithProviders(<MomentosView />)
 
