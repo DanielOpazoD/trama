@@ -4,6 +4,14 @@ export type MomentoPhotoItem = {
   storageKey: string
   width?: number
   height?: number
+  /** ω-video: 'video' para clips; ausente o 'image' para fotos. */
+  type?: 'image' | 'video'
+}
+
+/** True si el item es un clip de video (no una foto). Los items legacy no
+ *  traen `type`, así que se leen como imagen. */
+export function isVideoItem(item: Pick<MomentoPhotoItem, 'type'>): boolean {
+  return item.type === 'video'
 }
 
 /**
@@ -66,6 +74,7 @@ function normalizePhotoItems(
     storageKey: string
     width?: number
     height?: number
+    type?: 'image' | 'video'
   }>,
 ): MomentoPhotoItem[] {
   return items
@@ -73,6 +82,7 @@ function normalizePhotoItems(
       storageKey: item.storageKey.trim(),
       width: item.width,
       height: item.height,
+      type: item.type,
     }))
     .filter((item) => item.storageKey.length > 0)
 }
@@ -235,6 +245,61 @@ export function readImageDimensions(
       resolve({ width: 0, height: 0 })
     }
     img.src = url
+  })
+}
+
+/**
+ * ω-video: tope de tamaño para media de Momentos, alineado con el
+ * `MAX_BYTES` del endpoint `momentos-upload.mts`. Los videos no se
+ * comprimen client-side (haría falta transcodificar), así que el composer
+ * valida ESTE límite antes de intentar subir y da un mensaje claro en vez
+ * de dejar que el backend rechace el body. Subirlo requeriría upload
+ * directo al store (fuera del alcance de esta capa).
+ */
+export const MAX_MEDIA_BYTES = 10 * 1024 * 1024
+
+/** Formatos de video que aceptamos. DEBE coincidir con la lista blanca del
+ *  backend (`momentos-upload.mts`) y con el `accept` del input del composer.
+ *  Local al módulo (solo la consume `isSupportedVideoFile`): knip rechaza
+ *  exports sin uso externo. */
+const SUPPORTED_VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime'] as const
+
+/** True si el File es un video (cualquier mimeType `video/*`). Sirve para
+ *  distinguir video de imagen; para saber si además es un formato aceptado,
+ *  usar `isSupportedVideoFile`. */
+export function isVideoFile(file: File): boolean {
+  return file.type.startsWith('video/')
+}
+
+/** True si el File es un video de un formato que el backend acepta. Un `.avi`
+ *  o similar es video pero no soportado: se rechaza con aviso en vez de dejar
+ *  que el upload falle. */
+export function isSupportedVideoFile(file: File): boolean {
+  return (SUPPORTED_VIDEO_MIMES as readonly string[]).includes(file.type)
+}
+
+/**
+ * Lee width/height de un video del lado del cliente cargando su metadata
+ * (sin descargar el archivo entero). Resuelve {0,0} si falla — mismo
+ * contrato tolerante que `readImageDimensions`: el caller guarda sin
+ * dimensiones y el render cae a un aspect-ratio por defecto.
+ */
+export function readVideoDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url)
+      resolve({ width: video.videoWidth, height: video.videoHeight })
+    }
+    video.onerror = () => {
+      URL.revokeObjectURL(url)
+      resolve({ width: 0, height: 0 })
+    }
+    video.src = url
   })
 }
 

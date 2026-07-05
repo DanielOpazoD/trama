@@ -61,7 +61,7 @@ test('momentos: modo prueba muestra foto y nota de voz en timeline y album', asy
   await expect(page.getByRole('heading', { name: 'Momentos', level: 2 })).toBeVisible()
   await expect(page.getByRole('button', { name: /tamaño: medio/i })).toBeVisible()
   await expect(page.getByRole('img', { name: 'Cuaderno abierto' })).toBeVisible()
-  await expect(page.getByText('1 foto')).toBeVisible()
+  await expect(page.getByText('3 fotos')).toBeVisible()
 
   await page.getByRole('button', { name: 'Línea' }).click()
 
@@ -72,5 +72,5 @@ test('momentos: modo prueba muestra foto y nota de voz en timeline y album', asy
   await page.getByRole('button', { name: 'Álbum' }).click()
 
   await expect(page.getByRole('img', { name: 'Cuaderno abierto' })).toBeVisible()
-  await expect(page.getByText('1 foto')).toBeVisible()
+  await expect(page.getByText('3 fotos')).toBeVisible()
 })

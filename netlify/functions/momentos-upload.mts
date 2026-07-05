@@ -10,26 +10,37 @@ import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
 /**
  * POST /api/momentos/upload
  *
- * Recibe una imagen (multipart/form-data field "file") y la sube al store
- * de Netlify Blobs llamado "momentos-media". Devuelve la storageKey que
- * el cliente luego mete en el payload del momento al crearlo.
+ * Recibe una imagen o un video (multipart/form-data field "file") y lo sube
+ * al store de Netlify Blobs llamado "momentos-media". Devuelve la storageKey
+ * que el cliente luego mete en el payload del momento al crearlo.
  *
  * No hace strip de EXIF — agregarlo requiere sharp o similar, lo cual es
  * un bundling adicional pesado. Como mitigación: el endpoint que sirve la
  * blob NO devuelve los headers EXIF, así que el browser nunca los muestra.
  * Los metadatos viven en el blob pero no se exponen.
  *
- * Tamaño máximo: 10 MB (sobre eso Netlify Functions rechaza el body
- * de todos modos en el plan estándar).
+ * Tamaño máximo: 10 MB (sobre eso Netlify Functions rechaza el body de
+ * todos modos en el plan estándar). Alcanza para fotos y para clips cortos;
+ * los videos NO se comprimen client-side (haría falta transcodificar), así
+ * que el composer valida este mismo tope antes de subir. Aceptar videos
+ * largos exigiría upload directo al store con URL firmada — otro trabajo.
  */
 
 const MAX_BYTES = 10 * 1024 * 1024
-const ALLOWED_MIMES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-])
+
+// ω-video: extensión por mimeType. Las claves son además la lista blanca
+// (ALLOWED_MIMES se deriva de acá) para que ambas no se desincronicen. Los
+// videos comparten store y flujo con las fotos; solo cambian mime y ext.
+const EXT_BY_MIME: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/quicktime': 'mov',
+}
+const ALLOWED_MIMES = new Set(Object.keys(EXT_BY_MIME))
 
 function randomKey(): string {
   // 16 bytes hex — espacio de colisión suficiente para fotos personales.
@@ -74,21 +85,15 @@ export default withObservability('momentos-upload', async (req: Request, _ctx, {
   if (!ALLOWED_MIMES.has(file.type)) {
     return ApiErrors.unsupportedMediaType(
       requestId,
-      `mimeType "${file.type}" no soportado. Usa image/jpeg, image/png, image/webp o image/gif.`,
+      `mimeType "${file.type}" no soportado. Usa una imagen (jpeg, png, webp, gif) o un video (mp4, webm, mov).`,
     )
   }
   if (file.size > MAX_BYTES) {
     return ApiErrors.payloadTooLarge(requestId, 'Archivo > 10 MB')
   }
 
-  const ext =
-    file.type === 'image/jpeg'
-      ? 'jpg'
-      : file.type === 'image/png'
-        ? 'png'
-        : file.type === 'image/webp'
-          ? 'webp'
-          : 'gif'
+  // El type ya pasó el filtro ALLOWED_MIMES, así que siempre está en el map.
+  const ext = EXT_BY_MIME[file.type] ?? 'bin'
   // Key con namespace por usuario: `${userId}/${random}.${ext}`. La
   // storageKey completa se persiste tal cual en el payload del momento;
   // momentos-file.mts re-deriva el userId del path al servir el blob.

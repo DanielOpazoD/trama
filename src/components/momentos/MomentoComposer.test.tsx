@@ -147,7 +147,7 @@ describe('<MomentoComposer />', () => {
     const replacePhotoDraft = vi.fn()
     const composer = makeComposer({
       kind: 'foto',
-      photoDrafts: [{ file: draftFile, previewUrl: 'blob:orig' }],
+      photoDrafts: [{ file: draftFile, previewUrl: 'blob:orig', isVideo: false }],
       replacePhotoDraft,
     } as Partial<Composer>)
 
@@ -160,6 +160,33 @@ describe('<MomentoComposer />', () => {
       expect.objectContaining({ outputType: 'image/jpeg' }),
     )
     await waitFor(() => expect(replacePhotoDraft).toHaveBeenCalledWith(0, edited))
+  })
+
+  it('el input de foto acepta también videos', () => {
+    render(<MomentoComposer composer={makeComposer({ kind: 'foto' })} defaultExpanded />)
+    const input = screen.getByLabelText(/agregar fotos o videos/i)
+    expect(input).toHaveAttribute('accept', expect.stringContaining('video/mp4'))
+  })
+
+  it('un draft de video se previsualiza con <video> y sin botón de editar', () => {
+    const videoFile = new File(['clip'], 'clip.mp4', { type: 'video/mp4' })
+    render(
+      <MomentoComposer
+        composer={makeComposer({
+          kind: 'foto',
+          photoDrafts: [
+            { file: videoFile, previewUrl: 'blob:clip', capturedAt: null, isVideo: true },
+          ],
+        } as Partial<Composer>)}
+        defaultExpanded
+      />,
+    )
+    // El preview usa un <video> con label accesible, no un <img>.
+    expect(screen.getByLabelText('video 1')).toBeInTheDocument()
+    // El editor de imágenes no aplica a video → su botón no se renderiza.
+    expect(screen.queryByRole('button', { name: /editar foto 1/i })).toBeNull()
+    // El contador no llama "foto" a un clip.
+    expect(screen.getByText(/1 elemento/i)).toBeInTheDocument()
   })
 
   it('muestra confirmación compacta para usar fecha EXIF, ahora o personalizada', async () => {
@@ -217,6 +244,7 @@ describe('<MomentoComposer />', () => {
               file: new File(['foto'], 'iphone-sin-exif.jpg', { type: 'image/jpeg' }),
               previewUrl: 'blob:iphone-sin-exif',
               capturedAt: null,
+              isVideo: false,
             },
           ],
           photoCapturedAtSuggestion: null,
@@ -242,6 +270,7 @@ describe('<MomentoComposer />', () => {
               file: new File(['foto'], 'sin-exif.jpg', { type: 'image/jpeg' }),
               previewUrl: 'blob:sin-exif',
               capturedAt: null,
+              isVideo: false,
             },
           ],
           photoCapturedAtSuggestion: null,

@@ -4,7 +4,12 @@ import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { ChevronLeftIcon, ChevronRightIcon } from '../Icons'
 import { CloseButton } from '../CloseButton'
 import { IconButton } from '../IconButton'
-import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
+import {
+  AuthenticatedMomentoImage,
+  AuthenticatedMomentoVideo,
+} from './AuthenticatedMedia'
+import { isVideoItem, type MomentoPhotoItem } from './helpers'
+import { VideoPlayBadge } from './VideoPlayBadge'
 
 /**
  * AA-C / τ-IA: visor dedicado de fotos de un momento — lightbox de galería.
@@ -30,7 +35,7 @@ export function PhotoLightbox({
   open,
   onClose,
 }: {
-  photos: Array<{ storageKey: string; width?: number; height?: number }>
+  photos: MomentoPhotoItem[]
   initialIndex?: number
   caption?: string
   open: boolean
@@ -78,6 +83,7 @@ export function PhotoLightbox({
   if (!visible || typeof document === 'undefined') return null
   const current = photos[active]
   if (!current) return null
+  const currentIsVideo = isVideoItem(current)
   const multi = photos.length > 1
 
   return createPortal(
@@ -122,30 +128,43 @@ export function PhotoLightbox({
           </div>
         </div>
 
-        {/* Área de la foto. El contenedor deja pasar los clics al fondo
-            (cerrar) salvo cuando está ampliada (ahí captura para scrollear). */}
+        {/* Área del medio. El contenedor deja pasar los clics al fondo
+            (cerrar) salvo cuando la foto está ampliada (ahí captura para
+            scrollear). El video no hace zoom: se reproduce con sus
+            controles y el margen sigue cerrando. */}
         <div
           className={`flex-1 w-full min-h-0 flex ${
-            zoomed
+            !currentIsVideo && zoomed
               ? 'overflow-auto pointer-events-auto'
-              : 'overflow-hidden pointer-events-none'
-          }`}
+              : 'overflow-hidden pointer-events-none items-center justify-center'
+          } ${currentIsVideo ? 'p-4' : ''}`}
         >
-          <AuthenticatedMomentoImage
-            key={current.storageKey}
-            storageKey={current.storageKey}
-            alt={caption ?? `foto ${active + 1} de ${photos.length}`}
-            onClick={() => setZoomed((z) => !z)}
-            draggable={false}
-            className={`m-auto select-none pointer-events-auto shadow-2xl shadow-black/60 ${
-              zoomed
-                ? 'max-w-none cursor-zoom-out'
-                : 'max-w-full max-h-full object-contain cursor-zoom-in'
-            }`}
-            style={
-              zoomed ? { height: '170vh', width: 'auto', maxHeight: 'none' } : undefined
-            }
-          />
+          {currentIsVideo ? (
+            <AuthenticatedMomentoVideo
+              key={current.storageKey}
+              storageKey={current.storageKey}
+              controls
+              autoPlay
+              playsInline
+              className="m-auto max-w-full max-h-full pointer-events-auto rounded-md bg-black shadow-2xl shadow-black/60"
+            />
+          ) : (
+            <AuthenticatedMomentoImage
+              key={current.storageKey}
+              storageKey={current.storageKey}
+              alt={caption ?? `foto ${active + 1} de ${photos.length}`}
+              onClick={() => setZoomed((z) => !z)}
+              draggable={false}
+              className={`m-auto select-none pointer-events-auto shadow-2xl shadow-black/60 ${
+                zoomed
+                  ? 'max-w-none cursor-zoom-out'
+                  : 'max-w-full max-h-full object-contain cursor-zoom-in'
+              }`}
+              style={
+                zoomed ? { height: '170vh', width: 'auto', maxHeight: 'none' } : undefined
+              }
+            />
+          )}
         </div>
 
         {/* Flechas laterales. */}
@@ -176,21 +195,38 @@ export function PhotoLightbox({
                 <button
                   key={p.storageKey}
                   onClick={() => go(idx)}
-                  aria-label={`Mostrar foto ${idx + 1}`}
+                  aria-label={
+                    isVideoItem(p)
+                      ? `Mostrar video ${idx + 1}`
+                      : `Mostrar foto ${idx + 1}`
+                  }
                   aria-current={idx === active ? 'true' : undefined}
-                  className={`shrink-0 size-14 rounded-sm overflow-hidden ring-2 transition-all duration-200 ${
+                  className={`relative shrink-0 size-14 rounded-sm overflow-hidden ring-2 transition-all duration-200 ${
                     idx === active
                       ? 'ring-white opacity-100 scale-105'
                       : 'ring-transparent opacity-45 hover:opacity-90'
                   }`}
                 >
-                  <AuthenticatedMomentoImage
-                    storageKey={p.storageKey}
-                    alt=""
-                    loading="lazy"
-                    draggable={false}
-                    className="w-full h-full object-cover"
-                  />
+                  {isVideoItem(p) ? (
+                    <>
+                      <AuthenticatedMomentoVideo
+                        storageKey={p.storageKey}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full object-cover"
+                      />
+                      <VideoPlayBadge size="sm" />
+                    </>
+                  ) : (
+                    <AuthenticatedMomentoImage
+                      storageKey={p.storageKey}
+                      alt=""
+                      loading="lazy"
+                      draggable={false}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </button>
               ))}
             </div>

@@ -30,10 +30,18 @@ vi.mock('../../api', () => ({
   },
 }))
 
-vi.mock('./helpers', () => ({
-  compressImage: mocks.compressImage,
-  readImageDimensions: mocks.readImageDimensions,
-}))
+vi.mock('./helpers', async () => {
+  // Parcial: conservamos las funciones puras reales (isVideoFile,
+  // readVideoDimensions, MAX_MEDIA_BYTES) y solo mockeamos las que tocan
+  // canvas/red. Los tests del hook usan imágenes, así que readVideoDimensions
+  // nunca se invoca.
+  const actual = await vi.importActual<typeof import('./helpers')>('./helpers')
+  return {
+    ...actual,
+    compressImage: mocks.compressImage,
+    readImageDimensions: mocks.readImageDimensions,
+  }
+})
 
 vi.mock('../../lib/photoExif', async () => {
   const actual =
@@ -84,6 +92,37 @@ describe('useMomentoComposer', () => {
         revokeObjectURL: vi.fn(),
       }),
     )
+  })
+
+  it('agrega un video corto como draft marcado isVideo', () => {
+    const { result } = renderHook(() => useMomentoComposer({}))
+    const clip = new File(['tiny'], 'clip.mp4', { type: 'video/mp4' })
+    act(() => result.current.addPhotoFiles([clip]))
+    expect(result.current.photoDrafts).toHaveLength(1)
+    expect(result.current.photoDrafts[0]?.isVideo).toBe(true)
+  })
+
+  it('rechaza un video que supera el tope de tamaño y avisa con un toast', () => {
+    const { result } = renderHook(() => useMomentoComposer({}))
+    // 11 MB supera MAX_MEDIA_BYTES (10 MB): el composer no lo agrega.
+    const bigVideo = new File([new Uint8Array(11 * 1024 * 1024)], 'largo.mp4', {
+      type: 'video/mp4',
+    })
+    act(() => result.current.addPhotoFiles([bigVideo]))
+    expect(mocks.toastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: 'error' }),
+    )
+    expect(result.current.photoDrafts).toHaveLength(0)
+  })
+
+  it('rechaza un formato de video no soportado (p. ej. avi) con un aviso', () => {
+    const { result } = renderHook(() => useMomentoComposer({}))
+    const avi = new File(['x'], 'clip.avi', { type: 'video/x-msvideo' })
+    act(() => result.current.addPhotoFiles([avi]))
+    expect(mocks.toastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: 'error' }),
+    )
+    expect(result.current.photoDrafts).toHaveLength(0)
   })
 
   it('revoca previews de foto y audio al desmontar el composer', () => {

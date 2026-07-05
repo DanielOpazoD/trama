@@ -222,12 +222,44 @@ describe('<MomentoEntry />', () => {
       />,
     )
 
-    const openButton = screen.getByRole('button', { name: /abrir visor.*2 fotos/i })
+    const openButton = screen.getByRole('button', { name: /abrir visor.*2 elementos/i })
     const image = screen.getByRole('img', { name: /la mesa de trabajo/i })
     await waitFor(() => expect(image).toHaveAttribute('src', 'blob:media-1'))
     expect(openButton).toContainElement(image)
     expect(screen.getByText('+1')).toBeInTheDocument()
     expect(screen.getByText('dos fotos del mismo episodio')).toBeInTheDocument()
+  })
+
+  it('un momento con un video se reproduce inline, sin botón de abrir foto', () => {
+    render(
+      <MomentoEntry
+        momento={baseMomento('foto', {
+          caption: 'un clip',
+          items: [{ storageKey: 'clip.mp4', type: 'video' }],
+        })}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+    // El video se reproduce inline: no hay botón de zoom que abra el visor.
+    expect(screen.queryByRole('button', { name: /abrir foto/i })).toBeNull()
+    expect(screen.getByText('un clip')).toBeInTheDocument()
+  })
+
+  it('con video de portada y más piezas, el contador +N abre el visor', () => {
+    render(
+      <MomentoEntry
+        momento={baseMomento('foto', {
+          items: [{ storageKey: 'clip.mp4', type: 'video' }, { storageKey: 'foto.jpg' }],
+        })}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+    expect(
+      screen.getByRole('button', { name: /abrir visor.*2 elementos/i }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('+1')).toBeInTheDocument()
   })
 
   it('renderiza fotos y nota de voz guardadas con el payload photos legado', async () => {

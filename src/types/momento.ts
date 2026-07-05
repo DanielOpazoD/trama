@@ -37,6 +37,10 @@ export type MomentoPayload = {
     storageKey: string
     width?: number
     height?: number
+    /** ω-video: 'video' para clips subidos; ausente o 'image' para fotos.
+     *  Los items ya persistidos no traen `type` → se leen como imagen, así
+     *  que sumar video no altera ningún momento existente. */
+    type?: 'image' | 'video'
   }>
   /** Formato legado usado por algunas fotos ya persistidas antes de
    *  unificar en `items[]`. La UI lo sigue leyendo para no ocultar

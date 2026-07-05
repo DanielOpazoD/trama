@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import type { Momento, MomentoKind, MomentoPayload } from '../../types'
 import { useAddMomento, useToast } from '../../state'
-import { compressImage, readImageDimensions } from './helpers'
+import {
+  compressImage,
+  isSupportedVideoFile,
+  isVideoFile,
+  MAX_MEDIA_BYTES,
+  readImageDimensions,
+  readVideoDimensions,
+} from './helpers'
 import { extractPhotoCapturedAtFromFile, pickOldestCapturedAt } from '../../lib/photoExif'
 
 /**
@@ -48,7 +55,14 @@ export function useMomentoComposer({
   // para poder iterar y manejarlos individualmente (preview + delete
   // por imagen, mostrar contador, etc.). El submit los sube todos en
   // paralelo y arma payload.items[].
-  type PhotoDraft = { file: File; previewUrl: string; capturedAt?: string | null }
+  type PhotoDraft = {
+    file: File
+    previewUrl: string
+    capturedAt?: string | null
+    // ω-video: true si el draft es un clip. El preview lo pinta con <video> y
+    // el submit lo sube sin comprimir (a diferencia de las fotos).
+    isVideo: boolean
+  }
   type PhotoDateMode = 'photo' | 'now' | 'custom'
   const [photoDrafts, setPhotoDrafts] = useState<PhotoDraft[]>([])
   const [photoCaption, setPhotoCaption] = useState('')
@@ -113,17 +127,54 @@ export function useMomentoComposer({
   }
 
   function addPhotoFiles(files: File[]) {
-    const valid = files.filter((f) => f.type.startsWith('image/'))
-    if (valid.length === 0) return
-    const drafts = valid.map((file) => ({
+    // ω-video: aceptamos imágenes y videos. Este es el punto común de drop y
+    // file-picker, así que acá se valida el formato y el tamaño (los clips no
+    // se comprimen client-side): un aviso claro al elegir es mejor que un
+    // rechazo del server al subir. Las imágenes grandes sí pasan (la
+    // compresión las baja luego).
+    const accepted: File[] = []
+    let rejectedForSize = 0
+    let rejectedFormat = 0
+    for (const file of files) {
+      const video = isVideoFile(file)
+      if (!video && !file.type.startsWith('image/')) continue
+      if (video && !isSupportedVideoFile(file)) {
+        rejectedFormat += 1
+        continue
+      }
+      if (video && file.size > MAX_MEDIA_BYTES) {
+        rejectedForSize += 1
+        continue
+      }
+      accepted.push(file)
+    }
+    if (rejectedFormat > 0) {
+      toast.show({
+        message: 'Ese formato de video no es compatible. Usa MP4, WebM o MOV.',
+        tone: 'error',
+      })
+    }
+    if (rejectedForSize > 0) {
+      toast.show({
+        message:
+          rejectedForSize === 1
+            ? 'El video supera los 10 MB. Usa un clip más corto.'
+            : `${rejectedForSize} videos superan los 10 MB y no se agregaron.`,
+        tone: 'error',
+      })
+    }
+    if (accepted.length === 0) return
+    const drafts: PhotoDraft[] = accepted.map((file) => ({
       file,
       previewUrl: URL.createObjectURL(file),
       capturedAt: null,
+      isVideo: isVideoFile(file),
     }))
     photoDraftsRef.current = [...photoDraftsRef.current, ...drafts]
     setPhotoDrafts(photoDraftsRef.current)
     for (const draft of drafts) {
-      trackPhotoMetadata(draft)
+      // El EXIF de fecha solo aplica a fotos; los videos no pasan por acá.
+      if (!draft.isVideo) trackPhotoMetadata(draft)
     }
   }
 
@@ -162,7 +213,13 @@ export function useMomentoComposer({
       if (!cur) return prev
       URL.revokeObjectURL(cur.previewUrl)
       const next = [...prev]
-      const nextDraft = { file, previewUrl: URL.createObjectURL(file), capturedAt: null }
+      // Viene del editor de imágenes, que solo opera sobre fotos → isVideo:false.
+      const nextDraft = {
+        file,
+        previewUrl: URL.createObjectURL(file),
+        capturedAt: null,
+        isVideo: false,
+      }
       next[index] = nextDraft
       photoDraftsRef.current = next
       trackPhotoMetadata(nextDraft)
@@ -347,6 +404,22 @@ export function useMomentoComposer({
     try {
       const itemsRaw = await Promise.all(
         draftsForSubmit.map(async (draft) => {
+          if (draft.isVideo) {
+            // ω-video: los clips se suben tal cual —transcodificar en el
+            // cliente exigiría una lib pesada—. Solo leemos sus dimensiones
+            // para conservar el aspect-ratio al reproducir.
+            const dims = await readVideoDimensions(draft.file)
+            const uploaded = await api.momentoUpload(draft.file)
+            setPhotoUploadProgress((prev) =>
+              prev ? { done: prev.done + 1, total: prev.total } : prev,
+            )
+            return {
+              storageKey: uploaded.storageKey,
+              width: dims.width || undefined,
+              height: dims.height || undefined,
+              type: 'video' as const,
+            }
+          }
           // 1. Comprimir client-side (resize a max 2400px + JPEG q0.85).
           //    Si la imagen ya es chica/eficiente, compressImage devuelve
           //    el File original.
