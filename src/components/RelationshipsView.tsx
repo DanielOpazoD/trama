@@ -165,7 +165,8 @@ export function RelationshipsView({
         eyebrow="las líneas del grafo"
         accent="var(--accent-sage)"
         eyebrowColor="var(--accent-gold)"
-        spacing="normal"
+        spacing="tight"
+        density="compact"
         subtitle="Vínculos entre dos entidades — quién influye en quién, qué cita a qué, qué te llegó por dónde."
         action={
           hasEnoughEntities ? (

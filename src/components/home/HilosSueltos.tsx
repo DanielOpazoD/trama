@@ -52,7 +52,7 @@ export function HilosSueltos({
           <li key={e.id}>
             <button
               onClick={() => onSelectEntity(e.id)}
-              className="inline-flex items-baseline gap-1.5 rounded-full border border-dashed border-ink-200 px-3 py-1 text-sm text-ink-600 transition-colors hover:border-solid hover:border-ink-300 hover:text-ink-800"
+              className="inline-flex items-baseline gap-1.5 rounded-full border border-dashed border-ink-200 px-3 py-1 text-caption text-ink-600 transition-colors hover:border-solid hover:border-ink-300 hover:text-ink-800"
             >
               <span className="font-serif">{e.name}</span>
               <span className="text-micro uppercase tracking-wider text-ink-300">

@@ -110,6 +110,7 @@ export function CronologiaView({
         accent="var(--accent-sage)"
         subtitle="Las cuatro corrientes del archivo en un solo hilo: lo que el lenguaje fijó, lo que capturaste, lo que sonó, lo que la IA escribió del mes. Leído como un diario, por estaciones."
         spacing="tight"
+        density="compact"
       />
 
       {query.isLoading ? (
