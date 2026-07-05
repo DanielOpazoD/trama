@@ -204,7 +204,7 @@ function TimelineRow({
               )}
             </div>
             <p className="mt-1 font-serif italic text-ink-600 text-body leading-snug truncate">
-              «{event.payload.text}»
+              {event.payload.text}
             </p>
           </div>
           <div className="flex items-baseline gap-2 shrink-0">

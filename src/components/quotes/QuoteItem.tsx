@@ -10,6 +10,7 @@ import { ResonanceDots } from './ResonanceDots'
 import { QuoteActionsMenu } from './QuoteActionsMenu'
 import { LaminaModal } from './LaminaModal'
 import { AIThinkingLabel } from '../AIThinkingLabel'
+import { QuoteMark } from '../QuoteMark'
 
 /** Format an ISO date as "20 may 2026" — short, ink-on-paper style. */
 function formatDate(iso: string): string {
@@ -128,18 +129,9 @@ function QuoteItemInternal({
               }`
         }`}
       >
-        {/* Tratamiento editorial: una comilla ornamental en oro (acento de la
-            sección) abre la cita como un epígrafe impreso. En compacto se omite
-            para no recargar la densidad. */}
-        {!compact && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute -top-3 left-2 select-none font-serif not-italic leading-none text-[color:var(--accent-gold)]"
-            style={{ fontSize: '2.6rem', opacity: 0.22 }}
-          >
-            &ldquo;
-          </span>
-        )}
+        {/* Tratamiento editorial: la comilla ornamental abre la cita como un
+            epígrafe impreso. En compacto se omite para no recargar la densidad. */}
+        {!compact && <QuoteMark className="absolute -top-3 left-2" />}
         {quote.text}
       </blockquote>
 

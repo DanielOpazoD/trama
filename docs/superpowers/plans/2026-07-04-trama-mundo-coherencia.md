@@ -45,6 +45,24 @@ visual.
 - Inicio (`HomeView`) NO usa `ViewHeader` (patrón ρ-canvas: la fecha
   reemplaza el título) — se respetó; solo se migró su tipografía.
 
+## Segunda pasada (autoevaluación → mayor calidad)
+
+Tras autoevaluar el PR (sólido pero conservador), tres mejoras:
+
+- **`QuoteMark` (nuevo, primitivo compartido)**: la comilla ornamental de
+  la cita dejó de estar hardcodeada inline en `QuoteItem` — ahora es un
+  componente nombrado (`lg`/`md`) reutilizable. Verificado en Citas (las
+  comillas en oro siguen en su sitio).
+- **Coherencia de citas en el mundo Trama**: Cronología y RecentTimeline
+  (home) dejaron los guillemets `«»`; el serif italic + el badge/eyebrow
+  de «cita» marcan el fragmento, sin mezclar dos criterios. El mundo ya no
+  habla dos dialectos de cita.
+- **Descartado por no verificable**: meter la comilla ornamental _dentro_
+  de los ítems de Cronología se probó y se retiró — el demo tiene la
+  Cronología vacía, así que el posicionamiento no se podía ajustar con
+  evidencia. Antes que meterlo a ciegas, se dejó para el pack de «la ficha
+  editorial», donde vive con datos reales.
+
 ## Validación
 
 - Suite completa 4964 pass, typecheck, lint, prettier, gates
