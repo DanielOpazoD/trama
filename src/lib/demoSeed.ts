@@ -218,6 +218,41 @@ export function buildSeed(): Store {
       entity_ids: ['e-borges'],
       ...ts(1),
     },
+    {
+      // Aspect vertical: alimenta el mosaico del álbum (masonry) con alturas
+      // distintas y el mismo día que el cuaderno para encadenar el hilo.
+      id: uid(),
+      kind: 'foto',
+      captured_at: daysAgo(1),
+      payload: {
+        caption: 'La ventana del estudio',
+        items: [{ storageKey: 'demo/estudio-2.svg', width: 800, height: 1200 }],
+        storageKey: 'demo/estudio-2.svg',
+        width: 800,
+        height: 1200,
+      },
+      note: null,
+      origin: manual,
+      entity_ids: [],
+      ...ts(1),
+    },
+    {
+      // Aspect cuadrado, otro día y otra paleta: variedad para el mosaico.
+      id: uid(),
+      kind: 'foto',
+      captured_at: daysAgo(4),
+      payload: {
+        caption: 'Café de la tarde',
+        items: [{ storageKey: 'demo/cafe-3.svg', width: 1000, height: 1000 }],
+        storageKey: 'demo/cafe-3.svg',
+        width: 1000,
+        height: 1000,
+      },
+      note: null,
+      origin: manual,
+      entity_ids: [],
+      ...ts(4),
+    },
   ]
 
   const note = (content: string, d: number, pinned = false): Row => ({

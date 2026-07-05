@@ -259,12 +259,10 @@ export function readImageDimensions(
 export const MAX_MEDIA_BYTES = 10 * 1024 * 1024
 
 /** Formatos de video que aceptamos. DEBE coincidir con la lista blanca del
- *  backend (`momentos-upload.mts`) y con el `accept` del input del composer. */
-export const SUPPORTED_VIDEO_MIMES = [
-  'video/mp4',
-  'video/webm',
-  'video/quicktime',
-] as const
+ *  backend (`momentos-upload.mts`) y con el `accept` del input del composer.
+ *  Local al módulo (solo la consume `isSupportedVideoFile`): knip rechaza
+ *  exports sin uso externo. */
+const SUPPORTED_VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime'] as const
 
 /** True si el File es un video (cualquier mimeType `video/*`). Sirve para
  *  distinguir video de imagen; para saber si además es un formato aceptado,

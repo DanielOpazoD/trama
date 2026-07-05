@@ -71,6 +71,33 @@ paso, **mejorar la estética global** de la sección con libertad creativa.
   cubre por tests unitarios; en navegador se verificó el eje temporal y el
   composer.
 
+## Post-review: CodeRabbit + dos factores sorpresa
+
+Sobre el PR, ya con CI verde:
+
+- **CodeRabbit (2 quick-wins reales).** (1) `AuthenticatedMomentoVideo`: con
+  `autoPlay` el `<video>` se monta recién cuando llega el blob —ya sin el gesto
+  del usuario—, así que el autoplay con sonido lo bloquean los navegadores;
+  ahora `muted` cae por defecto a `autoPlay` (el visor arranca en silencio,
+  salvo override). (2) El filtro de video usaba `startsWith('video/')` y dejaba
+  pasar formatos que el backend rechaza; se valida contra
+  `SUPPORTED_VIDEO_MIMES` (mp4/webm/mov) en `addPhotoFiles` —el punto común de
+  drop y picker— con aviso claro. Gotcha: esa constante quedó **local** al
+  módulo, no exportada (knip rechaza exports sin uso externo).
+- **El hilo teñido por lo vivido.** El nodo del eje temporal se tiñe por el
+  carácter del momento: nota → violáceo (`--accent-gold` #7a6b94), recorte →
+  azul petróleo (`--accent-primary` #1f4d6b), foto → verde (`--accent-sage`
+  #4a7c3a), y un episodio **con video** → tierra (`--type-evento` #7c5e3a). El
+  hilo del día se lee como un mapa cromático de lo vivido. Tonos sobrios y
+  distintos entre sí (nada de rojo alarma).
+- **El álbum como mosaico editorial.** Los tamaños medio y grande pasan de
+  cuadrícula uniforme a columnas (masonry tipo Pinterest): cada tile conserva el
+  alto real de su foto/video. El tamaño «mini» sigue en grilla cuadrada densa.
+  Fallback a cuadrado si una foto no trae dimensiones.
+- **Demo enriquecido.** El seed suma dos fotos (retrato 2:3 y cuadrada 1:1, con
+  paletas distintas) para que el mosaico escalone de verdad y el timeline gane
+  un día con dos momentos — y para poder verificar ambas mejoras en el navegador.
+
 ## Validación
 
 - Suite completa **4970 pass** (0 fail; el "socket hang up" del runner es flaky
@@ -87,6 +114,10 @@ paso, **mejorar la estética global** de la sección con libertad creativa.
   hora—; el composer con `accept` de video, el copy "fotos o videos … MP4 /
   WebM / MOV hasta 10 MB", el preview `<video>` + disco de play, el editor de
   imagen oculto y el contador "1 elemento".
+- Navegador (mejoras post-review): el hilo teñido medido —nota `rgb(122,107,148)`,
+  recorte `rgb(31,77,107)`, foto `rgb(74,124,58)`, cada tipo su color—; el álbum
+  en columnas (`columnCount: 2`) con tiles de ratio real 1.50 / 0.67 / 1.00
+  (apaisada / retrato / cuadrada) escalonados en masonry.
 - Tests nuevos: preview de video y `accept` en el composer, rechazo por tamaño y
   draft `isVideo` en el hook, render inline y contador "+N" del video en el
   timeline.

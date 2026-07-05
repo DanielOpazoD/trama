@@ -24,6 +24,19 @@ import { MomentoFeedback } from './MomentoFeedback'
  * cortos y dependen del mismo Momento, así que vivir en el mismo
  * archivo es razonable. Si alguno crece, se va a su propio archivo.
  */
+/**
+ * ω-hilo: color del nodo del eje temporal según el carácter del momento.
+ * Tonos sobrios y distintos entre sí (violáceo/azul/verde/tierra), no un
+ * arcoíris; un episodio con video se separa del de solo fotos.
+ */
+function momentoAccent(momento: Momento): string {
+  if (momento.kind === 'nota') return 'var(--accent-gold)'
+  if (momento.kind === 'recorte') return 'var(--accent-primary)'
+  return getMomentoPhotoItems(momento.payload).some(isVideoItem)
+    ? 'var(--type-evento)'
+    : 'var(--accent-sage)'
+}
+
 function MomentoEntryInternal({
   momento,
   entitiesById,
@@ -54,13 +67,16 @@ function MomentoEntryInternal({
       >
         {formatTime(momento.capturedAt)}
       </span>
-      {/* ω-hilo: el eje temporal del manuscrito. Un nodo en oro a la altura
-          de la hora y un filete que desciende desvaneciéndose hacia la
-          entrada siguiente — encadena los momentos del día como cuentas de
-          un hilo. Ornamental (aria-hidden) y absoluto: no altera el layout. */}
+      {/* ω-hilo: el eje temporal del manuscrito. Un nodo a la altura de la
+          hora y un filete que desciende desvaneciéndose hacia la entrada
+          siguiente — encadena los momentos del día como cuentas de un hilo.
+          El nodo se tiñe por el carácter del momento (nota/recorte/foto/
+          video), así el hilo cuenta la textura del día de un vistazo.
+          Ornamental (aria-hidden) y absoluto: no altera el layout. */}
       <span
         aria-hidden
-        className="absolute left-11 top-2 size-1.5 -translate-x-1/2 rounded-full bg-[color:var(--accent-gold)] ring-2 ring-paper-50"
+        className="absolute left-11 top-2 size-1.5 -translate-x-1/2 rounded-full ring-2 ring-paper-50"
+        style={{ backgroundColor: momentoAccent(momento) }}
       />
       <span
         aria-hidden

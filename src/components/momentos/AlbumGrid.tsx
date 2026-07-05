@@ -39,12 +39,15 @@ const SIZE_LABELS: Record<TileSize, string> = {
 }
 
 const SIZE_GRID_CLASS: Record<TileSize, string> = {
-  // ψ-photos-rich: 3 tamaños de tile. Pequeño = miniaturas tipo grilla
-  // de Instagram. Mediano = balance lectura/scanning. Grande = una
-  // foto se respira más en mobile, dos cómodas en desktop.
+  // ψ-photos-rich / ω-mosaico: pequeño = grilla densa cuadrada tipo
+  // Instagram (escaneo rápido); mediano y grande = mosaico en columnas
+  // (masonry tipo Pinterest) donde cada tile conserva el alto real de su
+  // foto/video en vez de recortarse a cuadrado. El gap horizontal lo da
+  // `gap-*`; el vertical, `mb-*` en cada <li> (space-y no aplica a
+  // multicolumn).
   small: 'grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-1.5',
-  medium: 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3',
-  large: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4',
+  medium: 'columns-2 sm:columns-3 md:columns-4 gap-3 [&>li]:mb-3',
+  large: 'columns-1 sm:columns-2 md:columns-3 gap-4 [&>li]:mb-4',
 }
 
 export function AlbumGrid({
@@ -216,10 +219,22 @@ function AlbumTile({
   const showLinked = size === 'large'
   const canEdit = momento.accessRole !== 'viewer'
   const canDelete = !momento.shared
+  // ω-mosaico: en medio/grande el tile respeta el aspect-ratio real de la
+  // portada; en mini —o si la foto no trae dimensiones— se mantiene cuadrado.
+  const coverAspect =
+    cover.width && cover.height && cover.width > 0 && cover.height > 0
+      ? `${cover.width} / ${cover.height}`
+      : undefined
+  const useRealAspect = size !== 'small' && !!coverAspect
 
   return (
-    <li className="group relative">
-      <div className="aspect-square overflow-hidden rounded-md border border-ink-100/60 bg-paper-100/40 relative">
+    <li className="group relative break-inside-avoid">
+      <div
+        className={`overflow-hidden rounded-md border border-ink-100/60 bg-paper-100/40 relative ${
+          useRealAspect ? '' : 'aspect-square'
+        }`}
+        style={useRealAspect ? { aspectRatio: coverAspect } : undefined}
+      >
         <button
           type="button"
           onClick={() => setLightboxOpen(true)}
