@@ -40,15 +40,60 @@ vi.mock('./ProposalPanel', () => ({
   ),
 }))
 
+// La pestaña minimizada resuelve la entidad del cache; sin backend, un stub.
+vi.mock('../state', () => ({
+  useEntitiesQuery: () => ({ data: [] }),
+}))
+
 const proposal = {} as ExtractionProposal
 
 describe('<RightPanel />', () => {
+  it('detalle minimizado muestra la pestaña y oculta el panel completo', () => {
+    render(
+      <RightPanel
+        isMobile={false}
+        pendingProposal={null}
+        selectedEntityId="e1"
+        minimized={true}
+        onToggleMinimize={() => {}}
+        onCloseProposal={() => {}}
+        onCloseDetail={() => {}}
+        onBackdropClose={() => {}}
+        onOpenThreadFromDetail={() => {}}
+      />,
+    )
+    expect(screen.getByRole('button', { name: /abrir detalle/i })).toBeInTheDocument()
+    expect(screen.queryByText('detalle e1')).not.toBeInTheDocument()
+  })
+
+  it('minimizado se ignora en la propuesta (pide decisión, se muestra completa)', () => {
+    render(
+      <RightPanel
+        isMobile={false}
+        pendingProposal={{ text: 'fuente', proposal }}
+        selectedEntityId="e1"
+        minimized={true}
+        onToggleMinimize={() => {}}
+        onCloseProposal={() => {}}
+        onCloseDetail={() => {}}
+        onBackdropClose={() => {}}
+        onOpenThreadFromDetail={() => {}}
+      />,
+    )
+    expect(screen.getByText('propuesta fuente')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /abrir detalle/i }),
+    ).not.toBeInTheDocument()
+  })
+
   it('no renderiza cuando no hay propuesta ni entidad', () => {
     render(
       <RightPanel
         isMobile={false}
         pendingProposal={null}
         selectedEntityId={null}
+        minimized={false}
+        onToggleMinimize={() => {}}
         onCloseProposal={() => {}}
         onCloseDetail={() => {}}
         onBackdropClose={() => {}}
@@ -69,6 +114,8 @@ describe('<RightPanel />', () => {
         isMobile={false}
         pendingProposal={{ text: 'texto fuente', proposal }}
         selectedEntityId="e1"
+        minimized={false}
+        onToggleMinimize={() => {}}
         onCloseProposal={onCloseProposal}
         onCloseDetail={() => {}}
         onBackdropClose={onBackdropClose}
@@ -96,6 +143,8 @@ describe('<RightPanel />', () => {
         isMobile
         pendingProposal={null}
         selectedEntityId="e1"
+        minimized={false}
+        onToggleMinimize={() => {}}
         onCloseProposal={() => {}}
         onCloseDetail={onCloseDetail}
         onBackdropClose={() => {}}

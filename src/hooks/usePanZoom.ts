@@ -21,9 +21,10 @@ export type PanZoomControls = {
   zoomOut: () => void
   /** Resetea al zoom default y pan a (0,0) — botón "centrar vista". */
   resetView: () => void
-  /** π2: set pan a una coordenada world específica. Usado por el minimap
-      para centrar el viewport en un punto cuando el usuario clickea. */
-  setPanTo: (worldX: number, worldY: number) => void
+  /** π2 / ω-panel: centra el viewport en (worldX, worldY). El offset opcional
+      `screenDx` (px de pantalla, negativo = a la izquierda) desplaza el punto
+      respecto al centro para dejarlo visible junto a un panel lateral. */
+  setPanTo: (worldX: number, worldY: number, screenDx?: number) => void
   /** ρ-fix: encuadra el viewport a un bounding box. Calcula zoom + pan
       necesarios para que el bbox entre en la vista con `padding` píxeles
       de margen. Se llama al cambiar de layout mode (especialmente by-type
@@ -58,6 +59,10 @@ export function usePanZoom(
   const defaultZoom = options?.defaultZoom ?? 0.7
   const [pan, setPan] = useState<Pan>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(defaultZoom)
+  // Espejo de zoom en ref: deja que setPanTo aplique un offset en px de
+  // pantalla sin depender de `zoom` (así conserva su identidad estable).
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
   const [isPanning, setIsPanning] = useState(false)
   const panStart = useRef<{ x: number; y: number; panX: number; panY: number } | null>(
     null,
@@ -135,8 +140,11 @@ export function usePanZoom(
   // translate(50%, 50%) scale(zoom) translate(pan.x, pan.y), así que para
   // poner el punto (worldX, worldY) en el centro visual basta con
   // pan = -worldXY. (Conserva el zoom actual.)
-  const setPanTo = useCallback((worldX: number, worldY: number) => {
-    setPan({ x: -worldX, y: -worldY })
+  const setPanTo = useCallback((worldX: number, worldY: number, screenDx = 0) => {
+    setPan({
+      x: -worldX + (screenDx ? screenDx / zoomRef.current : 0),
+      y: -worldY,
+    })
   }, [])
 
   // ρ-fix: encuadra el viewport en un bbox. Resuelve el caso del layout
