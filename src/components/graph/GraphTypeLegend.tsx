@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Entity } from '../../types'
 import { typeAccent } from '../../lib/typeAccents'
 
@@ -31,7 +31,14 @@ export function GraphTypeLegend({
 }) {
   const [open, setOpen] = useState(false)
   const legend = useMemo(() => buildTypeLegend(entities), [entities])
-  if (legend.length < 2) return null
+  const tooFew = legend.length < 2
+  // Caso borde: si la leyenda se oculta (quedan <2 tipos) o se cierra
+  // mientras un tipo está resaltado, apaga el realce — si no, esos nodos
+  // quedarían atenuados en el grafo sin manera de recuperarlos.
+  useEffect(() => {
+    if (tooFew || !open) onHoverType?.(null)
+  }, [tooFew, open, onHoverType])
+  if (tooFew) return null
   const visible = legend.slice(0, MAX_TYPES)
   const rest = legend.length - visible.length
 

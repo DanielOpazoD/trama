@@ -30,6 +30,21 @@ describe('<GraphTypeLegend />', () => {
     expect(onHoverType).toHaveBeenLastCalledWith(null)
   })
 
+  it('apaga el realce si la leyenda se oculta (quedan <2 tipos) con un tipo activo', () => {
+    const onHoverType = vi.fn()
+    const { rerender } = render(
+      <GraphTypeLegend entities={ENTITIES} onHoverType={onHoverType} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /leyenda/i }))
+    fireEvent.mouseEnter(screen.getByText('persona').closest('li')!)
+    onHoverType.mockClear()
+    // Las entidades caen a un solo tipo → la leyenda se oculta.
+    rerender(
+      <GraphTypeLegend entities={[ent('a', 'persona')]} onHoverType={onHoverType} />,
+    )
+    expect(onHoverType).toHaveBeenCalledWith(null)
+  })
+
   it('al cerrar la leyenda apaga cualquier realce que quedara activo', () => {
     const onHoverType = vi.fn()
     render(<GraphTypeLegend entities={ENTITIES} onHoverType={onHoverType} />)
