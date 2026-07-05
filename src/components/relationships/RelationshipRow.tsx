@@ -76,7 +76,7 @@ function RelationshipRowInternal({
         </div>
         <IconButton
           onClick={onDelete}
-          className="shrink-0 rounded p-1.5 text-ink-400 opacity-0 transition-opacity hover:bg-ink-100 hover:text-[color:var(--accent-clay)] group-hover:opacity-100"
+          className="shrink-0 rounded p-1.5 text-ink-400 opacity-0 transition-opacity hover:bg-ink-100 hover:text-[color:var(--accent-clay)] focus-visible:opacity-100 group-hover:opacity-100"
           label="Eliminar"
           title="Eliminar"
         >
