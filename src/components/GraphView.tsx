@@ -340,6 +340,12 @@ export default function GraphView({
     // se veía un flash de ese vacío en cada carga.
     return entitiesLoading ? <GraphLoadingState /> : <EmptyState />
   }
+  // Exploratorio: el subgrafo focal puede venir vacío mientras el neighbors
+  // query resuelve (aunque el wholesale ya tenga entidades). Evita el canvas
+  // en blanco con el mismo indicador sereno.
+  if (graphMode === 'exploratorio' && entities.length === 0) {
+    return neighborsQuery.isLoading ? <GraphLoadingState /> : <EmptyState />
+  }
 
   const cursorStyle: CSSProperties = { cursor: pz.isPanning ? 'grabbing' : 'grab' }
   const showExploreHint =

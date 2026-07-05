@@ -67,16 +67,19 @@ export function RightPanel({
 
   return (
     <>
-      {/* Backdrop: click fuera cierra. Para el detalle es transparente (deja
-          ver el grafo); para la propuesta mantiene un velo tenue. */}
-      <button
-        onClick={onBackdropClose}
-        aria-label="Cerrar panel"
-        className={`fixed inset-0 z-10 cursor-default ${
-          showDetail ? 'bg-transparent' : 'bg-ink-900/20'
-        }`}
-        tabIndex={-1}
-      />
+      {/* Backdrop SOLO para la propuesta (decisión modal): velo tenue + click
+          fuera cierra. El detalle NO lleva backdrop —si no, un velo a pantalla
+          completa se tragaría los clics del grafo aunque sea transparente—; el
+          grafo/lista de fondo queda interactuable y el detalle se cierra con la
+          X, con Escape o deseleccionando en el grafo. */}
+      {showProposal && (
+        <button
+          onClick={onBackdropClose}
+          aria-label="Cerrar panel"
+          className="fixed inset-0 z-10 cursor-default bg-ink-900/20"
+          tabIndex={-1}
+        />
+      )}
       {/* Desktop: glass card anchored to the right. Mobile: bottom sheet
           that slides up from below, covering most of the screen. */}
       <div

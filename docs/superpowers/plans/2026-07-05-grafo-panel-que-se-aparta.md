@@ -26,8 +26,13 @@ Dos fricciones al usar el grafo, señaladas por el usuario:
 
 ### El backdrop respetuoso (C)
 
-- El velo del detalle pasa a **transparente** (deja ver el grafo); el de la
-  propuesta —que pide una decisión— mantiene el velo tenue.
+- El detalle **no lleva backdrop**: un velo a pantalla completa —aunque sea
+  transparente— se tragaría los clics del grafo. Sin él, el mapa queda
+  **interactuable** con el panel abierto (clicar otro nodo cambia la selección;
+  clicar el fondo deselecciona y cierra), y el detalle también se cierra con la
+  X o Escape. La **propuesta** —que pide una decisión modal— sí mantiene su velo
+  tenue con click-fuera. (Ajuste de la review de CodeRabbit: el backdrop
+  transparente original seguía capturando los clics.)
 
 ### El grafo se acomoda (B)
 
