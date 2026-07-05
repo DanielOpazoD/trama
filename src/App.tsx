@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useInitialView } from './hooks/useInitialView'
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts'
@@ -125,6 +125,15 @@ function Shell({
   } = useShellState()
   const modals = useAppModals()
   const { openModal } = modals
+
+  // ω-panel: el panel de detalle se puede minimizar a una pestaña para dejar
+  // ver el grafo con la selección encendida (las relaciones que el panel
+  // tapaba). Efímero por selección: cada entidad nueva reabre el panel
+  // expandido, así minimizar es una acción deliberada de "ir a mirar el mapa".
+  const [detailMinimized, setDetailMinimized] = useState(false)
+  useEffect(() => {
+    setDetailMinimized(false)
+  }, [selectedEntityId])
 
   // κ2: nudge semanal cuando hay sugerencias proactivas pendientes y
   // ya pasaron 7+ días desde el último toast. La declaración va aquí
@@ -331,6 +340,8 @@ function Shell({
         isMobile={isMobile}
         pendingProposal={pendingProposal}
         selectedEntityId={selectedEntityId}
+        minimized={detailMinimized}
+        onToggleMinimize={() => setDetailMinimized((v) => !v)}
         onCloseProposal={() => setPendingProposal(null)}
         onCloseDetail={() => setSelectedEntityId(null)}
         onBackdropClose={() => {

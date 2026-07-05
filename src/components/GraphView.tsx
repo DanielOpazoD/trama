@@ -19,6 +19,7 @@ import {
 import type { Entity, ExtractionProposal } from '../types'
 import { useGraphLayout } from '../hooks/useGraphLayout'
 import { usePanZoom } from '../hooks/usePanZoom'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useGraphKeyboardNav } from '../hooks/useGraphKeyboardNav'
 import {
   useLocalStorageBoolean,
@@ -49,6 +50,7 @@ const GraphCanvasSigma = lazy(() =>
   import('./graph/GraphCanvasSigma').then((m) => ({ default: m.GraphCanvasSigma })),
 )
 import { EmptyState } from './EmptyState'
+import { GraphLoadingState } from './graph/GraphLoadingState'
 import type { LayoutMode } from '../hooks/layouts/types'
 
 // Persisted in localStorage so reloads keep the user's mode + focus.
@@ -70,6 +72,10 @@ const EXPLORE_HINT_THRESHOLD = 2000
 // El SVG es rico (drop shadows, drift, etc.) pero al cruzar 1k nodos
 // el render se vuelve perceptiblemente lento. WebGL pinta 10k+ sin sudar.
 const WEBGL_THRESHOLD = 600
+// ω-panel: px que se desplaza el viewport a la izquierda al seleccionar un
+// nodo con el panel de detalle abierto (~40rem de ancho → media anchura), para
+// que el nodo y sus vecinos queden a la vista y no bajo el panel.
+const PANEL_RECENTER_DX = 320
 
 export default function GraphView({
   selectedId,
@@ -83,7 +89,7 @@ export default function GraphView({
   // Wholesale: fed by useEntitiesQuery / useRelationshipsQuery. La opción
   // "completo" usa estos. A 100k+ es inviable y se cambia a "exploratorio",
   // que ataca /api/graph/neighbors desde una entidad focal.
-  const { data: allEntities = [] } = useEntitiesQuery()
+  const { data: allEntities = [], isLoading: entitiesLoading } = useEntitiesQuery()
   const { data: allRelationships = [] } = useRelationshipsQuery()
 
   const updateEntityPosition = useUpdateEntityPosition()
@@ -164,6 +170,7 @@ export default function GraphView({
   })
 
   const pz = usePanZoom(svgRef)
+  const isMobile = useIsMobile()
 
   // ρ-fix-B1: cuando cambia el layout mode a uno geométrico (by-type,
   // by-year, by-degree), los nodos pueden quedar lejos del viewport por
@@ -306,15 +313,32 @@ export default function GraphView({
     setFocusId(null)
   }, [graphMode, neighborsQuery.isError, setFocusId])
 
+  // ω-panel: al seleccionar un nodo (desktop), reencuadra el viewport para que
+  // quede a la vista, a la izquierda del panel de detalle. Solo una vez por
+  // selección — el ref evita reencuadrar al arrastrar o al recalcular layout.
+  const recenteredForRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!selectedId) {
+      recenteredForRef.current = null
+      return
+    }
+    if (isMobile || selectedId === recenteredForRef.current) return
+    const pos = positions.get(selectedId)
+    if (!pos) return
+    recenteredForRef.current = selectedId
+    pz.setPanTo(pos.x, pos.y, -PANEL_RECENTER_DX)
+  }, [selectedId, isMobile, positions, pz])
+
   // Empty state: en modo "completo" sin entidades, mostramos el EmptyState
   // global. En "exploratorio" sin entidades pasa lo mismo (no hay focus
   // candidato). Los otros casos (focus null, focus stale) se manejan con
   // los effects de auto-pick / clear de arriba.
-  if (graphMode === 'completo' && allEntities.length === 0) {
-    return <EmptyState />
-  }
-  if (graphMode === 'exploratorio' && allEntities.length === 0) {
-    return <EmptyState />
+  if (allEntities.length === 0) {
+    // ω-carga: distinguir "cargando" de "vacío de verdad". Mientras la query
+    // trae las entidades, un indicador sereno; el EmptyState («no hay
+    // entidades, cargar ejemplo») solo cuando de verdad no hay nada — antes
+    // se veía un flash de ese vacío en cada carga.
+    return entitiesLoading ? <GraphLoadingState /> : <EmptyState />
   }
 
   const cursorStyle: CSSProperties = { cursor: pz.isPanning ? 'grabbing' : 'grab' }
