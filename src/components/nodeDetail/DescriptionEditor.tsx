@@ -141,7 +141,7 @@ export function DescriptionEditor({
           value={urlDraft}
           onChange={(e) => setUrlDraft(e.target.value)}
           placeholder="https://open.spotify.com/…"
-          className="input-paper w-full text-sm"
+          className="input-paper w-full text-body"
           aria-label="Enlace de Spotify"
         />
       )}
@@ -154,14 +154,14 @@ export function DescriptionEditor({
             value={wikiDraft}
             onChange={(e) => setWikiDraft(e.target.value)}
             placeholder="https://es.wikipedia.org/wiki/…"
-            className="input-paper w-full text-sm"
+            className="input-paper w-full text-body"
             aria-label="Enlace de Wikipedia"
           />
           <button
             type="button"
             onClick={handleSearchWikipedia}
             disabled={wikiSearching}
-            className="btn-ghost shrink-0 whitespace-nowrap text-xs disabled:opacity-50"
+            className="btn-ghost shrink-0 whitespace-nowrap text-caption disabled:opacity-50"
             title="Buscar el artículo de Wikipedia para esta entidad"
           >
             {wikiSearching ? (
@@ -182,7 +182,7 @@ export function DescriptionEditor({
           value={grokDraft}
           onChange={(e) => setGrokDraft(e.target.value)}
           placeholder="https://grokipedia.com/…"
-          className="input-paper w-full text-sm"
+          className="input-paper w-full text-body"
           aria-label="Enlace de Grokipedia"
         />
         <button
@@ -194,7 +194,7 @@ export function DescriptionEditor({
               'noopener,noreferrer',
             )
           }
-          className="btn-ghost shrink-0 whitespace-nowrap text-xs"
+          className="btn-ghost shrink-0 whitespace-nowrap text-caption"
           title="Abrir Grokipedia para buscar y copiar la URL del artículo"
         >
           abrir Grokipedia
@@ -216,13 +216,13 @@ export function DescriptionEditor({
           )}
         </button>
         <div className="flex items-center gap-2">
-          <button onClick={onDone} className="btn-ghost text-xs">
+          <button onClick={onDone} className="btn-ghost text-caption">
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={updateEntity.isPending}
-            className="btn-ink text-xs"
+            className="btn-ink text-caption"
           >
             {updateEntity.isPending ? 'Guardando…' : 'Guardar'}
           </button>

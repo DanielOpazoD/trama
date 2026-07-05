@@ -93,7 +93,7 @@ export function VozDe({ entity }: { entity: Entity }) {
         <button
           onClick={handleAsk}
           disabled={voice.isPending || !question.trim()}
-          className="btn-ink inline-flex items-center gap-1.5 text-xs disabled:opacity-50"
+          className="btn-ink inline-flex items-center gap-1.5 text-caption disabled:opacity-50"
         >
           {voice.isPending ? <AIThinkingLabel tone="inverse" /> : 'preguntar'}
         </button>
