@@ -71,6 +71,7 @@
     --accent-sage-ring: rgb(74 124 58 / 0.25);
     --accent-gold: #a07900; /* dorado contrastado para IA / featured */
     --graph-label-ink: #3a3429; /* tinta de labels del grafo WebGL */
+    --origin-ai: #7aa7c7; /* azul cielo — propuestas de relación de la IA en el grafo */
     --accent-gold-soft: rgb(160 121 0 / 0.1);
     --accent-clay: #b91c1c; /* rojo nítido — destructivo */
     --accent-clay-soft: rgb(185 28 28 / 0.1);

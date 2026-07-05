@@ -1,5 +1,6 @@
 import type { Entity } from '../../types'
 import { ENTITY_TYPES } from '../../types'
+import { typeAccent } from '../../lib/typeAccents'
 
 /**
  * Card flotante que aparece al hover prolongado sobre un nodo del grafo
@@ -51,8 +52,17 @@ export function HoverPreviewCard({
         stroke="var(--border-subtle)"
         strokeWidth={1}
       />
+      {/* ω-firma: disco del acento del tipo — misma ancla cromática que la
+          leyenda, para leer el tipo de un vistazo. */}
+      <circle
+        cx={13}
+        cy={14.5}
+        r={2.5}
+        fill={typeAccent(entity.type)}
+        fillOpacity={0.9}
+      />
       <text
-        x={12}
+        x={22}
         y={18}
         fontSize={9}
         fill="var(--ink-dim)"
@@ -64,7 +74,7 @@ export function HoverPreviewCard({
         {entity.year && <> · {entity.year}</>}
       </text>
       <text
-        x={12}
+        x={22}
         y={38}
         fontSize={14}
         fontWeight={500}
@@ -75,7 +85,7 @@ export function HoverPreviewCard({
         {entity.name.length > 28 ? entity.name.slice(0, 27) + '…' : entity.name}
       </text>
       <text
-        x={12}
+        x={22}
         y={entity.year ? 60 : 54}
         fontSize={10}
         fill="var(--ink-dim)"
@@ -85,7 +95,7 @@ export function HoverPreviewCard({
       </text>
       {entity.description && (
         <text
-          x={12}
+          x={22}
           y={entity.year ? 72 : 66}
           fontSize={9.5}
           fill="var(--ink-dim)"

@@ -20,7 +20,15 @@ export function buildTypeLegend(entities: Entity[]): { type: string; count: numb
     .sort((a, b) => b.count - a.count || a.type.localeCompare(b.type))
 }
 
-export function GraphTypeLegend({ entities }: { entities: Entity[] }) {
+export function GraphTypeLegend({
+  entities,
+  onHoverType,
+}: {
+  entities: Entity[]
+  /** ω-leyenda: al pasar el cursor por un tipo, avisa cuál — el grafo
+   *  enciende esos nodos. `null` al salir o cerrar. */
+  onHoverType?: (type: string | null) => void
+}) {
   const [open, setOpen] = useState(false)
   const legend = useMemo(() => buildTypeLegend(entities), [entities])
   if (legend.length < 2) return null
@@ -32,28 +40,41 @@ export function GraphTypeLegend({ entities }: { entities: Entity[] }) {
       {open && (
         <ul
           aria-label="Leyenda de tipos"
-          className="rounded-lg border border-ink-100/70 bg-paper-50/90 px-3 py-2 shadow-sm shadow-ink-900/10 backdrop-blur-sm space-y-1"
+          onMouseLeave={() => onHoverType?.(null)}
+          className="space-y-0.5 rounded-lg border border-ink-100/70 bg-paper-50/90 px-2 py-1.5 shadow-sm shadow-ink-900/10 backdrop-blur-sm"
         >
           {visible.map(({ type, count }) => (
-            <li key={type} className="flex items-center gap-2 text-caption text-ink-600">
+            <li
+              key={type}
+              onMouseEnter={() => onHoverType?.(type)}
+              className="flex cursor-default items-center gap-2 rounded px-1.5 py-0.5 text-caption text-ink-600 transition-colors hover:bg-ink-100/50"
+            >
               <span
                 aria-hidden
-                className="size-2.5 rounded-full"
+                className="size-2.5 rounded-full ring-1 ring-inset ring-black/5"
                 style={{ backgroundColor: typeAccent(type) }}
               />
-              {type}
+              <span className="font-serif">{type}</span>
               <span className="ml-auto pl-3 text-micro tabular-nums text-ink-300">
                 {count}
               </span>
             </li>
           ))}
           {rest > 0 && (
-            <li className="text-micro italic font-serif text-ink-300">y {rest} más</li>
+            <li className="px-1.5 pt-0.5 text-micro italic font-serif text-ink-300">
+              y {rest} más
+            </li>
           )}
         </ul>
       )}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() =>
+          setOpen((o) => {
+            // Al cerrar, apaga cualquier realce que quedara activo.
+            if (o) onHoverType?.(null)
+            return !o
+          })
+        }
         aria-expanded={open}
         className="rounded-full border border-ink-100/70 bg-paper-50/90 px-2.5 py-1 text-micro uppercase tracking-eyebrow text-ink-400 shadow-sm backdrop-blur-sm transition-colors hover:text-ink-700"
       >
