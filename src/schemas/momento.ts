@@ -63,6 +63,9 @@ const FotoItemSchema = z.object({
   storageKey: z.string().trim().min(1),
   width: z.number().optional(),
   height: z.number().optional(),
+  // ω-video: distingue clip de foto. Ausente → imagen (back-compat con
+  // los items ya persistidos, que nunca traen este campo).
+  type: z.enum(['image', 'video']).optional(),
 })
 
 /** Foto: array `items[]` (nuevo, υ-multi) o `storageKey` legacy.

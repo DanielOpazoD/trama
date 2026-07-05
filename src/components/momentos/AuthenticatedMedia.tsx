@@ -1,4 +1,9 @@
-import { useEffect, useState, type ImgHTMLAttributes } from 'react'
+import {
+  useEffect,
+  useState,
+  type ImgHTMLAttributes,
+  type VideoHTMLAttributes,
+} from 'react'
 import { requestBlob } from '../../api/request'
 import { momentoMediaUrl } from './helpers'
 import {
@@ -118,4 +123,43 @@ export function AuthenticatedMomentoImage({
       style={ready ? style : { ...style, backgroundColor: 'rgb(var(--paper-100) / 0.6)' }}
     />
   )
+}
+
+/**
+ * ω-video: hermano de `AuthenticatedMomentoImage` para clips. Resuelve el
+ * mismo blob autenticado a un object-URL y lo monta en un `<video>`.
+ *
+ * A diferencia del `<img>` no hay "pixel transparente" equivalente, así que
+ * mientras el blob viaja mostramos una caja papel que late —del mismo
+ * tamaño que ocupará el video— y en error una caja con aviso, nunca el
+ * reproductor roto del navegador. El consumidor pasa `controls`, `poster`,
+ * `preload`, etc. por props.
+ */
+export function AuthenticatedMomentoVideo({
+  storageKey,
+  className = '',
+  style,
+  ...props
+}: Omit<VideoHTMLAttributes<HTMLVideoElement>, 'src'> & {
+  storageKey: string
+}) {
+  const { src, status } = useAuthenticatedMediaState(momentoMediaUrl(storageKey))
+  const ready = status === 'ready' && !!src
+
+  if (!ready) {
+    return (
+      <div
+        className={`${className} ${
+          status === 'loading' ? 'animate-pulse-subtle' : ''
+        } flex items-center justify-center`.trim()}
+        style={{ ...style, backgroundColor: 'rgb(var(--paper-100) / 0.6)' }}
+      >
+        {status === 'error' && (
+          <span className="text-micro text-ink-400">video no disponible</span>
+        )}
+      </div>
+    )
+  }
+
+  return <video {...props} src={src} className={className} style={style} />
 }

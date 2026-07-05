@@ -42,6 +42,9 @@ function buildInitialItems(momento: Momento): PhotoEditItem[] {
     storageKey: it.storageKey,
     width: it.width,
     height: it.height,
+    // Preservar el marcador de video: sin esto, re-guardar el momento (aunque
+    // solo se cambie el caption) degradaría el clip a una foto rota.
+    type: it.type,
   }))
 }
 
@@ -229,12 +232,19 @@ export function FotoEditModal({
           )
         }),
       )
-      type FinalItem = { storageKey: string; width?: number; height?: number }
+      type FinalItem = {
+        storageKey: string
+        width?: number
+        height?: number
+        type?: 'image' | 'video'
+      }
       const finalItems: FinalItem[] = items.flatMap((it) => {
         if (it.kind === 'existing') {
           const out: FinalItem = { storageKey: it.storageKey }
           if (it.width !== undefined) out.width = it.width
           if (it.height !== undefined) out.height = it.height
+          // Conservar el type ('video') al reconstruir items[] — ver buildInitialItems.
+          if (it.type !== undefined) out.type = it.type
           return [out]
         }
         const data = uploadedKeys.get(it.file)

@@ -6,9 +6,18 @@ import { MomentoKindTabs } from './MomentoKindTabs'
 import { editImage } from '../../lib/imageEditor'
 import { PencilIcon } from '../Icons'
 import { IconButton } from '../IconButton'
+import { VideoPlayBadge } from './VideoPlayBadge'
 import { InlineLoadingLabel } from '../InlineLoadingLabel'
 
 type Composer = ReturnType<typeof useMomentoComposer>
+
+/** Sustantivo del contador de la grilla: "foto(s)" si todo son imágenes,
+ *  "elemento(s)" en cuanto hay algún video (no llamar "foto" a un clip). */
+function mediaNoun(drafts: { isVideo: boolean }[]): string {
+  const plural = drafts.length !== 1
+  if (drafts.some((d) => d.isVideo)) return plural ? 'elementos' : 'elemento'
+  return plural ? 'fotos' : 'foto'
+}
 
 /**
  * Form de captura de un nuevo Momento. Toda la state vive en el hook
@@ -232,8 +241,8 @@ function FotoFields({ composer }: { composer: Composer }) {
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault()
-          const files = Array.from(e.dataTransfer.files ?? []).filter((f) =>
-            f.type.startsWith('image/'),
+          const files = Array.from(e.dataTransfer.files ?? []).filter(
+            (f) => f.type.startsWith('image/') || f.type.startsWith('video/'),
           )
           if (files.length > 0) composer.addPhotoFiles(files)
         }}
@@ -244,8 +253,8 @@ function FotoFields({ composer }: { composer: Composer }) {
           // un solo file picker. Combinado con drop-zone multi, el
           // usuario puede armar el episodio en un paso.
           multiple
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          aria-label="Agregar fotos"
+          accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+          aria-label="Agregar fotos o videos"
           className="sr-only"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? [])
@@ -272,11 +281,25 @@ function FotoFields({ composer }: { composer: Composer }) {
                     } bg-paper-100/40`}
                     style={isPrimary ? { borderColor: 'var(--accent-gold)' } : undefined}
                   >
-                    <img
-                      src={draft.previewUrl}
-                      alt={`foto ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+                    {draft.isVideo ? (
+                      <>
+                        <video
+                          src={draft.previewUrl}
+                          className="w-full h-full object-cover"
+                          muted
+                          playsInline
+                          preload="metadata"
+                          aria-label={`video ${idx + 1}`}
+                        />
+                        <VideoPlayBadge size="sm" />
+                      </>
+                    ) : (
+                      <img
+                        src={draft.previewUrl}
+                        alt={`foto ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                     {/* Botón × — quitar */}
                     <button
                       type="button"
@@ -292,26 +315,29 @@ function FotoFields({ composer }: { composer: Composer }) {
                     >
                       ×
                     </button>
-                    {/* Editar con el editor de imágenes (recortar/girar/texto). */}
-                    <IconButton
-                      onClick={async (e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        const edited = await editImage(draft.file, {
-                          outputType: 'image/jpeg',
-                          title: `foto ${idx + 1}`,
-                        })
-                        if (edited && edited !== draft.file) {
-                          composer.replacePhotoDraft(idx, edited)
-                        }
-                      }}
-                      className="absolute top-1 right-7 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 hover:bg-ink-900 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                      label={`Editar foto ${idx + 1}`}
-                      title="Editar foto"
-                      disabled={composer.isPending}
-                    >
-                      <PencilIcon size={11} />
-                    </IconButton>
+                    {/* Editar con el editor de imágenes (recortar/girar/texto).
+                        Solo para fotos: el editor no opera sobre video. */}
+                    {!draft.isVideo && (
+                      <IconButton
+                        onClick={async (e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const edited = await editImage(draft.file, {
+                            outputType: 'image/jpeg',
+                            title: `foto ${idx + 1}`,
+                          })
+                          if (edited && edited !== draft.file) {
+                            composer.replacePhotoDraft(idx, edited)
+                          }
+                        }}
+                        className="absolute top-1 right-7 size-5 flex items-center justify-center rounded-full bg-ink-900/70 text-paper-50 hover:bg-ink-900 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                        label={`Editar foto ${idx + 1}`}
+                        title="Editar foto"
+                        disabled={composer.isPending}
+                      >
+                        <PencilIcon size={11} />
+                      </IconButton>
+                    )}
                     {/* φ-photo-polish: badge "portada" cuando es la
                         primera; en las otras, botón "★ portada" que
                         la mueve al inicio. */}
@@ -390,10 +416,10 @@ function FotoFields({ composer }: { composer: Composer }) {
                 )
               })}
             </div>
-            {/* ω-A: counts/hints sin italic — son metadata útil. */}
+            {/* ω-A: counts/hints sin italic — son metadata útil. El sustantivo
+                pasa a "elemento(s)" si hay algún video en la selección. */}
             <p className="text-caption text-ink-400">
-              {composer.photoDrafts.length}{' '}
-              {composer.photoDrafts.length === 1 ? 'foto' : 'fotos'}
+              {composer.photoDrafts.length} {mediaNoun(composer.photoDrafts)}
               {composer.photoDrafts.length > 1 &&
                 ' · pasa el cursor sobre una y elige "★ portada" para fijarla primero'}
               {composer.photoDrafts.length === 1 && ' · click para agregar más'}
@@ -401,11 +427,11 @@ function FotoFields({ composer }: { composer: Composer }) {
           </div>
         ) : (
           <div className="text-ink-400">
-            <p className="text-sm">
-              Arrastra una o varias imágenes aquí, o click para elegir
+            <p className="text-body">
+              Arrastra fotos o videos aquí, o haz click para elegir
             </p>
             <p className="text-caption italic mt-1">
-              JPEG / PNG / WebP / GIF · se comprimen antes de subir
+              Fotos JPEG / PNG / WebP / GIF · videos MP4 / WebM / MOV hasta 10 MB
             </p>
           </div>
         )}

@@ -3,11 +3,20 @@ import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
 import { PencilIcon, TrashIcon } from '../Icons'
-import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
-import { formatMonthLabel, getMomentoPhotoItems, groupByMonth } from './helpers'
+import {
+  AuthenticatedMomentoImage,
+  AuthenticatedMomentoVideo,
+} from './AuthenticatedMedia'
+import {
+  formatMonthLabel,
+  getMomentoPhotoItems,
+  groupByMonth,
+  isVideoItem,
+} from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
 import { MomentoFeedback } from './MomentoFeedback'
 import { PhotoLightbox } from './PhotoLightbox'
+import { VideoPlayBadge } from './VideoPlayBadge'
 
 /**
  * Vista alternativa de Momentos: grid de fotos en cronología año → mes.
@@ -184,7 +193,8 @@ function AlbumTile({
 }) {
   const { caption } = momento.payload
   const photos = getMomentoPhotoItems(momento.payload)
-  const storageKey = photos[0]?.storageKey
+  const cover = photos[0]
+  const coverIsVideo = cover ? isVideoItem(cover) : false
   const extraCount = Math.max(photos.length - 1, 0)
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
@@ -192,7 +202,7 @@ function AlbumTile({
   const [actionsOpen, setActionsOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  if (!storageKey) return null
+  if (!cover) return null
   const d = new Date(momento.capturedAt)
   const dateLabel = !Number.isNaN(d.getTime())
     ? d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
@@ -214,16 +224,35 @@ function AlbumTile({
           type="button"
           onClick={() => setLightboxOpen(true)}
           aria-label={
-            photos.length === 1 ? 'Abrir foto' : `Abrir visor de ${photos.length} fotos`
+            photos.length === 1
+              ? coverIsVideo
+                ? 'Abrir video'
+                : 'Abrir foto'
+              : `Abrir visor de ${photos.length} elementos`
           }
-          className="block h-full w-full cursor-zoom-in overflow-hidden focus-ring-inset"
+          className="relative block h-full w-full cursor-zoom-in overflow-hidden focus-ring-inset"
         >
-          <AuthenticatedMomentoImage
-            storageKey={storageKey}
-            alt={caption ?? 'momento'}
-            loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+          {coverIsVideo ? (
+            <>
+              {/* ω-video: el álbum muestra el póster del clip (primer frame)
+                  con el disco de play; el click abre el visor, que reproduce. */}
+              <AuthenticatedMomentoVideo
+                storageKey={cover.storageKey}
+                muted
+                playsInline
+                preload="metadata"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <VideoPlayBadge />
+            </>
+          ) : (
+            <AuthenticatedMomentoImage
+              storageKey={cover.storageKey}
+              alt={caption ?? 'momento'}
+              loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
         </button>
         {extraCount > 0 && (
           <span

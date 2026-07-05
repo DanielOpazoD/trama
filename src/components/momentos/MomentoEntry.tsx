@@ -3,8 +3,11 @@ import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
 import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
-import { formatTime, getMomentoPhotoItems, momentoMediaUrl } from './helpers'
-import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
+import { formatTime, getMomentoPhotoItems, isVideoItem, momentoMediaUrl } from './helpers'
+import {
+  AuthenticatedMomentoImage,
+  AuthenticatedMomentoVideo,
+} from './AuthenticatedMedia'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
@@ -46,11 +49,23 @@ function MomentoEntryInternal({
           Es la marginalia del manuscrito: dice CUÁNDO sin estorbar
           la lectura del QUÉ. */}
       <span
-        className="absolute left-0 top-1 text-caption italic text-ink-300 tabular-nums w-12 -ml-1 text-right pr-2 border-r border-ink-100/40"
+        className="absolute left-0 top-1 text-caption italic text-ink-300 tabular-nums w-12 -ml-1 text-right pr-3"
         aria-hidden="true"
       >
         {formatTime(momento.capturedAt)}
       </span>
+      {/* ω-hilo: el eje temporal del manuscrito. Un nodo en oro a la altura
+          de la hora y un filete que desciende desvaneciéndose hacia la
+          entrada siguiente — encadena los momentos del día como cuentas de
+          un hilo. Ornamental (aria-hidden) y absoluto: no altera el layout. */}
+      <span
+        aria-hidden
+        className="absolute left-11 top-2 size-1.5 -translate-x-1/2 rounded-full bg-[color:var(--accent-gold)] ring-2 ring-paper-50"
+      />
+      <span
+        aria-hidden
+        className="absolute left-11 top-4 -bottom-4 w-px -translate-x-1/2 bg-gradient-to-b from-ink-200/60 to-transparent"
+      />
       <div className="ml-12">
         {momento.kind === 'nota' && <NotaBody momento={momento} />}
         {momento.kind === 'recorte' && <RecorteBody momento={momento} />}
@@ -226,6 +241,7 @@ function FotoBody({ momento }: { momento: Momento }) {
   }
 
   const cover = photos[0]!
+  const coverIsVideo = isVideoItem(cover)
   const extraCount = photos.length - 1
   const aspectRatio =
     cover.width && cover.height && cover.width > 0 && cover.height > 0
@@ -235,33 +251,61 @@ function FotoBody({ momento }: { momento: Momento }) {
   return (
     <article className="space-y-2">
       <div className="max-w-md relative">
-        <button
-          type="button"
-          onClick={() => setLightboxOpen(true)}
-          aria-label={
-            photos.length === 1 ? 'Abrir foto' : `Abrir visor — ${photos.length} fotos`
-          }
-          className="block w-full rounded-md overflow-hidden border border-ink-100/60 cursor-zoom-in hover:opacity-95 transition-opacity"
-        >
-          <AuthenticatedMomentoImage
+        {coverIsVideo ? (
+          // ω-video: el clip se reproduce inline con los controles nativos.
+          // No se envuelve en el botón de zoom (capturaría los clics del
+          // player). object-contain sobre fondo tinta evita distorsión y da
+          // el letterbox de cine cuando el ratio no calza.
+          <AuthenticatedMomentoVideo
             storageKey={cover.storageKey}
-            alt={caption ?? 'momento'}
-            loading="lazy"
-            className="block w-full h-auto"
-            style={aspectRatio ? { aspectRatio } : undefined}
+            controls
+            playsInline
+            preload="metadata"
+            className="block w-full rounded-md overflow-hidden border border-ink-100/60 bg-ink-900 object-contain"
+            style={{ aspectRatio: aspectRatio ?? '16 / 9' }}
           />
-        </button>
-        {/* Badge "+N" si hay más fotos. Sutilmente sobre la esquina
-            superior derecha. No-interactive (el click del button de
-            atrás lo cubre). */}
-        {extraCount > 0 && (
-          <span
-            className="pointer-events-none absolute top-2 right-2 text-micro uppercase tracking-eyebrow tabular-nums bg-ink-900/70 text-paper-50 px-1.5 py-0.5 rounded leading-none"
-            aria-hidden
+        ) : (
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            aria-label={
+              photos.length === 1
+                ? 'Abrir foto'
+                : `Abrir visor — ${photos.length} elementos`
+            }
+            className="block w-full rounded-md overflow-hidden border border-ink-100/60 cursor-zoom-in hover:opacity-95 transition-opacity"
           >
-            +{extraCount}
-          </span>
+            <AuthenticatedMomentoImage
+              storageKey={cover.storageKey}
+              alt={caption ?? 'momento'}
+              loading="lazy"
+              className="block w-full h-auto"
+              style={aspectRatio ? { aspectRatio } : undefined}
+            />
+          </button>
         )}
+        {/* Badge "+N" si el episodio trae más piezas. Cuando la portada es
+            foto, el botón de zoom de atrás ya abre el visor y el badge es
+            decorativo; cuando es video (que captura sus clics), el badge ES
+            el disparador del visor. */}
+        {extraCount > 0 &&
+          (coverIsVideo ? (
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              aria-label={`Abrir visor — ${photos.length} elementos`}
+              className="absolute top-2 right-2 text-micro uppercase tracking-eyebrow tabular-nums bg-ink-900/70 text-paper-50 px-1.5 py-0.5 rounded leading-none transition-colors hover:bg-ink-900/90"
+            >
+              +{extraCount}
+            </button>
+          ) : (
+            <span
+              className="pointer-events-none absolute top-2 right-2 text-micro uppercase tracking-eyebrow tabular-nums bg-ink-900/70 text-paper-50 px-1.5 py-0.5 rounded leading-none"
+              aria-hidden
+            >
+              +{extraCount}
+            </span>
+          ))}
       </div>
       {caption && (
         <p className="font-serif text-caption italic text-ink-500 max-w-md">{caption}</p>

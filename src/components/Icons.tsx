@@ -35,6 +35,21 @@ export const ChevronRightIcon = ({ size = 14, className }: Props) => (
   </svg>
 )
 
+/** Triángulo de reproducción (relleno) — marca que un momento es un clip
+ *  de video. Sólido a propósito: se lee mejor pequeño sobre un póster. */
+export const PlayIcon = ({ size = 14, className }: Props) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    className={className}
+    fill="currentColor"
+    aria-hidden
+  >
+    <path d="M8 5.5v13a.75.75 0 0 0 1.14.64l10.5-6.5a.75.75 0 0 0 0-1.28l-10.5-6.5A.75.75 0 0 0 8 5.5Z" />
+  </svg>
+)
+
 /** Burbuja de mensaje — procedencia "vía WhatsApp" (capturado por mensaje). */
 export const ChatBubbleIcon = ({ size = 12, className }: Props) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

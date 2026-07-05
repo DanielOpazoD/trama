@@ -1,12 +1,18 @@
-import { AuthenticatedMomentoImage } from '../AuthenticatedMedia'
+import {
+  AuthenticatedMomentoImage,
+  AuthenticatedMomentoVideo,
+} from '../AuthenticatedMedia'
 import { PencilIcon } from '../../Icons'
 import { IconButton } from '../../IconButton'
+import { VideoPlayBadge } from '../VideoPlayBadge'
 
 export type ExistingPhotoEditItem = {
   kind: 'existing'
   storageKey: string
   width?: number
   height?: number
+  /** ω-video: 'video' si el item ya guardado es un clip (no una foto). */
+  type?: 'image' | 'video'
 }
 
 export type NewPhotoEditItem = {
@@ -41,6 +47,9 @@ export function FotoPhotoTile({
   onMove: (dir: -1 | 1) => void
 }) {
   const isPrimary = idx === 0
+  // Los items 'new' del modal de edición siempre son fotos (addFiles filtra
+  // image/); solo un item ya guardado puede ser un clip.
+  const isExistingVideo = item.kind === 'existing' && item.type === 'video'
   return (
     <div
       className={`group relative aspect-square overflow-hidden rounded border ${
@@ -49,12 +58,25 @@ export function FotoPhotoTile({
       style={isPrimary ? { borderColor: 'var(--accent-gold)' } : undefined}
     >
       {item.kind === 'existing' ? (
-        <AuthenticatedMomentoImage
-          storageKey={item.storageKey}
-          alt={`foto ${idx + 1}`}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
+        isExistingVideo ? (
+          <>
+            <AuthenticatedMomentoVideo
+              storageKey={item.storageKey}
+              muted
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-cover"
+            />
+            <VideoPlayBadge size="sm" />
+          </>
+        ) : (
+          <AuthenticatedMomentoImage
+            storageKey={item.storageKey}
+            alt={`foto ${idx + 1}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        )
       ) : (
         <img
           src={item.previewUrl}
@@ -94,15 +116,18 @@ export function FotoPhotoTile({
       <span className="absolute bottom-1 left-1 text-micro tabular-nums bg-ink-900/60 text-paper-50 px-1 rounded leading-none py-0.5">
         {idx + 1}
       </span>
-      <IconButton
-        onClick={onEdit}
-        className="absolute bottom-1 left-7 size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 hover:bg-ink-900/85 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-        label={`Editar foto ${idx + 1}`}
-        title="Editar foto"
-        disabled={disabled}
-      >
-        <PencilIcon size={11} />
-      </IconButton>
+      {/* El editor de imágenes no opera sobre video. */}
+      {!isExistingVideo && (
+        <IconButton
+          onClick={onEdit}
+          className="absolute bottom-1 left-7 size-5 flex items-center justify-center rounded bg-ink-900/65 text-paper-50 hover:bg-ink-900/85 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          label={`Editar foto ${idx + 1}`}
+          title="Editar foto"
+          disabled={disabled}
+        >
+          <PencilIcon size={11} />
+        </IconButton>
+      )}
       {item.kind === 'new' && (
         <span
           className="absolute top-1 right-7 text-micro uppercase tracking-eyebrow bg-[color:var(--accent-sage)] text-paper-50 px-1 rounded leading-none py-0.5"
