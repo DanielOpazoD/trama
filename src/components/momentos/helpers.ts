@@ -258,9 +258,26 @@ export function readImageDimensions(
  */
 export const MAX_MEDIA_BYTES = 10 * 1024 * 1024
 
-/** True si el File es un video por su mimeType. */
+/** Formatos de video que aceptamos. DEBE coincidir con la lista blanca del
+ *  backend (`momentos-upload.mts`) y con el `accept` del input del composer. */
+export const SUPPORTED_VIDEO_MIMES = [
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+] as const
+
+/** True si el File es un video (cualquier mimeType `video/*`). Sirve para
+ *  distinguir video de imagen; para saber si además es un formato aceptado,
+ *  usar `isSupportedVideoFile`. */
 export function isVideoFile(file: File): boolean {
   return file.type.startsWith('video/')
+}
+
+/** True si el File es un video de un formato que el backend acepta. Un `.avi`
+ *  o similar es video pero no soportado: se rechaza con aviso en vez de dejar
+ *  que el upload falle. */
+export function isSupportedVideoFile(file: File): boolean {
+  return (SUPPORTED_VIDEO_MIMES as readonly string[]).includes(file.type)
 }
 
 /**

@@ -115,6 +115,16 @@ describe('useMomentoComposer', () => {
     expect(result.current.photoDrafts).toHaveLength(0)
   })
 
+  it('rechaza un formato de video no soportado (p. ej. avi) con un aviso', () => {
+    const { result } = renderHook(() => useMomentoComposer({}))
+    const avi = new File(['x'], 'clip.avi', { type: 'video/x-msvideo' })
+    act(() => result.current.addPhotoFiles([avi]))
+    expect(mocks.toastShow).toHaveBeenCalledWith(
+      expect.objectContaining({ tone: 'error' }),
+    )
+    expect(result.current.photoDrafts).toHaveLength(0)
+  })
+
   it('revoca previews de foto y audio al desmontar el composer', () => {
     const { result, unmount } = renderHook(() => useMomentoComposer({}))
 

@@ -4,6 +4,7 @@ import type { Momento, MomentoKind, MomentoPayload } from '../../types'
 import { useAddMomento, useToast } from '../../state'
 import {
   compressImage,
+  isSupportedVideoFile,
   isVideoFile,
   MAX_MEDIA_BYTES,
   readImageDimensions,
@@ -126,20 +127,32 @@ export function useMomentoComposer({
   }
 
   function addPhotoFiles(files: File[]) {
-    // ω-video: aceptamos imágenes y videos. Los clips no se comprimen
-    // client-side, así que su tamaño se valida acá contra el mismo tope del
-    // backend — mejor un aviso claro al elegir que un rechazo del server al
-    // subir. Las imágenes grandes sí pasan (la compresión las baja luego).
+    // ω-video: aceptamos imágenes y videos. Este es el punto común de drop y
+    // file-picker, así que acá se valida el formato y el tamaño (los clips no
+    // se comprimen client-side): un aviso claro al elegir es mejor que un
+    // rechazo del server al subir. Las imágenes grandes sí pasan (la
+    // compresión las baja luego).
     const accepted: File[] = []
     let rejectedForSize = 0
+    let rejectedFormat = 0
     for (const file of files) {
       const video = isVideoFile(file)
       if (!video && !file.type.startsWith('image/')) continue
+      if (video && !isSupportedVideoFile(file)) {
+        rejectedFormat += 1
+        continue
+      }
       if (video && file.size > MAX_MEDIA_BYTES) {
         rejectedForSize += 1
         continue
       }
       accepted.push(file)
+    }
+    if (rejectedFormat > 0) {
+      toast.show({
+        message: 'Ese formato de video no es compatible. Usa MP4, WebM o MOV.',
+        tone: 'error',
+      })
     }
     if (rejectedForSize > 0) {
       toast.show({

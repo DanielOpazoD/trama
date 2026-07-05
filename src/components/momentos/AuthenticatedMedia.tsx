@@ -134,11 +134,19 @@ export function AuthenticatedMomentoImage({
  * tamaño que ocupará el video— y en error una caja con aviso, nunca el
  * reproductor roto del navegador. El consumidor pasa `controls`, `poster`,
  * `preload`, etc. por props.
+ *
+ * Autoplay confiable: como el `<video>` recién se monta cuando el blob ya
+ * llegó (después del gesto del usuario), un `autoPlay` con sonido lo bloquean
+ * los navegadores. Por eso `muted` cae por defecto a `autoPlay` —el visor
+ * arranca en silencio y el usuario sube el volumen con los controles—, salvo
+ * que el consumidor pase `muted` explícito.
  */
 export function AuthenticatedMomentoVideo({
   storageKey,
   className = '',
   style,
+  muted,
+  autoPlay,
   ...props
 }: Omit<VideoHTMLAttributes<HTMLVideoElement>, 'src'> & {
   storageKey: string
@@ -161,5 +169,14 @@ export function AuthenticatedMomentoVideo({
     )
   }
 
-  return <video {...props} src={src} className={className} style={style} />
+  return (
+    <video
+      {...props}
+      autoPlay={autoPlay}
+      muted={muted ?? autoPlay}
+      src={src}
+      className={className}
+      style={style}
+    />
+  )
 }
