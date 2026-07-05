@@ -131,7 +131,9 @@ function QuoteItemInternal({
       >
         {/* Tratamiento editorial: la comilla ornamental abre la cita como un
             epígrafe impreso. En compacto se omite para no recargar la densidad. */}
-        {!compact && <QuoteMark className="absolute -top-3 left-2" />}
+        {!compact && (
+          <QuoteMark size={isFeature ? 'lg' : 'md'} className="absolute -top-3 left-2" />
+        )}
         {quote.text}
       </blockquote>
 
