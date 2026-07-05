@@ -137,7 +137,7 @@ function GraphEdgeInternal({
   // tinte azul claro distintivo (preserva el patrón de "ojo a la propuesta")
   // sobre el color del tipo — la procedencia importa visualmente más que
   // el contenido. Para relaciones manuales/imported, el color cuenta el tipo.
-  const stroke = isAi ? '#7AA7C7' : relTypeAccent(rel.type)
+  const stroke = isAi ? 'var(--origin-ai)' : relTypeAccent(rel.type)
   const opacity = dimmed ? 0.08 : highlighted ? 0.85 : hovered ? 0.6 : 0.32
   const strokeWidth = highlighted ? 1.6 : hovered ? 1.4 : 1.1
   const typeLabel =

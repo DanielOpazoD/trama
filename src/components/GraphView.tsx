@@ -100,6 +100,9 @@ export default function GraphView({
     (raw): raw is LayoutMode => VALID_LAYOUT_MODES.includes(raw as LayoutMode),
   )
   const [suggestEmpty, setSuggestEmpty] = useState(false)
+  // ω-leyenda: tipo resaltado al pasar el cursor por la leyenda — enciende
+  // sus nodos y atenúa el resto (solo cuando no hay una selección activa).
+  const [hoveredType, setHoveredType] = useState<string | null>(null)
 
   const { hoveredEntityId, scheduleHover, cancelHover } = useGraphHoverPreview()
 
@@ -374,8 +377,9 @@ export default function GraphView({
         />
       )}
 
-      {/* Leyenda de tipos — qué color es qué voz, plegada por default. */}
-      <GraphTypeLegend entities={entities} />
+      {/* Leyenda de tipos — qué color es qué voz, plegada por default.
+          Al pasar el cursor por un tipo, sus nodos se encienden en el grafo. */}
+      <GraphTypeLegend entities={entities} onHoverType={setHoveredType} />
 
       {/* Buscar y saltar a un nodo — «/» enfoca; la selección viaja sola. */}
       <GraphSearch entities={entities} onSelect={(id) => onSelect(id)} />
@@ -429,6 +433,7 @@ export default function GraphView({
           connectionCount={connectionCount}
           clusterCentroids={clusterCentroids}
           hoveredEntityId={hoveredEntityId}
+          hoveredType={hoveredType}
           onSvgMouseDown={pz.onMouseDown}
           onSvgMouseMove={handleMouseMove}
           onSvgMouseUp={handleMouseUp}

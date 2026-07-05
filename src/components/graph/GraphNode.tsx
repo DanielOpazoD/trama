@@ -192,7 +192,7 @@ function GraphNodeInternal({
               cx={radius * 0.7}
               cy={-radius * 0.7}
               r={2.5}
-              fill="#7AA7C7"
+              fill="var(--origin-ai)"
               stroke="var(--bg-card)"
               strokeWidth={1.5}
             />

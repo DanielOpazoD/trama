@@ -73,6 +73,7 @@ describe('<GraphSvgCanvas />', () => {
         connectionCount={new Map()}
         clusterCentroids={null}
         hoveredEntityId={null}
+        hoveredType={null}
         {...noopProps}
       />,
     )
@@ -105,6 +106,7 @@ describe('<GraphSvgCanvas />', () => {
         connectionCount={new Map()}
         clusterCentroids={null}
         hoveredEntityId={null}
+        hoveredType={null}
         {...noopProps}
       />,
     )
@@ -140,6 +142,7 @@ describe('<GraphSvgCanvas />', () => {
           { type: 'persona', label: 'personas', cx: 50, cy: 0, count: 2 },
         ]}
         hoveredEntityId={null}
+        hoveredType={null}
         {...noopProps}
       />,
     )
@@ -166,6 +169,7 @@ describe('<GraphSvgCanvas />', () => {
         connectionCount={new Map()}
         clusterCentroids={null}
         hoveredEntityId={null}
+        hoveredType={null}
         {...noopProps}
       />,
     )

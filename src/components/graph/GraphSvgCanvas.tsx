@@ -43,6 +43,9 @@ export type GraphSvgCanvasProps = {
     count: number
   }> | null
   hoveredEntityId: string | null
+  /** ω-leyenda: tipo resaltado desde la leyenda. Cuando no hay selección,
+   *  los nodos de otro tipo se atenúan y los de este se encienden. */
+  hoveredType: string | null
   // Handlers globales del SVG (pan/zoom, deselect en background).
   onSvgMouseDown: (event: ReactMouseEvent) => void
   onSvgMouseMove: (event: ReactMouseEvent) => void
@@ -74,6 +77,7 @@ export function GraphSvgCanvas({
   connectionCount,
   clusterCentroids,
   hoveredEntityId,
+  hoveredType,
   onSvgMouseDown,
   onSvgMouseMove,
   onSvgMouseUp,
@@ -137,7 +141,7 @@ export function GraphSvgCanvas({
           markerHeight="5"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#7AA7C7" opacity="0.6" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--origin-ai)" opacity="0.6" />
         </marker>
       </defs>
       <rect width="100%" height="100%" fill="url(#paperDots)" />
@@ -189,8 +193,12 @@ export function GraphSvgCanvas({
           if (!pos) return null
           const isSelected = entity.id === selectedId
           const isFocused = index === focusedIndex
+          // La linterna de selección manda; sin selección, el hover de un
+          // tipo en la leyenda enciende sus nodos y atenúa el resto.
           const isDimmed =
-            selectedId !== null && !isSelected && !selectedNeighborIds?.has(entity.id)
+            selectedId !== null
+              ? !isSelected && !selectedNeighborIds?.has(entity.id)
+              : hoveredType !== null && entity.type !== hoveredType
           return (
             <GraphNode
               key={entity.id}

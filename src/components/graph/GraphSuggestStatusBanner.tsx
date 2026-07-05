@@ -26,8 +26,8 @@ export function GraphSuggestStatusBanner({
       <div
         className={
           isError
-            ? 'alert-error pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 text-xs shadow-md max-w-xs'
-            : 'pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 bg-paper-50/95 border border-ink-100/70 rounded-lg text-xs text-ink-500 shadow-md max-w-xs leading-snug'
+            ? 'alert-error pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 text-caption shadow-md max-w-xs'
+            : 'pointer-events-auto flex items-start gap-2 pl-3 pr-1.5 py-1.5 bg-paper-50/95 border border-ink-100/70 rounded-lg text-caption text-ink-500 shadow-md max-w-xs leading-snug'
         }
         role="status"
       >
