@@ -6,13 +6,13 @@ import { MomentosFilters } from './MomentosFilters'
 describe('<MomentosFilters />', () => {
   it('cambia filtros y resetea a línea al elegir notas o recortes', async () => {
     const user = userEvent.setup()
-    const onChangeFilterKind = vi.fn()
+    const onChangeContentFilter = vi.fn()
     const onChangeViewMode = vi.fn()
 
     render(
       <MomentosFilters
-        filterKind={null}
-        onChangeFilterKind={onChangeFilterKind}
+        contentFilter="all"
+        onChangeContentFilter={onChangeContentFilter}
         viewMode="album"
         onChangeViewMode={onChangeViewMode}
       />,
@@ -22,26 +22,45 @@ describe('<MomentosFilters />', () => {
     await user.click(screen.getByRole('button', { name: 'Recortes' }))
     await user.click(screen.getByRole('button', { name: 'Fotos' }))
 
-    expect(onChangeFilterKind).toHaveBeenNthCalledWith(1, 'nota')
+    expect(onChangeContentFilter).toHaveBeenNthCalledWith(1, 'nota')
     expect(onChangeViewMode).toHaveBeenNthCalledWith(1, 'timeline')
-    expect(onChangeFilterKind).toHaveBeenNthCalledWith(2, 'recorte')
+    expect(onChangeContentFilter).toHaveBeenNthCalledWith(2, 'recorte')
     expect(onChangeViewMode).toHaveBeenNthCalledWith(2, 'timeline')
-    expect(onChangeFilterKind).toHaveBeenNthCalledWith(3, 'foto')
+    expect(onChangeContentFilter).toHaveBeenNthCalledWith(3, 'foto')
   })
 
-  it('organiza tipo de contenido y vista en grupos visibles', () => {
+  it('el chip Videos filtra por clip y salta al álbum', async () => {
+    const user = userEvent.setup()
+    const onChangeContentFilter = vi.fn()
+    const onChangeViewMode = vi.fn()
+
     render(
       <MomentosFilters
-        filterKind={null}
-        onChangeFilterKind={() => {}}
+        contentFilter="all"
+        onChangeContentFilter={onChangeContentFilter}
+        viewMode="timeline"
+        onChangeViewMode={onChangeViewMode}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Videos' }))
+
+    expect(onChangeContentFilter).toHaveBeenCalledWith('video')
+    expect(onChangeViewMode).toHaveBeenCalledWith('album')
+  })
+
+  it('muestra los chips de contenido y el segmentado de vista', () => {
+    render(
+      <MomentosFilters
+        contentFilter="all"
+        onChangeContentFilter={() => {}}
         viewMode="album"
         onChangeViewMode={() => {}}
       />,
     )
 
-    expect(screen.getByText('contenido')).toBeInTheDocument()
-    expect(screen.getByText('vista')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Todos' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Videos' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Línea' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Álbum' })).toBeEnabled()
   })
@@ -49,8 +68,8 @@ describe('<MomentosFilters />', () => {
   it('mantiene Álbum visible pero deshabilitado si el filtro no permite fotos', () => {
     render(
       <MomentosFilters
-        filterKind="recorte"
-        onChangeFilterKind={() => {}}
+        contentFilter="recorte"
+        onChangeContentFilter={() => {}}
         viewMode="timeline"
         onChangeViewMode={() => {}}
       />,

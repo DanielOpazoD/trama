@@ -1,11 +1,11 @@
-import type { Entity, MomentoKind } from '../../types'
+import type { Entity } from '../../types'
 import { Paginator } from '../Paginator'
 import { EmptyMessage } from '../EmptyMessage'
 import { ShareIcon } from '../Icons'
 import { MomentosFilters } from './MomentosFilters'
 import { SelectableMomento } from './SelectableMomento'
 import { formatDateHeading, type groupByDay } from './helpers'
-import { formatDayLabel } from './momentosViewModel'
+import { formatDayLabel, type ContentFilter } from './momentosViewModel'
 
 type MomentoGroup = ReturnType<typeof groupByDay>[number]
 
@@ -36,73 +36,95 @@ export function MomentosDayFilterBanner({
 }
 
 export function MomentosToolbar({
-  filterKind,
+  contentFilter,
   viewMode,
   itemCount,
   selectionMode,
-  onChangeFilterKind,
+  onChangeContentFilter,
   onChangeViewMode,
   onShare,
   onToggleSelectionMode,
 }: {
-  filterKind: MomentoKind | null
+  contentFilter: ContentFilter
   viewMode: 'timeline' | 'album'
   itemCount: number
   selectionMode: boolean
-  onChangeFilterKind: (next: MomentoKind | null) => void
+  onChangeContentFilter: (next: ContentFilter) => void
   onChangeViewMode: (next: 'timeline' | 'album') => void
   onShare: () => void
   onToggleSelectionMode: () => void
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <MomentosFilters
-        filterKind={filterKind}
-        onChangeFilterKind={onChangeFilterKind}
+        contentFilter={contentFilter}
+        onChangeContentFilter={onChangeContentFilter}
         viewMode={viewMode}
         onChangeViewMode={onChangeViewMode}
       />
-      <button
-        type="button"
-        aria-label="compartir momentos"
-        onClick={onShare}
-        className="inline-flex items-center gap-2 rounded-full border border-ink-100/70 bg-paper-50/80 px-3 py-2 text-caption uppercase tracking-eyebrow text-ink-400 shadow-sm transition-colors hover:text-ink-700"
-      >
-        <ShareIcon size={13} />
-        compartir
-      </button>
-      {itemCount > 1 && viewMode === 'timeline' && (
+      {/* Acciones agrupadas a la derecha — compartir + seleccionar viven juntas
+          para que la fila lea como "filtros … acciones", sin dispersar. */}
+      <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={onToggleSelectionMode}
-          className={`text-micro uppercase tracking-eyebrow transition-colors shrink-0 ${
-            selectionMode ? 'text-ink-700' : 'text-ink-400 hover:text-ink-700'
-          }`}
-          aria-pressed={selectionMode}
+          aria-label="compartir momentos"
+          onClick={onShare}
+          className="inline-flex items-center gap-2 rounded-full border border-ink-100/70 bg-paper-50/80 px-3 py-1.5 text-caption uppercase tracking-eyebrow text-ink-400 shadow-sm transition-colors hover:text-ink-700"
         >
-          {selectionMode ? 'salir selección' : 'seleccionar'}
+          <ShareIcon size={13} />
+          compartir
         </button>
-      )}
+        {itemCount > 1 && viewMode === 'timeline' && (
+          <button
+            type="button"
+            onClick={onToggleSelectionMode}
+            className={`text-micro uppercase tracking-eyebrow transition-colors shrink-0 ${
+              selectionMode ? 'text-ink-700' : 'text-ink-400 hover:text-ink-700'
+            }`}
+            aria-pressed={selectionMode}
+          >
+            {selectionMode ? 'salir selección' : 'seleccionar'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
 
+const EMPTY_TITLES: Record<ContentFilter, string> = {
+  all: 'Todavía no hay momentos.',
+  nota: 'Ninguna nota todavía.',
+  recorte: 'Ningún recorte todavía.',
+  foto: 'Ninguna foto todavía.',
+  video: 'Ningún video todavía.',
+}
+
 export function MomentosEmptyState({
-  filterKind,
+  contentFilter,
   dayFilter,
+  loadingMore,
   onShowAll,
 }: {
-  filterKind: MomentoKind | null
+  contentFilter: ContentFilter
   dayFilter: string | null
+  /** El álbum/Videos todavía recoge páginas → aún no sabemos si está vacío. */
+  loadingMore: boolean
   onShowAll: () => void
 }) {
-  if (filterKind || dayFilter) {
+  // Vacío aparente durante el auto-load: en vez del mensaje "no hay…" (que
+  // parpadearía en falso), un pie sereno hasta agotar las páginas.
+  if (loadingMore) {
+    return (
+      <p className="mt-6 text-center text-caption font-serif italic text-ink-400">
+        {contentFilter === 'video' ? 'buscando tus videos…' : 'recogiendo tus momentos…'}
+      </p>
+    )
+  }
+  if (contentFilter !== 'all' || dayFilter) {
     return (
       <EmptyMessage
         illustration="pair"
-        title={
-          dayFilter ? 'Ese día está vacío.' : `Ningún momento de tipo ${filterKind}.`
-        }
+        title={dayFilter ? 'Ese día está vacío.' : EMPTY_TITLES[contentFilter]}
         body={
           dayFilter ? (
             <>No registraste nada ese día. Prueba con otro o limpia el filtro.</>
