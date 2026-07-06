@@ -215,10 +215,15 @@ export function MomentosView() {
         <ul className="space-y-4">
           <SkeletonList count={6} Component={MomentoSkeleton} />
         </ul>
-      ) : momentosQuery.isError && items.length === 0 ? (
+      ) : (momentosQuery.isError || isFetchNextPageError) && items.length === 0 ? (
+        // isFetchNextPageError = falló una página del auto-load con el set aún
+        // vacío (Videos sin clips en la 1ª página); sin esta rama, el guard
+        // anti-reintentos dejaría la vista colgada en "recogiendo…" sin salida.
         <ErrorState
           title="No se pudieron cargar los momentos"
-          onRetry={() => momentosQuery.refetch()}
+          onRetry={() =>
+            isFetchNextPageError ? fetchNextPage() : momentosQuery.refetch()
+          }
           retrying={momentosQuery.isFetching}
         />
       ) : items.length === 0 ? (

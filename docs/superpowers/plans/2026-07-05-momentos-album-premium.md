@@ -83,8 +83,10 @@ isFetchingNextPage, fetchNextPage } = momentosQuery` antes del efecto — así
 
 ## Post-revisión
 
-Dos hallazgos reales corregidos tras la primera revisión (ambos en el efecto
-de auto-carga que introduce este pack):
+Tres hallazgos reales corregidos en rondas sucesivas de revisión (los tres en
+el efecto de auto-carga que introduce este pack) — CodeRabbit solo alcanzó a
+dar la primera pasada (topó el tope de gasto de la org), así que las siguientes
+las cubrió un revisor independiente sobre el diff:
 
 1. **CodeRabbit (Major) — tormenta de reintentos.** Si `fetchNextPage()` falla
    tras sus retries, `isFetchingNextPage` vuelve a `false` con `hasNextPage` aún
@@ -102,3 +104,17 @@ de auto-carga que introduce este pack):
    empty state NO aparece hasta cerrar la última página. Lección reutilizable:
    un gate de "vacío" sobre datos paginados/refinados debe distinguir "vacío de
    verdad" de "todavía cargando".
+3. **Revisión del diff final (Important) — deadlock al cruzar los dos fixes
+   anteriores.** Los fixes 1 y 2 son correctos por separado, pero juntos crean
+   un estado colgado: si una página del auto-load **falla** con el set aún vacío
+   (Videos: 1ª página de fotos sin clips + fallo de red en la 2ª), el guard (1)
+   deja de reintentar pero `hasNextPage` sigue `true`, así que `loadingMore` (2)
+   se queda `true` para siempre → la vista muestra "recogiendo…" eternamente,
+   sin error ni salida (`AlbumGrid` no tiene Paginator, e `isFetchNextPageError`
+   no dispara el `isError` de nivel superior). Fix: el gate de error ahora cubre
+   `(isError || isFetchNextPageError) && items.length === 0` con reintento real
+   (la página fallida se reintenta con `fetchNextPage`, la 1ª carga con
+   `refetch`). Test determinista con la 2ª página que rechaza. Lección: un guard
+   que "para el bucle ante error" y un indicador de "cargando" basado en
+   `hasNextPage` deben coordinarse — si no, el error se traga y el spinner queda
+   colgado.

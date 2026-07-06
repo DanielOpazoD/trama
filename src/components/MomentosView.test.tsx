@@ -146,6 +146,29 @@ describe('<MomentosView />', () => {
     await screen.findByText(/Todavía no hay momentos/i)
   })
 
+  it('si una página del auto-load falla con el set vacío, muestra error (no un spinner colgado)', async () => {
+    // 1ª página vacía con nextCursor; la 2ª RECHAZA (retry:false en el test
+    // client → falla de una). Sin el fix, `hasNextPage` seguiría true y el pie
+    // "recogiendo…" quedaría colgado para siempre; ahora cae al ErrorState.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL) => {
+        const url = String(input)
+        if (url.includes('/api/momentos')) {
+          if (url.includes('cursor=')) throw new Error('network')
+          return jsonResp({ items: [], nextCursor: 'p2' })
+        }
+        return jsonResp([])
+      }),
+    )
+
+    renderWithProviders(<MomentosView />)
+
+    // La 2ª página falla → error con reintento, NO un spinner eterno.
+    await screen.findByText(/No se pudieron cargar los momentos/i)
+    expect(screen.queryByText('recogiendo tus momentos…')).toBeNull()
+  })
+
   it('abre el control general para compartir todos los Momentos', async () => {
     renderWithProviders(<MomentosView />)
 
