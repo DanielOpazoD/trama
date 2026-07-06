@@ -80,3 +80,25 @@ isFetchingNextPage, fetchNextPage } = momentosQuery` antes del efecto — así
   Línea; chip Videos filtra + salta a Álbum + muestra "Ningún video todavía."
   (el demo no tiene clips). El fix de todos-los-años se cubre por lógica + test
   de integración (no demoble con <30 momentos en un solo año).
+
+## Post-revisión
+
+Dos hallazgos reales corregidos tras la primera revisión (ambos en el efecto
+de auto-carga que introduce este pack):
+
+1. **CodeRabbit (Major) — tormenta de reintentos.** Si `fetchNextPage()` falla
+   tras sus retries, `isFetchingNextPage` vuelve a `false` con `hasNextPage` aún
+   `true`, y el efecto lo re-disparaba en cada render. Fix: sumar
+   `isFetchNextPageError` (campo de `useInfiniteQuery` v5) al guard y a las deps.
+2. **Revisión independiente (Important) — empty state falso durante la
+   auto-carga.** El gate `items.length === 0` mostraba el mensaje "vacío" antes
+   de que llegaran las páginas siguientes: con el filtro Videos, la 1ª página de
+   fotos sin clips dejaba parpadear "Ningún video todavía." hasta que llegaba el
+   video de una página posterior. Fix: `MomentosEmptyState` recibe `loadingMore`
+   (`autoLoadsAllPages && (hasNextPage || isFetchingNextPage)`) y muestra un pie
+   sereno ("buscando tus videos…" / "recogiendo tus momentos…") mientras el
+   auto-load no se agota; solo declara "vacío" cuando ya no quedan páginas. Test
+   determinista con la 2ª página en vuelo (promesa controlada) que afirma que el
+   empty state NO aparece hasta cerrar la última página. Lección reutilizable:
+   un gate de "vacío" sobre datos paginados/refinados debe distinguir "vacío de
+   verdad" de "todavía cargando".

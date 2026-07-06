@@ -102,12 +102,24 @@ const EMPTY_TITLES: Record<ContentFilter, string> = {
 export function MomentosEmptyState({
   contentFilter,
   dayFilter,
+  loadingMore,
   onShowAll,
 }: {
   contentFilter: ContentFilter
   dayFilter: string | null
+  /** El álbum/Videos todavía recoge páginas → aún no sabemos si está vacío. */
+  loadingMore: boolean
   onShowAll: () => void
 }) {
+  // Vacío aparente durante el auto-load: en vez del mensaje "no hay…" (que
+  // parpadearía en falso), un pie sereno hasta agotar las páginas.
+  if (loadingMore) {
+    return (
+      <p className="mt-6 text-center text-caption font-serif italic text-ink-400">
+        {contentFilter === 'video' ? 'buscando tus videos…' : 'recogiendo tus momentos…'}
+      </p>
+    )
+  }
   if (contentFilter !== 'all' || dayFilter) {
     return (
       <EmptyMessage

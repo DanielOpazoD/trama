@@ -162,13 +162,11 @@ export function MomentosView() {
   }, [viewMode, selectionMode])
 
   // ω-álbum: el álbum es una galería completa por año, no una página, y el
-  // filtro Videos junta clips de cualquier año — ambos necesitan TODAS las
-  // páginas. Así cargamos una tras otra hasta agotar `hasNextPage` para que se
-  // vean todos los años y no solo el más reciente. El timeline (sin video)
-  // conserva su carga manual con el Paginator.
+  // filtro Videos junta clips de cualquier año — ambos recogen TODAS las
+  // páginas. El timeline (sin video) conserva su carga manual con el Paginator.
+  const autoLoadsAllPages = viewMode === 'album' || contentFilter === 'video'
   useEffect(() => {
-    const wantsAllPages = viewMode === 'album' || contentFilter === 'video'
-    if (!wantsAllPages) return
+    if (!autoLoadsAllPages) return
     // Guard contra tormenta de reintentos: si `fetchNextPage` falló tras sus
     // retries, `isFetchingNextPage` vuelve a false con `hasNextPage` aún true;
     // sin `isFetchNextPageError` el efecto lo re-dispararía en cada render.
@@ -176,8 +174,7 @@ export function MomentosView() {
       void fetchNextPage()
     }
   }, [
-    viewMode,
-    contentFilter,
+    autoLoadsAllPages,
     hasNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
@@ -225,9 +222,13 @@ export function MomentosView() {
           retrying={momentosQuery.isFetching}
         />
       ) : items.length === 0 ? (
+        // No declarar "vacío" mientras el auto-load aún trae páginas: la 1ª
+        // página de fotos sin clips mostraría "Ningún video todavía." un
+        // instante antes de que llegue el video de una página posterior.
         <MomentosEmptyState
           contentFilter={contentFilter}
           dayFilter={dayFilter}
+          loadingMore={autoLoadsAllPages && (hasNextPage || isFetchingNextPage)}
           onShowAll={showAllMomentos}
         />
       ) : shouldUseAlbumView({ viewMode, filterKind: queryKind }) ? (

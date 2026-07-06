@@ -115,6 +115,37 @@ describe('<MomentosView />', () => {
     })
   })
 
+  it('no muestra el empty state falso mientras el álbum aún auto-carga páginas', async () => {
+    // La 1ª página vuelve vacía pero con `nextCursor` (el caso del filtro Videos:
+    // fotos sin clips). Hasta agotar las páginas se ve un pie sereno, no el
+    // "Todavía no hay momentos." falso. La 2ª queda pendiente a propósito.
+    let resolvePage2: (r: Response) => void = () => {}
+    const page2 = new Promise<Response>((resolve) => {
+      resolvePage2 = resolve
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL) => {
+        const url = String(input)
+        if (url.includes('/api/momentos')) {
+          if (url.includes('cursor=')) return page2
+          return jsonResp({ items: [], nextCursor: 'p2' })
+        }
+        return jsonResp([])
+      }),
+    )
+
+    renderWithProviders(<MomentosView />)
+
+    // Con la 2ª página en vuelo: pie sereno, NO el empty state.
+    await screen.findByText('recogiendo tus momentos…')
+    expect(screen.queryByText(/Todavía no hay momentos/i)).toBeNull()
+
+    // Al cerrarse la última página (vacía, sin cursor), sí es vacío de verdad.
+    resolvePage2(jsonResp({ items: [], nextCursor: null }))
+    await screen.findByText(/Todavía no hay momentos/i)
+  })
+
   it('abre el control general para compartir todos los Momentos', async () => {
     renderWithProviders(<MomentosView />)
 
