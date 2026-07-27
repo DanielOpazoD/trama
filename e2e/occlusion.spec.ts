@@ -234,20 +234,27 @@ const VIEWS = [
 ] as const
 
 /**
- * Dos datasets, porque los defectos viven en sitios distintos:
+ * Tres datasets, porque los defectos viven en sitios distintos:
  *
  *   - «con datos» (modo prueba) reproduce el pie del Grafo con sus contadores,
  *     que sólo existe cuando hay entidades;
  *   - «vacía» cubre los estados vacíos, donde un composer flotante tiene mucho
  *     espacio libre que invadir y el contenido es demasiado corto para que el
- *     scroll rescate nada.
+ *     scroll rescate nada;
+ *   - «trama grande» cruza el umbral de 100 nodos que hace aparecer el
+ *     minimapa. Es la única forma de medir esa pieza: con la semilla de seis
+ *     entidades no se monta, y mientras no se montó tapaba a la vez la leyenda
+ *     y los contadores sin que ningún test lo viera.
  *
  * El grafo se omite en la trama vacía: sin nodos no hay pie que medir y su
  * layout es lo más lento de montar.
  */
+const BIG_GRAPH_ENTITIES = 130
+
 const DATASETS = [
-  { label: 'con datos', empty: false, views: VIEWS },
-  { label: 'trama vacía', empty: true, views: VIEWS.filter((v) => v.name !== 'grafo') },
+  { label: 'con datos', seed: null, views: VIEWS },
+  { label: 'trama vacía', seed: 'empty', views: VIEWS.filter((v) => v.name !== 'grafo') },
+  { label: 'trama grande', seed: 'big', views: VIEWS.filter((v) => v.name === 'grafo') },
 ] as const
 
 for (const viewport of VIEWPORTS) {
@@ -255,7 +262,10 @@ for (const viewport of VIEWPORTS) {
     // Los estados vacíos no cambian de forma entre 1280 y 1440: la única
     // diferencia sería más aire. Corremos la trama vacía sólo en móvil y
     // laptop para no pagar dos veces la misma comprobación en CI.
-    if (dataset.empty && viewport.width >= 1440) continue
+    if (dataset.seed === 'empty' && viewport.width >= 1440) continue
+    // El minimapa sólo se monta a partir de `md`, así que la trama grande no
+    // tiene nada nuevo que decir en móvil.
+    if (dataset.seed === 'big' && viewport.width < 1280) continue
 
     test(`sin texto ocluido — ${viewport.name} · ${dataset.label}`, async ({ page }) => {
       // Varias cargas frescas por viewport, cada una con su espera de asentado:
@@ -269,7 +279,7 @@ for (const viewport of VIEWPORTS) {
       })
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
       await enableDemoMode(page)
-      if (dataset.empty) {
+      if (dataset.seed === 'empty') {
         // Modo prueba con el almacén vacío = exactamente lo que ve quien entra
         // por "explorar sin cuenta". `enableDemoMode` sólo borra la clave, y al
         // faltar el store la app siembra datos de ejemplo; escribir un objeto
@@ -279,6 +289,40 @@ for (const viewport of VIEWPORTS) {
         await page.addInitScript(() => {
           window.localStorage.setItem('trama-demo-store', '{}')
         })
+      }
+      if (dataset.seed === 'big') {
+        await page.addInitScript((count) => {
+          const now = '2026-01-01T00:00:00.000Z'
+          const types = ['escritor', 'libro', 'musico', 'banda', 'concepto']
+          const entities = Array.from({ length: count }, (_, i) => ({
+            id: `e${i}`,
+            type: types[i % types.length],
+            name: `Entidad ${i}`,
+            year: 1900 + (i % 120),
+            description: null,
+            essay: null,
+            position_x: null,
+            position_y: null,
+            origin: { kind: 'manual' },
+            spotify_url: null,
+            created_at: now,
+            updated_at: now,
+          }))
+          const relationships = Array.from({ length: count - 1 }, (_, i) => ({
+            id: `r${i}`,
+            from_id: `e${i}`,
+            to_id: `e${i + 1}`,
+            type: 'influye_en',
+            notes: null,
+            origin: { kind: 'manual' },
+            created_at: now,
+            updated_at: now,
+          }))
+          window.localStorage.setItem(
+            'trama-demo-store',
+            JSON.stringify({ entities, relationships }),
+          )
+        }, BIG_GRAPH_ENTITIES)
       }
 
       const failures: string[] = []

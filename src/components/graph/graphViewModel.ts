@@ -2,7 +2,7 @@ import type { NeighborsResponse } from '../../api'
 import type { LayoutMode } from '../../hooks/layouts/types'
 import type { Entity, Relationship } from '../../types'
 import { ENTITY_TYPES } from '../../types'
-import type { GraphMode } from './GraphToolbar'
+import type { GraphMode } from './GraphChrome'
 
 type Position = { x: number; y: number }
 
