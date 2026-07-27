@@ -27,7 +27,7 @@ menor que cero.
 
 Medido en `main` a 669×359 (un móvil en horizontal):
 
-```
+```text
 contenedor   t115–b359   (244px de alto)
 contenido    276px       → desborda 32px
 cita         t83         → por encima del contenedor, recortada

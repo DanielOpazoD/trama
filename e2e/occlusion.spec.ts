@@ -397,11 +397,21 @@ test('la acción del estado vacío se alcanza en pantallas bajas', async ({ page
   await enableDemoMode(page)
   await page.addInitScript(() => {
     window.localStorage.setItem('trama-demo-store', '{}')
+    // `EmptyState` elige la cita con `Math.random()` entre cinco de largos
+    // muy distintos. Sin fijarla, una cita corta deja el CTA ya visible y el
+    // test pasaría sin haber probado nada. La fijamos en el índice 3, la más
+    // larga, para que el desbordamiento sea siempre el mismo.
+    Math.random = () => 0.7
   })
 
   await page.goto('/?view=grafo')
   const cta = page.getByRole('button', { name: /cargar ejemplo/i })
   await cta.waitFor({ timeout: 15_000 })
+
+  // Primero probamos que el escenario es el que creemos: sin scrollear, el CTA
+  // NO está a la vista. Sin esta aserción el test se volvería vacío en cuanto
+  // el contenido encogiera, y dejaría de guardar nada sin avisar.
+  await expect(cta).not.toBeInViewport()
 
   // Ojo con `scrollIntoViewIfNeeded`: scrollea el contenedor por API, y un
   // `overflow: hidden` SÍ acepta que le muevan `scrollTop` por código aunque
