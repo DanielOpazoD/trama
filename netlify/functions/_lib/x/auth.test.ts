@@ -141,24 +141,42 @@ describe('acotado por usuario', () => {
     expect(calls[0]!.values).toEqual(['user-1'])
   })
 
-  it('saveTokens conserva el refresh token cuando el nuevo viene nulo', async () => {
-    const { sql, calls } = makeSql()
-    await saveTokens(
-      sql,
-      {
-        xUserId: 'x-1',
-        username: 'daniel',
-        accessToken: 'access-nuevo',
-        refreshToken: null,
-        expiresAt: new Date(),
-        scopes: null,
-      },
-      'user-1',
-    )
-    expect(calls[0]!.text.replace(/\s+/g, ' ')).toMatch(
-      /refresh_token\s*=\s*COALESCE\(EXCLUDED\.refresh_token,\s*x_tokens\.refresh_token\)/i,
-    )
-  })
+  /**
+   * Dos formas de "no hay token nuevo" y las dos tienen que preservar el
+   * guardado:
+   *
+   *   - `null`, que es lo que manda el callback cuando X omite el campo;
+   *   - `''`, que puede llegar si X devuelve la clave vacía — el schema la
+   *     declara `z.string().optional()` sin `.min(1)`, así que pasa la
+   *     validación, y el `?? null` del callback no la convierte porque sólo
+   *     actúa sobre null/undefined.
+   *
+   * El segundo caso es el que se le escapó a Spotify y dejaba el sync muerto.
+   */
+  it.each([
+    ['nulo', null],
+    ['cadena vacía', ''],
+  ])(
+    'saveTokens conserva el refresh token guardado si el nuevo es %s',
+    async (_, incoming) => {
+      const { sql, calls } = makeSql()
+      await saveTokens(
+        sql,
+        {
+          xUserId: 'x-1',
+          username: 'daniel',
+          accessToken: 'access-nuevo',
+          refreshToken: incoming,
+          expiresAt: new Date(),
+          scopes: null,
+        },
+        'user-1',
+      )
+      expect(calls[0]!.text.replace(/\s+/g, ' ')).toMatch(
+        /refresh_token\s*=\s*COALESCE\(\s*NULLIF\(EXCLUDED\.refresh_token,\s*''\)\s*,\s*x_tokens\.refresh_token\s*\)/i,
+      )
+    },
+  )
 })
 
 describe('getValidAccessToken', () => {
@@ -226,6 +244,34 @@ describe('getValidAccessToken', () => {
     expect(update, 'el token refrescado debe persistirse').toBeDefined()
     expect(update!.text).toMatch(/WHERE user_id =/i)
     expect(update!.values).toContain('refresh-guardado')
+  })
+
+  it('al refrescar ignora un refresh token vacío y conserva el previo', async () => {
+    stubXEnv()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          access_token: 'access-fresco',
+          token_type: 'bearer',
+          scope: X_SCOPES,
+          expires_in: 7200,
+          refresh_token: '', // el schema lo permite; `??` no lo filtraría
+        }),
+      })),
+    )
+    const { sql, calls } = makeSql((text) =>
+      text.includes('FROM x_tokens')
+        ? [storedRow({ expires_at: new Date(Date.now() + 30_000).toISOString() })]
+        : [],
+    )
+
+    await expect(getValidAccessToken(sql, 'user-1')).resolves.toBe('access-fresco')
+
+    const update = calls.find((c) => /UPDATE x_tokens/i.test(c.text))!
+    expect(update.values).toContain('refresh-guardado')
+    expect(update.values).not.toContain('')
   })
 
   it('propaga el fallo cuando X rechaza el refresh token', async () => {

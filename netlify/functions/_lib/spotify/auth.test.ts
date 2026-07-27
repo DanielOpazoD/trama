@@ -189,6 +189,34 @@ describe('getValidAccessToken', () => {
     // conservar el que ya teníamos o el siguiente refresh es imposible.
     expect(update!.values).toContain('refresh-guardado')
   })
+
+  it('al refrescar ignora un refresh token vacío y conserva el previo', async () => {
+    stubSpotifyEnv()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          access_token: 'access-fresco',
+          token_type: 'Bearer',
+          scope: 'user-read-recently-played',
+          expires_in: 3600,
+          refresh_token: '', // el schema lo permite; `??` no lo filtraría
+        }),
+      })),
+    )
+    const { sql, calls } = makeSql((text) =>
+      text.includes('FROM spotify_tokens')
+        ? [storedRow({ expires_at: new Date(Date.now() + 30_000).toISOString() })]
+        : [],
+    )
+
+    await expect(getValidAccessToken(sql, 'user-1')).resolves.toBe('access-fresco')
+
+    const update = calls.find((c) => /UPDATE spotify_tokens/i.test(c.text))!
+    expect(update.values).toContain('refresh-guardado')
+    expect(update.values).not.toContain('')
+  })
 })
 
 describe('exchangeCodeForTokens', () => {

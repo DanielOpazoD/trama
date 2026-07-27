@@ -62,6 +62,17 @@ desviado.
 
 - **Pisos de cobertura propios** para ambos archivos en `vitest.config.ts`.
 
+- **La misma protección en X, tras la revisión de CodeRabbit.** El upsert de X
+  usaba `COALESCE` a secas. Parecía suficiente porque su callback pasa `?? null`
+  — pero el schema declara `refresh_token: z.string().optional()` **sin
+  `.min(1)`**, así que un `""` devuelto por X pasa la validación, esquiva el
+  `??` (que sólo actúa sobre null/undefined) y llega al upsert, donde `COALESCE`
+  no lo atrapa. Mismo agujero, distinta puerta.
+
+- **Y el camino de refresco en los dos.** Ahí el fallo no estaba en el SQL sino
+  en el código: `refreshed.refresh_token ?? stored.refresh_token` deja pasar la
+  cadena vacía por la misma razón. Ahora es `||`.
+
 ## Decisiones
 
 - **Cubrir por invariante, no por línea.** El objetivo no era el porcentaje: era
@@ -96,6 +107,13 @@ EXCLUDED.refresh_token`) y pasa con el arreglo.
 - **La columna sigue siendo `NOT NULL`.** Cambiarla a nullable sería más limpio
   conceptualmente, pero exige migración y no arregla nada que el `NULLIF` no
   arregle ya.
+- **Los schemas siguen aceptando `refresh_token: ''`.** Lo correcto de verdad
+  sería `z.string().min(1).optional()` en ambos: una cadena vacía no es un token
+  y debería rechazarse en la frontera, no neutralizarse tres capas más abajo.
+  No se hace aquí porque cambia el modo de fallo —pasaría de "conexión muerta en
+  silencio" a "el callback revienta con un error de Zod"— y esa decisión merece
+  su propio PR, no colarse al final de éste. Con `NULLIF` + `||` el daño ya está
+  contenido en las dos capas que importan.
 
 ## Validación
 

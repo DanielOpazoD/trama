@@ -213,7 +213,11 @@ export async function getValidAccessToken(
   await sql`
     UPDATE spotify_tokens
     SET access_token  = ${refreshed.access_token},
-        refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
+        -- || y no ??: Spotify puede responder sin refresh_token o con uno
+        -- vacío (el schema lo declara opcional y sin .min(1)), y ?? sólo
+        -- actúa sobre null/undefined. Con ?? una cadena vacía se guardaría y
+        -- el siguiente refresh sería imposible.
+        refresh_token = ${refreshed.refresh_token || stored.refresh_token},
         expires_at    = ${newExpiresAt.toISOString()}
     WHERE user_id = ${userId}
   `
