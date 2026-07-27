@@ -27,7 +27,7 @@ import {
   useLocalStorageState,
 } from '../hooks/useLocalStorageState'
 import { useFreshIds } from '../hooks/useFreshIds'
-import { GraphToolbar, type GraphMode } from './graph/GraphToolbar'
+import { GraphChrome, type GraphMode } from './graph/GraphChrome'
 import { GraphMinimap } from './graph/GraphMinimap'
 import { GraphTypeLegend } from './graph/GraphTypeLegend'
 import { GraphSearch } from './graph/GraphSearch'
@@ -363,7 +363,7 @@ export default function GraphView({
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      <GraphToolbar
+      <GraphChrome
         mode={mode}
         onModeChange={setMode}
         onReorganize={reorganize}
@@ -384,6 +384,30 @@ export default function GraphView({
           if (selectedId) setFocusId(selectedId)
         }}
         focusSelectedDisabled={!selectedId || selectedId === focusId}
+        // Leyenda de tipos — qué color es qué voz, plegada por default. Al
+        // pasar el cursor por un tipo, sus nodos se encienden en el grafo.
+        legend={<GraphTypeLegend entities={entities} onHoverType={setHoveredType} />}
+        // π2: minimap. Sólo con >100 nodos — con pocas entidades el grafo
+        // entra entero en pantalla y el minimap es chrome de más. Se oculta en
+        // modo Sigma (WebGL) porque el pan/zoom no pasa por usePanZoom ahí;
+        // un minimap-Sigma es scope aparte.
+        minimap={
+          !useWebGl && entities.length > 100 && svgSize.width > 0 ? (
+            <div className="pointer-events-auto animate-fade-up">
+              <GraphMinimap
+                entities={entities}
+                positions={positions}
+                pan={pz.pan}
+                zoom={pz.zoom}
+                hostWidth={svgSize.width}
+                hostHeight={svgSize.height}
+                onJumpTo={(x, y) => pz.setPanTo(x, y)}
+              />
+            </div>
+          ) : null
+        }
+        // Buscar y saltar a un nodo — «/» enfoca; la selección viaja sola.
+        search={<GraphSearch entities={entities} onSelect={(id) => onSelect(id)} />}
       />
 
       {showExploreHint && (
@@ -406,13 +430,6 @@ export default function GraphView({
           }}
         />
       )}
-
-      {/* Leyenda de tipos — qué color es qué voz, plegada por default.
-          Al pasar el cursor por un tipo, sus nodos se encienden en el grafo. */}
-      <GraphTypeLegend entities={entities} onHoverType={setHoveredType} />
-
-      {/* Buscar y saltar a un nodo — «/» enfoca; la selección viaja sola. */}
-      <GraphSearch entities={entities} onSelect={(id) => onSelect(id)} />
 
       {/* Voz de espera mientras el worker teje un layout grande — sin
           esto, miles de nodos significan segundos de blanco silencioso. */}
@@ -475,24 +492,6 @@ export default function GraphView({
           onNodeHoverStart={scheduleHover}
           onNodeHoverEnd={cancelHover}
         />
-      )}
-
-      {/* π2: minimap. Solo visible con >100 nodos — con pocas entidades el
-          grafo entra entero en pantalla y el minimap es chrome. Se oculta
-          en modo Sigma (WebGL) porque el pan/zoom no pasa por usePanZoom
-          ahí; añadir un minimap-Sigma es scope aparte. */}
-      {!useWebGl && entities.length > 100 && svgSize.width > 0 && (
-        <div className="absolute bottom-3 left-3 z-10 animate-fade-up">
-          <GraphMinimap
-            entities={entities}
-            positions={positions}
-            pan={pz.pan}
-            zoom={pz.zoom}
-            hostWidth={svgSize.width}
-            hostHeight={svgSize.height}
-            onJumpTo={(x, y) => pz.setPanTo(x, y)}
-          />
-        </div>
       )}
     </div>
   )

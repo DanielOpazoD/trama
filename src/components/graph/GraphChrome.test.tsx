@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { GraphToolbar } from './GraphToolbar'
+import { GraphChrome } from './GraphChrome'
 
-function renderToolbar(overrides: Partial<Parameters<typeof GraphToolbar>[0]> = {}) {
-  const props: Parameters<typeof GraphToolbar>[0] = {
+function renderToolbar(overrides: Partial<Parameters<typeof GraphChrome>[0]> = {}) {
+  const props: Parameters<typeof GraphChrome>[0] = {
     mode: 'by-degree',
     onModeChange: vi.fn(),
     onReorganize: vi.fn(),
@@ -25,11 +25,11 @@ function renderToolbar(overrides: Partial<Parameters<typeof GraphToolbar>[0]> = 
     focusSelectedDisabled: false,
     ...overrides,
   }
-  render(<GraphToolbar {...props} />)
+  render(<GraphChrome {...props} />)
   return props
 }
 
-describe('<GraphToolbar />', () => {
+describe('<GraphChrome />', () => {
   it('permite cambiar layout, modo de grafo y foco exploratorio', async () => {
     const user = userEvent.setup()
     const props = renderToolbar()

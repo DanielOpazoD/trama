@@ -1434,7 +1434,7 @@ html.dark .paper-grain::before {
   .ai-cta:disabled {
     @apply text-ink-200;
   }
-  /* Same style but with the inset-pill background that the GraphToolbar uses */
+  /* Same style but with the inset-pill background that the GraphChrome uses */
   .ai-cta-pill {
     @apply inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase tracking-[0.15em]
       bg-paper-50/85 backdrop-blur-md border border-ink-100/60 rounded-full shadow-sm
