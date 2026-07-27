@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAddEntity, useAddRelationship, useAddQuote } from '../state'
+import { CenteredPane } from './CenteredPane'
 
 type CuratedQuote = {
   text: string
@@ -160,33 +161,46 @@ export function EmptyState() {
   }
 
   return (
-    <div className="h-full flex items-center justify-center px-8">
+    <CenteredPane className="px-8 py-10">
       <div className="max-w-2xl text-center space-y-12">
         <figure className="space-y-4">
-          <blockquote className="quote-block text-2xl md:text-3xl text-ink-600 leading-relaxed text-balance">
+          {/* Migración de aliases legacy a la escala semántica: `text-2xl
+              md:text-3xl` (24→30px) pasa a `text-h2 md:text-h1` (20→32px), que
+              es el escalón equivalente dentro de los seis niveles canónicos.
+              El paso a 20px en móvil además le quita altura a la pantalla justo
+              donde no cabía. */}
+          <blockquote className="quote-block text-h2 md:text-h1 text-ink-600 leading-relaxed text-balance">
             «{quote.text}»
           </blockquote>
-          <figcaption className="text-sm text-ink-300">
+          {/* `text-sm` → `text-body`: mismos 14px, sin cambio visual. */}
+          <figcaption className="text-body text-ink-300">
             — {quote.author}
             {quote.source && <span className="text-ink-300 ml-2">· {quote.source}</span>}
           </figcaption>
         </figure>
 
         <div className="space-y-3 pt-8 border-t border-ink-100/60">
+          {/* El copy decía "empieza pegando un texto en la barra de abajo".
+              Esta pantalla sólo se ve en el Grafo, y en el Grafo el AskBar no
+              se monta nunca (`blocksAskBar` en appShellModel). Es decir: la
+              primera instrucción que leía un usuario nuevo apuntaba a algo que
+              no estaba en pantalla. Ahora nombra las dos vías que sí existen
+              desde aquí. */}
           <p className="text-ink-400 text-body leading-relaxed max-w-md mx-auto">
-            Trama es tu mapa de afinidades intelectuales y estéticas. Empieza pegando un
-            texto en la barra de abajo, o carga un pequeño ejemplo para ver cómo se
-            siente.
+            Trama es tu mapa de afinidades intelectuales y estéticas. Carga un pequeño
+            ejemplo para ver cómo se siente, o ve a Inicio y pega ahí el primer texto que
+            quieras guardar.
           </p>
           <button
             onClick={handleLoadExample}
             disabled={seeding}
-            className="text-xs uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors py-2 px-4 border-b border-ink-200 hover:border-ink-500 disabled:text-ink-200 disabled:border-ink-100"
+            // `text-xs` → `text-caption`: mismos 12px, sin cambio visual.
+            className="text-caption uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors py-2 px-4 border-b border-ink-200 hover:border-ink-500 disabled:text-ink-200 disabled:border-ink-100"
           >
             {seeding ? 'cargando…' : 'cargar ejemplo'}
           </button>
         </div>
       </div>
-    </div>
+    </CenteredPane>
   )
 }
