@@ -71,6 +71,7 @@ export function AskBar({
   const [imageError, setImageError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   // Section-scoped thread memory. Each section (Citas, Entidades, etc.)
   // keeps its own active thread so the AskBar can follow up across turns.
   const { threadId, setThreadId } = useThreadIdForView(view)
@@ -163,8 +164,36 @@ export function AskBar({
     ask.error?.message ?? extractFromImage.error?.message ?? imageError ?? null
   const imageBusy = extractFromImage.isPending
 
+  // El AskBar flota sobre el contenido, así que el scroller de la vista tiene
+  // que reservarle sitio; si no, el final de la página queda debajo y no hay
+  // scroll que lo rescate. Antes era un `pb-32` fijo (128px) y la barra mide
+  // ~200px al desplegar propuesta o error: el último párrafo de Inicio y la
+  // última fila de Entidades en móvil quedaban tapados de forma permanente.
+  // Publicamos el alto real y que el layout lo consuma.
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    const root = document.documentElement
+    // `getBoundingClientRect` y no `contentRect`: queremos la caja completa,
+    // que incluye el padding con el inset del home indicator.
+    const observer = new ResizeObserver(() => {
+      root.style.setProperty(
+        '--askbar-h',
+        `${Math.round(el.getBoundingClientRect().height)}px`,
+      )
+    })
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      // Al desmontar (vistas sin AskBar) el contenido no debe seguir
+      // reservando el hueco.
+      root.style.removeProperty('--askbar-h')
+    }
+  }, [])
+
   return (
     <div
+      ref={rootRef}
       className="pointer-events-none absolute inset-x-0 bottom-0 px-4 flex justify-center"
       // pb-6 + el inset del home indicator (0 fuera de iPhones con notch).
       style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}

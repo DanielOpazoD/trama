@@ -77,7 +77,12 @@ export function GraphToolbar({
     <>
       {/* Top bar — modos + acciones IA + reorganizar */}
       <div className="pointer-events-none absolute top-3 left-3 right-3 z-10 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
+        {/* Envuelve en pantallas angostas: los dos grupos de píldoras suman
+            más de 375px, y sin `flex-wrap` el segundo se salía del viewport
+            dejando "explorar" inalcanzable en móvil. Envolver en vez de
+            scrollear evita añadir una afordancia de desplazamiento (y el
+            pointer-events-auto que necesitaría) sobre el lienzo del grafo. */}
+        <div className="flex flex-wrap items-center gap-2">
           {/* Layout modes */}
           <div className={SEGMENT_PILL_WRAPPER}>
             {MODE_OPTIONS.map((opt) => (

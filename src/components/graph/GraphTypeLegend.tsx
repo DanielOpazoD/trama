@@ -43,7 +43,12 @@ export function GraphTypeLegend({
   const rest = legend.length - visible.length
 
   return (
-    <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-1.5">
+    // La columna crece hacia arriba desde su borde inferior, así que basta con
+    // levantar ese borde para que nunca alcance la barra de contadores que vive
+    // en `bottom-3` (ver GraphToolbar). En móvil esa barra está oculta
+    // (`hidden md:block`), así que allí la leyenda se queda abajo del todo,
+    // alineada con el clúster de zoom.
+    <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-1.5 md:bottom-9">
       {open && (
         <ul
           aria-label="Leyenda de tipos"

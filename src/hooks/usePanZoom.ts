@@ -166,8 +166,16 @@ export function usePanZoom(
       const bboxH = Math.max(1, bbox.maxY - bbox.minY)
       const cx = (bbox.minX + bbox.maxX) / 2
       const cy = (bbox.minY + bbox.maxY) / 2
-      const scaleX = (width - padding * 2) / bboxW
-      const scaleY = (height - padding * 2) / bboxH
+      // El margen se pide en px absolutos, pero un valor pensado para
+      // escritorio se come el viewport en móvil: con 140px por lado, un ancho
+      // de 375 dejaba 95px útiles y el grafo se encuadraba al 38%, un racimo
+      // ilegible rodeado de vacío. Lo acotamos al 12% de cada eje, así el
+      // margen respira igual en cualquier pantalla y en escritorio no cambia
+      // nada (a 1440px de ancho el 12% ya supera los 140 pedidos).
+      const padX = Math.min(padding, width * 0.12)
+      const padY = Math.min(padding, height * 0.12)
+      const scaleX = (width - padX * 2) / bboxW
+      const scaleY = (height - padY * 2) / bboxH
       const fitScale = Math.min(scaleX, scaleY)
       setZoom(Math.max(minZoom, Math.min(maxZoom, maxFitZoom, fitScale)))
       // pan = -centro del bbox (porque la SVG group hace
