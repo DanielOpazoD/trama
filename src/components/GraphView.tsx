@@ -42,6 +42,7 @@ import {
 import { useGraphHoverPreview } from './graph/useGraphHoverPreview'
 import { useGraphSvgMeasure, useGraphViewportFit } from './graph/useGraphViewport'
 import { LoadingHint } from './LoadingHint'
+import { CenteredPane } from './CenteredPane'
 
 // Lazy-load del renderer WebGL: sigma + graphology pesan ~165KB extra
 // y solo se usan cuando la trama cruza WEBGL_THRESHOLD. Para usuarios
@@ -449,9 +450,9 @@ export default function GraphView({
       {useWebGl ? (
         <Suspense
           fallback={
-            <div className="h-full flex items-center justify-center">
+            <CenteredPane>
               <LoadingHint text="cargando renderer" size="sm" />
-            </div>
+            </CenteredPane>
           }
         >
           <GraphCanvasSigma

@@ -26,7 +26,13 @@ export const DESIGN_TOKEN_BASELINE = {
   // (NO cuenta text-[color:var(--x)], que es color, no tamaño/tracking).
   arbitrary: 18,
   // Aliases legacy de la type scale: text-(sm|xs|base|lg|xl|2xl).
-  legacy: 499,
+  //
+  // 2026-07-27: 499 → 423. Tres de esos 76 salen de migrar `EmptyState` a la
+  // escala semántica; el resto ya estaba migrado y el baseline se había
+  // quedado viejo, así que el piso real era mucho más bajo de lo que el gate
+  // exigía. Congelarlo aquí es lo que le devuelve el filo: con 499 cabían 76
+  // aliases nuevos sin que nadie se enterara.
+  legacy: 423,
 }
 
 // text-[<size>] con unidad px/rem/em, descartando text-[color:...].

@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { Spinner } from './Spinner'
 import { ErrorBoundary, type ErrorFallbackProps } from './ErrorBoundary'
 import { TramaMark } from './Icons'
+import { CenteredPane } from './CenteredPane'
 import { SectionPinGate } from './SectionPinGate'
 import type { ViewMode } from '../types/view'
 import type { ExtractionProposal } from '../types'
@@ -106,9 +107,15 @@ function ViewErrorFallback({
     }
   }
 
+  // Es la pantalla que aparece justo cuando algo ya falló: si además se
+  // recortara, el usuario perdería los botones de recuperación. Con
+  // `CenteredPane` el contenido siempre se puede alcanzar.
   return (
-    <div role="alert" className="h-full flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/5 p-6">
+    <CenteredPane className="p-6">
+      <div
+        role="alert"
+        className="max-w-md w-full bg-paper-50 border border-ink-100 rounded-xl shadow-lg shadow-ink-900/5 p-6"
+      >
         <TramaMark size={18} className="text-ink-200 mb-2" />
         <p className="text-micro uppercase tracking-shout text-ink-300 mb-1.5">
           Vista interrumpida
@@ -143,7 +150,7 @@ function ViewErrorFallback({
           </button>
         </div>
       </div>
-    </div>
+    </CenteredPane>
   )
 }
 

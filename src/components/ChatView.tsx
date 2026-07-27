@@ -17,6 +17,7 @@ import {
 } from '../state'
 import { ArrowRightIcon } from './Icons'
 import { IconButton } from './IconButton'
+import { CenteredPane } from './CenteredPane'
 import { SkeletonList, ThreadRowSkeleton } from './Skeleton'
 import { LoadingHint } from './LoadingHint'
 import { MessageBubble } from './chat/MessageBubble'
@@ -139,12 +140,12 @@ export function ChatView({
 
   if (offline) {
     return (
-      <div className="h-full flex items-center justify-center px-8">
+      <CenteredPane className="px-8 py-10">
         <p className="text-ink-400 italic max-w-md text-center leading-relaxed">
           El chat con la IA requiere conexión al backend. Estás en modo local — conecta a
           la red y recarga.
         </p>
-      </div>
+      </CenteredPane>
     )
   }
 
