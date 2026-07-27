@@ -155,7 +155,13 @@ export async function saveTokens(
       x_user_id     = EXCLUDED.x_user_id,
       username      = EXCLUDED.username,
       access_token  = EXCLUDED.access_token,
-      refresh_token = COALESCE(EXCLUDED.refresh_token, x_tokens.refresh_token),
+      -- NULLIF además de COALESCE: el schema declara refresh_token como
+      -- z.string().optional() sin .min(1), así que un "" de X pasa la
+      -- validación, esquiva el ?? null del callback (que sólo actúa sobre
+      -- null/undefined) y llegaría hasta aquí. COALESCE por sí solo no atrapa
+      -- la cadena vacía, y el token bueno se perdería igual que pasaba en
+      -- Spotify.
+      refresh_token = COALESCE(NULLIF(EXCLUDED.refresh_token, ''), x_tokens.refresh_token),
       expires_at    = EXCLUDED.expires_at,
       scopes        = COALESCE(EXCLUDED.scopes, x_tokens.scopes)
   `
@@ -178,7 +184,10 @@ export async function getValidAccessToken(
   await sql`
     UPDATE x_tokens
     SET access_token  = ${refreshed.access_token},
-        refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
+        -- || y no ??: si X responde con refresh_token vacío (el schema lo
+        -- permite), ?? lo dejaría pasar y perderíamos el token que hace
+        -- posible el siguiente refresh.
+        refresh_token = ${refreshed.refresh_token || stored.refresh_token},
         expires_at    = ${newExpiresAt.toISOString()}
     WHERE user_id = ${userId}
   `

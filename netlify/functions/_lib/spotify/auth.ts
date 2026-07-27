@@ -180,7 +180,13 @@ export async function saveTokens(
       spotify_user_id = EXCLUDED.spotify_user_id,
       display_name    = EXCLUDED.display_name,
       access_token    = EXCLUDED.access_token,
-      refresh_token   = EXCLUDED.refresh_token,
+      -- Spotify declara refresh_token opcional y no siempre lo devuelve al
+      -- re-autorizar. La columna es NOT NULL, así que el callback manda '' en
+      -- ese caso; escribirlo tal cual borraba el token bueno y dejaba el sync
+      -- roto para siempre, en silencio y con la app diciendo "conectado".
+      -- NULLIF convierte ese '' en NULL para que COALESCE conserve el guardado.
+      -- (El equivalente de X ya lo hacía; Spotify era el caso desviado.)
+      refresh_token   = COALESCE(NULLIF(EXCLUDED.refresh_token, ''), spotify_tokens.refresh_token),
       expires_at      = EXCLUDED.expires_at,
       scopes          = COALESCE(EXCLUDED.scopes, spotify_tokens.scopes)
   `
@@ -207,7 +213,11 @@ export async function getValidAccessToken(
   await sql`
     UPDATE spotify_tokens
     SET access_token  = ${refreshed.access_token},
-        refresh_token = ${refreshed.refresh_token ?? stored.refresh_token},
+        -- || y no ??: Spotify puede responder sin refresh_token o con uno
+        -- vacío (el schema lo declara opcional y sin .min(1)), y ?? sólo
+        -- actúa sobre null/undefined. Con ?? una cadena vacía se guardaría y
+        -- el siguiente refresh sería imposible.
+        refresh_token = ${refreshed.refresh_token || stored.refresh_token},
         expires_at    = ${newExpiresAt.toISOString()}
     WHERE user_id = ${userId}
   `
