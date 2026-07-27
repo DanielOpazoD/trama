@@ -115,6 +115,26 @@ export default defineConfig({
           functions: 95,
           lines: 92,
         },
+        // 2026-07-27: los dos OAuth entran al grupo con piso propio. Venían de
+        // 30.43% (spotify) y 2.17% (x): el flujo entero de identidad de X
+        // corría sin una sola aserción. Medido tras cubrirlos:
+        //   spotify/auth.ts  76.08 / 77.77 /   75 / 76.74
+        //   x/auth.ts        71.73 / 63.63 /   75 / 72.50
+        // Un fallo aquí no da error visible — el sync deja de traer nada y la
+        // app sigue diciendo "conectado", así que el piso importa más que el
+        // promedio global.
+        '**/netlify/functions/_lib/spotify/auth.ts': {
+          statements: 72,
+          branches: 72,
+          functions: 70,
+          lines: 72,
+        },
+        '**/netlify/functions/_lib/x/auth.ts': {
+          statements: 68,
+          branches: 58,
+          functions: 70,
+          lines: 68,
+        },
       },
     },
   },
