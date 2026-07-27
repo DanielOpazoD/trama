@@ -62,7 +62,10 @@ export function GraphSearch({
   }
 
   return (
-    <div className="absolute right-4 top-16 z-10 w-56">
+    // En móvil las píldoras de la barra superior envuelven a una segunda fila
+    // (ver GraphToolbar) y `top-16` caía justo encima; a partir de `md` caben
+    // en una sola línea y el buscador vuelve a subir.
+    <div className="absolute right-4 top-20 z-10 w-56 md:top-16">
       <div className="flex items-center gap-1.5 rounded-full border border-ink-100/70 bg-paper-50/90 px-2.5 py-1 shadow-sm backdrop-blur-sm focus-ring-within">
         <SearchIcon size={12} className="shrink-0 text-ink-300" />
         <input
