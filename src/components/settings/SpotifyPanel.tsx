@@ -117,6 +117,15 @@ export function SpotifyPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null
               {formatRelative(spotify.lastSyncedAt)}
             </span>
           </div>
+          {spotify.needsReconnect && (
+            // Sobrio a propósito: no es un error de la app, es una autorización
+            // que caducó. El aviso importa porque hasta ahora esta pantalla
+            // decía "conectado" mientras el sync llevaba semanas sin traer nada.
+            <p className="alert-warn px-3 py-2 text-caption">
+              La autorización caducó y no se puede renovar sola. Vuelve a conectar para
+              que el sync siga trayendo tus escuchas.
+            </p>
+          )}
           <div className="flex gap-3 text-xs text-ink-400 tabular-nums">
             <span>{spotify.counts.totalPlays} reproducciones</span>
             <span>·</span>

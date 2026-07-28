@@ -19,6 +19,9 @@ vi.mock('./spotify/index.js', () => ({
   fetchRecentlyPlayed: spotifyMocks.fetchRecentlyPlayed,
   storePlays: spotifyMocks.storePlays,
   markSynced: spotifyMocks.markSynced,
+  // El endpoint de estado lo usa para distinguir 'hay tokens' de 'sirven'.
+  needsReconnect: (t: { refresh_token: string; expires_at: string }) =>
+    new Date(t.expires_at).getTime() <= Date.now() + 60_000 && !t.refresh_token,
 }))
 
 import statusHandler from '../spotify-status'

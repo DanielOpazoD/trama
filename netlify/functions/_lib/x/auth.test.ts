@@ -7,6 +7,7 @@ import {
   generatePkce,
   getStoredTokens,
   getValidAccessToken,
+  needsReconnect,
   saveTokens,
 } from './auth'
 
@@ -299,5 +300,43 @@ describe('getValidAccessToken', () => {
     // cuenta". Queda anotado en el plan como mejora aparte: distinguirlo bien
     // pide mirar el status de X — un 400 es reconectar, un 503 es reintentar.)
     await expect(getValidAccessToken(sql, 'user-1')).rejects.toThrow(/400/)
+  })
+})
+
+describe('needsReconnect', () => {
+  /**
+   * El estado de conexión se calcula sin salir a la red: si hiciera falta
+   * preguntarle al proveedor, cada carga de Ajustes costaría un round-trip.
+   */
+  it('es false mientras el token siga vivo', () => {
+    expect(needsReconnect(storedRow())).toBe(false)
+  })
+
+  it('es false si venció pero queda refresh token: se recupera solo', () => {
+    const row = storedRow({
+      expires_at: new Date(Date.now() - 1000).toISOString(),
+      refresh_token: 'refresh-guardado',
+    })
+    expect(needsReconnect(row)).toBe(false)
+  })
+
+  /**
+   * El caso que motivó todo: tras el clobber quedaba cadena vacía, la app
+   * seguía diciendo "conectado" y el sync no traía nada. Ahora se distingue.
+   */
+  it('es true si venció y el refresh token quedó vacío', () => {
+    const row = storedRow({
+      expires_at: new Date(Date.now() - 1000).toISOString(),
+      refresh_token: '',
+    })
+    expect(needsReconnect(row)).toBe(true)
+  })
+
+  it('respeta el margen de 60s: un token que vence dentro del margen ya cuenta', () => {
+    const row = storedRow({
+      expires_at: new Date(Date.now() + 30_000).toISOString(),
+      refresh_token: '',
+    })
+    expect(needsReconnect(row)).toBe(true)
   })
 })

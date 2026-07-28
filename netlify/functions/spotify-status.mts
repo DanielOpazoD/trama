@@ -1,6 +1,10 @@
 import type { Config } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
-import { disconnectSpotify, getStoredTokens } from './_lib/spotify/index.js'
+import {
+  disconnectSpotify,
+  getStoredTokens,
+  needsReconnect,
+} from './_lib/spotify/index.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -46,6 +50,8 @@ export default withObservability('spotify-status', async (req, _ctx, { requestId
 
   return Response.json({
     connected: true,
+    // Hay tokens guardados, pero pueden no servir: ver `needsReconnect`.
+    needsReconnect: needsReconnect(stored),
     spotifyUserId: stored.spotify_user_id,
     displayName: stored.display_name,
     connectedAt: stored.connected_at,

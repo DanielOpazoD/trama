@@ -1,9 +1,9 @@
 import type { Config, Context } from '@netlify/functions'
 import { getSql, sqlTyped } from './_lib/db.js'
 import { withObservability } from './_lib/handler-wrap.js'
-import { ApiErrors } from './_lib/api-error.js'
+import { ApiErrors, ApiSuccess } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
-import { disconnectX, getStoredTokens } from './_lib/x/index.js'
+import { disconnectX, getStoredTokens, needsReconnect } from './_lib/x/index.js'
 
 type BookmarkCountRow = { c: number }
 
@@ -19,7 +19,9 @@ export default withObservability(
 
     if (req.method === 'DELETE') {
       await disconnectX(sql, userId)
-      return Response.json({ ok: true })
+      // Gemelo de spotify-status: mismo 204 sin cuerpo. Antes devolvía
+      // `{ ok: true }` con 200; los clientes ya ignoraban el cuerpo.
+      return ApiSuccess.noContent()
     }
     if (req.method !== 'GET') return ApiErrors.methodNotAllowed(requestId)
 
@@ -33,6 +35,8 @@ export default withObservability(
 
     return Response.json({
       connected: true,
+      // Hay tokens guardados, pero pueden no servir: ver `needsReconnect`.
+      needsReconnect: needsReconnect(tokens),
       username: tokens.username,
       xUserId: tokens.x_user_id,
       lastSyncedAt: tokens.last_synced_at,

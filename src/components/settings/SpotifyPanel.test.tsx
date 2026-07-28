@@ -27,6 +27,7 @@ describe('<SpotifyPanel />', () => {
   it('muestra cuenta conectada y sincroniza manualmente', async () => {
     const statusSpy = vi.spyOn(api, 'spotifyStatus').mockResolvedValue({
       connected: true,
+      needsReconnect: false,
       spotifyUserId: 'sp-1',
       displayName: 'Daniel',
       connectedAt: '2026-05-30T10:00:00Z',

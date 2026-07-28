@@ -115,6 +115,14 @@ export function XPanel({ oauthReturn }: { oauthReturn?: OAuthReturn | null }) {
               {formatRelative(x.lastSyncedAt)}
             </span>
           </div>
+          {x.needsReconnect && (
+            // Mismo gesto que en el panel de Spotify: la autorización caducó,
+            // no es un fallo de la app.
+            <p className="alert-warn px-3 py-2 text-caption">
+              La autorización caducó y no se puede renovar sola. Vuelve a conectar para
+              que el sync siga trayendo tus bookmarks.
+            </p>
+          )}
           <div className="flex gap-3 text-xs text-ink-400 tabular-nums">
             <span>{x.counts.totalBookmarks} bookmarks guardados</span>
           </div>

@@ -193,6 +193,30 @@ export async function saveTokens(
 }
 
 /**
+ * Margen antes del vencimiento: un token que caduca "ahora mismo" no sirve para
+ * una request que tarda medio segundo en salir.
+ */
+const EXPIRY_SKEW_MS = 60_000
+
+/**
+ * ¿La conexión está muerta y hace falta volver a autorizar?
+ *
+ * `getStoredTokens` devuelve fila mientras el usuario no desconecte, así que
+ * `connected: true` sólo dice "hay tokens guardados" — no que sirvan. Es
+ * exactamente el estado en el que quedaba la cuenta cuando el refresh token se
+ * borraba: la app mostraba "conectado" y el sync no traía nada.
+ *
+ * Esto lo distingue sin salir a la red: si el access token venció y no queda
+ * refresh token utilizable, no hay forma de recuperarse solo. La columna es NOT
+ * NULL, así que "no utilizable" incluye la cadena vacía.
+ */
+export function needsReconnect(stored: StoredTokens): boolean {
+  const expiresAt = new Date(stored.expires_at).getTime()
+  if (expiresAt > Date.now() + EXPIRY_SKEW_MS) return false
+  return !stored.refresh_token
+}
+
+/**
  * Get a valid access token, refreshing it if necessary. Updates the stored
  * tokens in the DB on refresh.
  */
@@ -205,8 +229,8 @@ export async function getValidAccessToken(
 
   const expiresAt = new Date(stored.expires_at).getTime()
   const now = Date.now()
-  // Refresh 1 minute before expiry to avoid race conditions.
-  if (expiresAt > now + 60_000) return stored.access_token
+  // Refresh antes de que venza, con el mismo margen que usa `needsReconnect`.
+  if (expiresAt > now + EXPIRY_SKEW_MS) return stored.access_token
 
   const refreshed = await refreshAccessToken(stored.refresh_token)
   const newExpiresAt = new Date(now + refreshed.expires_in * 1000)
