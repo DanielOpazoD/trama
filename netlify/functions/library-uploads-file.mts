@@ -107,10 +107,9 @@ export default withObservability(
       })
     }
 
-    const blob = await createNetlifyBlobStorageAdapter(STORE).getWithMetadata<ArrayBuffer>(
-      storageKey,
-      'arrayBuffer',
-    )
+    const blob = await createNetlifyBlobStorageAdapter(
+      STORE,
+    ).getWithMetadata<ArrayBuffer>(storageKey, 'arrayBuffer')
     if (!blob) return ApiErrors.notFound(requestId, 'No encontrado')
 
     const mime =
@@ -128,8 +127,5 @@ export default withObservability(
 )
 
 export const config: Config = {
-  path: [
-    '/api/library-uploads-file/:key',
-    '/api/library-uploads-file/:userId/:key',
-  ],
+  path: ['/api/library-uploads-file/:key', '/api/library-uploads-file/:userId/:key'],
 }

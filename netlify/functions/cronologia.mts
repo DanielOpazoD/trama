@@ -68,7 +68,14 @@ type Entrada =
       entityName: string
     }
   | { kind: 'momento'; id: string; occurredAt: string; momentoKind: string; text: string }
-  | { kind: 'cronica'; id: string; occurredAt: string; year: number; month: number; text: string }
+  | {
+      kind: 'cronica'
+      id: string
+      occurredAt: string
+      year: number
+      month: number
+      text: string
+    }
   | {
       kind: 'escucha'
       id: string
@@ -99,7 +106,10 @@ export default withObservability(
     const before = (url.searchParams.get('before') ?? '').trim() || FAR_FUTURE
     const limitParam = url.searchParams.get('limit')
     const limit = Math.min(
-      Math.max(Number.parseInt(limitParam ?? String(LIMIT_DEFAULT), 10) || LIMIT_DEFAULT, 1),
+      Math.max(
+        Number.parseInt(limitParam ?? String(LIMIT_DEFAULT), 10) || LIMIT_DEFAULT,
+        1,
+      ),
       LIMIT_MAX,
     )
 
@@ -227,11 +237,14 @@ export default withObservability(
     }
     const watermark = tails.length ? Math.max(...tails) : null
 
-    const safe = watermark === null ? all : all.filter((e) => ms(e.occurredAt) >= watermark)
+    const safe =
+      watermark === null ? all : all.filter((e) => ms(e.occurredAt) >= watermark)
     const entradas = safe.slice(0, limit)
     const last = entradas[entradas.length - 1]
     const nextCursor =
-      last && (watermark !== null || all.length > entradas.length) ? last.occurredAt : null
+      last && (watermark !== null || all.length > entradas.length)
+        ? last.occurredAt
+        : null
 
     return Response.json({ entradas, nextCursor })
   },

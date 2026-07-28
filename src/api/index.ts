@@ -129,7 +129,7 @@ export type { Task, TaskCreate, TaskPatch, TaskPriority, TaskCategory } from './
 export type { MonthNote } from './month-notes'
 export type { UserPrefs } from './user-prefs'
 
-export type { Prompt, PromptCreate, PromptPatch } from './prompts'
+export type { Prompt, PromptCreate, PromptPatch, PromptVersion } from './prompts'
 
 export type { Secret, SecretCreate, SecretKind, SecretPatch } from './secrets'
 

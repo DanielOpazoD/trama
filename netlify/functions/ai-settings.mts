@@ -89,7 +89,10 @@ export default withObservability('ai-settings', async (req, _ctx, { requestId })
       return ApiErrors.validation(requestId, `verifyWith "${verifyWith}" no es válido`)
     }
     if (verifyWith && verifyWith === provider) {
-      return ApiErrors.validation(requestId, 'verifyWith debe ser distinto del provider principal')
+      return ApiErrors.validation(
+        requestId,
+        'verifyWith debe ser distinto del provider principal',
+      )
     }
 
     const model = (body.model ?? '').trim() || null

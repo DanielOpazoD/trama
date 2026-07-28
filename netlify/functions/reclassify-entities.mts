@@ -7,10 +7,7 @@ import {
   type EntityForReclassify,
   type ReclassifyTypeOption,
 } from './_lib/reclassify-prompt.js'
-import {
-  validateReclassify,
-  type EntityLookup,
-} from './_lib/reclassify-validate.js'
+import { validateReclassify, type EntityLookup } from './_lib/reclassify-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
@@ -57,7 +54,9 @@ export default withObservability(
           FROM quotes
           WHERE deleted_at IS NULL AND user_id = ${userId}
           ORDER BY created_at DESC`),
-      sqlTyped<TypeRow>(sql`SELECT slug, label FROM entity_types ORDER BY sort_order, slug`),
+      sqlTyped<TypeRow>(
+        sql`SELECT slug, label FROM entity_types ORDER BY sort_order, slug`,
+      ),
     ])
 
     if (entityRows.length === 0 || typeRows.length === 0) {

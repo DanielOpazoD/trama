@@ -13,29 +13,31 @@ type UsageRow = { n: string }
  * GET público, POST/DELETE con auth. Ver entity-types.mts para la
  * justificación del modelo global.
  */
-export default withObservability('relationship-types', async (req: Request, context: Context, { requestId }) => {
-  const sql = getSql()
-  const slug = context.params.slug
+export default withObservability(
+  'relationship-types',
+  async (req: Request, context: Context, { requestId }) => {
+    const sql = getSql()
+    const slug = context.params.slug
 
-  if (req.method === 'GET') {
-    const rows = await sql`
+    if (req.method === 'GET') {
+      const rows = await sql`
       SELECT slug, label, reverse_label, sort_order FROM relationship_types
       ORDER BY sort_order, slug
     `
-    return Response.json(rows)
-  }
+      return Response.json(rows)
+    }
 
-  if (req.method === 'POST') {
-    await getAuthedUser(req)
-    const parsed = await parseJsonBody(req, RelationshipTypeUpsertBody, requestId)
-    if (!parsed.ok) return parsed.response
-    const body = parsed.data
-    const rows = await sqlTyped<{
-      slug: string
-      label: string
-      reverse_label: string | null
-      sort_order: number
-    }>(sql`
+    if (req.method === 'POST') {
+      await getAuthedUser(req)
+      const parsed = await parseJsonBody(req, RelationshipTypeUpsertBody, requestId)
+      if (!parsed.ok) return parsed.response
+      const body = parsed.data
+      const rows = await sqlTyped<{
+        slug: string
+        label: string
+        reverse_label: string | null
+        sort_order: number
+      }>(sql`
       INSERT INTO relationship_types (slug, label, reverse_label, sort_order)
       VALUES (${body.slug}, ${body.label}, ${body.reverse_label}, ${body.sort_order ?? 100})
       ON CONFLICT (slug) DO UPDATE SET
@@ -44,26 +46,27 @@ export default withObservability('relationship-types', async (req: Request, cont
         sort_order = EXCLUDED.sort_order
       RETURNING slug, label, reverse_label, sort_order
     `)
-    return Response.json(rows[0], { status: 201 })
-  }
+      return Response.json(rows[0], { status: 201 })
+    }
 
-  if (req.method === 'DELETE' && slug) {
-    await getAuthedUser(req)
-    const usage = await sqlTyped<UsageRow>(sql`
+    if (req.method === 'DELETE' && slug) {
+      await getAuthedUser(req)
+      const usage = await sqlTyped<UsageRow>(sql`
       SELECT COUNT(*) AS n FROM relationships WHERE type = ${slug} AND deleted_at IS NULL
     `)
-    if (Number(usage[0]?.n ?? 0) > 0) {
-      return ApiErrors.conflict(
-        requestId,
-        `Tipo en uso por ${usage[0]?.n ?? 0} relación(es). Reasigna antes de borrar.`,
-      )
+      if (Number(usage[0]?.n ?? 0) > 0) {
+        return ApiErrors.conflict(
+          requestId,
+          `Tipo en uso por ${usage[0]?.n ?? 0} relación(es). Reasigna antes de borrar.`,
+        )
+      }
+      await sql`DELETE FROM relationship_types WHERE slug = ${slug}`
+      return ApiSuccess.noContent()
     }
-    await sql`DELETE FROM relationship_types WHERE slug = ${slug}`
-    return ApiSuccess.noContent()
-  }
 
-  return ApiErrors.methodNotAllowed(requestId)
-})
+    return ApiErrors.methodNotAllowed(requestId)
+  },
+)
 
 export const config: Config = {
   path: ['/api/relationship-types', '/api/relationship-types/:slug'],

@@ -10,6 +10,7 @@ import {
   useUploadNotasAttachment,
 } from '../../state'
 import { EmptyMessage } from '../EmptyMessage'
+import { SearchIcon } from '../Icons'
 import { LoadingHint } from '../LoadingHint'
 import { ViewHeader } from '../ViewHeader'
 import { PromptCard } from './PromptCard'
@@ -34,6 +35,7 @@ export function PromptsView() {
   const [content, setContent] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [filter, setFilter] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
   const [justSaved, setJustSaved] = useState(false)
   const savedTimer = useRef<number | null>(null)
 
@@ -47,10 +49,10 @@ export function PromptsView() {
   const rawPrompts = promptsQuery.data
   const prompts = useMemo(() => rawPrompts ?? [], [rawPrompts])
   const viewModel = useMemo(
-    () => buildPromptViewModel(prompts, filter),
-    [filter, prompts],
+    () => buildPromptViewModel(prompts, filter, query),
+    [filter, prompts, query],
   )
-  const { activeFilter, collections, filtered, stats } = viewModel
+  const { activeFilter, collections, filtered, searching, stats } = viewModel
 
   function save() {
     if (!title.trim() || !content.trim()) return
@@ -130,8 +132,22 @@ export function PromptsView() {
         </section>
       )}
 
-      {collections.length > 0 && (
-        <div className="mb-5 flex flex-wrap gap-1.5">
+      {prompts.length > 0 && (
+        <div className="mb-5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <div className="relative flex-1 basis-48">
+            <SearchIcon
+              size={13}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              type="search"
+              aria-label="Buscar en los prompts"
+              placeholder="Buscar por título, texto o variable…"
+              className="w-full rounded-full border border-ink-100 bg-paper-50/60 py-1 pl-7 pr-3 text-caption text-ink-700 placeholder:text-ink-300"
+            />
+          </div>
           <button
             onClick={() => setFilter(null)}
             className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border ${
@@ -166,6 +182,26 @@ export function PromptsView() {
           illustration="thread"
           title="Tu biblioteca de prompts está vacía."
           body={<>Guarda aquí instrucciones reutilizables.</>}
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyMessage
+          illustration="thread"
+          title={searching ? 'Ningún prompt coincide.' : 'Esta colección está vacía.'}
+          body={
+            searching ? (
+              <>
+                Se busca en el título, el texto, la colección y las variables.
+                <button
+                  onClick={() => setQuery('')}
+                  className="ml-1 underline underline-offset-2 hover:text-ink-700"
+                >
+                  Limpiar la búsqueda
+                </button>
+              </>
+            ) : (
+              <>Prueba con otra colección.</>
+            )
+          }
         />
       ) : (
         <div className="stagger-children space-y-3">

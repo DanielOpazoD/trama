@@ -7,8 +7,13 @@ import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { PromptCreateBody, PromptPatchBody } from './_lib/prompt-schemas.js'
 import { RestoreBody } from './_lib/restore-schema.js'
-import { parseTags } from './_lib/note-tags.js'
 import { extractPromptVariables } from './_lib/prompt-vars.js'
+import {
+  applyPromptPatch,
+  listPromptVersions,
+  readPromptVersion,
+  tagsFor,
+} from './_lib/prompt-versions.js'
 
 type PromptRow = {
   id: string
@@ -24,10 +29,6 @@ type PromptRow = {
   updated_at: string
 }
 
-function tagsFor(title: string, content: string, collection?: string | null): string[] {
-  return parseTags(`${title}\n${content}\n${collection ?? ''}`)
-}
-
 export default withObservability(
   'prompts',
   async (req: Request, context: Context, { requestId }) => {
@@ -35,7 +36,13 @@ export default withObservability(
     const userId = authedUser.id
     const sql = getSql()
     const id = context.params.id
+    const versionId = context.params.versionId
     const pathname = new URL(req.url).pathname
+
+    if (req.method === 'GET' && id && pathname.endsWith('/versions')) {
+      const versions = await listPromptVersions(sql, userId, id)
+      return Response.json(versions)
+    }
 
     if (req.method === 'GET') {
       const url = new URL(req.url)
@@ -84,7 +91,11 @@ export default withObservability(
 
     // Deshacer del DELETE: restaura el prompt + sus anexos que cayeron en la
     // MISMA pasada (mismo deleted_at), en un único CTE atómico.
-    if (req.method === 'POST' && id && pathname.endsWith('/restore')) {
+    //
+    // `!versionId` no es decorativo: restaurar una VERSIÓN también termina en
+    // `/restore`, así que sin esto esta rama se comería esa ruta y el orden de
+    // los `if` pasaría a ser significativo sin que nada lo dijera.
+    if (req.method === 'POST' && id && !versionId && pathname.endsWith('/restore')) {
       const parsed = await parseJsonBody(req, RestoreBody, requestId)
       if (!parsed.ok) return parsed.response
       const { deletedAt } = parsed.data
@@ -107,6 +118,17 @@ export default withObservability(
         return ApiErrors.notFound(requestId, 'Prompt no encontrado para restaurar')
       }
       return Response.json({ restored: true })
+    }
+
+    // Restaurar una versión es una edición más y pasa por el mismo camino de
+    // escritura, así que guarda antes lo que había: se puede ir y volver sin
+    // perder ninguno de los dos textos.
+    if (req.method === 'POST' && id && versionId && pathname.endsWith('/restore')) {
+      const version = await readPromptVersion(sql, userId, id, versionId)
+      if (!version) return ApiErrors.notFound(requestId, 'Versión no encontrada')
+      const row = await applyPromptPatch(sql, userId, id, version)
+      if (!row) return ApiErrors.notFound(requestId, 'Prompt no encontrado')
+      return Response.json(row)
     }
 
     if (req.method === 'POST' && id && pathname.endsWith('/duplicate')) {
@@ -140,7 +162,7 @@ export default withObservability(
       const parsed = await parseJsonBody(req, PromptCreateBody, requestId)
       if (!parsed.ok) return parsed.response
       const { title, content, collection, favorite } = parsed.data
-      const tags = tagsFor(title, content, collection)
+      const tags = tagsFor({ title, content, collection: collection ?? null })
       const variables = extractPromptVariables(content)
       const rows = await sqlTyped<PromptRow>(sql`
         INSERT INTO prompts (title, content, collection, tags, variables, favorite, user_id)
@@ -153,49 +175,9 @@ export default withObservability(
     if (req.method === 'PATCH' && id) {
       const parsed = await parseJsonBody(req, PromptPatchBody, requestId)
       if (!parsed.ok) return parsed.response
-      const body = parsed.data
-
-      let tags: string[] | null = null
-      let variables: string[] | null = null
-      if (body.title !== undefined || body.content !== undefined || body.collection !== undefined) {
-        const current = await sqlTyped<{
-          title: string
-          content: string
-          collection: string | null
-        }>(sql`
-          SELECT title, content, collection
-          FROM prompts
-          WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        `)
-        if (current.length === 0) return ApiErrors.notFound(requestId, 'Prompt no encontrado')
-        const cur = current[0]!
-        const nextTitle = body.title ?? cur.title
-        const nextContent = body.content ?? cur.content
-        const nextCollection =
-          body.collection !== undefined ? body.collection : cur.collection
-        tags = tagsFor(nextTitle, nextContent, nextCollection)
-        variables = extractPromptVariables(nextContent)
-      }
-
-      const rows = await sqlTyped<PromptRow>(sql`
-        UPDATE prompts
-        SET title = COALESCE(${body.title ?? null}, title),
-            content = COALESCE(${body.content ?? null}, content),
-            collection = CASE WHEN ${body.collection !== undefined} THEN ${body.collection ?? null} ELSE collection END,
-            tags = CASE WHEN ${tags !== null} THEN ${tags ?? []}::text[] ELSE tags END,
-            variables = CASE WHEN ${variables !== null} THEN ${variables ?? []}::text[] ELSE variables END,
-            favorite = CASE
-                         WHEN ${body.favorite === true} THEN true
-                         WHEN ${body.favorite === false} THEN false
-                         ELSE favorite
-                       END,
-            use_count = COALESCE(${body.useCount ?? null}, use_count),
-            updated_at = NOW()
-        WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
-        RETURNING id, title, content, collection, tags, variables, favorite, use_count, last_used_at, created_at, updated_at
-      `)
-      if (rows.length === 0) return ApiErrors.notFound(requestId, 'Prompt no encontrado')
-      return Response.json(rows[0])
+      const row = await applyPromptPatch(sql, userId, id, parsed.data)
+      if (!row) return ApiErrors.notFound(requestId, 'Prompt no encontrado')
+      return Response.json(row)
     }
 
     if (req.method === 'DELETE' && id) {
@@ -231,5 +213,7 @@ export const config: Config = {
     '/api/prompts/:id/duplicate',
     '/api/prompts/:id/use',
     '/api/prompts/:id/restore',
+    '/api/prompts/:id/versions',
+    '/api/prompts/:id/versions/:versionId/restore',
   ],
 }

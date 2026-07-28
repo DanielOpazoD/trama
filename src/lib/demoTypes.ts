@@ -13,6 +13,7 @@ export type Store = {
   notes: Row[]
   tasks: Row[]
   prompts: Row[]
+  prompt_versions: Row[]
   secrets: Row[]
   notas_attachments: Row[]
   pdf_stamp_assets: Row[]

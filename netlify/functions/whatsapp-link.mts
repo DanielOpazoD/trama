@@ -50,10 +50,16 @@ export default withObservability(
       const parsed = await parseJsonBody(req, WhatsAppLinkCreateBody, requestId)
       if (!parsed.ok) return parsed.response
       const code = generateLinkCode()
-      const expiresAt = new Date(Date.now() + LINK_CODE_TTL_MINUTES * 60_000).toISOString()
+      const expiresAt = new Date(
+        Date.now() + LINK_CODE_TTL_MINUTES * 60_000,
+      ).toISOString()
       // Un solo CTE: invalidamos cualquier código pendiente previo del usuario
       // (sin número aún) y creamos el nuevo. Así no se acumulan códigos vivos.
-      const rows = await sqlTyped<{ id: string; link_code: string; link_code_expires_at: string }>(sql`
+      const rows = await sqlTyped<{
+        id: string
+        link_code: string
+        link_code_expires_at: string
+      }>(sql`
         WITH expire_pending AS (
           UPDATE whatsapp_links
           SET deleted_at = NOW(), updated_at = NOW()

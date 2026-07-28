@@ -10,11 +10,7 @@ import {
   QuotePatchBody,
   QuoteRestoreBody,
 } from './_lib/quote-schemas.js'
-import {
-  embedSafe,
-  quoteEmbeddingText,
-  toPgVector,
-} from './_lib/embeddings.js'
+import { embedSafe, quoteEmbeddingText, toPgVector } from './_lib/embeddings.js'
 
 import { normalizeOrigin } from './_lib/origin.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
@@ -52,22 +48,24 @@ async function validateLinkedQuoteIds(
   return null
 }
 
-export default withObservability('quotes', async (req: Request, context: Context, { requestId }) => {
-  const authedUser = await getAuthedUser(req)
-  const userId = authedUser.id
-  const sql = getSql()
-  const id = context.params.id
+export default withObservability(
+  'quotes',
+  async (req: Request, context: Context, { requestId }) => {
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const sql = getSql()
+    const id = context.params.id
 
-  if (req.method === 'GET') {
-    const url = new URL(req.url)
-    const limitParam = url.searchParams.get('limit')
+    if (req.method === 'GET') {
+      const url = new URL(req.url)
+      const limitParam = url.searchParams.get('limit')
 
-    // Backwards-compatible: without ?limit we keep returning the full array
-    // (the historical shape, used by hooks that still need every quote).
-    // With ?limit we switch to cursor pagination, returning { items, nextCursor }.
-    if (!limitParam) {
-      const rows = parseRows(
-        await sqlTyped<QuoteRow>(sql`
+      // Backwards-compatible: without ?limit we keep returning the full array
+      // (the historical shape, used by hooks that still need every quote).
+      // With ?limit we switch to cursor pagination, returning { items, nextCursor }.
+      if (!limitParam) {
+        const rows = parseRows(
+          await sqlTyped<QuoteRow>(sql`
         SELECT id, entity_id, text, source, context, link,
                user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                linked_quote_ids, pinned_at, resonance,
@@ -76,37 +74,40 @@ export default withObservability('quotes', async (req: Request, context: Context
         WHERE deleted_at IS NULL AND user_id = ${userId}
         ORDER BY created_at DESC, id DESC
       `),
-        QuoteRowSchema,
-        'quotes.list.wholesale',
-      )
-      return Response.json(rows)
-    }
-
-    // Paginated mode. Cursor is "<iso_ts>:<uuid>" of the last item the
-    // client received. Tuple comparison on (created_at, id) keeps the page
-    // boundary stable even when many quotes share the same created_at.
-    const parsedLimit = Number.parseInt(limitParam, 10)
-    const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 200) : 50
-
-    const cursorParam = url.searchParams.get('cursor')
-    let cursorTs: string | null = null
-    let cursorId: string | null = null
-    if (cursorParam) {
-      const sep = cursorParam.lastIndexOf(':')
-      if (sep > 0) {
-        cursorTs = cursorParam.slice(0, sep)
-        cursorId = cursorParam.slice(sep + 1)
+          QuoteRowSchema,
+          'quotes.list.wholesale',
+        )
+        return Response.json(rows)
       }
-    }
 
-    // We fetch limit + 1 so we can tell whether there's a next page without
-    // a separate count query.
-    // ω-E: incluimos pinned_at en el SELECT y lo usamos en el ORDER BY:
-    // pinned_at primero (DESC, nulls al final), después created_at DESC,
-    // después id DESC para tie-break. Las favoritas suben al tope.
-    const rows = cursorTs && cursorId
-      ? parseRows(
-          await sqlTyped<QuoteRow>(sql`
+      // Paginated mode. Cursor is "<iso_ts>:<uuid>" of the last item the
+      // client received. Tuple comparison on (created_at, id) keeps the page
+      // boundary stable even when many quotes share the same created_at.
+      const parsedLimit = Number.parseInt(limitParam, 10)
+      const limit = Number.isFinite(parsedLimit)
+        ? Math.min(Math.max(parsedLimit, 1), 200)
+        : 50
+
+      const cursorParam = url.searchParams.get('cursor')
+      let cursorTs: string | null = null
+      let cursorId: string | null = null
+      if (cursorParam) {
+        const sep = cursorParam.lastIndexOf(':')
+        if (sep > 0) {
+          cursorTs = cursorParam.slice(0, sep)
+          cursorId = cursorParam.slice(sep + 1)
+        }
+      }
+
+      // We fetch limit + 1 so we can tell whether there's a next page without
+      // a separate count query.
+      // ω-E: incluimos pinned_at en el SELECT y lo usamos en el ORDER BY:
+      // pinned_at primero (DESC, nulls al final), después created_at DESC,
+      // después id DESC para tie-break. Las favoritas suben al tope.
+      const rows =
+        cursorTs && cursorId
+          ? parseRows(
+              await sqlTyped<QuoteRow>(sql`
           SELECT id, entity_id, text, source, context, link,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
@@ -117,11 +118,11 @@ export default withObservability('quotes', async (req: Request, context: Context
           ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
         `),
-          QuoteRowSchema,
-          'quotes.list.paginated.cursor',
-        )
-      : parseRows(
-          await sqlTyped<QuoteRow>(sql`
+              QuoteRowSchema,
+              'quotes.list.paginated.cursor',
+            )
+          : parseRows(
+              await sqlTyped<QuoteRow>(sql`
           SELECT id, entity_id, text, source, context, link,
                  user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at,
                  linked_quote_ids, pinned_at, resonance,
@@ -131,59 +132,61 @@ export default withObservability('quotes', async (req: Request, context: Context
           ORDER BY pinned_at DESC NULLS LAST, created_at DESC, id DESC
           LIMIT ${limit + 1}
         `),
-          QuoteRowSchema,
-          'quotes.list.paginated.first',
-        )
+              QuoteRowSchema,
+              'quotes.list.paginated.first',
+            )
 
-    // Ver entities.mts para el contexto: Neon HTTP devuelve created_at como
-    // Date, y la stringificación default rompe el parser de Postgres. Forzamos
-    // ISO para que el cursor sea reparseable en la siguiente página.
-    const items = rows.slice(0, limit) as Array<{ id: string; created_at: string | Date }>
-    const hasMore = rows.length > limit
-    const last = items[items.length - 1]
-    const nextCursor = hasMore && last
-      ? `${new Date(last.created_at).toISOString()}:${last.id}`
-      : null
+      // Ver entities.mts para el contexto: Neon HTTP devuelve created_at como
+      // Date, y la stringificación default rompe el parser de Postgres. Forzamos
+      // ISO para que el cursor sea reparseable en la siguiente página.
+      const items = rows.slice(0, limit) as Array<{
+        id: string
+        created_at: string | Date
+      }>
+      const hasMore = rows.length > limit
+      const last = items[items.length - 1]
+      const nextCursor =
+        hasMore && last ? `${new Date(last.created_at).toISOString()}:${last.id}` : null
 
-    return Response.json({ items, nextCursor })
-  }
+      return Response.json({ items, nextCursor })
+    }
 
-  // POST /api/quotes (crear) — pero NO /api/quotes/:id/restore.
-  if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
-    const parsed = await parseJsonBody(req, QuoteCreateBody, requestId)
-    if (!parsed.ok) return parsed.response
-    await ensureUserRow(sql, authedUser)
-    const body = parsed.data
-    const origin = JSON.stringify(normalizeOrigin(body.origin))
-    const linked = normalizeLinkedQuoteIds(body.linked_quote_ids)
+    // POST /api/quotes (crear) — pero NO /api/quotes/:id/restore.
+    if (req.method === 'POST' && !new URL(req.url).pathname.endsWith('/restore')) {
+      const parsed = await parseJsonBody(req, QuoteCreateBody, requestId)
+      if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
+      const body = parsed.data
+      const origin = JSON.stringify(normalizeOrigin(body.origin))
+      const linked = normalizeLinkedQuoteIds(body.linked_quote_ids)
 
-    // Look up the entity name so the embedding has the attribution baked in
-    // (so "frase de Borges sobre el tiempo" matches even if "Borges" is just
-    // in the relationship, not in the quote text).
-    const entityNameRows = (await sql`
+      // Look up the entity name so the embedding has the attribution baked in
+      // (so "frase de Borges sobre el tiempo" matches even if "Borges" is just
+      // in the relationship, not in the quote text).
+      const entityNameRows = (await sql`
       SELECT name
       FROM entities
       WHERE id = ${body.entity_id} AND deleted_at IS NULL AND user_id = ${userId}
     `) as Array<{ name: string }>
-    const entityName = entityNameRows[0]?.name ?? null
-    if (!entityName) {
-      return ApiErrors.notFound(requestId, 'Entidad no encontrada')
-    }
+      const entityName = entityNameRows[0]?.name ?? null
+      if (!entityName) {
+        return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+      }
 
-    const linkedError = await validateLinkedQuoteIds(sql, userId, linked, requestId)
-    if (linkedError) return linkedError
+      const linkedError = await validateLinkedQuoteIds(sql, userId, linked, requestId)
+      if (linkedError) return linkedError
 
-    const emb = await embedSafe(
-      quoteEmbeddingText({
-        text: body.text,
-        entityName,
-        source: body.source ?? null,
-        context: body.context ?? null,
-      }),
-    )
+      const emb = await embedSafe(
+        quoteEmbeddingText({
+          text: body.text,
+          entityName,
+          source: body.source ?? null,
+          context: body.context ?? null,
+        }),
+      )
 
-    const rows = parseRows(
-      await sqlTyped<QuoteRow>(sql`
+      const rows = parseRows(
+        await sqlTyped<QuoteRow>(sql`
       INSERT INTO quotes (
         entity_id, text, source, context, link, user_reflection, linked_quote_ids, origin,
         embedding, embedding_model, embedding_at, user_id
@@ -206,70 +209,75 @@ export default withObservability('quotes', async (req: Request, context: Context
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
     `),
-      QuoteRowSchema,
-      'quotes.create.returning',
-    )
-    return Response.json(rows[0], { status: 201 })
-  }
+        QuoteRowSchema,
+        'quotes.create.returning',
+      )
+      return Response.json(rows[0], { status: 201 })
+    }
 
-  if (req.method === 'PATCH' && id) {
-    const parsed = await parseJsonBody(req, QuotePatchBody, requestId)
-    if (!parsed.ok) return parsed.response
-    await ensureUserRow(sql, authedUser)
-    const body = parsed.data
-    const linked =
-      body.linked_quote_ids !== undefined
-        ? normalizeLinkedQuoteIds(body.linked_quote_ids)
-        : undefined
-    if (body.entity_id !== undefined) {
-      const entityRows = (await sql`
+    if (req.method === 'PATCH' && id) {
+      const parsed = await parseJsonBody(req, QuotePatchBody, requestId)
+      if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
+      const body = parsed.data
+      const linked =
+        body.linked_quote_ids !== undefined
+          ? normalizeLinkedQuoteIds(body.linked_quote_ids)
+          : undefined
+      if (body.entity_id !== undefined) {
+        const entityRows = (await sql`
         SELECT id FROM entities
         WHERE id = ${body.entity_id} AND deleted_at IS NULL AND user_id = ${userId}
       `) as Array<{ id: string }>
-      if (entityRows.length === 0) {
-        return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+        if (entityRows.length === 0) {
+          return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+        }
       }
-    }
-    if (linked !== undefined) {
-      const linkedError = await validateLinkedQuoteIds(sql, userId, linked, requestId, id)
-      if (linkedError) return linkedError
-    }
-    const embeddingInputTouched =
-      body.text !== undefined ||
-      body.source !== undefined ||
-      body.context !== undefined ||
-      body.entity_id !== undefined
-    let embeddingDirty = false
-    if (embeddingInputTouched) {
-      const currentRows = await sqlTyped<{
-        text: string
-        source: string | null
-        context: string | null
-        entity_id: string
-      }>(sql`
+      if (linked !== undefined) {
+        const linkedError = await validateLinkedQuoteIds(
+          sql,
+          userId,
+          linked,
+          requestId,
+          id,
+        )
+        if (linkedError) return linkedError
+      }
+      const embeddingInputTouched =
+        body.text !== undefined ||
+        body.source !== undefined ||
+        body.context !== undefined ||
+        body.entity_id !== undefined
+      let embeddingDirty = false
+      if (embeddingInputTouched) {
+        const currentRows = await sqlTyped<{
+          text: string
+          source: string | null
+          context: string | null
+          entity_id: string
+        }>(sql`
         SELECT text, source, context, entity_id
         FROM quotes
         WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       `)
-      const current = currentRows[0]
-      embeddingDirty = Boolean(
-        current &&
+        const current = currentRows[0]
+        embeddingDirty = Boolean(
+          current &&
           ((body.text !== undefined && body.text !== current.text) ||
             (body.source !== undefined && (body.source ?? null) !== current.source) ||
-            (body.context !== undefined &&
-              (body.context ?? null) !== current.context) ||
+            (body.context !== undefined && (body.context ?? null) !== current.context) ||
             (body.entity_id !== undefined && body.entity_id !== current.entity_id)),
-      )
-    }
-    // ω-E: pinned boolean — el cliente manda true/false. El server
-    // mapea a pinned_at = NOW() o NULL respectivamente. Si no se
-    // manda, no se toca el campo.
-    // Only update fields that were actually sent. ai_reflection has the
-    // side effect of stamping ai_reflection_at when it changes. entity_id
-    // can move the quote to a different entity (useful for fixing quotes
-    // that ended up attached to a book instead of its author).
-    const rows = parseRows(
-      await sqlTyped<QuoteRow>(sql`
+        )
+      }
+      // ω-E: pinned boolean — el cliente manda true/false. El server
+      // mapea a pinned_at = NOW() o NULL respectivamente. Si no se
+      // manda, no se toca el campo.
+      // Only update fields that were actually sent. ai_reflection has the
+      // side effect of stamping ai_reflection_at when it changes. entity_id
+      // can move the quote to a different entity (useful for fixing quotes
+      // that ended up attached to a book instead of its author).
+      const rows = parseRows(
+        await sqlTyped<QuoteRow>(sql`
       UPDATE quotes
       SET
         text                   = COALESCE(${body.text ?? null}, text),
@@ -299,86 +307,87 @@ export default withObservability('quotes', async (req: Request, context: Context
                 linked_quote_ids, pinned_at, resonance,
                 origin, created_at, updated_at
     `),
-      QuoteRowSchema,
-      'quotes.patch.returning',
-    )
-    if (rows.length === 0) {
-      return ApiErrors.notFound(requestId, 'Cita no encontrada')
-    }
-
-    // Re-embed when anything that goes into the embedding changed. Fire and
-    // forget so the PATCH response isn't held up by an embeddings call.
-    if (embeddingDirty) {
-      const updated = rows[0] as {
-        text: string
-        source: string | null
-        context: string | null
-        entity_id: string
+        QuoteRowSchema,
+        'quotes.patch.returning',
+      )
+      if (rows.length === 0) {
+        return ApiErrors.notFound(requestId, 'Cita no encontrada')
       }
-      ;(async () => {
-        const nameRows = (await sql`
+
+      // Re-embed when anything that goes into the embedding changed. Fire and
+      // forget so the PATCH response isn't held up by an embeddings call.
+      if (embeddingDirty) {
+        const updated = rows[0] as {
+          text: string
+          source: string | null
+          context: string | null
+          entity_id: string
+        }
+        ;(async () => {
+          const nameRows = (await sql`
           SELECT name FROM entities
           WHERE id = ${updated.entity_id} AND deleted_at IS NULL AND user_id = ${userId}
         `) as Array<{ name: string }>
-        const emb = await embedSafe(
-          quoteEmbeddingText({
-            text: updated.text,
-            entityName: nameRows[0]?.name ?? null,
-            source: updated.source,
-            context: updated.context,
-          }),
-        )
-        if (!emb) return
-        await sql`
+          const emb = await embedSafe(
+            quoteEmbeddingText({
+              text: updated.text,
+              entityName: nameRows[0]?.name ?? null,
+              source: updated.source,
+              context: updated.context,
+            }),
+          )
+          if (!emb) return
+          await sql`
           UPDATE quotes
           SET embedding = ${toPgVector(emb.vector)}::vector,
               embedding_model = ${emb.model},
               embedding_at = NOW()
           WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
         `
-      })().catch((err) => {
-        logErrorEvent({
-          event: 'quote_embedding_update_failed',
-          quoteId: id,
-          message: err instanceof Error ? err.message : String(err),
+        })().catch((err) => {
+          logErrorEvent({
+            event: 'quote_embedding_update_failed',
+            quoteId: id,
+            message: err instanceof Error ? err.message : String(err),
+          })
         })
-      })
+      }
+
+      return Response.json(rows[0])
     }
 
-    return Response.json(rows[0])
-  }
-
-  if (req.method === 'DELETE' && id) {
-    await ensureUserRow(sql, authedUser)
-    const rows = await sqlTyped<{ deleted_at: string }>(sql`
+    if (req.method === 'DELETE' && id) {
+      await ensureUserRow(sql, authedUser)
+      const rows = await sqlTyped<{ deleted_at: string }>(sql`
       UPDATE quotes
       SET deleted_at = NOW()
       WHERE id = ${id} AND deleted_at IS NULL AND user_id = ${userId}
       RETURNING deleted_at
     `)
-    const deletedAt = rows[0]?.deleted_at
-    if (!deletedAt) return ApiErrors.notFound(requestId, 'Cita no encontrada')
-    return Response.json({ deletedAt })
-  }
+      const deletedAt = rows[0]?.deleted_at
+      if (!deletedAt) return ApiErrors.notFound(requestId, 'Cita no encontrada')
+      return Response.json({ deletedAt })
+    }
 
-  const url = new URL(req.url)
-  if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
-    const parsed = await parseJsonBody(req, QuoteRestoreBody, requestId)
-    if (!parsed.ok) return parsed.response
-    await ensureUserRow(sql, authedUser)
-    const { deletedAt } = parsed.data
-    const rows = await sqlTyped<{ id: string }>(sql`
+    const url = new URL(req.url)
+    if (req.method === 'POST' && id && url.pathname.endsWith('/restore')) {
+      const parsed = await parseJsonBody(req, QuoteRestoreBody, requestId)
+      if (!parsed.ok) return parsed.response
+      await ensureUserRow(sql, authedUser)
+      const { deletedAt } = parsed.data
+      const rows = await sqlTyped<{ id: string }>(sql`
       UPDATE quotes
       SET deleted_at = NULL
       WHERE id = ${id} AND deleted_at = ${deletedAt} AND user_id = ${userId}
       RETURNING id
     `)
-    if (rows.length === 0) return ApiErrors.notFound(requestId, 'Cita no encontrada')
-    return Response.json({ restored: true })
-  }
+      if (rows.length === 0) return ApiErrors.notFound(requestId, 'Cita no encontrada')
+      return Response.json({ restored: true })
+    }
 
-  return ApiErrors.methodNotAllowed(requestId)
-})
+    return ApiErrors.methodNotAllowed(requestId)
+  },
+)
 
 export const config: Config = {
   path: ['/api/quotes', '/api/quotes/:id', '/api/quotes/:id/restore'],

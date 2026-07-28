@@ -5,7 +5,11 @@ import { ApiErrors } from './_lib/api-error.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
-import { checksumSha256, recordStorageAsset, softDeleteStorageAsset } from './_lib/storage-assets.js'
+import {
+  checksumSha256,
+  recordStorageAsset,
+  softDeleteStorageAsset,
+} from './_lib/storage-assets.js'
 
 const STORE = 'pdf-studio-saved-pdfs'
 const MAX_BYTES = 50 * 1024 * 1024

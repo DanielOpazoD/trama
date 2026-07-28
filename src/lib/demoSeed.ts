@@ -476,6 +476,96 @@ export function buildSeed(): Store {
     },
   ]
 
+  // La biblioteca de prompts estaba vacía en la demo, así que la sección
+  // nunca mostraba de qué va. Uno de ellos llega con historial para que el
+  // versionado se vea sin tener que editar nada primero.
+  const promptSintesis = uid()
+  const prompts: Row[] = [
+    {
+      id: promptSintesis,
+      title: 'Síntesis de lectura',
+      content:
+        'Lee {{texto}} y devuélveme tres cosas:\n\n1. La tesis en una frase.\n2. Los dos argumentos que la sostienen.\n3. Qué objeción le harías.\n\nSin resumir de más: prefiero que falte a que sobre.',
+      collection: 'Investigación',
+      tags: [],
+      variables: ['texto'],
+      favorite: true,
+      use_count: 14,
+      last_used_at: daysAgo(1),
+      created_at: daysAgo(40),
+      updated_at: daysAgo(3),
+      deleted_at: null,
+    },
+    {
+      id: uid(),
+      title: 'Reescribir sin adjetivos',
+      content:
+        'Reescribe {{parrafo}} quitando todos los adjetivos que no aporten información. Si al quitarlo la frase dice lo mismo, sobraba.',
+      collection: 'Escritura',
+      tags: [],
+      variables: ['parrafo'],
+      favorite: false,
+      use_count: 7,
+      last_used_at: daysAgo(4),
+      ...ts(22),
+      deleted_at: null,
+    },
+    {
+      id: uid(),
+      title: 'Preguntas para una entrevista',
+      content:
+        'Voy a entrevistar a {{persona}} sobre {{tema}}. Dame ocho preguntas: dos de contexto, cuatro que la obliguen a concretar y dos incómodas pero justas.',
+      collection: 'Investigación',
+      tags: [],
+      variables: ['persona', 'tema'],
+      favorite: false,
+      use_count: 3,
+      last_used_at: null,
+      ...ts(9),
+      deleted_at: null,
+    },
+    {
+      id: uid(),
+      title: 'Traducir manteniendo el ritmo',
+      content:
+        'Traduce {{fragmento}} al español. Prioriza el ritmo de la frase sobre la literalidad: si hay que cambiar el orden para que suene, cámbialo.',
+      collection: null,
+      tags: [],
+      variables: ['fragmento'],
+      favorite: false,
+      use_count: 1,
+      last_used_at: null,
+      ...ts(2),
+      deleted_at: null,
+    },
+  ]
+
+  // Dos ediciones previas del primero: cada fila guarda el texto que había
+  // ANTES del cambio, de la más reciente a la más antigua.
+  const promptVersions: Row[] = [
+    {
+      id: uid(),
+      prompt_id: promptSintesis,
+      title: 'Síntesis de lectura',
+      content:
+        'Lee {{texto}} y devuélveme tres cosas:\n\n1. La tesis en una frase.\n2. Los dos argumentos que la sostienen.\n3. Qué objeción le harías.',
+      collection: 'Investigación',
+      created_at: daysAgo(3),
+      updated_at: daysAgo(3),
+      deleted_at: null,
+    },
+    {
+      id: uid(),
+      prompt_id: promptSintesis,
+      title: 'Resumen de lectura',
+      content: 'Resume {{texto}} en tres puntos.',
+      collection: 'Investigación',
+      created_at: daysAgo(18),
+      updated_at: daysAgo(18),
+      deleted_at: null,
+    },
+  ]
+
   return {
     entities,
     relationships,
@@ -483,7 +573,8 @@ export function buildSeed(): Store {
     momentos,
     notes,
     tasks,
-    prompts: [],
+    prompts,
+    prompt_versions: promptVersions,
     secrets: [],
     notas_attachments: [
       {

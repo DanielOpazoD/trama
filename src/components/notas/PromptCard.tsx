@@ -3,6 +3,7 @@ import type { Prompt } from '../../api'
 import { ArchiveIcon, ClipboardIcon, PencilIcon, TrashIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { AttachmentsPanel } from './AttachmentsPanel'
+import { PromptVersionsPanel } from './PromptVersionsPanel'
 import { ComposerFooter, composerTitleClass, editingFrameStyle } from './composerChrome'
 
 // Tono único del mundo Notas: el primario (--accent-primary), remapeado a
@@ -31,6 +32,7 @@ export function PromptCard({
   onCopy: () => void
 }) {
   const [editing, setEditing] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [title, setTitle] = useState(prompt.title)
   const [collection, setCollection] = useState(prompt.collection ?? '')
   const [content, setContent] = useState(prompt.content)
@@ -121,7 +123,7 @@ export function PromptCard({
               </span>
             )}
           </div>
-          <p className="mt-2 text-sm text-ink-500 whitespace-pre-wrap line-clamp-5">
+          <p className="mt-2 text-body text-ink-500 whitespace-pre-wrap line-clamp-5">
             {prompt.content}
           </p>
           {prompt.variables.length > 0 && (
@@ -136,9 +138,13 @@ export function PromptCard({
               ))}
             </div>
           )}
-          <footer className="mt-3 flex items-center gap-3 text-micro text-ink-300">
+          {/* `flex-wrap` no es cosmético: a 375px estos seis controles no
+              caben en una línea y sin envolver el último queda fuera de la
+              tarjeta. El contador se queda solo arriba para que la fila de
+              acciones no se parta por la mitad. */}
+          <footer className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-micro text-ink-300">
             <span className="tabular-nums">{prompt.useCount} usos</span>
-            <span className="flex-1" />
+            <span className="hidden flex-1 sm:block" />
             <IconButton
               onClick={onCopy}
               disabled={busy}
@@ -176,6 +182,14 @@ export function PromptCard({
             >
               duplicar
             </button>
+            <button
+              onClick={() => setShowHistory((v) => !v)}
+              aria-expanded={showHistory}
+              className="uppercase tracking-eyebrow transition-colors hover:text-ink-700"
+              style={showHistory ? { color: ACCENT } : undefined}
+            >
+              historial
+            </button>
             <IconButton
               onClick={onDelete}
               disabled={busy}
@@ -186,6 +200,7 @@ export function PromptCard({
               <TrashIcon size={13} />
             </IconButton>
           </footer>
+          <PromptVersionsPanel prompt={prompt} open={showHistory} busy={busy} />
           <AttachmentsPanel ownerType="prompt" ownerId={prompt.id} />
         </div>
       </div>

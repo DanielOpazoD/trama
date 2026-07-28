@@ -44,6 +44,33 @@ function promptFromRow(row: PromptRow): Prompt {
   }
 }
 
+/** Una versión guardada: el texto que el prompt tenía antes de una edición. */
+export type PromptVersion = {
+  id: string
+  title: string
+  content: string
+  collection: string | null
+  createdAt: string
+}
+
+type PromptVersionRow = {
+  id: string
+  title: string
+  content: string
+  collection: string | null
+  created_at: string
+}
+
+function versionFromRow(row: PromptVersionRow): PromptVersion {
+  return {
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    collection: row.collection,
+    createdAt: row.created_at,
+  }
+}
+
 export type PromptCreate = {
   title: string
   content: string
@@ -81,6 +108,19 @@ export const promptsApi = {
       method: 'PATCH',
       body: JSON.stringify(patch),
     })
+    return promptFromRow(row)
+  },
+  /** Historial de un prompt, de la versión más reciente a la más antigua. */
+  async versions(id: string): Promise<PromptVersion[]> {
+    const rows = await request<PromptVersionRow[]>(`/api/prompts/${id}/versions`)
+    return rows.map(versionFromRow)
+  },
+  /** Vuelve a una versión. Guarda antes la actual, así que no es destructivo. */
+  async restoreVersion(id: string, versionId: string): Promise<Prompt> {
+    const row = await request<PromptRow>(
+      `/api/prompts/${id}/versions/${versionId}/restore`,
+      { method: 'POST' },
+    )
     return promptFromRow(row)
   },
   async duplicate(id: string): Promise<Prompt> {

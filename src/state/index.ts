@@ -131,10 +131,12 @@ export {
 } from './useTasks'
 export {
   usePromptsQuery,
+  usePromptVersionsQuery,
   useCreatePrompt,
   useUpdatePrompt,
   useDuplicatePrompt,
   useMarkPromptUsed,
+  useRestorePromptVersion,
   useDeletePrompt,
 } from './usePrompts'
 export {

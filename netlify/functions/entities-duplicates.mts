@@ -96,7 +96,11 @@ export default withObservability(
       embeddingSkipped = true
     }
 
-    logEvent({ event: 'entities_duplicates_scan', groups: groups.length, embeddingSkipped })
+    logEvent({
+      event: 'entities_duplicates_scan',
+      groups: groups.length,
+      embeddingSkipped,
+    })
     return Response.json({ groups, embeddingSkipped })
   },
 )

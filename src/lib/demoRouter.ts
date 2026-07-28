@@ -98,6 +98,40 @@ function makeTargetResolver(store: Store): DemoTargetResolver {
   }
 }
 
+/**
+ * Guarda el texto que el prompt tiene AHORA, si el que viene lo cambia.
+ *
+ * Espeja la CTE del backend: el snapshot ocurre en la misma operación que la
+ * escritura y sólo cuando el texto cambia de verdad — un guardado que no toca
+ * el texto no debe ensuciar el historial.
+ */
+function snapshotPrompt(
+  store: Store,
+  prompt: Row,
+  siguiente: { title: string; content: string; collection: string | null },
+): void {
+  const antes = {
+    title: prompt.title as string,
+    content: prompt.content as string,
+    collection: (prompt.collection as string | null) ?? null,
+  }
+  if (
+    antes.title === siguiente.title &&
+    antes.content === siguiente.content &&
+    antes.collection === siguiente.collection
+  ) {
+    return
+  }
+  store.prompt_versions.push({
+    id: uid(),
+    prompt_id: prompt.id,
+    ...antes,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+    deleted_at: null,
+  })
+}
+
 /** Maneja una "request" contra el store. Devuelve el shape del servidor. */
 export function routeDemoRequest(
   method: string,
@@ -515,6 +549,38 @@ export function routeDemoRequest(
     }
     if (resource === 'quotes' && id && action === 'reflect') aiOff()
     if (resource === 'quotes' && id && action === 'echoes') return []
+    // Historial de un prompt: cada edición del texto deja aquí lo que había
+    // antes. Mismo contrato que el backend, incluido que restaurar guarda
+    // primero la versión actual.
+    if (resource === 'prompts' && id && action === 'versions' && method === 'GET') {
+      return live(store.prompt_versions)
+        .filter((v) => v.prompt_id === id)
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    }
+
+    if (resource === 'prompts' && id && action === 'versions' && method === 'POST') {
+      const versionId = seg[3]
+      const version = findLive(store.prompt_versions, versionId ?? '')
+      if (!version || version.prompt_id !== id) throw new Error('No encontrado')
+      const p = findLive(store.prompts, id)
+      if (!p) throw new Error('No encontrado')
+      snapshotPrompt(store, p, {
+        title: version.title as string,
+        content: version.content as string,
+        collection: (version.collection as string | null) ?? null,
+      })
+      p.title = version.title
+      p.content = version.content
+      p.collection = version.collection
+      p.tags = parseTags(
+        `${p.title as string}\n${p.content as string}\n${(p.collection as string | null) ?? ''}`,
+      )
+      p.variables = extractPromptVariables((p.content as string) ?? '')
+      p.updated_at = nowIso()
+      save(store)
+      return p
+    }
+
     if (resource === 'prompts' && id && action === 'duplicate' && method === 'POST') {
       const p = findLive(store.prompts, id)
       if (!p) throw new Error('Prompt no encontrado')
@@ -670,6 +736,17 @@ export function routeDemoRequest(
     if (method === 'PATCH' && id) {
       const r = findLive(rows, id)
       if (!r) throw new Error('No encontrado')
+      // ANTES del Object.assign: después ya no queda rastro de lo que había.
+      if (resource === 'prompts') {
+        snapshotPrompt(store, r, {
+          title: (body.title as string) ?? (r.title as string),
+          content: (body.content as string) ?? (r.content as string),
+          collection:
+            body.collection !== undefined
+              ? ((body.collection as string | null) ?? null)
+              : ((r.collection as string | null) ?? null),
+        })
+      }
       Object.assign(r, body)
       if (resource === 'reading-tables') {
         if (body.materialIds !== undefined)

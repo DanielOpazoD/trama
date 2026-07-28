@@ -121,7 +121,10 @@ export default withObservability(
     // no lo reporta, caemos al hint del cliente.
     const head = await r2ObjectExists(storageKey)
     if (!head.exists) {
-      return ApiErrors.notFound(requestId, 'El archivo no se encontró en el almacenamiento')
+      return ApiErrors.notFound(
+        requestId,
+        'El archivo no se encontró en el almacenamiento',
+      )
     }
     // El cap se enforcea contra el tamaño REAL del objeto (HEAD), NO contra el
     // `byteSize` del cliente (un hint manipulable): si no, un cliente podría

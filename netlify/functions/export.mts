@@ -182,43 +182,42 @@ export default withObservability('export', async (req: Request, _ctx, { requestI
     prompts,
     secrets,
     attachments,
-  ] =
-    (await runWithUserRls(sql, userId, (scoped) => [
-      scoped`SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
+  ] = (await runWithUserRls(sql, userId, (scoped) => [
+    scoped`SELECT id, type, name, year, description, essay, position_x, position_y, origin, spotify_url, wikipedia_url, grokipedia_url, created_at, updated_at
         FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
+    scoped`SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
         FROM relationships WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, entity_id, text, source, context, user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at, linked_quote_ids, pinned_at, resonance, link, origin, created_at, updated_at
+    scoped`SELECT id, entity_id, text, source, context, user_reflection, ai_reflection, ai_reflection_provider, ai_reflection_model, ai_reflection_at, linked_quote_ids, pinned_at, resonance, link, origin, created_at, updated_at
         FROM quotes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at
+    scoped`SELECT id, kind, captured_at, payload, note, origin, created_at, updated_at
         FROM momentos WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY captured_at, created_at`,
-      scoped`SELECT momento_id, entity_id
+    scoped`SELECT momento_id, entity_id
         FROM momento_entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY momento_id, entity_id`,
-      scoped`SELECT id, content, tags, pinned, promoted_momento_id, origin, created_at, updated_at
+    scoped`SELECT id, content, tags, pinned, promoted_momento_id, origin, created_at, updated_at
         FROM notes WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, title, detail, done, due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, completed_at, tags, origin, created_at, updated_at
+    scoped`SELECT id, title, detail, done, due_date, priority, to_char(week_start, 'YYYY-MM-DD') AS week_start, completed_at, tags, origin, created_at, updated_at
         FROM tasks WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, title, content, collection, tags, variables, favorite, use_count, last_used_at, origin, created_at, updated_at
+    scoped`SELECT id, title, content, collection, tags, variables, favorite, use_count, last_used_at, origin, created_at, updated_at
         FROM prompts WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, label, secret_value, kind, service, username, notes, favorite, critical,
+    scoped`SELECT id, label, secret_value, kind, service, username, notes, favorite, critical,
               to_char(expires_at, 'YYYY-MM-DD') AS expires_at,
               to_char(last_rotated_at, 'YYYY-MM-DD') AS last_rotated_at,
               copied_at, origin, created_at, updated_at
         FROM secrets WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-      scoped`SELECT id, owner_type, owner_id, file_name, mime_type, byte_size, storage_key, origin, created_at, updated_at
+    scoped`SELECT id, owner_type, owner_id, file_name, mime_type, byte_size, storage_key, origin, created_at, updated_at
         FROM notas_attachments WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at`,
-    ])) as [
-      EntityRow[],
-      RelationshipRow[],
-      QuoteRow[],
-      MomentoRow[],
-      MomentoEntityRow[],
-      NoteRow[],
-      TaskRow[],
-      PromptRow[],
-      SecretRow[],
-      AttachmentRow[],
-    ]
+  ])) as [
+    EntityRow[],
+    RelationshipRow[],
+    QuoteRow[],
+    MomentoRow[],
+    MomentoEntityRow[],
+    NoteRow[],
+    TaskRow[],
+    PromptRow[],
+    SecretRow[],
+    AttachmentRow[],
+  ]
   const entityIdsByMomento = new Map<string, string[]>()
   for (const link of momentoEntities) {
     const list = entityIdsByMomento.get(link.momento_id) ?? []

@@ -12,6 +12,7 @@ function normalizeStore(parsed: Partial<Store>): Store {
     notes: parsed.notes ?? [],
     tasks: parsed.tasks ?? [],
     prompts: parsed.prompts ?? [],
+    prompt_versions: parsed.prompt_versions ?? [],
     secrets: parsed.secrets ?? [],
     notas_attachments: parsed.notas_attachments ?? [],
     pdf_stamp_assets: parsed.pdf_stamp_assets ?? [],

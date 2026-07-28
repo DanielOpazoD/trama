@@ -5,15 +5,8 @@ import { aiOffResponse, resolveAIInvocation } from './_lib/ai-mode.js'
 import { getAuthedUser } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { ChatMessageSendBody } from './_lib/chat-body-schemas.js'
-import {
-  buildChatPrompt,
-  deriveThreadTitle,
-  type ChatTurn,
-} from './_lib/chat-prompt.js'
-import {
-  loadChatContextForFocus,
-  loadChatContextWithRag,
-} from './_lib/chat-context.js'
+import { buildChatPrompt, deriveThreadTitle, type ChatTurn } from './_lib/chat-prompt.js'
+import { loadChatContextForFocus, loadChatContextWithRag } from './_lib/chat-context.js'
 import { parseChatReply, hasAnyProposal } from './_lib/chat-validate.js'
 import { withObservability } from './_lib/handler-wrap.js'
 import { ApiErrors } from './_lib/api-error.js'
@@ -150,7 +143,10 @@ export default withObservability(
       ORDER BY created_at ASC
       LIMIT ${HISTORY_LIMIT}
     `)
-    const history: ChatTurn[] = historyRows.map((r) => ({ role: r.role, content: r.content }))
+    const history: ChatTurn[] = historyRows.map((r) => ({
+      role: r.role,
+      content: r.content,
+    }))
 
     // Auto-título en el primer intercambio: la primera pregunta, recortada
     // tipográficamente. Va ANTES del stream — el rail muestra el título
@@ -172,23 +168,25 @@ export default withObservability(
         : await loadChatContextWithRag(
             sql,
             userText,
-	            userId,
-	            { provider: invocation.provider, model: invocation.model },
-	            CONTEXT_RELATIONSHIP_LIMIT,
-	            requestId,
-	          )
+            userId,
+            { provider: invocation.provider, model: invocation.model },
+            CONTEXT_RELATIONSHIP_LIMIT,
+            requestId,
+          )
 
     // If this is an entity-focused thread, look up the focus entity's name+type
     // so the prompt can address it explicitly ("conversación sobre Borges").
     const focusEntity = focusEntityId
-      ? tramaContext.entities.find((e) => e.id === focusEntityId) ?? null
+      ? (tramaContext.entities.find((e) => e.id === focusEntityId) ?? null)
       : null
     const messages = buildChatPrompt(
       history,
       tramaContext,
       relationshipTypes,
       entityTypes,
-      focusEntity ? { id: focusEntity.id, name: focusEntity.name, type: focusEntity.type } : null,
+      focusEntity
+        ? { id: focusEntity.id, name: focusEntity.name, type: focusEntity.type }
+        : null,
     )
 
     // Stream the assistant reply back as SSE. The client subscribes to the
@@ -198,7 +196,9 @@ export default withObservability(
       async start(controller) {
         const enc = new TextEncoder()
         function send(event: string, data: unknown) {
-          controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
+          controller.enqueue(
+            enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
+          )
         }
 
         // Tell the client about the user message id immediately so it can

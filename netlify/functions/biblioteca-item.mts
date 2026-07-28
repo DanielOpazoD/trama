@@ -139,7 +139,12 @@ export default withObservability(
         itemId,
         deleted: body.deleted,
       })
-      return Response.json({ ok: true, kind: kindResult.data, itemId, deleted: body.deleted })
+      return Response.json({
+        ok: true,
+        kind: kindResult.data,
+        itemId,
+        deleted: body.deleted,
+      })
     } catch (err) {
       if (err instanceof LibraryOverrideValidationError) {
         return ApiErrors.validation(requestId, err.message)

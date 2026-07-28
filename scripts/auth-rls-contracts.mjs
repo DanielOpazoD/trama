@@ -217,6 +217,14 @@ export const PRIVATE_TABLE_CONTRACTS = [
     reason: 'Prompts can encode private workflow and reusable instructions.',
   },
   {
+    table: 'prompt_versions',
+    lifecycle: 'soft-delete',
+    userId: 'required',
+    rls: 'required',
+    ownership: 'owner scoped history of the prompt library',
+    reason: 'Old prompt versions encode the same private workflow as the head.',
+  },
+  {
     table: 'quotes',
     lifecycle: 'soft-delete',
     userId: 'required',
@@ -568,9 +576,10 @@ export const ENDPOINT_PRIVACY_CONTRACTS = [
     route: '/api/prompts',
     files: ['netlify/functions/prompts.mts'],
     auth: 'required',
-    operations: ['list', 'create', 'update', 'soft-delete', 'restore'],
-    tables: ['prompts', 'notas_attachments'],
-    ownership: 'Prompt library rows and prompt attachments are scoped to the owner.',
+    operations: ['list', 'create', 'update', 'soft-delete', 'restore', 'history'],
+    tables: ['prompts', 'prompt_versions', 'notas_attachments'],
+    ownership:
+      'Prompt library rows, their version history and prompt attachments are scoped to the owner.',
     evidence: ['netlify/functions/_lib/prompts-endpoint.test.ts'],
   },
   {

@@ -30,6 +30,39 @@ export function useUpdatePrompt() {
   })
 }
 
+/**
+ * Historial de un prompt. Se pide sólo cuando el panel está abierto: es una
+ * consulta por prompt y la lista puede tener docenas.
+ */
+export function usePromptVersionsQuery(promptId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.promptVersions(promptId),
+    queryFn: () => api.prompts.versions(promptId),
+    enabled,
+  })
+}
+
+/**
+ * Vuelve a una versión anterior. Guarda la actual antes de pisarla, así que el
+ * historial crece en vez de perderse y se puede ir y volver.
+ */
+export function useRestorePromptVersion() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({ promptId, versionId }: { promptId: string; versionId: string }) =>
+      api.prompts.restoreVersion(promptId, versionId),
+    onSuccess: (_prompt, { promptId }) => {
+      qc.invalidateQueries({ queryKey: PROMPTS_KEY })
+      qc.invalidateQueries({ queryKey: queryKeys.promptVersions(promptId) })
+      toast.show({
+        message: 'Versión restaurada. La anterior quedó guardada en el historial.',
+        tone: 'success',
+      })
+    },
+  })
+}
+
 export function useDuplicatePrompt() {
   const qc = useQueryClient()
   return useMutation({
