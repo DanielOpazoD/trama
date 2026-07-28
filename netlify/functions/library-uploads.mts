@@ -41,7 +41,11 @@ function randomKey(): string {
 }
 
 function extensionFor(name: string): string {
-  const ext = name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const ext = name
+    .split('.')
+    .pop()
+    ?.toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
   return ext ? `.${ext.slice(0, 12)}` : ''
 }
 

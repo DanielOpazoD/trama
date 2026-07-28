@@ -18,15 +18,40 @@ import { logEvent } from './_lib/observability.js'
 import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
 const FALLBACK_ENTITY_TYPES = [
-  'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
-  'libro', 'ensayo', 'poema', 'articulo',
-  'cancion', 'podcast', 'album', 'disco',
-  'pelicula', 'serie', 'documental',
-  'obra', 'concepto', 'idea', 'lugar', 'evento',
+  'persona',
+  'escritor',
+  'filosofo',
+  'musico',
+  'banda',
+  'director',
+  'artista',
+  'cientifico',
+  'libro',
+  'ensayo',
+  'poema',
+  'articulo',
+  'cancion',
+  'podcast',
+  'album',
+  'disco',
+  'pelicula',
+  'serie',
+  'documental',
+  'obra',
+  'concepto',
+  'idea',
+  'lugar',
+  'evento',
 ]
 const FALLBACK_RELATIONSHIP_TYPES = [
-  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
-  'suena_como', 'inspira', 'contradice', 'asociado_con',
+  'influye_en',
+  'cita_a',
+  'responde_a',
+  'me_llego_por',
+  'suena_como',
+  'inspira',
+  'contradice',
+  'asociado_con',
 ]
 
 const MAX_ENTITIES_IN_PROMPT = 100
@@ -107,13 +132,14 @@ export default withObservability(
       type TypeRow = { slug: string }
       type DismissedRow = { kind: string; payload: Record<string, unknown> }
 
-      const [entityRows, quoteRows, relRows, entityTypeRows, relTypeRows, dismissedRows] = await Promise.all([
-        sqlTyped<EntityRow>(sql`SELECT id, name, type, year, description
+      const [entityRows, quoteRows, relRows, entityTypeRows, relTypeRows, dismissedRows] =
+        await Promise.all([
+          sqlTyped<EntityRow>(sql`SELECT id, name, type, year, description
             FROM entities WHERE deleted_at IS NULL AND user_id = ${userId}
             ORDER BY created_at DESC LIMIT ${MAX_ENTITIES_IN_PROMPT}`),
-        sqlTyped<QuoteRow>(sql`SELECT entity_id, text FROM quotes
+          sqlTyped<QuoteRow>(sql`SELECT entity_id, text FROM quotes
             WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at DESC`),
-        sqlTyped<RelRow>(sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
+          sqlTyped<RelRow>(sql`SELECT ef.name AS from_name, et.name AS to_name, r.type
             FROM relationships r
             JOIN entities ef ON ef.id = r.from_id
               AND ef.deleted_at IS NULL
@@ -122,15 +148,17 @@ export default withObservability(
               AND et.deleted_at IS NULL
               AND et.user_id = ${userId}
             WHERE r.deleted_at IS NULL AND r.user_id = ${userId}`),
-        sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
-        sqlTyped<TypeRow>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
-        // Sugerencias previamente descartadas — para que el LLM NO las
-        // vuelva a proponer en esta ronda.
-        sqlTyped<DismissedRow>(sql`SELECT kind, payload FROM proactive_suggestions
+          sqlTyped<TypeRow>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
+          sqlTyped<TypeRow>(
+            sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`,
+          ),
+          // Sugerencias previamente descartadas — para que el LLM NO las
+          // vuelva a proponer en esta ronda.
+          sqlTyped<DismissedRow>(sql`SELECT kind, payload FROM proactive_suggestions
             WHERE status = 'dismissed' AND user_id = ${userId}
             ORDER BY status_changed_at DESC NULLS LAST, created_at DESC
             LIMIT 60`),
-      ])
+        ])
 
       if (entityRows.length === 0) {
         return Response.json({ inserted: 0, suggestions: [] })
@@ -156,9 +184,13 @@ export default withObservability(
         type: r.type,
       }))
       const entityTypes =
-        entityTypeRows.length > 0 ? entityTypeRows.map((r) => r.slug) : FALLBACK_ENTITY_TYPES
+        entityTypeRows.length > 0
+          ? entityTypeRows.map((r) => r.slug)
+          : FALLBACK_ENTITY_TYPES
       const relationshipTypes =
-        relTypeRows.length > 0 ? relTypeRows.map((r) => r.slug) : FALLBACK_RELATIONSHIP_TYPES
+        relTypeRows.length > 0
+          ? relTypeRows.map((r) => r.slug)
+          : FALLBACK_RELATIONSHIP_TYPES
 
       // Convertimos los payloads descartados en summaries legibles para que
       // el LLM entienda QUÉ se le pidió no proponer (no le pasamos el JSON
@@ -188,7 +220,9 @@ export default withObservability(
       const entityIds = new Set(entityRows.map((e) => e.id))
       const validEntityTypes = new Set(entityTypes)
       const validRelTypes = new Set(relationshipTypes)
-      const entityNamesLower = new Map(entityRows.map((e) => [e.name.trim().toLowerCase(), e]))
+      const entityNamesLower = new Map(
+        entityRows.map((e) => [e.name.trim().toLowerCase(), e]),
+      )
       const existingPairKey = new Set(
         existingRels.map(
           (r) =>
@@ -215,7 +249,8 @@ export default withObservability(
             const kind = String(item.kind ?? '')
 
             if (kind === 'relationship') {
-              const fromName = typeof item.fromName === 'string' ? item.fromName.trim() : ''
+              const fromName =
+                typeof item.fromName === 'string' ? item.fromName.trim() : ''
               const toName = typeof item.toName === 'string' ? item.toName.trim() : ''
               const type = typeof item.type === 'string' ? item.type.trim() : ''
               const reason = typeof item.reason === 'string' ? item.reason.trim() : ''
@@ -234,7 +269,8 @@ export default withObservability(
             }
 
             if (kind === 'reclassification') {
-              const entityId = typeof item.entityId === 'string' ? item.entityId.trim() : ''
+              const entityId =
+                typeof item.entityId === 'string' ? item.entityId.trim() : ''
               const newType = typeof item.newType === 'string' ? item.newType.trim() : ''
               const name = typeof item.name === 'string' ? item.name.trim() : ''
               const reason = typeof item.reason === 'string' ? item.reason.trim() : ''
@@ -251,7 +287,8 @@ export default withObservability(
             }
 
             if (kind === 'description') {
-              const entityId = typeof item.entityId === 'string' ? item.entityId.trim() : ''
+              const entityId =
+                typeof item.entityId === 'string' ? item.entityId.trim() : ''
               const description =
                 typeof item.description === 'string' ? item.description.trim() : ''
               const name = typeof item.name === 'string' ? item.name.trim() : ''

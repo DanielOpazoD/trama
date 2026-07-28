@@ -19,8 +19,14 @@ import { crossVerify, type VerifyVerdict } from './_lib/cross-verify.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 
 const FALLBACK_RELATIONSHIP_TYPES = [
-  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
-  'suena_como', 'inspira', 'contradice', 'asociado_con',
+  'influye_en',
+  'cita_a',
+  'responde_a',
+  'me_llego_por',
+  'suena_como',
+  'inspira',
+  'contradice',
+  'asociado_con',
 ]
 
 // Cap on how many entities we send to the LLM in one call. Keeps tokens (and
@@ -102,7 +108,9 @@ export default withObservability(
             AND et.deleted_at IS NULL
             AND et.user_id = ${userId}
           WHERE r.deleted_at IS NULL AND r.user_id = ${userId}`),
-      sqlTyped<{ slug: string }>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
+      sqlTyped<{ slug: string }>(
+        sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`,
+      ),
     ])
 
     if (entityRows.length < 2) {

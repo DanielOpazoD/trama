@@ -52,6 +52,9 @@ export const queryKeys = {
     ['tasks', 'range', weekFrom, weekTo, carryBefore] as const,
   tasksPending: ['tasks', 'pending'] as const,
   prompts: ['prompts'] as const,
+  /** Historial de un prompt. Bajo el prefijo `prompts` para que invalidar la
+   *  lista tras una edición refresque también el historial abierto. */
+  promptVersions: (promptId: string) => ['prompts', 'versions', promptId] as const,
   secrets: ['secrets'] as const,
   notasAttachments: (ownerType: 'note' | 'prompt' | 'week' | 'task', ownerId: string) =>
     ['notas-attachments', ownerType, ownerId] as const,

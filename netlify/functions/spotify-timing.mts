@@ -48,9 +48,7 @@ export default withObservability('spotify-timing', async (req, _ctx, { requestId
 
   // Normalizamos a ISO string (Neon devuelve Date objects, no strings).
   const playedAts = rows.map((r) =>
-    typeof r.played_at === 'string'
-      ? r.played_at
-      : new Date(r.played_at).toISOString(),
+    typeof r.played_at === 'string' ? r.played_at : new Date(r.played_at).toISOString(),
   )
 
   return Response.json({

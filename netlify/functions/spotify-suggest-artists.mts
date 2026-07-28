@@ -31,67 +31,74 @@ import {
  * de ~1000 tokens.
  */
 
-export default withObservability('spotify-suggest-artists', async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
+export default withObservability(
+  'spotify-suggest-artists',
+  async (req: Request, _ctx, { requestId }) => {
+    if (req.method !== 'POST') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
 
-  const authedUser = await getAuthedUser(req)
-  const userId = authedUser.id
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
 
-  const budgetExceeded = await checkMonthlyBudget(userId, requestId)
-  if (budgetExceeded) return budgetExceeded
+    const budgetExceeded = await checkMonthlyBudget(userId, requestId)
+    if (budgetExceeded) return budgetExceeded
 
-  const sql = getSql()
-  const conn = await requireSpotifyConnection({ sql, userId, requestId })
-  if (!conn.ok) return conn.response
+    const sql = getSql()
+    const conn = await requireSpotifyConnection({ sql, userId, requestId })
+    if (!conn.ok) return conn.response
 
-  // Pegar Spotify: top artists (long_term para sesgo a estable, no fad
-  // de la semana). Genre aggregation con el mismo helper de κ-spotify.
-  let topArtists: Awaited<ReturnType<typeof fetchTopArtists>> = []
-  try {
-    topArtists = await fetchTopArtists(conn.token, 'long_term')
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Spotify API error'
-    return ApiErrors.upstream(requestId, msg)
-  }
+    // Pegar Spotify: top artists (long_term para sesgo a estable, no fad
+    // de la semana). Genre aggregation con el mismo helper de κ-spotify.
+    let topArtists: Awaited<ReturnType<typeof fetchTopArtists>> = []
+    try {
+      topArtists = await fetchTopArtists(conn.token, 'long_term')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Spotify API error'
+      return ApiErrors.upstream(requestId, msg)
+    }
 
-  if (topArtists.length === 0) {
-    return Response.json({
-      suggestions: [],
-      provider: null,
-      model: null,
-      reason: 'Sin top artistas en Spotify — escucha algo primero.',
-    })
-  }
+    if (topArtists.length === 0) {
+      return Response.json({
+        suggestions: [],
+        provider: null,
+        model: null,
+        reason: 'Sin top artistas en Spotify — escucha algo primero.',
+      })
+    }
 
-  await ensureUserRow(sql, authedUser)
+    await ensureUserRow(sql, authedUser)
 
-  const topGenres = aggregateTopGenres(topArtists, 8)
-  const topArtistNames = topArtists.slice(0, 20).map((a) => a.name)
+    const topGenres = aggregateTopGenres(topArtists, 8)
+    const topArtistNames = topArtists.slice(0, 20).map((a) => a.name)
 
-  // Las entidades que YA están en la trama del usuario. Le pedimos al LLM
-  // que excluya nombres ya presentes (no queremos proponer artistas que
-  // el usuario ya tiene).
-  const existingArtists = (await sql`
+    // Las entidades que YA están en la trama del usuario. Le pedimos al LLM
+    // que excluya nombres ya presentes (no queremos proponer artistas que
+    // el usuario ya tiene).
+    const existingArtists = (await sql`
     SELECT name FROM entities
     WHERE deleted_at IS NULL
       AND user_id = ${userId}
       AND type IN ('musico', 'banda', 'artista')
   `) as Array<{ name: string }>
-  const existingNames = existingArtists.map((e) => e.name.toLowerCase())
+    const existingNames = existingArtists.map((e) => e.name.toLowerCase())
 
-  const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
-  if (invocation.kind === 'off') return aiOffResponse(requestId)
+    const invocation = await resolveAIInvocation(req, 'suggest-relationships', userId)
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
-  const excludeList = [
-    ...new Set([...topArtistNames.map((n) => n.toLowerCase()), ...existingNames]),
-  ]
+    const excludeList = [
+      ...new Set([...topArtistNames.map((n) => n.toLowerCase()), ...existingNames]),
+    ]
 
-  const system = `Eres un curador musical recomendando al usuario artistas que NO conoce todavía pero que probablemente le gustarán, basándote en su perfil.
+    const system = `Eres un curador musical recomendando al usuario artistas que NO conoce todavía pero que probablemente le gustarán, basándote en su perfil.
 
 Perfil del usuario:
-- Géneros con más peso: ${topGenres.map((g) => g.name).slice(0, 6).join(', ') || '(sin info)'}
+- Géneros con más peso: ${
+      topGenres
+        .map((g) => g.name)
+        .slice(0, 6)
+        .join(', ') || '(sin info)'
+    }
 - Artistas frecuentes: ${topArtistNames.slice(0, 12).join(', ')}
 
 REGLAS ESTRICTAS:
@@ -115,59 +122,63 @@ DEVUELVE EXCLUSIVAMENTE este JSON, sin markdown:
   ]
 }`
 
-  try {
-    const { content, usage, fromCache } = await askLLMForJson(
-      [
-        { role: 'system', content: system },
-        { role: 'user', content: 'Sugiere artistas nuevos para descubrir.' },
-      ],
-      { provider: invocation.provider, model: invocation.model },
-    )
+    try {
+      const { content, usage, fromCache } = await askLLMForJson(
+        [
+          { role: 'system', content: system },
+          { role: 'user', content: 'Sugiere artistas nuevos para descubrir.' },
+        ],
+        { provider: invocation.provider, model: invocation.model },
+      )
 
-    type Suggestion = {
-      name: string
-      type: 'musico' | 'banda'
-      description: string
-      reason: string
-    }
-    let suggestions: Suggestion[] = []
-    if (
-      content &&
-      typeof content === 'object' &&
-      Array.isArray((content as { suggestions?: unknown }).suggestions)
-    ) {
-      const raw = (content as { suggestions: unknown[] }).suggestions
-      const existingSet = new Set(existingNames)
-      const topSet = new Set(topArtistNames.map((n) => n.toLowerCase()))
-      suggestions = raw
-        .filter((s): s is Record<string, unknown> => Boolean(s) && typeof s === 'object')
-        .map((s): Suggestion => ({
-          name: typeof s.name === 'string' ? s.name.trim() : '',
-          type: s.type === 'banda' ? 'banda' : 'musico',
-          description: typeof s.description === 'string' ? s.description.trim() : '',
-          reason: typeof s.reason === 'string' ? s.reason.trim() : '',
-        }))
-        .filter((s) => {
-          if (!s.name) return false
-          const key = s.name.toLowerCase()
-          // Re-filter por si el LLM ignoró la regla.
-          return !existingSet.has(key) && !topSet.has(key)
-        })
-    }
+      type Suggestion = {
+        name: string
+        type: 'musico' | 'banda'
+        description: string
+        reason: string
+      }
+      let suggestions: Suggestion[] = []
+      if (
+        content &&
+        typeof content === 'object' &&
+        Array.isArray((content as { suggestions?: unknown }).suggestions)
+      ) {
+        const raw = (content as { suggestions: unknown[] }).suggestions
+        const existingSet = new Set(existingNames)
+        const topSet = new Set(topArtistNames.map((n) => n.toLowerCase()))
+        suggestions = raw
+          .filter(
+            (s): s is Record<string, unknown> => Boolean(s) && typeof s === 'object',
+          )
+          .map(
+            (s): Suggestion => ({
+              name: typeof s.name === 'string' ? s.name.trim() : '',
+              type: s.type === 'banda' ? 'banda' : 'musico',
+              description: typeof s.description === 'string' ? s.description.trim() : '',
+              reason: typeof s.reason === 'string' ? s.reason.trim() : '',
+            }),
+          )
+          .filter((s) => {
+            if (!s.name) return false
+            const key = s.name.toLowerCase()
+            // Re-filter por si el LLM ignoró la regla.
+            return !existingSet.has(key) && !topSet.has(key)
+          })
+      }
 
-    logEvent({
-      event: 'spotify_suggest_artists',
-      provider: usage.provider,
-      model: usage.model,
-      tokensIn: usage.tokensIn,
-      tokensOut: usage.tokensOut,
-      costCents: usage.costCents,
-      durationMs: usage.durationMs,
-      fromCache,
-      count: suggestions.length,
-    })
+      logEvent({
+        event: 'spotify_suggest_artists',
+        provider: usage.provider,
+        model: usage.model,
+        tokensIn: usage.tokensIn,
+        tokensOut: usage.tokensOut,
+        costCents: usage.costCents,
+        durationMs: usage.durationMs,
+        fromCache,
+        count: suggestions.length,
+      })
 
-    sql`
+      sql`
       INSERT INTO extraction_log (
         input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
       ) VALUES (
@@ -183,16 +194,17 @@ DEVUELVE EXCLUSIVAMENTE este JSON, sin markdown:
       )
     `.catch(() => {})
 
-    return Response.json({
-      suggestions,
-      provider: usage.provider,
-      model: usage.model,
-    })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return ApiErrors.upstream(requestId, `Error llamando al LLM: ${msg}`)
-  }
-})
+      return Response.json({
+        suggestions,
+        provider: usage.provider,
+        model: usage.model,
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return ApiErrors.upstream(requestId, `Error llamando al LLM: ${msg}`)
+    }
+  },
+)
 
 export const config: Config = {
   path: '/api/spotify/suggest-artists',

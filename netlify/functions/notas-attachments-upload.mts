@@ -65,7 +65,11 @@ function randomKey(): string {
 }
 
 function extensionFor(name: string): string {
-  const ext = name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const ext = name
+    .split('.')
+    .pop()
+    ?.toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
   return ext ? `.${ext.slice(0, 12)}` : ''
 }
 
@@ -103,11 +107,13 @@ export default withObservability(
     const displayName = cleanFileName(file.name)
     const displayMime = file.type
     const displaySize = file.size
-    if (!displayName) return ApiErrors.validation(requestId, 'Nombre de archivo requerido')
+    if (!displayName)
+      return ApiErrors.validation(requestId, 'Nombre de archivo requerido')
     if (!Number.isFinite(displaySize) || displaySize < 0) {
       return ApiErrors.validation(requestId, 'Tamaño de archivo inválido')
     }
-    if (file.size > MAX_BYTES) return ApiErrors.payloadTooLarge(requestId, 'Archivo > 20 MB')
+    if (file.size > MAX_BYTES)
+      return ApiErrors.payloadTooLarge(requestId, 'Archivo > 20 MB')
     if (!ALLOWED_MIMES.has(displayMime)) {
       return ApiErrors.unsupportedMediaType(
         requestId,

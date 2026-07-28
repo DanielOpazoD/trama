@@ -50,9 +50,9 @@ export default withObservability('home', async (req: Request, _ctx, { requestId 
     entities,
     quotes,
     relationships,
-    counts:
-      (countsRows as Array<{ entities: number; quotes: number; relationships: number }>)[0] ??
-      { entities: 0, quotes: 0, relationships: 0 },
+    counts: (
+      countsRows as Array<{ entities: number; quotes: number; relationships: number }>
+    )[0] ?? { entities: 0, quotes: 0, relationships: 0 },
   })
 })
 

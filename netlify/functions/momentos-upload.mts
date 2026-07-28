@@ -50,81 +50,84 @@ function randomKey(): string {
   return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export default withObservability('momentos-upload', async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
+export default withObservability(
+  'momentos-upload',
+  async (req: Request, _ctx, { requestId }) => {
+    if (req.method !== 'POST') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
 
-  // Multi-user prep: namespace cada blob bajo `${userId}/...`. Hoy con
-  // legacy fallback el userId será 'legacy-single-user'; cuando Clerk
-  // se active, los blobs de cada usuario quedan automáticamente
-  // separados sin migración. Sin esto, conocer una storageKey daría
-  // acceso a la foto sin importar quién la subió.
-  const authedUser = await getAuthedUser(req)
-  const userId = authedUser.id
+    // Multi-user prep: namespace cada blob bajo `${userId}/...`. Hoy con
+    // legacy fallback el userId será 'legacy-single-user'; cuando Clerk
+    // se active, los blobs de cada usuario quedan automáticamente
+    // separados sin migración. Sin esto, conocer una storageKey daría
+    // acceso a la foto sin importar quién la subió.
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
 
-  // Esperamos multipart/form-data con field "file".
-  const contentType = req.headers.get('content-type') ?? ''
-  if (!contentType.includes('multipart/form-data')) {
-    return ApiErrors.validation(requestId, 'Esperaba multipart/form-data')
-  }
+    // Esperamos multipart/form-data con field "file".
+    const contentType = req.headers.get('content-type') ?? ''
+    if (!contentType.includes('multipart/form-data')) {
+      return ApiErrors.validation(requestId, 'Esperaba multipart/form-data')
+    }
 
-  let formData: FormData
-  try {
-    formData = await req.formData()
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'form-data inválido'
-    return ApiErrors.validation(requestId, msg)
-  }
+    let formData: FormData
+    try {
+      formData = await req.formData()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'form-data inválido'
+      return ApiErrors.validation(requestId, msg)
+    }
 
-  const file = formData.get('file')
-  if (!(file instanceof File)) {
-    return ApiErrors.validation(requestId, 'Falta el field "file"')
-  }
+    const file = formData.get('file')
+    if (!(file instanceof File)) {
+      return ApiErrors.validation(requestId, 'Falta el field "file"')
+    }
 
-  if (!ALLOWED_MIMES.has(file.type)) {
-    return ApiErrors.unsupportedMediaType(
-      requestId,
-      `mimeType "${file.type}" no soportado. Usa una imagen (jpeg, png, webp, gif) o un video (mp4, webm, mov).`,
-    )
-  }
-  if (file.size > MAX_BYTES) {
-    return ApiErrors.payloadTooLarge(requestId, 'Archivo > 10 MB')
-  }
+    if (!ALLOWED_MIMES.has(file.type)) {
+      return ApiErrors.unsupportedMediaType(
+        requestId,
+        `mimeType "${file.type}" no soportado. Usa una imagen (jpeg, png, webp, gif) o un video (mp4, webm, mov).`,
+      )
+    }
+    if (file.size > MAX_BYTES) {
+      return ApiErrors.payloadTooLarge(requestId, 'Archivo > 10 MB')
+    }
 
-  // El type ya pasó el filtro ALLOWED_MIMES, así que siempre está en el map.
-  const ext = EXT_BY_MIME[file.type] ?? 'bin'
-  // Key con namespace por usuario: `${userId}/${random}.${ext}`. La
-  // storageKey completa se persiste tal cual en el payload del momento;
-  // momentos-file.mts re-deriva el userId del path al servir el blob.
-  const key = `${userId}/${randomKey()}.${ext}`
+    // El type ya pasó el filtro ALLOWED_MIMES, así que siempre está en el map.
+    const ext = EXT_BY_MIME[file.type] ?? 'bin'
+    // Key con namespace por usuario: `${userId}/${random}.${ext}`. La
+    // storageKey completa se persiste tal cual en el payload del momento;
+    // momentos-file.mts re-deriva el userId del path al servir el blob.
+    const key = `${userId}/${randomKey()}.${ext}`
 
-  // Netlify Blobs: store "momentos-media". Creado on-demand.
-  const buf = await file.arrayBuffer()
-  const sql = getSql()
-  await ensureUserRow(sql, authedUser)
-  await createNetlifyBlobStorageAdapter('momentos-media').put(key, buf, {
-    mime: file.type,
-    size: String(buf.byteLength),
-  })
-  await recordStorageAsset(sql, {
-    userId,
-    domain: 'momentos-media',
-    ownerType: 'momentos-upload',
-    ownerId: key,
-    provider: 'netlify-blobs',
-    storageKey: key,
-    mimeType: file.type,
-    byteSize: buf.byteLength,
-    checksum: checksumSha256(buf),
-  })
+    // Netlify Blobs: store "momentos-media". Creado on-demand.
+    const buf = await file.arrayBuffer()
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
+    await createNetlifyBlobStorageAdapter('momentos-media').put(key, buf, {
+      mime: file.type,
+      size: String(buf.byteLength),
+    })
+    await recordStorageAsset(sql, {
+      userId,
+      domain: 'momentos-media',
+      ownerType: 'momentos-upload',
+      ownerId: key,
+      provider: 'netlify-blobs',
+      storageKey: key,
+      mimeType: file.type,
+      byteSize: buf.byteLength,
+      checksum: checksumSha256(buf),
+    })
 
-  return Response.json({
-    storageKey: key,
-    mime: file.type,
-    size: buf.byteLength,
-  })
-})
+    return Response.json({
+      storageKey: key,
+      mime: file.type,
+      size: buf.byteLength,
+    })
+  },
+)
 
 // υ-bugfix: el path antes era `/api/momentos/upload` y Netlify lo
 // matcheaba contra `/api/momentos/:id` de momentos.mts (tratando

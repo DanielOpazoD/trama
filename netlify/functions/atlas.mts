@@ -124,7 +124,13 @@ async function buildResponse(
     LIMIT 1
   `)
   if (rows.length === 0) {
-    return { generatedAt: null, entityCount: 0, provider: null, model: null, clusters: [] }
+    return {
+      generatedAt: null,
+      entityCount: 0,
+      provider: null,
+      model: null,
+      clusters: [],
+    }
   }
   const snap = rows[0]!
   const stored: StoredCluster[] = Array.isArray(snap.clusters) ? snap.clusters : []

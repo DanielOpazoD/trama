@@ -61,10 +61,9 @@ export default withObservability(
       return ApiErrors.notFound(requestId, 'No encontrado')
     }
 
-    const blob = await createNetlifyBlobStorageAdapter(STORE).getWithMetadata<ArrayBuffer>(
-      storageKey,
-      'arrayBuffer',
-    )
+    const blob = await createNetlifyBlobStorageAdapter(
+      STORE,
+    ).getWithMetadata<ArrayBuffer>(storageKey, 'arrayBuffer')
     if (!blob) return ApiErrors.notFound(requestId, 'No encontrado')
 
     const ref = refs[0]!

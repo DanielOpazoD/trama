@@ -37,29 +37,31 @@ type EntityLookupRow = {
  * Responses son siempre arrays de entidades en la misma shape que
  * /api/entities devuelve. Si nada matchea, [] (no 404).
  */
-export default withObservability('entities-lookup', async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'GET') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
+export default withObservability(
+  'entities-lookup',
+  async (req: Request, _ctx, { requestId }) => {
+    if (req.method !== 'GET') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
 
-  const url = new URL(req.url)
-  const name = url.searchParams.get('name')
-  const prefix = url.searchParams.get('prefix')
-  const idsRaw = url.searchParams.get('ids')
+    const url = new URL(req.url)
+    const name = url.searchParams.get('name')
+    const prefix = url.searchParams.get('prefix')
+    const idsRaw = url.searchParams.get('ids')
 
-  if (!name && !prefix && !idsRaw) {
-    return ApiErrors.validation(requestId, 'Falta uno de: name, prefix, ids')
-  }
+    if (!name && !prefix && !idsRaw) {
+      return ApiErrors.validation(requestId, 'Falta uno de: name, prefix, ids')
+    }
 
-  const { id: userId } = await getAuthedUser(req)
-  const sql = getSql()
+    const { id: userId } = await getAuthedUser(req)
+    const sql = getSql()
 
-  let rows: EntityLookupRow[] = []
-  if (name) {
-    // Case-insensitive exact match. Uses idx_entities_name_trgm for the
-    // ILIKE, but at scale a btree on lower(name) would be better — we
-    // can add that index when name lookups become hot.
-    rows = await sqlTyped<EntityLookupRow>(sql`
+    let rows: EntityLookupRow[] = []
+    if (name) {
+      // Case-insensitive exact match. Uses idx_entities_name_trgm for the
+      // ILIKE, but at scale a btree on lower(name) would be better — we
+      // can add that index when name lookups become hot.
+      rows = await sqlTyped<EntityLookupRow>(sql`
       SELECT id, type, name, year, description, essay,
              position_x, position_y, origin, spotify_url,
              created_at, updated_at
@@ -69,12 +71,12 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
         AND lower(name) = lower(${name})
       LIMIT 5
     `)
-  } else if (prefix) {
-    const trimmedPrefix = prefix.trim()
-    if (trimmedPrefix.length < 1) {
-      return Response.json([])
-    }
-    rows = await sqlTyped<EntityLookupRow>(sql`
+    } else if (prefix) {
+      const trimmedPrefix = prefix.trim()
+      if (trimmedPrefix.length < 1) {
+        return Response.json([])
+      }
+      rows = await sqlTyped<EntityLookupRow>(sql`
       SELECT id, type, name, year, description, essay,
              position_x, position_y, origin, spotify_url,
              created_at, updated_at,
@@ -86,14 +88,14 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
       ORDER BY sim DESC, name ASC
       LIMIT 10
     `)
-  } else if (idsRaw) {
-    const ids = idsRaw
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 200)
-    if (ids.length === 0) return Response.json([])
-    rows = await sqlTyped<EntityLookupRow>(sql`
+    } else if (idsRaw) {
+      const ids = idsRaw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 200)
+      if (ids.length === 0) return Response.json([])
+      rows = await sqlTyped<EntityLookupRow>(sql`
       SELECT id, type, name, year, description, essay,
              position_x, position_y, origin, spotify_url,
              created_at, updated_at
@@ -102,12 +104,13 @@ export default withObservability('entities-lookup', async (req: Request, _ctx, {
         AND user_id = ${userId}
         AND id = ANY(${ids}::uuid[])
     `)
-  }
+    }
 
-  // Mantener la shape snake_case porque el resto de /api/entities también
-  // devuelve raw rows; el cliente las transforma vía entityFromRow.
-  return Response.json(rows)
-})
+    // Mantener la shape snake_case porque el resto de /api/entities también
+    // devuelve raw rows; el cliente las transforma vía entityFromRow.
+    return Response.json(rows)
+  },
+)
 
 export const config: Config = {
   // Hyphenated path avoids any chance of colliding with /api/entities/:id

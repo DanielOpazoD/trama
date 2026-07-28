@@ -75,8 +75,7 @@ export default withObservability(
         provider: invocation.provider,
         model: invocation.model,
       })
-      const text =
-        typeof content === 'string' ? content.trim() : String(content).trim()
+      const text = typeof content === 'string' ? content.trim() : String(content).trim()
 
       const row = await insertXCronica(sql, userId, {
         text,

@@ -219,6 +219,189 @@ describe('prompts endpoint — integration', () => {
     expect(cte).toMatch(/UPDATE notas_attachments SET deleted_at = NULL/i)
   })
 
+  // ---------- historial de versiones ----------
+
+  const TEXTO_ACTUAL = {
+    title: 'Sintetizar',
+    content: 'Texto viejo',
+    collection: 'Archivo',
+  }
+
+  it('PATCH que cambia el texto guarda la versión anterior en el MISMO statement', async () => {
+    mockSqlResponses.push(
+      [TEXTO_ACTUAL], // lectura del texto actual
+      [{ ...PROMPT_ROW, content: 'Texto nuevo' }],
+      [], // poda
+    )
+
+    const res = await handler(
+      new Request('http://localhost/api/prompts/p1', {
+        method: 'PATCH',
+        body: JSON.stringify({ content: 'Texto nuevo' }),
+      }),
+      mockContext({ id: 'p1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const escritura = mockSqlResponses.calls.find((c) =>
+      /UPDATE prompts/i.test(c.template),
+    )
+    // Snapshot y escritura comparten statement: no hay instante en el que el
+    // texto viejo esté pisado y todavía sin guardar.
+    expect(escritura?.template).toMatch(/INSERT INTO prompt_versions/i)
+    expect(escritura?.template).toMatch(/WITH snapshot AS/i)
+    // La poda sólo corre DESPUÉS de registrar, así que su presencia es la
+    // prueba de que hubo snapshot. Mirar el booleano en `values` no serviría:
+    // ese array ya lleva otros booleanos (favorite, collection !== undefined),
+    // así que `toContain(true)` se cumple siempre y no puede fallar.
+    expect(
+      mockSqlResponses.calls.some((c) => /UPDATE prompt_versions/i.test(c.template)),
+    ).toBe(true)
+  })
+
+  it('un PATCH que no cambia el texto no crea versión', async () => {
+    mockSqlResponses.push([TEXTO_ACTUAL], [PROMPT_ROW])
+
+    const res = await handler(
+      new Request('http://localhost/api/prompts/p1', {
+        method: 'PATCH',
+        body: JSON.stringify({ title: TEXTO_ACTUAL.title }),
+      }),
+      mockContext({ id: 'p1' }),
+    )
+
+    expect(res.status).toBe(200)
+    // Sin snapshot no se poda: la poda sólo tiene sentido tras registrar.
+    expect(
+      mockSqlResponses.calls.some((c) => /UPDATE prompt_versions/i.test(c.template)),
+    ).toBe(false)
+  })
+
+  it('marcar favorito no toca el historial ni lee el texto', async () => {
+    mockSqlResponses.push([{ ...PROMPT_ROW, favorite: true }])
+
+    const res = await handler(
+      new Request('http://localhost/api/prompts/p1', {
+        method: 'PATCH',
+        body: JSON.stringify({ favorite: true }),
+      }),
+      mockContext({ id: 'p1' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /SELECT title, content, collection/i.test(c.template),
+      ),
+    ).toBe(false)
+    expect(
+      mockSqlResponses.calls.some((c) => /UPDATE prompt_versions/i.test(c.template)),
+    ).toBe(false)
+  })
+
+  it('GET /:id/versions lista el historial acotado al usuario', async () => {
+    mockSqlResponses.push([
+      {
+        id: 'v1',
+        title: 'Sintetizar',
+        content: 'Texto viejo',
+        collection: null,
+        created_at: '2026-07-01T00:00:00Z',
+      },
+    ])
+
+    const res = await handler(
+      new Request('http://localhost/api/prompts/p1/versions'),
+      mockContext({ id: 'p1' }),
+    )
+
+    expect(res.status).toBe(200)
+    expect((await res.json())[0].id).toBe('v1')
+    const query = mockSqlResponses.calls[0]?.template ?? ''
+    expect(query).toMatch(/FROM prompt_versions/i)
+    expect(query).toMatch(/v\.user_id =/i)
+    expect(query).toMatch(/p\.user_id =/i) // el prompt también, no sólo la versión
+    expect(query).toMatch(/v\.deleted_at IS NULL/i)
+    expect(query).toMatch(/ORDER BY v\.created_at DESC/i)
+  })
+
+  it('restaurar una versión guarda antes la actual: no destruye', async () => {
+    mockSqlResponses.push(
+      [{ title: 'Sintetizar', content: 'Texto viejo', collection: null }], // la versión
+      [TEXTO_ACTUAL], // el texto actual, para decidir el snapshot
+      [{ ...PROMPT_ROW, content: 'Texto viejo' }],
+      [], // poda
+    )
+
+    const res = await handler(
+      new Request('http://localhost/api/prompts/p1/versions/v1/restore', {
+        method: 'POST',
+      }),
+      mockContext({ id: 'p1', versionId: 'v1' }),
+    )
+
+    expect(res.status).toBe(200)
+    const escritura = mockSqlResponses.calls.find((c) =>
+      /UPDATE prompts/i.test(c.template),
+    )
+    expect(escritura?.template).toMatch(/INSERT INTO prompt_versions/i)
+    expect(
+      mockSqlResponses.calls.some((c) => /UPDATE prompt_versions/i.test(c.template)),
+    ).toBe(true)
+  })
+
+  /**
+   * Las dos rutas terminan en `/restore`: deshacer el borrado del prompt y
+   * restaurar una versión. Si una se come a la otra el fallo es silencioso —
+   * la ruta responde, pero hace lo que no es.
+   */
+  it('deshacer el borrado y restaurar una versión no se confunden', async () => {
+    mockSqlResponses.push([{ restored: true }])
+    const deshacer = await handler(
+      new Request('http://localhost/api/prompts/p1/restore', {
+        method: 'POST',
+        body: JSON.stringify({ deletedAt: '2026-06-10T12:00:00Z' }),
+      }),
+      mockContext({ id: 'p1' }), // sin versionId
+    )
+    expect(deshacer.status).toBe(200)
+    expect(mockSqlResponses.calls[0]?.template).toMatch(/deleted_at = NULL/i)
+
+    mockSqlResponses.reset()
+    mockSqlResponses.push(
+      [{ title: 'Sintetizar', content: 'Texto viejo', collection: null }],
+      [TEXTO_ACTUAL],
+      [PROMPT_ROW],
+      [],
+    )
+    const versionar = await handler(
+      new Request('http://localhost/api/prompts/p1/versions/v1/restore', {
+        method: 'POST',
+      }),
+      mockContext({ id: 'p1', versionId: 'v1' }),
+    )
+    expect(versionar.status).toBe(200)
+    expect(
+      mockSqlResponses.calls.some((c) => /deleted_at = NULL/i.test(c.template)),
+    ).toBe(false)
+  })
+
+  it('una versión de otro usuario devuelve 404 y no escribe', async () => {
+    mockSqlResponses.push([]) // la consulta acotada por user_id no devuelve nada
+
+    const res = await handler(
+      new Request('http://localhost/api/prompts/p1/versions/ajena/restore', {
+        method: 'POST',
+      }),
+      mockContext({ id: 'p1', versionId: 'ajena' }),
+    )
+
+    expect(res.status).toBe(404)
+    expect(mockSqlResponses.calls.some((c) => /UPDATE prompts/i.test(c.template))).toBe(
+      false,
+    )
+  })
+
   it('método no soportado devuelve 405', async () => {
     const res = await handler(
       new Request('http://localhost/api/prompts', { method: 'PUT' }),

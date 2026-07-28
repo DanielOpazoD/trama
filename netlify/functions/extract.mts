@@ -15,89 +15,124 @@ import { checkMonthlyBudget } from './_lib/cost-cap.js'
 
 // Fallback types if the type tables are not yet populated (first deploy, etc).
 const FALLBACK_ENTITY_TYPES = [
-  'persona', 'escritor', 'filosofo', 'musico', 'banda', 'director', 'artista', 'cientifico',
-  'libro', 'ensayo', 'poema', 'articulo',
-  'cancion', 'podcast', 'album', 'disco',
-  'pelicula', 'serie', 'documental',
-  'obra', 'concepto', 'idea', 'lugar', 'evento',
+  'persona',
+  'escritor',
+  'filosofo',
+  'musico',
+  'banda',
+  'director',
+  'artista',
+  'cientifico',
+  'libro',
+  'ensayo',
+  'poema',
+  'articulo',
+  'cancion',
+  'podcast',
+  'album',
+  'disco',
+  'pelicula',
+  'serie',
+  'documental',
+  'obra',
+  'concepto',
+  'idea',
+  'lugar',
+  'evento',
 ]
 const FALLBACK_RELATIONSHIP_TYPES = [
-  'influye_en', 'cita_a', 'responde_a', 'me_llego_por',
-  'suena_como', 'inspira', 'contradice', 'asociado_con',
+  'influye_en',
+  'cita_a',
+  'responde_a',
+  'me_llego_por',
+  'suena_como',
+  'inspira',
+  'contradice',
+  'asociado_con',
 ]
 
-export default withObservability('extract', async (req: Request, _context: Context, { requestId }) => {
-  if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
+export default withObservability(
+  'extract',
+  async (req: Request, _context: Context, { requestId }) => {
+    if (req.method !== 'POST') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
 
-  const authedUser = await getAuthedUser(req)
-  const userId = authedUser.id
-  const sql = getSql()
-  await ensureUserRow(sql, authedUser)
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
+    const sql = getSql()
+    await ensureUserRow(sql, authedUser)
 
-  // Monthly cost cap before incurring LLM cost. Pasamos userId para que
-  // el check use el cap individual del usuario y filtre extraction_log
-  // solo por su gasto.
-  const budgetExceeded = await checkMonthlyBudget(userId, requestId)
-  if (budgetExceeded) return budgetExceeded
+    // Monthly cost cap before incurring LLM cost. Pasamos userId para que
+    // el check use el cap individual del usuario y filtre extraction_log
+    // solo por su gasto.
+    const budgetExceeded = await checkMonthlyBudget(userId, requestId)
+    if (budgetExceeded) return budgetExceeded
 
-  const parsed = await parseJsonBody(req, ExtractBody, requestId)
-  if (!parsed.ok) return parsed.response
-  const text = parsed.data.text.trim()
-  if (!text) {
-    return ApiErrors.validation(requestId, 'Falta el campo "text"')
-  }
+    const parsed = await parseJsonBody(req, ExtractBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const text = parsed.data.text.trim()
+    if (!text) {
+      return ApiErrors.validation(requestId, 'Falta el campo "text"')
+    }
 
-  // Fetch context: valid type slugs and existing entities.
-  const [entityTypeRows, relTypeRows, existing] = await Promise.all([
-    sqlTyped<{ slug: string }>(sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`),
-    sqlTyped<{ slug: string }>(sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`),
-    sqlTyped<{ id: string; name: string; type: string }>(sql`SELECT id, name, type FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at DESC LIMIT 500`),
-  ])
+    // Fetch context: valid type slugs and existing entities.
+    const [entityTypeRows, relTypeRows, existing] = await Promise.all([
+      sqlTyped<{ slug: string }>(
+        sql`SELECT slug FROM entity_types ORDER BY sort_order, slug`,
+      ),
+      sqlTyped<{ slug: string }>(
+        sql`SELECT slug FROM relationship_types ORDER BY sort_order, slug`,
+      ),
+      sqlTyped<{ id: string; name: string; type: string }>(
+        sql`SELECT id, name, type FROM entities WHERE deleted_at IS NULL AND user_id = ${userId} ORDER BY created_at DESC LIMIT 500`,
+      ),
+    ])
 
-  const entityTypes = entityTypeRows.length > 0
-    ? entityTypeRows.map((r) => r.slug)
-    : FALLBACK_ENTITY_TYPES
-  const relationshipTypes = relTypeRows.length > 0
-    ? relTypeRows.map((r) => r.slug)
-    : FALLBACK_RELATIONSHIP_TYPES
+    const entityTypes =
+      entityTypeRows.length > 0
+        ? entityTypeRows.map((r) => r.slug)
+        : FALLBACK_ENTITY_TYPES
+    const relationshipTypes =
+      relTypeRows.length > 0
+        ? relTypeRows.map((r) => r.slug)
+        : FALLBACK_RELATIONSHIP_TYPES
 
-  const messages = buildExtractionPrompt(text, existing, entityTypes, relationshipTypes)
+    const messages = buildExtractionPrompt(text, existing, entityTypes, relationshipTypes)
 
-  const invocation = await resolveAIInvocation(req, 'extract', userId)
-  if (invocation.kind === 'off') return aiOffResponse(requestId)
+    const invocation = await resolveAIInvocation(req, 'extract', userId)
+    if (invocation.kind === 'off') return aiOffResponse(requestId)
 
-  try {
-    const { content, usage, fromCache } = await askLLMForJson(messages, {
-      provider: invocation.provider,
-      model: invocation.model,
-    })
-    const cleaned = validateExtraction(
-      content,
-      existing,
-      new Set(entityTypes),
-      new Set(relationshipTypes),
-    )
+    try {
+      const { content, usage, fromCache } = await askLLMForJson(messages, {
+        provider: invocation.provider,
+        model: invocation.model,
+      })
+      const cleaned = validateExtraction(
+        content,
+        existing,
+        new Set(entityTypes),
+        new Set(relationshipTypes),
+      )
 
-    logEvent({
-      event: 'extraction_completed',
-      provider: usage.provider,
-      model: usage.model,
-      tokensIn: usage.tokensIn,
-      tokensOut: usage.tokensOut,
-      costCents: usage.costCents,
-      durationMs: usage.durationMs,
-      fromCache,
-      proposedEntities: cleaned.entities.length,
-      proposedRelationships: cleaned.relationships.length,
-      proposedQuotes: cleaned.quotes.length,
-    })
+      logEvent({
+        event: 'extraction_completed',
+        provider: usage.provider,
+        model: usage.model,
+        tokensIn: usage.tokensIn,
+        tokensOut: usage.tokensOut,
+        costCents: usage.costCents,
+        durationMs: usage.durationMs,
+        fromCache,
+        proposedEntities: cleaned.entities.length,
+        proposedRelationships: cleaned.relationships.length,
+        proposedQuotes: cleaned.quotes.length,
+      })
 
-    // Un cache hit NO gastó tokens: registramos la propuesta para el historial
-    // pero con cost_cents = 0 para no inflar el presupuesto mensual (checkMonthlyBudget
-    // suma cost_cents de extraction_log). Antes cada hit re-cobraba el costo original.
-    sql`
+      // Un cache hit NO gastó tokens: registramos la propuesta para el historial
+      // pero con cost_cents = 0 para no inflar el presupuesto mensual (checkMonthlyBudget
+      // suma cost_cents de extraction_log). Antes cada hit re-cobraba el costo original.
+      sql`
       INSERT INTO extraction_log (
         input_text, proposal, provider, model, tokens_in, tokens_out, cost_cents, duration_ms, user_id
       ) VALUES (
@@ -113,20 +148,21 @@ export default withObservability('extract', async (req: Request, _context: Conte
       )
     `.catch(() => {})
 
-    return Response.json({
-      ...cleaned,
-      provider: usage.provider,
-      model: usage.model,
-    })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    sql`
+      return Response.json({
+        ...cleaned,
+        provider: usage.provider,
+        model: usage.model,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      sql`
       INSERT INTO extraction_log (input_text, proposal, provider, model, error, user_id)
       VALUES (${text}, '{}'::jsonb, ${'unknown'}, ${'unknown'}, ${message}, ${userId})
     `.catch(() => {})
-    return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
-  }
-})
+      return ApiErrors.upstream(requestId, `Error llamando al LLM: ${message}`)
+    }
+  },
+)
 
 export const config: Config = {
   path: '/api/extract',

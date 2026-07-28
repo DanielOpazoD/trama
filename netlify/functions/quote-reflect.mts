@@ -109,7 +109,8 @@ export default withObservability(
         provider: invocation.provider,
         model: invocation.model,
       })
-      const reflection = typeof content === 'string' ? content.trim() : String(content).trim()
+      const reflection =
+        typeof content === 'string' ? content.trim() : String(content).trim()
 
       logEvent({
         event: 'quote_reflect_completed',

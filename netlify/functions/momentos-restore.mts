@@ -29,22 +29,24 @@ type MomentoLinkIdRow = {
  * este endpoint los devuelve a la vida. Análogo a /api/quotes/:id/restore
  * que ya existe para citas (V1).
  */
-export default withObservability('momentos-restore', async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
-  const sql = getSql()
-  const authedUser = await getAuthedUser(req)
-  const { id: userId } = authedUser
+export default withObservability(
+  'momentos-restore',
+  async (req: Request, _ctx, { requestId }) => {
+    if (req.method !== 'POST') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
+    const sql = getSql()
+    const authedUser = await getAuthedUser(req)
+    const { id: userId } = authedUser
 
-  const parsed = await parseJsonBody(req, MomentoRestoreBody, requestId)
-  if (!parsed.ok) return parsed.response
-  const { id, deletedAt } = parsed.data
-  await ensureUserRow(sql, authedUser)
+    const parsed = await parseJsonBody(req, MomentoRestoreBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const { id, deletedAt } = parsed.data
+    await ensureUserRow(sql, authedUser)
 
-  // UPDATE atómico — solo si deleted_at matchea exactamente. Si no
-  // matchea (alguien lo restauró o re-borró), 0 rows afectadas → 409.
-  const result = await sqlTyped<RestoredMomentoRow>(sql`
+    // UPDATE atómico — solo si deleted_at matchea exactamente. Si no
+    // matchea (alguien lo restauró o re-borró), 0 rows afectadas → 409.
+    const result = await sqlTyped<RestoredMomentoRow>(sql`
     UPDATE momentos
     SET deleted_at = NULL, updated_at = NOW()
     WHERE id = ${id} AND deleted_at = ${deletedAt}::timestamptz AND user_id = ${userId}
@@ -52,26 +54,27 @@ export default withObservability('momentos-restore', async (req: Request, _ctx, 
               created_at, updated_at
   `)
 
-  if (result.length === 0) {
-    return ApiErrors.conflict(
-      requestId,
-      'No se pudo restaurar: el momento ya fue restaurado o no existe con ese deletedAt',
-    )
-  }
+    if (result.length === 0) {
+      return ApiErrors.conflict(
+        requestId,
+        'No se pudo restaurar: el momento ya fue restaurado o no existe con ese deletedAt',
+      )
+    }
 
-  // Devolvemos también los entity_ids actuales (los links no se borraron
-  // en el soft-delete original, así que siguen ahí).
-  const links = await sqlTyped<MomentoLinkIdRow>(sql`
+    // Devolvemos también los entity_ids actuales (los links no se borraron
+    // en el soft-delete original, así que siguen ahí).
+    const links = await sqlTyped<MomentoLinkIdRow>(sql`
     SELECT entity_id
     FROM momento_entities
     WHERE momento_id = ${id} AND user_id = ${userId} AND deleted_at IS NULL
   `)
 
-  return Response.json({
-    ...result[0],
-    entity_ids: links.map((l) => l.entity_id),
-  })
-})
+    return Response.json({
+      ...result[0],
+      entity_ids: links.map((l) => l.entity_id),
+    })
+  },
+)
 
 export const config: Config = {
   path: '/api/momentos-restore',

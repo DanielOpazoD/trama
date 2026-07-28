@@ -221,8 +221,7 @@ export default withObservability(
             AND reaction = ${reaction}
             AND deleted_at IS NULL
           RETURNING id
-        `,
-        )
+        `),
         )
         if (!rows[0]) {
           return ApiErrors.notFound(requestId, 'Reacción no encontrada')

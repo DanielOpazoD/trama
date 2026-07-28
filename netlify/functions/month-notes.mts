@@ -49,7 +49,11 @@ export default withObservability(
         WHERE user_id = ${userId} AND month_key = ${month}
           AND category = ${cat} AND deleted_at IS NULL
       `)
-      return Response.json({ monthKey: month, content: rows[0]?.content ?? '', category: cat })
+      return Response.json({
+        monthKey: month,
+        content: rows[0]?.content ?? '',
+        category: cat,
+      })
     }
 
     if (req.method === 'PUT') {

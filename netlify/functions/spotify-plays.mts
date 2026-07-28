@@ -30,7 +30,8 @@ export default withObservability('spotify-plays', async (req, _ctx, { requestId 
   const group = (url.searchParams.get('group') ?? 'artist').toLowerCase()
   const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10), 200)
   const sinceParam = url.searchParams.get('since')
-  const since = sinceParam ?? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+  const since =
+    sinceParam ?? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
 
   type Group = {
     key: string

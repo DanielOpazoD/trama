@@ -124,9 +124,7 @@ export default withObservability(
       .slice(0, 6)
       .map((a) => a.name)
       .join(', ')
-    const decadesLine = decades
-      .map((d) => `${d.decade} (${d.count})`)
-      .join(', ')
+    const decadesLine = decades.map((d) => `${d.decade} (${d.count})`).join(', ')
 
     const system = `Eres un colaborador del usuario en su mapa cognitivo personal "Trama". El usuario te muestra el extracto de su paleta musical en Spotify y te pide un retrato breve.
 
@@ -154,7 +152,8 @@ Devuelve SOLO el párrafo.`
         ],
         { provider: invocation.provider, model: invocation.model },
       )
-      const aiSummary = typeof content === 'string' ? content.trim() : String(content).trim()
+      const aiSummary =
+        typeof content === 'string' ? content.trim() : String(content).trim()
 
       logEvent({
         event: 'spotify_palette_completed',

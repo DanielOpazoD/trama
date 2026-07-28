@@ -79,11 +79,12 @@ function payloadToItems(payload: FotoPayload): Array<{
   width?: number
   height?: number
 }> {
-  const fromArray = Array.isArray(payload.items) && payload.items.length > 0
-    ? payload.items
-    : Array.isArray(payload.photos) && payload.photos.length > 0
-      ? payload.photos
-      : null
+  const fromArray =
+    Array.isArray(payload.items) && payload.items.length > 0
+      ? payload.items
+      : Array.isArray(payload.photos) && payload.photos.length > 0
+        ? payload.photos
+        : null
 
   if (fromArray) {
     const items = fromArray.filter(
@@ -91,7 +92,9 @@ function payloadToItems(payload: FotoPayload): Array<{
         !!it && typeof it.storageKey === 'string' && it.storageKey.trim().length > 0,
     )
     const primaryStorageKey =
-      typeof payload.primaryStorageKey === 'string' ? payload.primaryStorageKey.trim() : ''
+      typeof payload.primaryStorageKey === 'string'
+        ? payload.primaryStorageKey.trim()
+        : ''
     if (!primaryStorageKey) return items
     const primaryIndex = items.findIndex((it) => it.storageKey === primaryStorageKey)
     if (primaryIndex <= 0) return items
@@ -117,147 +120,149 @@ function payloadAudioKey(payload: FotoPayload): string | undefined {
   return audioKey || undefined
 }
 
-export default withObservability('momentos-merge', async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'POST') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
-  const sql = getSql()
-  const authedUser = await getAuthedUser(req)
-  const userId = authedUser.id
+export default withObservability(
+  'momentos-merge',
+  async (req: Request, _ctx, { requestId }) => {
+    if (req.method !== 'POST') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
+    const sql = getSql()
+    const authedUser = await getAuthedUser(req)
+    const userId = authedUser.id
 
-  // Zod ya valida UUID format + primaryId/otherIds presence (FF#5).
-  const parsed = await parseJsonBody(req, MomentosMergeBody, requestId)
-  if (!parsed.ok) return parsed.response
-  const body = parsed.data
-  const { primaryId, otherIds } = body
-  if (otherIds.includes(primaryId)) {
-    return ApiErrors.validation(requestId, 'primaryId no puede estar en otherIds')
-  }
-  // Defensa contra payloads enormes: 50 es más que cualquier evento
-  // razonable que un humano agruparía como un solo "momento".
-  if (otherIds.length > 50) {
-    return ApiErrors.validation(requestId, 'otherIds: máximo 50 por merge')
-  }
+    // Zod ya valida UUID format + primaryId/otherIds presence (FF#5).
+    const parsed = await parseJsonBody(req, MomentosMergeBody, requestId)
+    if (!parsed.ok) return parsed.response
+    const body = parsed.data
+    const { primaryId, otherIds } = body
+    if (otherIds.includes(primaryId)) {
+      return ApiErrors.validation(requestId, 'primaryId no puede estar en otherIds')
+    }
+    // Defensa contra payloads enormes: 50 es más que cualquier evento
+    // razonable que un humano agruparía como un solo "momento".
+    if (otherIds.length > 50) {
+      return ApiErrors.validation(requestId, 'otherIds: máximo 50 por merge')
+    }
 
-  // Lee todos los momentos involucrados de una. unnest evita N+1 queries.
-  const allIds = [primaryId, ...otherIds]
-  const rows = await sqlTyped<MergeMomentoRow>(sql`
+    // Lee todos los momentos involucrados de una. unnest evita N+1 queries.
+    const allIds = [primaryId, ...otherIds]
+    const rows = await sqlTyped<MergeMomentoRow>(sql`
     SELECT id, kind, captured_at, payload, note
     FROM momentos
     WHERE id = ANY(${allIds}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
   `)
 
-  // Verificar que todos existen + son foto.
-  const found = new Map(rows.map((r) => [r.id, r]))
-  for (const id of allIds) {
-    if (!found.has(id)) {
-      return ApiErrors.notFound(requestId, `Momento ${id} no encontrado o ya borrado`)
+    // Verificar que todos existen + son foto.
+    const found = new Map(rows.map((r) => [r.id, r]))
+    for (const id of allIds) {
+      if (!found.has(id)) {
+        return ApiErrors.notFound(requestId, `Momento ${id} no encontrado o ya borrado`)
+      }
+      if (found.get(id)!.kind !== 'foto') {
+        return ApiErrors.validation(
+          requestId,
+          `Solo se fusionan momentos kind='foto'. El momento ${id} es '${found.get(id)!.kind}'.`,
+        )
+      }
     }
-    if (found.get(id)!.kind !== 'foto') {
-      return ApiErrors.validation(
-        requestId,
-        `Solo se fusionan momentos kind='foto'. El momento ${id} es '${found.get(id)!.kind}'.`,
-      )
-    }
-  }
 
-  await ensureUserRow(sql, authedUser)
+    await ensureUserRow(sql, authedUser)
 
-  const primary = found.get(primaryId)!
+    const primary = found.get(primaryId)!
 
-  // Computar items combinados, dedupe por storageKey. Mantenemos orden:
-  // primary primero, después each other en el orden enviado.
-  const seenKeys = new Set<string>()
-  const combinedItems: Array<{
-    storageKey: string
-    width?: number
-    height?: number
-  }> = []
-  for (const it of payloadToItems(primary.payload ?? {})) {
-    if (seenKeys.has(it.storageKey)) continue
-    seenKeys.add(it.storageKey)
-    combinedItems.push(it)
-  }
-  for (const otherId of otherIds) {
-    const o = found.get(otherId)!
-    for (const it of payloadToItems(o.payload ?? {})) {
+    // Computar items combinados, dedupe por storageKey. Mantenemos orden:
+    // primary primero, después each other en el orden enviado.
+    const seenKeys = new Set<string>()
+    const combinedItems: Array<{
+      storageKey: string
+      width?: number
+      height?: number
+    }> = []
+    for (const it of payloadToItems(primary.payload ?? {})) {
       if (seenKeys.has(it.storageKey)) continue
       seenKeys.add(it.storageKey)
       combinedItems.push(it)
     }
-  }
-  const audioKey =
-    payloadAudioKey(primary.payload ?? {}) ??
-    otherIds
-      .map((otherId) => payloadAudioKey(found.get(otherId)?.payload ?? {}))
-      .find((key): key is string => Boolean(key))
+    for (const otherId of otherIds) {
+      const o = found.get(otherId)!
+      for (const it of payloadToItems(o.payload ?? {})) {
+        if (seenKeys.has(it.storageKey)) continue
+        seenKeys.add(it.storageKey)
+        combinedItems.push(it)
+      }
+    }
+    const audioKey =
+      payloadAudioKey(primary.payload ?? {}) ??
+      otherIds
+        .map((otherId) => payloadAudioKey(found.get(otherId)?.payload ?? {}))
+        .find((key): key is string => Boolean(key))
 
-  // Nuevo payload: items[] + legacy storageKey/width/height del primer item
-  // para back-compat con renderers viejos.
-  const firstItem = combinedItems[0]
-  const newPayload: FotoPayload = {
-    items: combinedItems,
-    ...(firstItem
-      ? {
-          storageKey: firstItem.storageKey,
-          width: firstItem.width,
-          height: firstItem.height,
-        }
-      : {}),
-    // Conservar caption/exifDate del primary si estaban.
-    ...(primary.payload?.caption ? { caption: primary.payload.caption } : {}),
-    ...(primary.payload?.exifDate ? { exifDate: primary.payload.exifDate } : {}),
-    ...(audioKey ? { audioKey } : {}),
-  }
+    // Nuevo payload: items[] + legacy storageKey/width/height del primer item
+    // para back-compat con renderers viejos.
+    const firstItem = combinedItems[0]
+    const newPayload: FotoPayload = {
+      items: combinedItems,
+      ...(firstItem
+        ? {
+            storageKey: firstItem.storageKey,
+            width: firstItem.width,
+            height: firstItem.height,
+          }
+        : {}),
+      // Conservar caption/exifDate del primary si estaban.
+      ...(primary.payload?.caption ? { caption: primary.payload.caption } : {}),
+      ...(primary.payload?.exifDate ? { exifDate: primary.payload.exifDate } : {}),
+      ...(audioKey ? { audioKey } : {}),
+    }
 
-  // Note/capturedAt: si vienen del cliente, override; si no, conservar
-  // los del primary.
-  const newNote =
-    body.note === null
-      ? null
-      : typeof body.note === 'string'
-        ? body.note.trim() || null
-        : primary.note
-  const newCapturedAt =
-    typeof body.capturedAt === 'string' && body.capturedAt
-      ? body.capturedAt
-      : primary.captured_at
+    // Note/capturedAt: si vienen del cliente, override; si no, conservar
+    // los del primary.
+    const newNote =
+      body.note === null
+        ? null
+        : typeof body.note === 'string'
+          ? body.note.trim() || null
+          : primary.note
+    const newCapturedAt =
+      typeof body.capturedAt === 'string' && body.capturedAt
+        ? body.capturedAt
+        : primary.captured_at
 
-  // Re-embed. La nueva concatenación de items + posible nuevo note
-  // cambia el texto fuente. Best-effort — si OpenAI falla, embedding
-  // queda en NULL para este momento (queries semánticas no lo encuentran
-  // hasta el próximo PATCH/re-embed, pero las queries normales sí).
-  const embedSource = momentoEmbedText(
-    'foto',
-    newPayload as Record<string, unknown>,
-    newNote,
-  )
-  const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
-  const embVector = emb ? toPgVector(emb.vector) : null
-  const embModel = emb?.model ?? null
-  const embAt = emb ? new Date().toISOString() : null
+    // Re-embed. La nueva concatenación de items + posible nuevo note
+    // cambia el texto fuente. Best-effort — si OpenAI falla, embedding
+    // queda en NULL para este momento (queries semánticas no lo encuentran
+    // hasta el próximo PATCH/re-embed, pero las queries normales sí).
+    const embedSource = momentoEmbedText(
+      'foto',
+      newPayload as Record<string, unknown>,
+      newNote,
+    )
+    const emb = embedSource.length > 0 ? await embedSafe(embedSource) : null
+    const embVector = emb ? toPgVector(emb.vector) : null
+    const embModel = emb?.model ?? null
+    const embAt = emb ? new Date().toISOString() : null
 
-  // EE-followup #4: atomicidad real via CTE en un solo statement.
-  //
-  // Antes esto eran 3 SQL writes secuenciales (UPDATE primary, INSERT
-  // links, UPDATE soft-delete others). Si el Lambda crasheaba o el HTTP
-  // driver se desconectaba entre cualquiera de ellos, quedaba un estado
-  // inconsistente — primary con items combinados pero others no
-  // borrados, por ejemplo.
-  //
-  // Postgres ejecuta CTEs en un single statement atomic — todos los
-  // sub-writes commitean juntos o ninguno. Esto nos da transacción
-  // sin necesitar el driver Pool con BEGIN/COMMIT (que el Neon HTTP
-  // driver no soporta).
-  //
-  // Orden semántico de las CTEs (Postgres las evalúa según el árbol de
-  // dependencias, pero los `WITH … RETURNING` que NO se referencian
-  // sólo afectan rows; los efectos colaterales corren igual):
-  //   1. update_primary: setea payload + note + capturedAt + embedding
-  //   2. link_others: copia entity_id de others a primary (UNION)
-  //   3. soft_delete_others: marca deleted_at en others
-  // Final SELECT trae el primary actualizado.
-  const result = await sqlTyped<MergeResultRow>(sql`
+    // EE-followup #4: atomicidad real via CTE en un solo statement.
+    //
+    // Antes esto eran 3 SQL writes secuenciales (UPDATE primary, INSERT
+    // links, UPDATE soft-delete others). Si el Lambda crasheaba o el HTTP
+    // driver se desconectaba entre cualquiera de ellos, quedaba un estado
+    // inconsistente — primary con items combinados pero others no
+    // borrados, por ejemplo.
+    //
+    // Postgres ejecuta CTEs en un single statement atomic — todos los
+    // sub-writes commitean juntos o ninguno. Esto nos da transacción
+    // sin necesitar el driver Pool con BEGIN/COMMIT (que el Neon HTTP
+    // driver no soporta).
+    //
+    // Orden semántico de las CTEs (Postgres las evalúa según el árbol de
+    // dependencias, pero los `WITH … RETURNING` que NO se referencian
+    // sólo afectan rows; los efectos colaterales corren igual):
+    //   1. update_primary: setea payload + note + capturedAt + embedding
+    //   2. link_others: copia entity_id de others a primary (UNION)
+    //   3. soft_delete_others: marca deleted_at en others
+    // Final SELECT trae el primary actualizado.
+    const result = await sqlTyped<MergeResultRow>(sql`
     WITH update_primary AS (
       UPDATE momentos
       SET payload = ${JSON.stringify(newPayload)}::jsonb,
@@ -298,45 +303,49 @@ export default withObservability('momentos-merge', async (req: Request, _ctx, { 
       (SELECT COUNT(*) FROM link_others)::int AS links_inserted
   `)
 
-  const cteRow = result[0]
-  if (!cteRow || !cteRow.primary) {
-    return ApiErrors.internal(requestId, 'Fusión falló: el primary no se pudo actualizar')
-  }
-  const deletedRows = cteRow.deleted_others.map((d) => ({
-    id: d.id,
-    deleted_at: d.deletedAt,
-  }))
+    const cteRow = result[0]
+    if (!cteRow || !cteRow.primary) {
+      return ApiErrors.internal(
+        requestId,
+        'Fusión falló: el primary no se pudo actualizar',
+      )
+    }
+    const deletedRows = cteRow.deleted_others.map((d) => ({
+      id: d.id,
+      deleted_at: d.deletedAt,
+    }))
 
-  // Devolver el primary actualizado. Lo obtuvimos del CTE (cteRow.primary)
-  // pero hacemos un re-SELECT para tener la versión más reciente (por si
-  // el row tiene triggers que tocan updated_at, etc.).
-  const updated = await sqlTyped<MomentoResponseRow>(sql`
+    // Devolver el primary actualizado. Lo obtuvimos del CTE (cteRow.primary)
+    // pero hacemos un re-SELECT para tener la versión más reciente (por si
+    // el row tiene triggers que tocan updated_at, etc.).
+    const updated = await sqlTyped<MomentoResponseRow>(sql`
     SELECT id, kind, captured_at, payload, note, origin,
            created_at, updated_at
     FROM momentos
     WHERE id = ${primaryId} AND user_id = ${userId}
   `)
-  const links = await sqlTyped<MomentoLinkIdRow>(sql`
+    const links = await sqlTyped<MomentoLinkIdRow>(sql`
     SELECT entity_id
     FROM momento_entities
     WHERE momento_id = ${primaryId} AND user_id = ${userId} AND deleted_at IS NULL
   `)
 
-  return Response.json({
-    ...updated[0],
-    entity_ids: links.map((l) => l.entity_id),
-    // Bonus debug-friendly: cuántos se fusionaron y cuántas fotos quedaron.
-    merged: otherIds.length,
-    itemCount: combinedItems.length,
-    // EE-followup: shape para que el cliente pueda hacer "deshacer".
-    // El payload original del primary lo guarda el cliente antes del POST
-    // (no se devuelve acá para no inflar el response).
-    deletedOthers: deletedRows.map((r) => ({
-      id: r.id,
-      deletedAt: r.deleted_at,
-    })),
-  })
-})
+    return Response.json({
+      ...updated[0],
+      entity_ids: links.map((l) => l.entity_id),
+      // Bonus debug-friendly: cuántos se fusionaron y cuántas fotos quedaron.
+      merged: otherIds.length,
+      itemCount: combinedItems.length,
+      // EE-followup: shape para que el cliente pueda hacer "deshacer".
+      // El payload original del primary lo guarda el cliente antes del POST
+      // (no se devuelve acá para no inflar el response).
+      deletedOthers: deletedRows.map((r) => ({
+        id: r.id,
+        deletedAt: r.deleted_at,
+      })),
+    })
+  },
+)
 
 export const config: Config = {
   path: '/api/momentos-merge',

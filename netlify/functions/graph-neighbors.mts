@@ -60,40 +60,45 @@ type RelRow = {
  *   4) Load entity rows for the kept ids and load all edges connecting any
  *      pair of them.
  */
-export default withObservability('graph-neighbors', async (req: Request, _ctx, { requestId }) => {
-  if (req.method !== 'GET') {
-    return ApiErrors.methodNotAllowed(requestId)
-  }
+export default withObservability(
+  'graph-neighbors',
+  async (req: Request, _ctx, { requestId }) => {
+    if (req.method !== 'GET') {
+      return ApiErrors.methodNotAllowed(requestId)
+    }
 
-  const url = new URL(req.url)
-  const fromId = url.searchParams.get('from')
-  if (!fromId) {
-    return ApiErrors.validation(requestId, 'Falta el parámetro "from"')
-  }
+    const url = new URL(req.url)
+    const fromId = url.searchParams.get('from')
+    if (!fromId) {
+      return ApiErrors.validation(requestId, 'Falta el parámetro "from"')
+    }
 
-  const hopsParam = url.searchParams.get('hops')
-  const limitParam = url.searchParams.get('limit')
-  const hops = Math.min(Math.max(Number.parseInt(hopsParam ?? '1', 10) || 1, 1), 3)
-  const limit = Math.min(Math.max(Number.parseInt(limitParam ?? '120', 10) || 120, 1), 500)
+    const hopsParam = url.searchParams.get('hops')
+    const limitParam = url.searchParams.get('limit')
+    const hops = Math.min(Math.max(Number.parseInt(hopsParam ?? '1', 10) || 1, 1), 3)
+    const limit = Math.min(
+      Math.max(Number.parseInt(limitParam ?? '120', 10) || 120, 1),
+      500,
+    )
 
-  const { id: userId } = await getAuthedUser(req)
-  const sql = getSql()
+    const { id: userId } = await getAuthedUser(req)
+    const sql = getSql()
 
-  // 1) Verify the focal entity exists (and isn't soft-deleted).
-  const focalRows = await sqlTyped<EntityRow>(sql`
+    // 1) Verify the focal entity exists (and isn't soft-deleted).
+    const focalRows = await sqlTyped<EntityRow>(sql`
     SELECT id, type, name, year, description, essay, position_x, position_y,
            origin, spotify_url, created_at, updated_at
     FROM entities
     WHERE id = ${fromId} AND deleted_at IS NULL AND user_id = ${userId}
   `)
-  if (focalRows.length === 0) {
-    return ApiErrors.notFound(requestId, 'Entidad no encontrada')
-  }
+    if (focalRows.length === 0) {
+      return ApiErrors.notFound(requestId, 'Entidad no encontrada')
+    }
 
-  // 2) Walk the neighborhood up to `hops` and rank: closer first, then by
-  // degree so popular nodes win when we truncate. The CTE returns (id, min
-  // depth, degree) so the ORDER BY is meaningful.
-  const walkRows = await sqlTyped<WalkRow>(sql`
+    // 2) Walk the neighborhood up to `hops` and rank: closer first, then by
+    // degree so popular nodes win when we truncate. The CTE returns (id, min
+    // depth, degree) so the ORDER BY is meaningful.
+    const walkRows = await sqlTyped<WalkRow>(sql`
     WITH RECURSIVE walk(id, depth) AS (
       SELECT id, 0
       FROM entities
@@ -135,26 +140,26 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
     LIMIT ${limit}
   `)
 
-  const idsInWindow = walkRows.map((w) => w.id)
-  const hopById = new Map(walkRows.map((w) => [w.id, w.hop_distance]))
+    const idsInWindow = walkRows.map((w) => w.id)
+    const hopById = new Map(walkRows.map((w) => [w.id, w.hop_distance]))
 
-  // 3) Fetch full rows for entities in the window.
-  const entityRows =
-    idsInWindow.length === 0
-      ? []
-      : await sqlTyped<EntityRow>(sql`
+    // 3) Fetch full rows for entities in the window.
+    const entityRows =
+      idsInWindow.length === 0
+        ? []
+        : await sqlTyped<EntityRow>(sql`
           SELECT id, type, name, year, description, essay, position_x, position_y,
                  origin, spotify_url, created_at, updated_at
           FROM entities
           WHERE id = ANY(${idsInWindow}::uuid[]) AND deleted_at IS NULL AND user_id = ${userId}
         `)
 
-  // 4) Fetch edges whose endpoints are BOTH in the window — this is what
-  // makes the subgraph a self-contained drawable.
-  const relRows =
-    idsInWindow.length < 2
-      ? []
-      : await sqlTyped<RelRow>(sql`
+    // 4) Fetch edges whose endpoints are BOTH in the window — this is what
+    // makes the subgraph a self-contained drawable.
+    const relRows =
+      idsInWindow.length < 2
+        ? []
+        : await sqlTyped<RelRow>(sql`
           SELECT id, from_id, to_id, type, notes, origin, created_at, updated_at
           FROM relationships
           WHERE deleted_at IS NULL
@@ -163,41 +168,42 @@ export default withObservability('graph-neighbors', async (req: Request, _ctx, {
             AND to_id   = ANY(${idsInWindow}::uuid[])
         `)
 
-  return Response.json({
-    from: {
-      ...focalRows[0],
-      hopDistance: 0,
-    },
-    entities: entityRows.map((e) => ({
-      id: e.id,
-      type: e.type,
-      name: e.name,
-      year: e.year,
-      description: e.description,
-      essay: e.essay,
-      positionX: e.position_x,
-      positionY: e.position_y,
-      origin: e.origin,
-      spotifyUrl: e.spotify_url,
-      createdAt: e.created_at,
-      updatedAt: e.updated_at,
-      hopDistance: hopById.get(e.id) ?? 0,
-    })),
-    relationships: relRows.map((r) => ({
-      id: r.id,
-      fromId: r.from_id,
-      toId: r.to_id,
-      type: r.type,
-      notes: r.notes,
-      origin: r.origin,
-      createdAt: r.created_at,
-      updatedAt: r.updated_at,
-    })),
-    hops,
-    limit,
-    truncated: walkRows.length === limit,
-  })
-})
+    return Response.json({
+      from: {
+        ...focalRows[0],
+        hopDistance: 0,
+      },
+      entities: entityRows.map((e) => ({
+        id: e.id,
+        type: e.type,
+        name: e.name,
+        year: e.year,
+        description: e.description,
+        essay: e.essay,
+        positionX: e.position_x,
+        positionY: e.position_y,
+        origin: e.origin,
+        spotifyUrl: e.spotify_url,
+        createdAt: e.created_at,
+        updatedAt: e.updated_at,
+        hopDistance: hopById.get(e.id) ?? 0,
+      })),
+      relationships: relRows.map((r) => ({
+        id: r.id,
+        fromId: r.from_id,
+        toId: r.to_id,
+        type: r.type,
+        notes: r.notes,
+        origin: r.origin,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      })),
+      hops,
+      limit,
+      truncated: walkRows.length === limit,
+    })
+  },
+)
 
 export const config: Config = {
   path: '/api/graph/neighbors',
