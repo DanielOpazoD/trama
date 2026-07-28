@@ -110,10 +110,17 @@ test('el buscador encuentra por variable y sin tildes', async ({ page }) => {
   await buscador.fill('sintesis')
   await expect(page.locator('article')).toHaveCount(1)
 
-  // `{{párrafo}}` sólo aparece como variable de otro prompt, y escrito con tilde.
+  // `parrafo` sólo existe como variable: no aparece en ningún título.
   await buscador.fill('parrafo')
   await expect(page.locator('article')).toHaveCount(1)
   await expect(page.locator('article').first()).toContainText('Reescribir sin adjetivos')
+
+  // Y las tildes no cuentan: la colección es «Investigación».
+  await buscador.fill('investigacion')
+  const sinTilde = await page.locator('article').count()
+  await buscador.fill('investigación')
+  await expect(page.locator('article')).toHaveCount(sinTilde)
+  expect(sinTilde).toBeGreaterThan(0)
 
   await buscador.fill('no existe nada así')
   await expect(page.getByText('Ningún prompt coincide.')).toBeVisible()

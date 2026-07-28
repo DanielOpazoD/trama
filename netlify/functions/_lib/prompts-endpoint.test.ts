@@ -229,8 +229,8 @@ describe('prompts endpoint — integration', () => {
 
   it('PATCH que cambia el texto guarda la versión anterior en el MISMO statement', async () => {
     mockSqlResponses.push(
-      [TEXTO_ACTUAL], // lectura del texto actual
-      [{ ...PROMPT_ROW, content: 'Texto nuevo' }],
+      [TEXTO_ACTUAL], // lectura previa, sólo para derivar tags y variables
+      [{ ...PROMPT_ROW, content: 'Texto nuevo', versioned: true }],
       [], // poda
     )
 
@@ -250,17 +250,32 @@ describe('prompts endpoint — integration', () => {
     // texto viejo esté pisado y todavía sin guardar.
     expect(escritura?.template).toMatch(/INSERT INTO prompt_versions/i)
     expect(escritura?.template).toMatch(/WITH snapshot AS/i)
-    // La poda sólo corre DESPUÉS de registrar, así que su presencia es la
-    // prueba de que hubo snapshot. Mirar el booleano en `values` no serviría:
-    // ese array ya lleva otros booleanos (favorite, collection !== undefined),
-    // así que `toContain(true)` se cumple siempre y no puede fallar.
+    // Quien decide si hay que versionar es el SQL, comparando la fila viva
+    // contra lo que se va a escribir. Si esa comparación desapareciera, la
+    // decisión volvería a depender de una lectura previa y una escritura ajena
+    // colada en medio se perdería sin registrarse.
+    // Sin los comentarios: uno de ellos nombra «IS DISTINCT FROM» y partiría
+    // por ahí en vez de por el código.
+    const sql = (escritura?.template ?? '').replace(/--[^\n]*/g, '')
+    // Acotado al paréntesis de la comparación: sin cortar en RETURNING, el
+    // trozo seguiría hasta el SET del UPDATE, que también trae COALESCE(?,
+    // title) — y la aserción pasaría por el motivo equivocado.
+    const guard = (sql.split('IS DISTINCT FROM')[1] ?? '').split('RETURNING')[0] ?? ''
+    expect(sql).toMatch(/IS DISTINCT FROM/i)
+    // Y con las MISMAS expresiones que el SET: comparar contra otra cosa
+    // reabriría la ventana por el otro lado.
+    expect(guard).toMatch(/COALESCE\(\?, title\)/i)
+    expect(guard).toMatch(/COALESCE\(\?, content\)/i)
+    expect(guard).toMatch(/ELSE collection END/i)
+    // La poda corre sólo si la base informa de que registró.
     expect(
       mockSqlResponses.calls.some((c) => /UPDATE prompt_versions/i.test(c.template)),
     ).toBe(true)
   })
 
   it('un PATCH que no cambia el texto no crea versión', async () => {
-    mockSqlResponses.push([TEXTO_ACTUAL], [PROMPT_ROW])
+    // La base no registró nada porque el texto no cambia: `versioned` false.
+    mockSqlResponses.push([TEXTO_ACTUAL], [{ ...PROMPT_ROW, versioned: false }])
 
     const res = await handler(
       new Request('http://localhost/api/prompts/p1', {
@@ -278,7 +293,7 @@ describe('prompts endpoint — integration', () => {
   })
 
   it('marcar favorito no toca el historial ni lee el texto', async () => {
-    mockSqlResponses.push([{ ...PROMPT_ROW, favorite: true }])
+    mockSqlResponses.push([{ ...PROMPT_ROW, favorite: true, versioned: false }])
 
     const res = await handler(
       new Request('http://localhost/api/prompts/p1', {
@@ -328,8 +343,8 @@ describe('prompts endpoint — integration', () => {
   it('restaurar una versión guarda antes la actual: no destruye', async () => {
     mockSqlResponses.push(
       [{ title: 'Sintetizar', content: 'Texto viejo', collection: null }], // la versión
-      [TEXTO_ACTUAL], // el texto actual, para decidir el snapshot
-      [{ ...PROMPT_ROW, content: 'Texto viejo' }],
+      [TEXTO_ACTUAL], // lectura previa, para tags y variables
+      [{ ...PROMPT_ROW, content: 'Texto viejo', versioned: true }],
       [], // poda
     )
 
@@ -371,7 +386,7 @@ describe('prompts endpoint — integration', () => {
     mockSqlResponses.push(
       [{ title: 'Sintetizar', content: 'Texto viejo', collection: null }],
       [TEXTO_ACTUAL],
-      [PROMPT_ROW],
+      [{ ...PROMPT_ROW, versioned: true }],
       [],
     )
     const versionar = await handler(

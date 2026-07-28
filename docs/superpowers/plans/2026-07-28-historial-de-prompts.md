@@ -45,6 +45,17 @@ el `INSERT` lee la fila previa aunque el `UPDATE` la esté cambiando en la misma
 pasada. No existe el instante en el que el texto viejo ya se pisó y todavía no
 se guardó.
 
+**Y quién decide si hay que versionar es el propio SQL.** La primera versión lo
+decidía en JS a partir de una lectura previa, y eso dejaba una ventana: si otra
+pestaña guardaba un texto entre la lectura y la escritura, la decisión se tomaba
+sobre un texto que ya no estaba y esa edición ajena se pisaba **sin
+registrarla** — justo la pérdida que la función existe para impedir. Ahora la
+comparación (`IS DISTINCT FROM`, que no `<>`, porque `collection` puede ser
+NULL) usa las mismas expresiones que el `SET` y se evalúa contra la fila viva.
+Queda una lectura previa sólo para derivar `tags` y `variables`, que se calculan
+en JS; si algo se cuela ahí, lo peor es que las etiquetas queden un guardado por
+detrás y se recalculan enteras en la siguiente edición.
+
 **Restaurar pasa por el mismo camino de escritura que editar**, y por eso no
 destruye: guarda antes lo que había. Se puede ir y volver sin perder ninguno de
 los dos textos. Es la mitad de la garantía que más fácil se olvida — un
@@ -104,7 +115,7 @@ De punta a punta (5 e2e):
 Buscador (8 tests de modelo): quitar la normalización de tildes, cambiar `every`
 por `some`, y hacer que las métricas sigan a la búsqueda — las tres caen.
 
-### Dos falsos positivos propios, corregidos
+### Tres falsos positivos propios, corregidos
 
 **`expect(values).toContain(true)` no podía fallar.** El array de parámetros del
 `UPDATE` ya lleva otros booleanos (`favorite`, `collection !== undefined`,
@@ -116,7 +127,15 @@ consecuencia observable: la poda sólo corre después de registrar.
 que se podía desactivar el guardado al editar —el bug original— y la suite
 seguía verde. Añadido el test que edita de verdad por la interfaz.
 
-Los dos se descubrieron mutando, no leyendo.
+**El «guard» que medía la región equivocada.** Al mover la decisión a SQL, la
+aserción cortaba el statement por `IS DISTINCT FROM` y comprobaba que el trozo
+resultante trajera `COALESCE(?, title)`. Pero ese trozo seguía hasta el `SET`
+del `UPDATE`, que también lo trae: la comparación podía degradarse a `title` vs
+`title` —que nunca versiona nada— y los 19 tests seguían verdes. Acotado al
+paréntesis de la comparación. (Y antes hubo que quitar los comentarios del SQL
+para cortar: uno de ellos nombra «IS DISTINCT FROM» y partía por ahí.)
+
+Los tres se descubrieron mutando, no leyendo.
 
 ### En el navegador
 
@@ -128,6 +147,20 @@ localizable en el historial. Buscador: `investigación`, `investigacion` e
 Y una medida que motivó el `flex-wrap`: sin él, con el control nuevo el botón de
 borrar cae en x=376 a un viewport de 375px — **fuera de la pantalla**. El pie ya
 estaba al límite con cinco controles; el sexto lo rompía.
+
+### Hallazgos de CodeRabbit
+
+Los dos que encontró eran reales y están arreglados:
+
+- **La carrera al decidir el snapshot en JS** (Major, integridad de datos) — el
+  arreglo está descrito arriba.
+- **`{{párrafo}}` sembrado en la demo.** `extractPromptVariables` sólo acepta
+  identificadores ASCII, así que esa variable no se deriva de ningún texto: el
+  chip existía sólo porque se escribió a mano y desaparecía al primer guardado.
+  Alineada la semilla con la gramática del parser, y añadido
+  `demoSeed.test.ts`, que fija que **todo lo sembrado sea exactamente lo que el
+  sistema derivaría** — variables, tags, y que ninguna versión del historial sea
+  idéntica al prompt actual.
 
 ### Resto
 

@@ -500,10 +500,10 @@ export function buildSeed(): Store {
       id: uid(),
       title: 'Reescribir sin adjetivos',
       content:
-        'Reescribe {{párrafo}} quitando todos los adjetivos que no aporten información. Si al quitarlo la frase dice lo mismo, sobraba.',
+        'Reescribe {{parrafo}} quitando todos los adjetivos que no aporten información. Si al quitarlo la frase dice lo mismo, sobraba.',
       collection: 'Escritura',
       tags: [],
-      variables: ['párrafo'],
+      variables: ['parrafo'],
       favorite: false,
       use_count: 7,
       last_used_at: daysAgo(4),

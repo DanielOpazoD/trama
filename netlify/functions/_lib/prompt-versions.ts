@@ -67,15 +67,6 @@ export function tagsFor(text: PromptText): string[] {
   return parseTags(`${text.title}\n${text.content}\n${text.collection ?? ''}`)
 }
 
-/** ¿Cambió algo que merezca quedar registrado? */
-export function textChanged(before: PromptText, after: PromptText): boolean {
-  return (
-    before.title !== after.title ||
-    before.content !== after.content ||
-    before.collection !== after.collection
-  )
-}
-
 /** El texto actual del prompt, o null si no existe o no es de este usuario. */
 export async function readPromptText(
   sql: SqlClient,
@@ -108,6 +99,19 @@ export type PromptPatch = {
  * destruya — guarda lo que había antes de pisarlo, igual que cualquier otra
  * edición.
  *
+ * QUIÉN decide si hay que versionar: **el propio SQL**, comparando la fila viva
+ * contra lo que se va a escribir. Decidirlo en JS a partir de una lectura
+ * previa abre una ventana entre leer y escribir: si otra pestaña guarda un
+ * texto en ese hueco, la decisión se toma sobre un texto que ya no está y esa
+ * edición ajena se pisa SIN registrarla. Es exactamente la pérdida que esta
+ * función existe para impedir, así que la comparación usa las mismas
+ * expresiones que el `SET` y se evalúa contra la misma foto de la base.
+ *
+ * Queda una lectura previa, pero sólo para derivar `tags` y `variables`, que se
+ * calculan en JS y no se pueden expresar en SQL. Si otra escritura se cuela ahí,
+ * lo peor que pasa es que las etiquetas queden un guardado por detrás — se
+ * recalculan enteras en la siguiente edición.
+ *
  * Devuelve `null` si el prompt no existe o no es de este usuario.
  */
 export async function applyPromptPatch(
@@ -123,7 +127,6 @@ export async function applyPromptPatch(
 
   let tags: string[] | null = null
   let variables: string[] | null = null
-  let snapshot = false
 
   if (tocaTexto) {
     const actual = await readPromptText(sql, userId, promptId)
@@ -135,36 +138,50 @@ export async function applyPromptPatch(
     }
     tags = tagsFor(siguiente)
     variables = extractPromptVariables(siguiente.content)
-    snapshot = textChanged(actual, siguiente)
   }
 
-  const rows = await sqlTyped<PromptHeadRow>(sql`
+  const rows = await sqlTyped<PromptHeadRow & { versioned: boolean }>(sql`
     WITH snapshot AS (
       INSERT INTO prompt_versions (user_id, prompt_id, title, content, collection)
       SELECT ${userId}, ${promptId}, title, content, collection
       FROM prompts
       WHERE id = ${promptId} AND deleted_at IS NULL AND user_id = ${userId}
-        AND ${snapshot}
+        AND ${tocaTexto}
+        -- Las MISMAS expresiones que el SET de abajo: "¿esta escritura cambia
+        -- el texto?" se responde contra la fila viva, no contra una lectura
+        -- previa. IS DISTINCT FROM y no <> porque collection puede ser NULL.
+        AND (title, content, collection) IS DISTINCT FROM (
+              COALESCE(${patch.title ?? null}, title),
+              COALESCE(${patch.content ?? null}, content),
+              CASE WHEN ${patch.collection !== undefined} THEN ${patch.collection ?? null} ELSE collection END
+            )
       RETURNING 1
+    ),
+    actualizado AS (
+      UPDATE prompts
+      SET title = COALESCE(${patch.title ?? null}, title),
+          content = COALESCE(${patch.content ?? null}, content),
+          collection = CASE WHEN ${patch.collection !== undefined} THEN ${patch.collection ?? null} ELSE collection END,
+          tags = CASE WHEN ${tags !== null} THEN ${tags ?? []}::text[] ELSE tags END,
+          variables = CASE WHEN ${variables !== null} THEN ${variables ?? []}::text[] ELSE variables END,
+          favorite = CASE
+                       WHEN ${patch.favorite === true} THEN true
+                       WHEN ${patch.favorite === false} THEN false
+                       ELSE favorite
+                     END,
+          use_count = COALESCE(${patch.useCount ?? null}, use_count),
+          updated_at = NOW()
+      WHERE id = ${promptId} AND deleted_at IS NULL AND user_id = ${userId}
+      RETURNING id, title, content, collection, tags, variables, favorite, use_count, last_used_at, created_at, updated_at
     )
-    UPDATE prompts
-    SET title = COALESCE(${patch.title ?? null}, title),
-        content = COALESCE(${patch.content ?? null}, content),
-        collection = CASE WHEN ${patch.collection !== undefined} THEN ${patch.collection ?? null} ELSE collection END,
-        tags = CASE WHEN ${tags !== null} THEN ${tags ?? []}::text[] ELSE tags END,
-        variables = CASE WHEN ${variables !== null} THEN ${variables ?? []}::text[] ELSE variables END,
-        favorite = CASE
-                     WHEN ${patch.favorite === true} THEN true
-                     WHEN ${patch.favorite === false} THEN false
-                     ELSE favorite
-                   END,
-        use_count = COALESCE(${patch.useCount ?? null}, use_count),
-        updated_at = NOW()
-    WHERE id = ${promptId} AND deleted_at IS NULL AND user_id = ${userId}
-    RETURNING id, title, content, collection, tags, variables, favorite, use_count, last_used_at, created_at, updated_at
+    SELECT actualizado.*, EXISTS (SELECT 1 FROM snapshot) AS versioned
+    FROM actualizado
   `)
-  const row = rows[0] ?? null
-  if (row && snapshot) await prunePromptVersions(sql, userId, promptId)
+  const fila = rows[0]
+  if (!fila) return null
+  // `versioned` es de uso interno: la respuesta del endpoint no cambia de forma.
+  const { versioned, ...row } = fila
+  if (versioned) await prunePromptVersions(sql, userId, promptId)
   return row
 }
 
