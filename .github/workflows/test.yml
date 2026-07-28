@@ -47,6 +47,9 @@ jobs:
       - name: Operational scripts registry check
         run: npm run check:script-registry
 
+      - name: Mock completeness check
+        run: npm run check:mock-completeness
+
       - name: Dead-code inventory check
         run: npm run check:knip
 

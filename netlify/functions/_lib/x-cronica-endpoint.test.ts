@@ -10,6 +10,7 @@ const {
   getLatestXCronica,
   selectBookmarksForCronica,
   insertXCronica,
+  softDeleteXCronicas,
 } = vi.hoisted(() => ({
   checkMonthlyBudget: vi.fn(async () => null as Response | null),
   resolveAIInvocation: vi.fn(async () => ({
@@ -31,6 +32,7 @@ const {
     fromCache: false,
   })),
   getLatestXCronica: vi.fn(async () => null as unknown),
+  softDeleteXCronicas: vi.fn(async () => {}),
   selectBookmarksForCronica: vi.fn(async () => [] as unknown[]),
   insertXCronica: vi.fn(async () => ({
     id: 'c1',
@@ -59,6 +61,7 @@ vi.mock('./ai-mode.js', () => ({
 vi.mock('./llm.js', () => ({ askLLMForText }))
 vi.mock('./x/index.js', () => ({
   getLatestXCronica,
+  softDeleteXCronicas,
   selectBookmarksForCronica,
   insertXCronica,
   buildBookmarkCronicaMessages: () => [
@@ -124,6 +127,26 @@ describe('x-cronica endpoint', () => {
       mockContext(),
     )
     expect(await res.json()).toEqual({ cronica: null })
+  })
+
+  /**
+   * El camino DELETE no tenía test, y por eso el mock de `./x/index.js` llevaba
+   * sin `softDeleteXCronicas` desde que se escribió: el endpoint habría
+   * reventado con `TypeError` en cuanto alguien lo ejercitara. Lo detectó el
+   * gate `check:mock-completeness`.
+   */
+  it('DELETE borra las crónicas del usuario y responde 204', async () => {
+    const res = await handler(
+      new Request('https://trama.test/api/x/cronica', { method: 'DELETE' }),
+      {} as never,
+    )
+    expect(res.status).toBe(204)
+    expect(softDeleteXCronicas).toHaveBeenCalledTimes(1)
+    // Acotado al usuario autenticado, no global.
+    expect(softDeleteXCronicas).toHaveBeenCalledWith(
+      expect.anything(),
+      'legacy-single-user',
+    )
   })
 
   it('POST genera y persiste', async () => {
