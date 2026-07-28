@@ -68,6 +68,7 @@
     "e2e:pdf-visual": "PDF_STUDIO_VISUAL=1 node_modules/.bin/playwright test e2e/pdf-studio-visual.spec.ts --project=chromium",
     "e2e:focus-visual": "PDF_STUDIO_VISUAL=1 node_modules/.bin/playwright test e2e/focus-ring-visual.spec.ts --project=chromium",
     "e2e:pdf-stamps-smoke": "PDF_STAMP_ASSETS_SMOKE=1 node_modules/.bin/playwright test e2e/pdf-studio-editor.spec.ts --project=chromium --grep \"persiste firma dibujada\"",
+    "e2e:visual-sweep": "VISUAL_SWEEP=1 node_modules/.bin/playwright test e2e/visual-sweep.spec.ts --project=chromium",
     "e2e:multiuser": "node scripts/run-multiuser-smoke.mjs",
     "cutover:preflight": "node scripts/cutover-preflight.mjs",
     "cutover:smoke": "node scripts/run-cutover-smoke.mjs",
