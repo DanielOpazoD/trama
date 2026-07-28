@@ -84,42 +84,105 @@ function resolveSpec(fromFile, spec) {
   return null
 }
 
+/**
+ * Marca qué posiciones del fuente son **estructurales**: fuera de cadenas,
+ * plantillas y comentarios.
+ *
+ * Sin esto, contar llaves y comas sobre el texto crudo se rompe con un mock tan
+ * normal como `{ label: 'Sí, continuar' }`: la coma dentro de la cadena partía
+ * la propiedad y `label` desaparecía del análisis. Un gate que no ve una clave
+ * la reporta como faltante — o peor, se desorienta con la profundidad y deja de
+ * ver un mock incompleto.
+ */
+function structuralMask(src) {
+  const mask = new Uint8Array(src.length)
+  let i = 0
+  while (i < src.length) {
+    const ch = src[i]
+    const next = src[i + 1]
+    if (ch === '/' && next === '/') {
+      while (i < src.length && src[i] !== '\n') i++
+      continue
+    }
+    if (ch === '/' && next === '*') {
+      i += 2
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) i++
+      i += 2
+      continue
+    }
+    if (ch === "'" || ch === '"') {
+      const quote = ch
+      i++
+      while (i < src.length && src[i] !== quote) i += src[i] === '\\' ? 2 : 1
+      i++
+      continue
+    }
+    if (ch === '`') {
+      i++
+      let interp = 0
+      while (i < src.length) {
+        if (src[i] === '\\') {
+          i += 2
+          continue
+        }
+        if (src[i] === '$' && src[i + 1] === '{') {
+          interp++
+          i += 2
+          continue
+        }
+        if (interp > 0 && src[i] === '}') {
+          interp--
+          i++
+          continue
+        }
+        if (interp === 0 && src[i] === '`') break
+        i++
+      }
+      i++
+      continue
+    }
+    mask[i] = 1
+    i++
+  }
+  return mask
+}
+
 /** Claves de primer nivel de un objeto literal, respetando anidamiento. */
 function topLevelKeys(body) {
+  const mask = structuralMask(body)
   const keys = []
   let depth = 0
-  let i = 0
   let hasSpread = false
   let pendingStart = 0
-  while (i < body.length) {
+  const pushKey = (seg) => {
+    const m = seg.match(
+      /^\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*([A-Za-z_$][\w$]*)\s*[,:]?/,
+    )
+    if (m) keys.push(m[1])
+  }
+  for (let i = 0; i < body.length; i++) {
+    if (!mask[i]) continue
     const ch = body[i]
     if (ch === '{' || ch === '[' || ch === '(') depth++
     else if (ch === '}' || ch === ']' || ch === ')') depth--
     else if (depth === 0) {
       if (body.startsWith('...', i)) hasSpread = true
       if (ch === ',') {
-        const seg = body.slice(pendingStart, i)
-        const m = seg.match(
-          /^\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*([A-Za-z_$][\w$]*)\s*[,:]?/,
-        )
-        if (m) keys.push(m[1])
+        pushKey(body.slice(pendingStart, i))
         pendingStart = i + 1
       }
     }
-    i++
   }
-  const seg = body.slice(pendingStart)
-  const m = seg.match(
-    /^\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/|\s)*([A-Za-z_$][\w$]*)\s*[,:]?/,
-  )
-  if (m) keys.push(m[1])
+  pushKey(body.slice(pendingStart))
   return { keys, hasSpread }
 }
 
 /** Extrae el cuerpo `{...}` que empieza en `open` (índice de la llave). */
 function readBalanced(src, open) {
+  const mask = structuralMask(src)
   let depth = 0
   for (let i = open; i < src.length; i++) {
+    if (!mask[i]) continue
     if (src[i] === '{') depth++
     else if (src[i] === '}') {
       depth--
@@ -211,7 +274,10 @@ function runtimeExportsOf(file, seen = new Set()) {
 /** `import { a, b } from 'spec'` — omite los `import type`. */
 function namedImportsFrom(src, matchesSpec) {
   const used = new Set()
-  const re = /import\s+(type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g
+  // Acepta `import Def, { a, b } from '…'`: sin esto, los imports mixtos
+  // quedaban invisibles y un mock incompleto pasaba sin avisar.
+  const re =
+    /import\s+(type\s+)?(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g
   let m
   while ((m = re.exec(src))) {
     const [, typeOnly, names, spec] = m
