@@ -231,6 +231,13 @@ export async function getValidAccessToken(
   const now = Date.now()
   // Refresh antes de que venza, con el mismo margen que usa `needsReconnect`.
   if (expiresAt > now + EXPIRY_SKEW_MS) return stored.access_token
+  // Sin refresh token no hay nada que renovar: devolver null es lo que el
+  // caller lee como "hay que reconectar". Sin este corte, una cadena vacía
+  // —el estado en el que quedaba la cuenta tras el clobber— salía a la red a
+  // fallar en cada sync. El gemelo de X ya lo cortaba aquí; ésta era
+  // precisamente la asimetría que esta auditoría buscaba, y estaba tres líneas
+  // debajo de `needsReconnect`, que dice exactamente esta misma condición.
+  if (!stored.refresh_token) return null
 
   const refreshed = await refreshAccessToken(stored.refresh_token)
   const newExpiresAt = new Date(now + refreshed.expires_in * 1000)

@@ -157,6 +157,28 @@ describe('getValidAccessToken', () => {
   })
 
   /**
+   * Gemelo del test de X: sin refresh token no hay nada que renovar, así que
+   * hay que devolver null y NO salir a la red. Spotify no lo cortaba y hacía
+   * una llamada condenada al proveedor en cada sync.
+   */
+  it('devuelve null si venció y el refresh token está vacío, sin llamar a Spotify', async () => {
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    const { sql } = makeSql((text) =>
+      text.includes('FROM spotify_tokens')
+        ? [
+            storedRow({
+              expires_at: new Date(Date.now() - 1000).toISOString(),
+              refresh_token: '',
+            }),
+          ]
+        : [],
+    )
+    await expect(getValidAccessToken(sql, 'user-1')).resolves.toBeNull()
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  /**
    * El margen de 60s existe para que un token que vence "ahora mismo" no se
    * use en una request que tarda medio segundo en salir. Probar justo dentro
    * del margen es lo que evita que alguien lo baje a 0 sin darse cuenta.

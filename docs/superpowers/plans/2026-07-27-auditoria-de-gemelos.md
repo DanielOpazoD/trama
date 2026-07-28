@@ -34,9 +34,22 @@ refresh token borrado**: la app decía "conectado" y el sync llevaba semanas sin
 traer nada, sin un solo error a la vista.
 
 Ahora ambos exponen `needsReconnect`, calculado **sin salir a la red**: si el
-access token venció —con el mismo margen de 60s que usa `getValidAccessToken`— y
-no queda refresh token utilizable, no hay forma de recuperarse solo. Los dos
+access token venció **o vence dentro de los próximos 60s** —el mismo margen que
+usa `getValidAccessToken`— y no queda refresh token utilizable, no hay forma de
+recuperarse solo. Los dos
 paneles de Ajustes lo muestran con un aviso sobrio.
+
+### 1.b El gemelo que la propia auditoría no vio
+
+`getValidAccessToken` de X corta con `if (!stored.refresh_token) return null`
+antes de intentar el refresh. **Spotify no lo hacía**: con una cadena vacía salía
+a la red a fallar en cada sync en vez de devolver null.
+
+Lo señaló CodeRabbit, y escuece con precisión: es exactamente la clase de
+asimetría que este pack existe para encontrar, estaba en la función que yo
+acababa de editar, y tres líneas debajo de `needsReconnect` — que enuncia esa
+misma condición. Escribí la regla como función nueva y no comprobé si el código
+de al lado ya la aplicaba.
 
 ### 2. Un fallo que subía el contador sin dejar rastro
 
