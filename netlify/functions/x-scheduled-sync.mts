@@ -95,6 +95,15 @@ export default withObservability(
           }
           if (!xUserId) {
             failures++
+            // Todos los demás caminos de fallo de este bucle registran su
+            // motivo; éste subía el contador en silencio y dejaba un hueco
+            // imposible de diagnosticar desde los logs.
+            logErrorEvent({
+              event: 'x_scheduled_sync_user_failed',
+              userId,
+              reason: 'x_user_id_unresolved',
+              message: 'No se pudo resolver el id de usuario de X',
+            })
             continue
           }
 

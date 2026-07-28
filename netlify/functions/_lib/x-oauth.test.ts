@@ -68,6 +68,9 @@ vi.mock('./x/index.js', () => ({
   storeBookmarks,
   markSynced,
   disconnectX,
+  // El endpoint de estado lo usa para distinguir 'hay tokens' de 'sirven'.
+  needsReconnect: (t: { refresh_token: string | null; expires_at: string }) =>
+    new Date(t.expires_at).getTime() <= Date.now() + 60_000 && !t.refresh_token,
   runClassify,
   XApiError,
 }))

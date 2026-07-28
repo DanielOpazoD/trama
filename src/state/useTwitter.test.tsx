@@ -74,6 +74,7 @@ describe('useTwitter queries', () => {
   it('lee estado de conexión y crónica desde sus keys dedicadas', async () => {
     vi.spyOn(api, 'xStatus').mockResolvedValue({
       connected: true,
+      needsReconnect: false,
       username: 'alice',
       xUserId: 'x-1',
       lastSyncedAt: '2026-05-01T10:00:00Z',

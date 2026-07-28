@@ -24,6 +24,8 @@ export type SpotifyStatus =
   | { connected: false }
   | {
       connected: true
+      /** Hay tokens, pero vencieron y no queda refresh: hay que reconectar. */
+      needsReconnect: boolean
       spotifyUserId: string | null
       displayName: string | null
       connectedAt: string

@@ -17,6 +17,7 @@ describe('<XPanel />', () => {
   it('muestra cuenta conectada y sincroniza bookmarks', async () => {
     vi.spyOn(api, 'xStatus').mockResolvedValue({
       connected: true,
+      needsReconnect: false,
       username: 'dani',
       xUserId: 'x-1',
       lastSyncedAt: '2026-05-31T10:00:00Z',

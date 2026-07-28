@@ -9,6 +9,7 @@ export {
   getStoredTokens,
   saveTokens,
   getValidAccessToken,
+  needsReconnect,
   markSynced,
   disconnectX,
   getXProfile,

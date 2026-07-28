@@ -29,6 +29,8 @@ export type XStatus =
   | { connected: false }
   | {
       connected: true
+      /** Hay tokens, pero vencieron y no queda refresh: hay que reconectar. */
+      needsReconnect: boolean
       username: string | null
       xUserId: string | null
       lastSyncedAt: string | null
