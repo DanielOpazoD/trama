@@ -503,6 +503,56 @@
     font-size: 12px;
   }
 
+  /*
+   * Carril horizontal: el borde se deshace hacia donde queda contenido.
+   *
+   * Un `overflow-x: auto` no anuncia que sigue. En macOS la barra de scroll
+   * sólo aparece mientras arrastras, así que en la barra de secciones de Notas
+   * había 776px de contenido en 232px visibles y cinco secciones invisibles sin
+   * ninguna señal de existir.
+   *
+   * Un texto tipo «desliza» sería copy resolviendo lo que debe resolver el
+   * diseño. Un borde que se desvanece no admite otra lectura: algo continúa
+   * ahí. Se aplica sólo del lado que tiene contenido por recorrer, para que la
+   * ausencia de desvanecido también signifique — ese lado se acabó.
+   *
+   * Va como máscara y no como degradado superpuesto a propósito: un overlay
+   * taparía los botones del borde, que es justo la familia de defectos que
+   * este proyecto lleva varios PRs cazando.
+   */
+  .scroll-rail {
+    --rail-fade: 20px;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--rail-fade-start, 0px),
+      #000 calc(100% - var(--rail-fade-end, 0px)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--rail-fade-start, 0px),
+      #000 calc(100% - var(--rail-fade-end, 0px)),
+      transparent 100%
+    );
+  }
+  .scroll-rail[data-rail-start='true'] {
+    --rail-fade-start: var(--rail-fade);
+  }
+  .scroll-rail[data-rail-end='true'] {
+    --rail-fade-end: var(--rail-fade);
+  }
+  /*
+   * La misma medida gobierna el hueco que `scrollIntoView` deja libre: si el
+   * elemento activo se pega al borde, aterriza justo debajo del desvanecido y
+   * aparece medio disuelto — la sección en la que estás es la última que
+   * debería verse a medias. Con esto queda siempre por dentro del degradado.
+   */
+  .scroll-rail > * {
+    scroll-margin-inline: var(--rail-fade);
+  }
+
   /* μ1: marginalia manuscrita — para userReflection y otras anotaciones
      de la voz del usuario (no prosa IA, no UI). Caveat es una cursiva
      casual con personalidad pero legible a 16px; le bajamos el contraste
