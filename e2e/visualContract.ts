@@ -250,6 +250,13 @@ export async function findUnreachable(page: Page): Promise<Unreachable[]> {
       if ((el as HTMLElement).style.maxHeight) continue
       // El lienzo del grafo desborda a propósito: el SVG es más grande que su
       // viewport y se navega con pan/zoom, no con scroll.
+      //
+      // Es la segunda heurística de la sonda (la otra es el `max-height`
+      // inline de más abajo) y la más ancha de las cinco exclusiones: deja
+      // ciego cualquier texto recortado dentro de un contenedor que además
+      // albergue un SVG etiquetado, no sólo el lienzo. Si algún día hace falta
+      // afinarla, el criterio honesto es identificar el lienzo por su rol y no
+      // por "contiene un svg con aria-label".
       if (el.querySelector('svg[aria-label]')) continue
 
       const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim()

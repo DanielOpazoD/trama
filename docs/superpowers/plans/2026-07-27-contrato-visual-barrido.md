@@ -40,7 +40,8 @@ Primera pasada: **39 hallazgos en 7 de 19 superficies**, todos de la sonda nueva
 — cero oclusiones nuevas, lo que confirma que esa clase está cerrada en toda la
 app y no sólo donde el gate miraba.
 
-Pero al triarlos, 36 eran **culpa del instrumento**:
+Pero al triarlos, 36 eran **culpa del instrumento**. Tres exclusiones nuevas los
+explican:
 
 1. **`overflow: visible` no recorta nada.** Es la mayoría del ruido: contenedores
    de vista cuyo contenido se sale y sigue pintándose. Incluirlos fue un error
@@ -51,7 +52,31 @@ Pero al triarlos, 36 eran **culpa del instrumento**:
    plegado + botón para expandir" de `RecorteCardBody`, que tiene degradado de
    corte y control de expansión. Recorta, pero el usuario tiene salida.
 
-Con las tres exclusiones: **cero hallazgos en 19 superficies × 3 temas**.
+Con ellas: **cero hallazgos en 19 superficies × 3 temas**.
+
+### Inventario completo de puntos ciegos
+
+Las tres de arriba se añadieron calibrando, pero la sonda ya nacía con otras dos.
+Como el valor de este pack es saber qué NO ve el instrumento, van las cinco
+juntas — y separadas por lo que son:
+
+| exclusión                          | cuándo         | naturaleza                                 |
+| ---------------------------------- | -------------- | ------------------------------------------ |
+| `overflow` distinto de hidden/clip | calibración    | hecho de CSS                               |
+| `.sr-only`                         | calibración    | hecho de diseño                            |
+| `max-height` inline                | calibración    | **heurística**                             |
+| `clientHeight === 0`               | diseño inicial | hecho estructural: sin caja no hay recorte |
+| contenedor con `svg[aria-label]`   | diseño inicial | **heurística**                             |
+
+**Dos son heurísticas y pueden esconder un defecto real:**
+
+- un `max-height` inline sin forma de expandir no se vería;
+- cualquier texto recortado dentro de un contenedor que además albergue un SVG
+  etiquetado tampoco. Esa regla existe porque el lienzo del Grafo desborda a
+  propósito —se navega con pan/zoom, no con scroll— pero es más ancha de lo
+  necesario.
+
+Las otras tres no admiten discusión.
 
 ## Decisiones
 
@@ -67,10 +92,13 @@ Con las tres exclusiones: **cero hallazgos en 19 superficies × 3 temas**.
   reglas es, literalmente, cómo se construye un gate inútil. Por eso la sonda
   tiene ahora un caso positivo sintético que debe detectar y un control negativo
   que no. Si alguien la afina de más, ese test cae.
-- **De las tres exclusiones, dos son hechos de CSS y una es heurística.** Que
-  `overflow: visible` no recorta y que `.sr-only` es invisible por diseño no
-  admiten discusión. Lo del `max-height` inline sí: si alguien lo usa sin dar
-  forma de expandir, el barrido no lo verá. Queda dicho en el código.
+- **El inventario de puntos ciegos va completo, no sólo lo que toqué hoy.** La
+  primera versión de este documento listaba tres exclusiones —las de la
+  calibración— y se dejaba fuera las dos con las que la sonda ya nacía. Contar 3
+  de 5 es precisamente lo que este pack dice combatir: si el valor está en saber
+  qué NO ve el instrumento, el registro tiene que coincidir con el código. Van
+  las cinco, y marcadas las **dos que son heurísticas** y podrían tapar un
+  defecto real.
 
 ### Lo que a propósito NO se tocó
 
