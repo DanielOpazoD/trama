@@ -171,6 +171,14 @@ const SCRIPT_ENTRIES = [
     summary: 'Valida fronteras frontend para evitar imports o ownership drift.',
   },
   {
+    file: 'scripts/check-mock-completeness.mjs',
+    domain: 'test',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:mock-completeness'],
+    summary: 'Verifica que cada vi.mock cubra lo que el módulo bajo prueba le importa.',
+  },
+  {
     file: 'scripts/check-design-tokens.mjs',
     domain: 'frontend',
     kind: 'check',
@@ -670,6 +678,13 @@ export const QUALITY_GATES = [
     phase: 'operations',
     required: false,
     summary: 'Reporte legible de baseline Knip/dependency-cruiser.',
+  },
+  {
+    command: 'npm run check:mock-completeness',
+    job: 'lint',
+    phase: 'static',
+    required: true,
+    summary: 'Mocks de módulo completos: el sujeto no puede quedar llamando a undefined.',
   },
   {
     command: 'npm run check:knip',
