@@ -23,7 +23,7 @@ barra de navegación decía `Tare`.
 
 `NotasMobileTabs` a 375px, medido:
 
-```
+```text
 8 secciones · contenido 776px · visible 232px
 → 544px ocultos, sólo el 30% a la vista
 → scrollLeft: 0, con la sección ACTIVA cortada 27px a media palabra

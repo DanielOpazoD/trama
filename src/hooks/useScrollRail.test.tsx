@@ -25,6 +25,7 @@ function fijarMedidas(
   Object.defineProperty(el, 'clientWidth', { value: clientWidth, configurable: true })
 }
 
+/** Mueve el scroll y dispara el evento, que es lo que el hook escucha. */
 function desplazar(el: HTMLElement, x: number) {
   Object.defineProperty(el, 'scrollLeft', {
     value: x,
