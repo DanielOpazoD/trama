@@ -7,6 +7,7 @@ import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
 import { NOTAS_SECTION_TITLES, type NotasSectionMeta } from './notasSections'
 import { NavButton } from '../sidebar/NavButton'
+import { useScrollRailWithActive } from '../../hooks/useScrollRail'
 import {
   SidebarBrandLine,
   SidebarCollapseButton,
@@ -199,6 +200,8 @@ export function NotasMobileTabs({
   onOpenSearch: () => void
   onOpenSettings: () => void
 }) {
+  const rail = useScrollRailWithActive<HTMLDivElement>(section)
+
   return (
     <div className="md:hidden border-b border-ink-100 flex items-center gap-2 px-3 py-2 surface-sidebar">
       <WorldSwitcher
@@ -208,7 +211,14 @@ export function NotasMobileTabs({
         collapsed
       />
       <div className="w-px h-5 bg-ink-100 shrink-0" />
-      <div className="flex gap-1 overflow-x-auto flex-1">
+      {/* Ocho secciones en 232px: sin reencuadre la activa llegaba cortada, y
+          sin el desvanecido del borde las cinco de la derecha no existían. */}
+      <div
+        ref={rail.ref}
+        className="scroll-rail flex gap-1 overflow-x-auto flex-1"
+        data-rail-start={rail.hint.inicio}
+        data-rail-end={rail.hint.fin}
+      >
         {sections.map((s) => {
           const active = section === s.id
           return (
