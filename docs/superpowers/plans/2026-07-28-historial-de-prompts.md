@@ -23,8 +23,8 @@ De paso aparecieron dos cosas más en la misma sección:
 **Historial**
 
 - `migrations/20260728120000_prompt_versions` — tabla append-only con `user_id`
-  - FK, RLS forzado y soft delete, siguiendo el patrón que ya existía en
-    `pdf_studio_template_versions`. Registrada en `PRIVATE_TABLE_CONTRACTS`.
+  y su FK, RLS forzado y soft delete, siguiendo el patrón que ya existía en
+  `pdf_studio_template_versions`. Registrada en `PRIVATE_TABLE_CONTRACTS`.
 - `_lib/prompt-versions.ts` — el servicio de dominio. Un único camino de
   escritura del prompt, que usan tanto editar como restaurar.
 - `prompts.mts` — `GET /:id/versions` y `POST /:id/versions/:versionId/restore`.
