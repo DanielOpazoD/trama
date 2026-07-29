@@ -75,6 +75,17 @@ La segunda es la más elocuente: al volver a poner el pill donde estaba, **los
 cinco tests caen** — porque sin poder abrir Configuración no hay nada que
 probar. Es la medida exacta de lo bloqueante que era.
 
+### El ciclo que abrió el arreglo
+
+Tipar la respuesta significaba que `demoRouter` importara `HealthResponse` de
+`src/api/health`, y eso cerraba un ciclo: `api/health` → `api/request` →
+`lib/demo` → `demoRouter`. El gate de arquitectura lo rechazó **en CI, no en
+local** — yo había corrido doce gates y el job `lint` corre los **37**.
+
+Los tipos se mudaron a `src/types/health.ts`, un módulo hoja, y `api/health` los
+reexporta para quien ya los importaba de ahí. Es la corrección de fondo: un
+módulo de tipos no debe arrastrar la capa de red detrás.
+
 ### Lo que encontró mi propio gate
 
 Mover el pill a la derecha hizo caer el gate anti-oclusión en dos viewports, por
@@ -86,7 +97,8 @@ sobre dónde hay espacio libre.
 
 Suite completa (5087 tests), `typecheck`, `lint`, `format:check`, doce gates,
 `build`, budget de bundle y 24 e2e con a11y, el gate anti-oclusión completo y
-los datos de Configuración.
+los datos de Configuración. Los **37** gates del job `lint` corridos en local;
+los cuatro que piden Postgres quedan al job `migrations`, que es donde corren.
 
 ## Lo que queda abierto
 

@@ -1,4 +1,4 @@
-import type { HealthResponse } from '../api/health'
+import type { HealthResponse } from '../types/health'
 import type { Row, Store } from './demoTypes'
 import { saveDemoStore as save } from './demoStore'
 import {
