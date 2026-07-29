@@ -182,3 +182,82 @@ Como socio fundador, más allá de los detalles técnicos, estas preguntas te da
 
 *Análisis de reconocimiento pasivo. No se realizó ninguna prueba activa de intrusión ni se accedió a sistemas sin autorización.*  
 *Para un análisis completo, se requiere acceso directo al entorno o un pentest formal con alcance acordado.*
+
+---
+
+## 7. Análisis del APK — herramientas listas, ejecución local requerida
+
+### 7.1 Por qué no se ejecutó desde el entorno remoto
+
+El entorno de ejecución de Claude (CCR) enruta todo el tráfico saliente a través de un proxy con lista blanca de hosts. Todos los intentos de descarga del APK fueron bloqueados:
+
+| Fuente intentada | Resultado |
+|-----------------|-----------|
+| play.google.com | 403 — Host not in allowlist |
+| apkpure.com (API) | 403 — Host not in allowlist |
+| misalud.netlify.app | 403 — Host not in allowlist |
+| misalud.firebaseapp.com | 403 — Host not in allowlist |
+| uptodown.com | 403 — Host not in allowlist |
+| web.archive.org | 403 — Host not in allowlist |
+
+### 7.2 Identificación del paquete correcto
+
+**Importante:** Las búsquedas de OSINT encontraron DOS apps diferentes llamadas "MiSalud":
+- `io.ionic.misalud` → **MiSalud Health** (empresa de EEUU, salud para hispanohablantes en EE.UU.) — NO es webmedical.cl
+- El paquete real de webmedical.cl/misalud tiene un ID diferente, no encontrado en búsquedas públicas
+
+**Para identificar el paquete correcto**, en un dispositivo Android con la app instalada:
+```bash
+adb shell pm list packages | grep -i salud
+adb shell pm list packages | grep -i medical
+adb shell pm list packages | grep -i webmedical
+```
+O buscar en la Play Store con la cuenta del equipo de webmedical.cl y revisar la URL del listing: `play.google.com/store/apps/details?id=<PACKAGE_ID>`.
+
+### 7.3 Cómo ejecutar el análisis (desde tu máquina local)
+
+Las herramientas están en el repositorio en `scripts/`. Requisitos: Python 3.8+, `unzip`, Java (para apktool).
+
+**Paso 1 — Obtener el APK:**
+```bash
+# Opción A: desde el dispositivo con la app instalada
+adb shell pm path <PACKAGE_ID>    # → /data/app/.../base.apk
+adb pull /data/app/.../base.apk misalud.apk
+
+# Opción B: descargar desde Play Store localmente
+pip install gplaycli
+gplaycli -d <PACKAGE_ID> -f .
+```
+
+**Paso 2 — Correr el análisis:**
+```bash
+python3 scripts/analyze_apk_secrets.py misalud.apk
+```
+
+El script produce `misalud-audit-results.json` con:
+- Secretos hardcodeados (AWS keys, Firebase keys, tokens, contraseñas)
+- Endpoints de API extraídos del bundle JS
+- Estado del SSL pinning (presente/ausente)
+- Flags críticos del AndroidManifest.xml (`debuggable`, `allowBackup`, permisos peligrosos)
+
+**Paso 3 — Interpretación de resultados:**
+
+| Hallazgo en el output | Significado | Severidad |
+|----------------------|-------------|-----------|
+| `secrets` no vacío | Credenciales expuestas en el código | 🔴 Crítico |
+| `ssl_pinning: false` | Tráfico interceptable con proxy MITM | 🟡 Medio |
+| `debuggable: true` | APK de producción con debug activo | 🟡 Medio |
+| `allowBackup: true` | Datos extraíbles con `adb backup` | 🟡 Medio |
+| `endpoints` con URLs internas | Arquitectura expuesta, posible IDOR | 🟡 Medio |
+
+### 7.4 Análisis del código fuente (sin APK)
+
+Si el equipo tiene acceso al repositorio de la app, el bundle compilado está típicamente en `www/` o `dist/`. El script acepta un directorio extraído directamente:
+```bash
+# Si tienen el directorio de build de la app Ionic
+python3 scripts/analyze_apk_secrets.py /ruta/al/proyecto/ionic/www/
+
+# O si el APK ya está extraído con unzip/apktool
+unzip -d misalud_extracted misalud.apk
+python3 scripts/analyze_apk_secrets.py misalud_extracted/
+```
