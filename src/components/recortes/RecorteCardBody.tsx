@@ -1,74 +1,72 @@
-import type { Ref } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import type { Recorte } from '../../api'
 import { ChevronDownIcon } from '../Icons'
-import { IconButton } from '../IconButton'
 import { markdownToPreview } from './recorteMarkdownPreview'
 
+/**
+ * Renglones visibles antes de ofrecer «leer más». En líneas y no en píxeles:
+ * los 168px de antes no eran múltiplo de la altura de línea (26px), así que el
+ * séptimo renglón salía partido por la mitad.
+ */
+const COLLAPSED_LINES = 6
+/** Respaldo para un navegador sin la unidad `lh`: recorta igual, sin cuadrar. */
+const COLLAPSED_FALLBACK = '10.5rem'
+
+/**
+ * Cuerpo de una captura, con su recorte y su control de expandir.
+ *
+ * El control es el mismo botón de texto que usa la nota, y no el disco flotante
+ * de antes —borde, sombra y `backdrop-blur` sobre el degradado—: eran dos
+ * tratamientos distintos para lo mismo dentro del mismo hilo, y el más pesado
+ * plantaba cromo justo donde el ojo termina de leer.
+ */
 export function RecorteCardBody({
   recorte,
   bodyRef,
   overflowing,
   expanded,
-  collapsedMaxPx,
   onExpandedChange,
 }: {
   recorte: Recorte
   bodyRef: Ref<HTMLParagraphElement>
   overflowing: boolean
   expanded: boolean
-  collapsedMaxPx: number
   onExpandedChange: (expanded: boolean) => void
 }) {
+  const clampStyle = {
+    '--clamp-lines': COLLAPSED_LINES,
+    '--clamp-fallback': COLLAPSED_FALLBACK,
+  } as CSSProperties
+
   return (
-    <div className={`relative ${overflowing && !expanded ? 'pb-8' : ''}`}>
+    <div className="relative">
       <p
         ref={bodyRef}
-        className="mt-1.5 overflow-hidden whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700"
-        style={overflowing && !expanded ? { maxHeight: collapsedMaxPx } : undefined}
+        className={`mt-1.5 whitespace-pre-wrap font-serif text-lead leading-relaxed text-ink-700 ${
+          expanded ? '' : `text-clamp ${overflowing ? 'text-clamp-fade' : ''}`
+        }`}
+        style={expanded ? undefined : clampStyle}
       >
         {recorte.captureMode === 'html' || recorte.captureMode === 'article'
           ? markdownToPreview(recorte.text)
           : `«${recorte.text}»`}
       </p>
-      {overflowing && !expanded && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-b from-transparent via-paper-100/90 to-paper-100"
-        />
-      )}
 
-      {overflowing && !expanded && (
-        <div
+      {overflowing && (
+        <button
+          type="button"
           data-testid="recorte-collapse-control"
-          className="absolute inset-x-0 bottom-1 flex justify-center"
+          onClick={() => onExpandedChange(!expanded)}
+          aria-expanded={expanded}
+          aria-label={expanded ? 'Mostrar menos' : 'Leer la captura completa'}
+          className="mt-1 inline-flex items-center gap-1 text-micro font-medium text-ink-400 transition-colors hover:text-ink-700"
         >
-          <IconButton
-            onClick={() => onExpandedChange(true)}
-            aria-expanded={false}
-            label="Leer la captura completa"
-            title="Leer completa"
-            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full border border-ink-100/70 bg-paper-50/90 text-ink-300 shadow-sm shadow-ink-900/5 backdrop-blur transition-colors hover:bg-paper-50 hover:text-ink-700"
-          >
-            <ChevronDownIcon size={16} className="transition-transform duration-300" />
-          </IconButton>
-        </div>
-      )}
-
-      {overflowing && expanded && (
-        <div className="mt-1 flex justify-center">
-          <IconButton
-            onClick={() => onExpandedChange(false)}
-            aria-expanded={true}
-            label="Mostrar menos"
-            title="Mostrar menos"
-            className="touch-target inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700"
-          >
-            <ChevronDownIcon
-              size={16}
-              className="rotate-180 transition-transform duration-300"
-            />
-          </IconButton>
-        </div>
+          <ChevronDownIcon
+            size={13}
+            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
+          />
+          {expanded ? 'Mostrar menos' : 'Leer más'}
+        </button>
       )}
     </div>
   )

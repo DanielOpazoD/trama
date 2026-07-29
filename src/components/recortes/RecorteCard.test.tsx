@@ -58,7 +58,14 @@ afterEach(() => {
 })
 
 describe('<RecorteCard />', () => {
-  it('colapsa capturas largas con un control compacto sobre el fade, no con una franja gigante', async () => {
+  /**
+   * El control de expandir era un disco flotante —borde, sombra y
+   * `backdrop-blur`— posado sobre el degradado, mientras la nota usaba un
+   * botón de texto en su pie: dos tratamientos distintos para lo mismo en el
+   * mismo hilo, y el más pesado plantando cromo justo donde el ojo termina de
+   * leer. Ahora ambos usan el mismo botón sobrio, en el flujo y sin adornos.
+   */
+  it('expande con el mismo botón sobrio que la nota, sin disco flotante', async () => {
     renderWithProviders(
       <RecorteCard
         recorte={RECORTE}
@@ -74,8 +81,11 @@ describe('<RecorteCard />', () => {
     })
     const control = screen.getByTestId('recorte-collapse-control')
 
-    expect(expand).toHaveClass('h-7', 'w-7')
-    expect(control).toHaveClass('absolute', 'bottom-1')
+    // El control es el propio botón, en el flujo del texto.
+    expect(control).toBe(expand)
+    expect(expand).toHaveTextContent('Leer más')
+    expect(expand.className).not.toMatch(/rounded-full|shadow|backdrop-blur|border/)
+    expect(expand.className).not.toMatch(/absolute/)
   })
 
   it('ofrece enviar imágenes internas a Imprenta desde el menú del recorte', async () => {

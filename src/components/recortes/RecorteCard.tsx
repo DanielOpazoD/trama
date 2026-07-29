@@ -25,7 +25,6 @@ import { RecorteCardMenu } from './RecorteCardMenu'
 // Alto (px) a partir del cual el texto de una captura se colapsa con un botón
 // sin palabras. Más corto que la nota (~6-7 líneas): una captura no debe
 // dominar la lista; lo extenso se promueve, no se lee entero acá.
-const COLLAPSED_MAX_PX = 168
 
 /**
  * Baja la imagen del recorte como File para pasarla al OCR. Prefiere el blob
@@ -85,11 +84,13 @@ export function RecorteCard({
   const [expanded, setExpanded] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
   const bodyRef = useRef<HTMLParagraphElement>(null)
+  // Sólo se mide EN PLEGADO: expandido el elemento no recorta nada, la
+  // comparación daría `false` y desaparecería el botón de «Mostrar menos».
   useLayoutEffect(() => {
     const el = bodyRef.current
-    if (!el) return
-    setOverflowing(el.scrollHeight > COLLAPSED_MAX_PX + 12)
-  }, [r.text, r.captureMode])
+    if (!el || expanded) return
+    setOverflowing(el.scrollHeight > el.clientHeight + 1)
+  }, [r.text, r.captureMode, expanded])
 
   async function handleSuggest() {
     try {
@@ -139,62 +140,73 @@ export function RecorteCard({
 
   return (
     <li className="group relative card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-shadow hover:shadow-sm">
-      {hasPreview ? (
-        <RecorteMediaPreview
-          recorte={r}
-          host={host}
-          size={thumbSize}
-          onOpenImage={
-            viewerEntries.length > 0
-              ? () => {
-                  setViewerIndex(0)
-                  setViewerOpen(true)
-                }
-              : undefined
-          }
-        />
-      ) : (
-        (host || dateLabel) && (
-          <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
-            {host}
-            {host && dateLabel && ' · '}
-            {dateLabel && <span className="tabular-nums">{dateLabel}</span>}
-          </p>
-        )
-      )}
-
-      <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0 font-serif text-xl font-medium leading-tight text-ink-700">
-          {r.sourceTitle ?? host ?? 'recorte'}
-          {r.sourceAuthor && (
-            <span className="font-sans text-sm font-normal text-ink-400">
-              {' '}
-              — {r.sourceAuthor}
-            </span>
-          )}
-          <WhatsAppSourceTag source={r.captureSource} />
-        </span>
-        {r.captureMode && r.captureMode !== 'citation' && (
-          <span className="shrink-0 rounded-sm bg-ink-700/5 px-1.5 py-0.5 text-micro uppercase tracking-wider text-ink-400">
-            {recorteCaptureModeLabel(r.captureMode)}
-          </span>
+      {/* Desde `md` la miniatura va al LADO del texto. Apilada, la tarjeta medía
+          lo mismo a 375 que a 1280px: la miniatura se quedaba en 258px dentro
+          de una fila de 930 y el texto caía debajo, desperdiciando 672px de
+          ancho por tarjeta. En móvil se sigue apilando, que ahí es lo correcto. */}
+      <div className="md:flex md:items-start md:gap-4">
+        {hasPreview ? (
+          <RecorteMediaPreview
+            recorte={r}
+            host={host}
+            size={thumbSize}
+            className="md:mb-0 md:shrink-0"
+            onOpenImage={
+              viewerEntries.length > 0
+                ? () => {
+                    setViewerIndex(0)
+                    setViewerOpen(true)
+                  }
+                : undefined
+            }
+          />
+        ) : (
+          (host || dateLabel) && (
+            <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+              {host}
+              {host && dateLabel && ' · '}
+              {dateLabel && <span className="tabular-nums">{dateLabel}</span>}
+            </p>
+          )
         )}
+
+        <div className="min-w-0 md:flex-1">
+          {/* La etiqueta de tipo va PEGADA al título, no repartida al extremo
+              opuesto: con `justify-between` acababa a 617px de la imagen que
+              describía, y una etiqueta tan lejos de su sujeto no etiqueta. */}
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="min-w-0 font-serif text-xl font-medium leading-tight text-ink-700">
+              {r.sourceTitle ?? host ?? 'recorte'}
+              {r.sourceAuthor && (
+                <span className="font-sans text-body font-normal text-ink-400">
+                  {' '}
+                  — {r.sourceAuthor}
+                </span>
+              )}
+              <WhatsAppSourceTag source={r.captureSource} />
+            </span>
+            {r.captureMode && r.captureMode !== 'citation' && (
+              <span className="shrink-0 rounded-sm bg-ink-700/5 px-1.5 py-0.5 text-micro uppercase tracking-eyebrow text-ink-400">
+                {recorteCaptureModeLabel(r.captureMode)}
+              </span>
+            )}
+          </div>
+
+          <RecorteCardBody
+            recorte={r}
+            bodyRef={bodyRef}
+            overflowing={overflowing}
+            expanded={expanded}
+            onExpandedChange={setExpanded}
+          />
+
+          {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
+
+          {suggestion && (
+            <RecorteSuggestionBanner suggestion={suggestion} onUse={useSuggestion} />
+          )}
+        </div>
       </div>
-
-      <RecorteCardBody
-        recorte={r}
-        bodyRef={bodyRef}
-        overflowing={overflowing}
-        expanded={expanded}
-        collapsedMaxPx={COLLAPSED_MAX_PX}
-        onExpandedChange={setExpanded}
-      />
-
-      {r.note && <p className="mt-2 marginalia-script">{r.note}</p>}
-
-      {suggestion && (
-        <RecorteSuggestionBanner suggestion={suggestion} onUse={useSuggestion} />
-      )}
 
       {/* Pie: enlace al original a la izquierda + menú ⋯ a la derecha con toda
           la triage (→ cita / → entidad / → momento, sugerir, extraer, archivar,

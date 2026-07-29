@@ -18,11 +18,15 @@ export function RecorteMediaPreview({
   host,
   size,
   onOpenImage,
+  className = '',
 }: {
   recorte: Recorte
   host: string | null
   size: LinkMediaSize
   onOpenImage?: () => void
+  /** Se reenvía al marco: la tarjeta la usa para anular su margen inferior
+   *  cuando la miniatura pasa a estar al LADO del texto y no encima. */
+  className?: string
 }) {
   const authedSrc = r.imageKey ? recorteImageUrl(r.imageKey) : null
   const { src, status } = useAuthenticatedMediaState(authedSrc)
@@ -38,7 +42,7 @@ export function RecorteMediaPreview({
     return (
       <div
         aria-label="Vista previa sin miniatura"
-        className={`mb-3 overflow-hidden rounded-md border border-ink-100/70 bg-paper-100/70 ${size === 'grande' ? '' : size === 'mediana' ? 'max-w-[260px]' : 'max-w-[150px]'}`}
+        className={`mb-3 overflow-hidden rounded-md border border-ink-100/70 bg-paper-100/70 ${size === 'grande' ? '' : size === 'mediana' ? 'max-w-[260px]' : 'max-w-[150px]'} ${className}`}
       >
         <div className="flex aspect-[16/9] flex-col justify-end gap-1 px-3 py-2 text-micro text-ink-600">
           <span className="truncate font-medium text-ink-700">
@@ -53,7 +57,7 @@ export function RecorteMediaPreview({
   if (isVideo && authedSrc) {
     return (
       <div
-        className={`mb-3 overflow-hidden rounded-md border border-ink-100/70 bg-ink-950/90 ${size === 'grande' ? '' : size === 'mediana' ? 'max-w-[260px]' : 'max-w-[150px]'}`}
+        className={`mb-3 overflow-hidden rounded-md border border-ink-100/70 bg-ink-950/90 ${size === 'grande' ? '' : size === 'mediana' ? 'max-w-[260px]' : 'max-w-[150px]'} ${className}`}
       >
         {status === 'ready' && src ? (
           <video
@@ -87,6 +91,9 @@ export function RecorteMediaPreview({
         ) : undefined
       }
       onOpenImage={r.imageKey ? onOpenImage : undefined}
+      // `imageKey` = imagen propia de la captura (una foto). Sin él la
+      // miniatura viene del Open Graph del enlace, que ya es 16:9.
+      encuadre={r.imageKey ? 'foto' : 'enlace'}
       imageUrl={
         shown ?? (authedSrc ? TRANSPARENT_PX : (r.imageUrl ?? derivedThumb ?? ''))
       }
@@ -101,6 +108,7 @@ export function RecorteMediaPreview({
             : undefined
       }
       onImageError={derivedThumb ? () => setThumbFailed(true) : undefined}
+      className={className}
     />
   )
 }
