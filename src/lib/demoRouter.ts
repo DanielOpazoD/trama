@@ -1,3 +1,4 @@
+import type { HealthResponse } from '../api/health'
 import type { Row, Store } from './demoTypes'
 import { saveDemoStore as save } from './demoStore'
 import {
@@ -130,6 +131,53 @@ function snapshotPrompt(
     updated_at: nowIso(),
     deleted_at: null,
   })
+}
+
+/**
+ * Salud del sistema en modo prueba.
+ *
+ * Va tipada como `HealthResponse` a propósito. Antes era un objeto suelto al
+ * que le faltaban `auth` y `operational` enteros, y el panel los desreferencia
+ * en once sitios: abrir Configuración en modo demo **tumbaba la aplicación
+ * entera** al ErrorBoundary raíz. Nada avisaba, porque el router de demo
+ * devuelve `unknown` y el tipo declarado no llegaba a comprobarse.
+ *
+ * Con la anotación, si `HealthResponse` gana un campo esto deja de compilar —
+ * que es donde debe romperse, y no en la cara de quien está probando Trama.
+ */
+function demoHealth(store: Store): HealthResponse {
+  return {
+    counts: {
+      entities: live(store.entities).length,
+      quotes: live(store.quotes).length,
+      relationships: live(store.relationships).length,
+    },
+    month: { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0 },
+    budget: { limitCents: 0, remainingCents: 0, pct: 0 },
+    // En demo no hay sesión real: se declara el modo de usuario único, que es
+    // lo que describe honestamente a una demo sin cuenta.
+    auth: {
+      clerkConfigured: false,
+      legacyFallbackAllowed: true,
+      legacyOwnerMapped: true,
+      mode: 'legacy-single-user',
+    },
+    operational: {
+      requestId: 'demo',
+      databaseReachable: true,
+      runtimeApiRoutesContract: 'check:runtime-api-routes',
+      productionSmokeCommand: 'npm run smoke:production-report',
+      legacyDataReassignmentCommand:
+        'npm run legacy-data-reassignment:dry-run -- --markdown',
+      logRedaction: 'structured-redaction',
+    },
+    byProvider: [],
+    recentErrors: [],
+    status: 'ok',
+    alerts: [],
+    embeddings: { pendingEntities: 0, pendingQuotes: 0 },
+    dailyCost: [],
+  }
 }
 
 /** Maneja una "request" contra el store. Devuelve el shape del servidor. */
@@ -963,21 +1011,7 @@ export function routeDemoRequest(
       return keep ?? { ok: true }
     }
     case 'health':
-      return {
-        counts: {
-          entities: live(store.entities).length,
-          quotes: live(store.quotes).length,
-          relationships: live(store.relationships).length,
-        },
-        month: { calls: 0, tokensIn: 0, tokensOut: 0, costCents: 0 },
-        budget: { limitCents: 0, remainingCents: 0, pct: 0 },
-        byProvider: [],
-        recentErrors: [],
-        status: 'ok',
-        alerts: [],
-        embeddings: { pendingEntities: 0, pendingQuotes: 0 },
-        dailyCost: [],
-      }
+      return demoHealth(store)
     case 'extraction-log':
       return { items: [] }
     case 'error-log':
