@@ -504,6 +504,39 @@
   }
 
   /*
+   * Texto recortado: se corta por renglones y se desvanece con máscara.
+   *
+   * Antes el recorte era un `max-height` en píxeles —320 para las notas, 168
+   * para las capturas— y la altura de línea no divide esos números: cabían
+   * 12,31 renglones, así que el último aparecía partido por la mitad, una
+   * banda de medias letras. `1lh` es exactamente una altura de línea, de modo
+   * que un múltiplo entero nunca parte un renglón.
+   *
+   * Y el desvanecido va como MÁSCARA, no como degradado encima. El overlay
+   * anterior terminaba en `paper-100` sólido, pero el fondo de la tarjeta ahí
+   * no es ese color: `card-paper-soft` es un degradado que a esa altura ya va
+   * por `paper-50/0.42`, y encima cambia con el tema. El resultado era un
+   * rectángulo gris visible —evidente en noche y vela— pegado bajo el texto.
+   * Una máscara no tiene que acertar ningún color: desvanece el texto y deja
+   * ver lo que haya debajo, sea lo que sea.
+   *
+   * `--clamp-lines` lo pone quien lo usa. El `max-height` en píxeles queda
+   * como respaldo para un navegador sin `lh`: recorta igual, sólo que sin
+   * cuadrar con el renglón.
+   */
+  .text-clamp {
+    overflow: hidden;
+    max-height: var(--clamp-fallback, 20rem);
+    max-height: calc(var(--clamp-lines, 12) * 1lh);
+  }
+  /* El fundido sólo cuando de verdad sobra texto: en una nota corta
+     desvanecería el último renglón sin que hubiera nada más que leer. */
+  .text-clamp-fade {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1lh), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 1lh), transparent);
+  }
+
+  /*
    * Carril horizontal: el borde se deshace hacia donde queda contenido.
    *
    * Un `overflow-x: auto` no anuncia que sigue. En macOS la barra de scroll

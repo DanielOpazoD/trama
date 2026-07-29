@@ -31,12 +31,12 @@ const FocusedWriting = lazy(() =>
 // Tono único del mundo Notas: el primario (--accent-primary), remapeado a
 // salvia por world-notas. No hardcodear el salvia (un solo sistema de tono).
 const ACCENT = 'var(--accent-primary)'
-// Alto (px) a partir del cual una nota larga se colapsa con "leer más".
-// Calibrado para ~14 líneas: aprovecha el ancho de la tarjeta para mostrar
-// bastante del comienzo antes de cortar, sin que una nota domine la lista.
-// El affordance de expandir vive SOBRE el degradado, no en una fila aparte,
-// así el borde inferior no acumula espacio muerto.
-const COLLAPSED_MAX_PX = 320
+// Renglones que se muestran de una nota larga antes de ofrecer "leer más".
+// Se mide en LÍNEAS y no en píxeles: 320px no era múltiplo de la altura de
+// línea (26px), así que el renglón número trece salía partido por la mitad.
+const COLLAPSED_LINES = 12
+// Respaldo para un navegador sin la unidad `lh`; recorta igual, sin cuadrar.
+const COLLAPSED_FALLBACK = '20rem'
 
 function formatDate(iso: string): string {
   try {
@@ -90,13 +90,14 @@ export function NoteCard({
   const upload = useUploadNotasAttachment()
   const toast = useToast()
 
-  // ¿La nota excede el alto colapsado? `scrollHeight` mide el alto COMPLETO
-  // aunque apliquemos max-height para el clamp, así sabemos si ofrecer "leer más".
+  // ¿Sobra texto? Con el recorte ya aplicado, `scrollHeight` mide el alto
+  // COMPLETO y `clientHeight` el visible: compararlos es exacto y no necesita
+  // el margen arbitrario que hacía falta al comparar contra un número fijo.
   useLayoutEffect(() => {
     const el = bodyRef.current
     if (!el) return
-    setOverflowing(el.scrollHeight > COLLAPSED_MAX_PX + 12)
-  }, [note.content])
+    setOverflowing(el.scrollHeight > el.clientHeight + 1)
+  }, [note.content, expanded])
 
   function openEdit() {
     setConfirming(false)
@@ -216,23 +217,24 @@ export function NoteCard({
         </h3>
       )}
 
-      <div className="relative">
-        <div
-          ref={bodyRef}
-          className="space-y-2 overflow-hidden break-words leading-relaxed text-ink-700"
-          style={overflowing && !expanded ? { maxHeight: COLLAPSED_MAX_PX } : undefined}
-        >
-          {renderMarkdown(note.content)}
-        </div>
-        {/* Degradado corto, SOLO visual: desvanece el texto cortado. El
-            control de expandir vive en la fila inferior (una sola fila con
-            las acciones), así no queda blanco muerto debajo. */}
-        {overflowing && !expanded && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-transparent to-paper-100"
-          />
-        )}
+      {/* El recorte y su desvanecido viven en el propio texto (`.text-clamp`):
+          nada se superpone, así que no hay color de fondo que acertar. El
+          control de expandir va en la fila inferior, con las acciones. */}
+      <div
+        ref={bodyRef}
+        className={`space-y-2 break-words leading-relaxed text-ink-700 ${
+          expanded ? '' : `text-clamp ${overflowing ? 'text-clamp-fade' : ''}`
+        }`}
+        style={
+          expanded
+            ? undefined
+            : ({
+                '--clamp-lines': COLLAPSED_LINES,
+                '--clamp-fallback': COLLAPSED_FALLBACK,
+              } as React.CSSProperties)
+        }
+      >
+        {renderMarkdown(note.content)}
       </div>
 
       {note.hasAudio && <AttachmentAudio ownerType="note" ownerId={note.id} />}
