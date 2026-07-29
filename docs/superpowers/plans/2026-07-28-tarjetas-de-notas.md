@@ -104,6 +104,28 @@ texto, y en la demo la foto no carga a 375px, lo que ensanchaba la diferencia
 por un motivo ajeno. Reescrito para medir lo que de verdad se afirma: **la
 posición del texto respecto de la miniatura**. Detectado mutando, no leyendo.
 
+### Hallazgos de CodeRabbit
+
+Los dos que encontró eran reales y **los dos los introduje yo**:
+
+- **Crítico: el plegado se rompía tras expandir.** Cambié la detección a
+  `scrollHeight > clientHeight` y añadí `expanded` a las dependencias. Una vez
+  abierto, el elemento ya no recorta, la comparación da `false`, `overflowing`
+  se apaga y con él desaparece el botón de «Mostrar menos»: la nota se quedaba
+  abierta sin forma de volver. Ahora sólo se mide en plegado, y hay un e2e del
+  viaje de ida **y vuelta** — mis pruebas sólo miraban el estado plegado, que
+  es exactamente por lo que se me escapó.
+- **El GIF 1×1 contaba como imagen.** Mientras resuelve el blob autenticado se
+  muestra un transparente de 1×1 que también dispara `load`: la caja se habría
+  fijado en 1×1 y el esqueleto se habría apagado antes de tiempo.
+
+### Un segundo falso positivo, en el test del arreglo
+
+La prueba del guard de carga afirmaba sobre el esqueleto, pero
+`showSkeleton = imageLoading || !imageLoaded`: con `imageLoading` activo el
+esqueleto se pinta igual, así que la aserción no podía distinguir si el guard
+servía. Reescrita para mirar la **caja**, que es lo que el guard decide.
+
 ### Verificado como ajeno
 
 En la demo, a 375px, las imágenes no terminan de cargar. Comprobado contra
@@ -112,6 +134,6 @@ queda fuera de este PR.
 
 ### Resto
 
-Suite completa (5084 tests), `typecheck`, `lint`, `format:check`, trece gates,
+Suite completa (5084 tests + los nuevos), `typecheck`, `lint`, `format:check`, trece gates,
 `build`, budget de bundle y 31 e2e con a11y, el gate anti-oclusión, la captura
 de Notas y el carril.

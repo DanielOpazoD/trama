@@ -93,9 +93,15 @@ export function NoteCard({
   // ¿Sobra texto? Con el recorte ya aplicado, `scrollHeight` mide el alto
   // COMPLETO y `clientHeight` el visible: compararlos es exacto y no necesita
   // el margen arbitrario que hacía falta al comparar contra un número fijo.
+  //
+  // Sólo se mide EN PLEGADO. Una vez expandido el elemento ya no recorta nada,
+  // así que la comparación daría siempre `false`, se apagaría `overflowing` y
+  // con él desaparecería el botón de «Mostrar menos»: la nota se quedaría
+  // abierta para siempre. Saltando la medición se conserva el resultado que dio
+  // estando plegada, que es el que responde a la pregunta.
   useLayoutEffect(() => {
     const el = bodyRef.current
-    if (!el) return
+    if (!el || expanded) return
     setOverflowing(el.scrollHeight > el.clientHeight + 1)
   }, [note.content, expanded])
 

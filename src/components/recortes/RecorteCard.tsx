@@ -84,9 +84,11 @@ export function RecorteCard({
   const [expanded, setExpanded] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
   const bodyRef = useRef<HTMLParagraphElement>(null)
+  // Sólo se mide EN PLEGADO: expandido el elemento no recorta nada, la
+  // comparación daría `false` y desaparecería el botón de «Mostrar menos».
   useLayoutEffect(() => {
     const el = bodyRef.current
-    if (!el) return
+    if (!el || expanded) return
     setOverflowing(el.scrollHeight > el.clientHeight + 1)
   }, [r.text, r.captureMode, expanded])
 

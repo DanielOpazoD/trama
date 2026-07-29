@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { cajaDeFoto, LinkMediaPreview } from './LinkMediaPreview'
@@ -155,5 +155,74 @@ describe('<LinkMediaPreview /> — encuadre según el tipo de imagen', () => {
     const img = screen.getByAltText('Una foto')
     expect(img.className).toMatch(/h-full/)
     expect(img.className).toMatch(/w-full/)
+  })
+})
+
+describe('<LinkMediaPreview /> — el marcador de carga no cuenta como imagen', () => {
+  /** Fija las dimensiones que el navegador expondría tras decodificar. */
+  function conNatural(img: HTMLElement, width: number, height: number) {
+    Object.defineProperty(img, 'naturalWidth', { value: width, configurable: true })
+    Object.defineProperty(img, 'naturalHeight', { value: height, configurable: true })
+  }
+
+  /**
+   * Mientras se resuelve el blob autenticado se muestra un GIF de 1×1
+   * transparente. También dispara `load`: darlo por bueno dejaría la caja en
+   * 1×1 —la foto encogida a un punto— y apagaría el esqueleto antes de tiempo.
+   */
+  it('un 1×1 transparente no fija la caja ni da la imagen por cargada', () => {
+    render(
+      <LinkMediaPreview
+        imageUrl="data:image/gif;base64,x"
+        encuadre="foto"
+        imageAlt="foto"
+      />,
+    )
+    const img = screen.getByAltText('foto')
+
+    conNatural(img, 1, 1)
+    fireEvent.load(img)
+
+    // Sigue la caja reservada, no una de 1×1.
+    const marco = screen.getByTestId('link-media-image')
+    expect(marco.getAttribute('style')).toMatch(/width:\s*160px/)
+    expect(screen.getByTestId('link-media-skeleton')).toBeInTheDocument()
+  })
+
+  it('la imagen de verdad sí fija su caja', () => {
+    render(<LinkMediaPreview imageUrl="blob:foto" encuadre="foto" imageAlt="foto" />)
+    const img = screen.getByAltText('foto')
+
+    conNatural(img, 3024, 4032)
+    fireEvent.load(img)
+
+    const marco = screen.getByTestId('link-media-image')
+    // 3:4 encogida hasta el tope de 'grande' (520×320): 240×320.
+    expect(marco.getAttribute('style')).toMatch(/width:\s*240px/)
+    expect(marco.getAttribute('style')).toMatch(/height:\s*320px/)
+    expect(screen.queryByTestId('link-media-skeleton')).not.toBeInTheDocument()
+  })
+
+  /** `imageLoading` lo dice el caller: el blob todavía no está listo. */
+  it('mientras el caller avisa de que carga, ignora cualquier load', () => {
+    render(
+      <LinkMediaPreview
+        imageUrl="blob:foto"
+        encuadre="foto"
+        imageAlt="foto"
+        imageLoading
+      />,
+    )
+    const img = screen.getByAltText('foto')
+
+    conNatural(img, 800, 600)
+    fireEvent.load(img)
+
+    // Se mira la CAJA y no el esqueleto: con `imageLoading` el esqueleto se
+    // pinta igual (`showSkeleton = imageLoading || !imageLoaded`), así que esa
+    // aserción no podría distinguir si el guard funciona.
+    const marco = screen.getByTestId('link-media-image')
+    expect(marco.getAttribute('style')).toMatch(/width:\s*160px/)
+    expect(marco.getAttribute('style')).toMatch(/height:\s*96px/)
   })
 })

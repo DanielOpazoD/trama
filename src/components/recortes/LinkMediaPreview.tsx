@@ -135,10 +135,12 @@ export function LinkMediaPreview({
         alt={imageAlt}
         loading="lazy"
         onLoad={(e) => {
-          setNatural({
-            width: e.currentTarget.naturalWidth,
-            height: e.currentTarget.naturalHeight,
-          })
+          const { naturalWidth: ancho, naturalHeight: alto } = e.currentTarget
+          // Mientras resuelve el blob autenticado se muestra un GIF de 1×1
+          // transparente, que también dispara `load`. Darlo por bueno dejaría
+          // una caja de 1×1 y apagaría el esqueleto antes de tiempo.
+          if (imageLoading || ancho <= 1 || alto <= 1) return
+          setNatural({ width: ancho, height: alto })
           setImageLoaded(true)
         }}
         onError={() => onImageError?.()}

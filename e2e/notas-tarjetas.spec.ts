@@ -88,6 +88,32 @@ test('el recorte cae en frontera de renglón, sin partir letras', async ({ page 
   ).toBeLessThan(0.05)
 })
 
+/**
+ * El viaje de ida Y VUELTA. Mis primeras pruebas sólo miraban el estado
+ * plegado, y con eso pasó desapercibido que expandir rompía el plegado: al
+ * abrirse, el elemento deja de recortar, `scrollHeight > clientHeight` da falso
+ * y el botón —que sólo se pinta cuando sobra texto— desaparecía. La nota se
+ * quedaba abierta para siempre, sin forma de volver.
+ */
+test('se expande y se vuelve a plegar', async ({ page }) => {
+  const leerMas = page.getByRole('button', { name: /Leer la nota completa/i }).first()
+  const nota = () => page.locator('article').filter({ hasText: 'DISLIPIDEMIA' }).first()
+
+  const plegada = await nota().evaluate((el) => el.getBoundingClientRect().height)
+  await leerMas.click()
+
+  const mostrarMenos = page.getByRole('button', { name: /Mostrar menos/i }).first()
+  await expect(mostrarMenos, 'sin control para volver a plegar').toBeVisible()
+
+  const abierta = await nota().evaluate((el) => el.getBoundingClientRect().height)
+  expect(abierta).toBeGreaterThan(plegada)
+
+  await mostrarMenos.click()
+  await expect(leerMas).toBeVisible()
+  const replegada = await nota().evaluate((el) => el.getBoundingClientRect().height)
+  expect(Math.abs(replegada - plegada)).toBeLessThan(4)
+})
+
 test('el fundido no pinta ningún color sólido encima del texto', async ({ page }) => {
   const hallazgos = await page
     .getByRole('button', { name: /Leer la nota completa/i })
