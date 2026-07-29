@@ -1,3 +1,4 @@
+import { useScrollRailWithActive } from '../../hooks/useScrollRail'
 import {
   SETTINGS_SECTIONS,
   getSettingsPanelLoadMode,
@@ -12,10 +13,21 @@ export function SettingsNav({
   section: SettingsSectionId
   onSectionChange: (section: SettingsSectionId) => void
 }) {
+  // En móvil esta navegación es un carril horizontal y ocultaba el 69% de sus
+  // doce secciones sin ninguna señal de que siguieran — el mismo defecto que la
+  // barra del mundo Notas en el PR #365. Se reutiliza el mismo tratamiento: el
+  // borde se deshace hacia donde queda contenido y la sección activa se
+  // reencuadra. En `md` el carril desaparece (columna) y con él la máscara.
+  const rail = useScrollRailWithActive<HTMLElement>(section)
+
   return (
     <nav
-      className="md:w-52 shrink-0 md:border-r border-b md:border-b-0 border-ink-100/60
-                 p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto"
+      ref={rail.ref}
+      className="scroll-rail md:w-52 shrink-0 md:border-r border-b md:border-b-0 border-ink-100/60
+                 p-3 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto
+                 md:[-webkit-mask-image:none] md:[mask-image:none]"
+      data-rail-start={rail.hint.inicio}
+      data-rail-end={rail.hint.fin}
       aria-label="Secciones de configuración"
     >
       {SETTINGS_SECTIONS.map((s) => {

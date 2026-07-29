@@ -123,7 +123,12 @@ function DemoBanner() {
         label="Modo prueba (mostrar opciones)"
         onClick={() => setMinimized(false)}
         title="Modo prueba · los datos viven solo en este navegador"
-        className="fixed left-3 bottom-28 md:bottom-3 z-50 flex h-7 w-7 items-center justify-center rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10 text-ink-400 hover:text-ink-700 transition-colors"
+        // En escritorio se desplaza al hueco libre del pie de la barra lateral
+        // (x 40–150): a `left-3` caía justo sobre el botón de Configuración
+        // —mismas coordenadas— y ese botón dejaba de recibir su propio clic, así
+        // que en modo prueba no se podía entrar a Configuración. A la derecha
+        // tampoco cabe: ahí el Grafo tiene sus contadores.
+        className="fixed left-3 bottom-28 md:left-12 md:bottom-2 z-50 flex h-7 w-7 items-center justify-center rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10 text-ink-400 hover:text-ink-700 transition-colors"
         style={{ marginBottom: 'var(--safe-bottom)' }}
       >
         <EyeIcon size={12} />
@@ -134,8 +139,9 @@ function DemoBanner() {
   return (
     <div
       // En mobile vive ABAJO, por encima de la barra de captura (con top-14
-      // tapaba la fila de tabs); en desktop pegado al borde inferior. El
-      // margen suma el inset del home indicator en iPhones con notch.
+      // tapaba la fila de tabs); en desktop pegado al borde inferior. Este
+      // estado es transitorio —se minimiza solo a los 6s— así que conserva su
+      // sitio; el que se reubica es el minimizado, que es el que se queda.
       className="fixed left-3 bottom-28 md:bottom-3 z-50 flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-paper-50/95 backdrop-blur border border-ink-100 shadow-lg shadow-ink-900/10"
       style={{ marginBottom: 'var(--safe-bottom)' }}
       title="Modo prueba · los datos viven solo en este navegador"
