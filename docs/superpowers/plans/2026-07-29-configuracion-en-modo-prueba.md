@@ -86,6 +86,24 @@ Los tipos se mudaron a `src/types/health.ts`, un módulo hoja, y `api/health` lo
 reexporta para quien ya los importaba de ahí. Es la corrección de fondo: un
 módulo de tipos no debe arrastrar la capa de red detrás.
 
+### Hallazgos de CodeRabbit: tres aserciones que no podían fallar
+
+Los tres eran del mismo tipo, y del que ya me viene persiguiendo:
+
+- **El bucle de secciones** pasaba aunque el clic no navegara: se quedaba el
+  panel por defecto —que ya sabemos que no revienta— y nada lo distinguía. Ahora
+  exige que el botón quede en `aria-current="page"`.
+- **La prueba de copiar** se saltaba sola con un `if (count > 0)`: el día que el
+  control cambie de nombre, verde sin haber ejercitado nada.
+- **La señal del carril** preguntaba, entre otras cosas, si el `<nav>` lleva la
+  clase `scroll-rail`. El componente **siempre** la pone, así que esa rama era
+  cierta pase lo que pase.
+
+La tercera merece detenerse: yo había mutado ese test y me mordió. Pero mutando
+justo lo que el test mira —quitar la clase—, no lo que el usuario ve. Rompiendo
+la **regla CSS** y dejando la clase puesta, seguía en verde. Ahora se comprueba
+el estilo computado, y esa mutación la caza.
+
 ### Lo que encontró mi propio gate
 
 Mover el pill a la derecha hizo caer el gate anti-oclusión en dos viewports, por

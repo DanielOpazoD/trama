@@ -93,8 +93,15 @@ test('ninguna sección de Configuración se cae en modo prueba', async ({ page }
     // «X (Twitter)» trae paréntesis: sin escaparlos el regex los lee como grupo
     // y no encuentra el botón.
     const nombre = new RegExp(`^${seccion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i')
-    await nav.getByRole('button', { name: nombre }).first().click()
-    await page.waitForTimeout(150)
+    const boton = nav.getByRole('button', { name: nombre }).first()
+    await boton.click()
+    // Sin esto el bucle pasaría aunque el clic no navegara: se quedaría el
+    // panel por defecto —que ya sabemos que no revienta— y la comprobación de
+    // abajo no distinguiría nada.
+    await expect(boton, `«${seccion}» no quedó seleccionada`).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     await noSeCayo(page, seccion)
   }
 })
@@ -107,10 +114,11 @@ test('ninguna sección de Configuración se cae en modo prueba', async ({ page }
 test('copiar el diagnóstico no se cae', async ({ page }) => {
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   const copiar = page.getByRole('button', { name: /copiar/i }).first()
-  if ((await copiar.count()) > 0) {
-    await copiar.click()
-    await noSeCayo(page, 'copiar diagnóstico')
-  }
+  // Sin exigir que exista, el día que el control cambie de nombre este test
+  // pasaría sin ejercitar nada — verde por no haber hecho el trabajo.
+  await expect(copiar, 'no encontré el control de copiar el diagnóstico').toBeVisible()
+  await copiar.click()
+  await noSeCayo(page, 'copiar diagnóstico')
 })
 
 /**
@@ -130,10 +138,14 @@ test('la navegación de Configuración no esconde secciones sin avisar', async (
       return {
         desborda: nav.scrollWidth - nav.clientWidth,
         visible: nav.clientWidth / nav.scrollWidth,
+        // Se mira el estilo COMPUTADO y no si lleva la clase: el componente la
+        // pone siempre, así que preguntarlo sería una aserción que no puede
+        // fallar. Si mañana se rompe la regla CSS del carril, la clase seguiría
+        // ahí y el desvanecido no.
         avisa:
           cs.maskImage !== 'none' ||
-          getComputedStyle(nav, '::after').content !== 'none' ||
-          nav.classList.contains('scroll-rail'),
+          cs.webkitMaskImage !== 'none' ||
+          getComputedStyle(nav, '::after').content !== 'none',
       }
     })
 
