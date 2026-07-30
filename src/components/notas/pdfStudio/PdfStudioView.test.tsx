@@ -332,6 +332,64 @@ describe('<PdfStudioView />', () => {
     expect(grupoDerecho?.className).toContain('hidden')
   })
 
+  /**
+   * Vaciar el documento con una acción es OTRO camino al vacío, y el primero
+   * que probé fue sólo el inicial. Aquí la barra hace dos cosas a la vez, y las
+   * dos importan: el grupo de la derecha se retrae —no hay nada que guardar ni
+   * que ajustar— pero deshacer y rehacer SE QUEDAN, porque son el camino de
+   * vuelta. Ocultarlos por coherencia visual dejaría el trabajo irrecuperable:
+   * deshacer la importación y perder el botón de rehacer.
+   */
+  it('vaciar el documento retrae la barra pero conserva la vuelta atrás', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    const toolbar = screen.getByRole('toolbar', { name: /Acciones del documento PDF/i })
+    await user.click(within(toolbar).getByRole('button', { name: /Deshacer/i }))
+    expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
+
+    // Se retrae lo que no puede actuar…
+    const grupoDerecho = within(toolbar)
+      .getByRole('button', { name: /Guardar PDF/i })
+      .closest('div')
+    expect(grupoDerecho?.className).toContain('hidden')
+    // …y queda el camino de vuelta.
+    expect(
+      within(toolbar).getByRole('button', { name: /Rehacer/i }),
+      'sin rehacer, deshacer la importación sería irreversible',
+    ).toBeInTheDocument()
+    expect(within(toolbar).getByRole('button', { name: /Importar/i })).toBeInTheDocument()
+  })
+
+  /**
+   * Descartar mientras se exporta dejaría la exportación terminando contra un
+   * documento que ya no existe. Las acciones vecinas del menú ya se
+   * deshabilitaban con `saving`; ésta se había quedado fuera.
+   */
+  it('descartar está bloqueado mientras se exporta', async () => {
+    const user = userEvent.setup()
+    // Exportación que no termina: deja `saving` en true para poder mirar el menú.
+    let liberar: (v: unknown) => void = () => {}
+    mocks.assemblePdfInWorker.mockImplementationOnce(
+      () => new Promise((resolve) => (liberar = resolve)),
+    )
+    renderWithProviders(<PdfStudioView />)
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+
+    await user.click(screen.getByRole('button', { name: /^Guardar PDF$/i }))
+    await user.click(screen.getByRole('button', { name: /Más acciones del documento/i }))
+
+    // `OverflowMenuItem` usa el `disabled` nativo del <button>, no aria.
+    expect(
+      screen.getByRole('menuitem', { name: /Descartar y empezar de nuevo/i }),
+    ).toBeDisabled()
+
+    liberar({ bytes: new Uint8Array([1]), pageCount: 1 })
+  })
+
   it('descartar el documento vive en el menú, no junto a guardar', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)

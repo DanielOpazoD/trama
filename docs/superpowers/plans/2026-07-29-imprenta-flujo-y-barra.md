@@ -108,6 +108,29 @@ no subir el ratchet, así que se extrajeron `onFileInput` y `onDropFiles` a
 `usePdfStudioImport`: son el mismo gesto —traer algo— expresado de dos maneras, y
 su sitio es junto al `addFiles` que alimentan. 363 líneas.
 
+### Hallazgos de CodeRabbit: uno correcto, y uno cuya solución literal rompía
+
+**Descartar durante una exportación** (menor): las acciones vecinas del menú ya
+se deshabilitaban con `saving` y ésta se había quedado fuera. Descartar a mitad
+de un export lo dejaría terminando contra un documento que ya no existe.
+Arreglado, y con test: una exportación que no resuelve deja `saving` en true y se
+comprueba que la opción queda bloqueada.
+
+**Deshacer/rehacer con el documento vacío** (mayor): el hallazgo era exacto —
+esos botones viven en el grupo izquierdo, que no se retrae, así que con el
+documento vaciado por una acción seguían visibles pese a la regla de «vacío =
+sólo Importar». Pero **la solución propuesta rompía la recuperación**: al
+deshacer la importación el documento queda vacío, y ocultarlos hace desaparecer
+el botón de rehacer con el que se recuperaría. El test existente de undo/redo lo
+cazó en el mismo segundo en que lo apliqué.
+
+La resolución correcta era más estrecha: un documento **recién abierto** no tiene
+historial, así que ahí no aparece nada y la regla se cumple sola. Cuando el vacío
+viene de una acción, esos dos botones son el camino de vuelta y quitarlos dejaría
+el trabajo irrecuperable. Lo que sí se retrae es el grupo derecho, que no tiene
+sobre qué actuar. Queda fijado con un test que afirma las dos mitades: la barra
+se retrae **y** conserva la vuelta atrás.
+
 ### Verificado como ajeno
 
 El snapshot `pdf-studio-toolbar-mobile` falla, pero **falla también en main con

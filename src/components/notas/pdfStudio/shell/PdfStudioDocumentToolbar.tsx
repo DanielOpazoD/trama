@@ -139,6 +139,13 @@ export function PdfStudioDocumentToolbar({
           <UploadIcon size={12} />
           {busy ? 'Agregando…' : 'Importar'}
         </button>
+        {/* Deshacer/rehacer SÍ se quedan con el documento vacío, y a propósito.
+            Un documento recién abierto no tiene historial, así que aquí no
+            aparece nada: la regla de «vacío = sólo Importar» se cumple sola. Y
+            cuando el vacío viene de una acción —borrar las páginas, deshacer la
+            importación—, estos dos botones son justamente el camino de vuelta.
+            Ocultarlos por «coherencia visual» dejaría el trabajo irrecuperable:
+            deshacer la importación y perder el botón de rehacer. */}
         {(undoable || redoable) && (
           <div className="inline-flex items-center overflow-hidden rounded-md bg-ink-100/40">
             <IconButton
@@ -421,9 +428,12 @@ export function PdfStudioDocumentToolbar({
               {/* Descartar el documento estaba PEGADO al botón de guardar: un
                   clic de más y se perdía el trabajo. Baja aquí, marcado como
                   destructivo y lejos de la acción primaria. */}
+              {/* `saving` como en las acciones vecinas: descartar el documento
+                  a mitad de una exportación la dejaría terminando contra un
+                  estado que ya no existe. */}
               <OverflowMenuItem
                 danger
-                disabled={empty || busy}
+                disabled={empty || saving || busy}
                 onClick={() => {
                   close()
                   onNewDoc()
