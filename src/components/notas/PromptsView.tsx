@@ -13,6 +13,8 @@ import { EmptyMessage } from '../EmptyMessage'
 import { SearchIcon } from '../Icons'
 import { LoadingHint } from '../LoadingHint'
 import { ViewHeader } from '../ViewHeader'
+import { FilterChip } from '../FilterChip'
+import { MetricTile } from '../MetricTile'
 import { PromptCard } from './PromptCard'
 import { PromptComposer } from './PromptComposer'
 import { copyText } from './notasUtils'
@@ -125,10 +127,10 @@ export function PromptsView() {
 
       {prompts.length > 0 && (
         <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <PromptMetric label="prompts" value={stats.total} />
-          <PromptMetric label="favoritos" value={stats.favorites} />
-          <PromptMetric label="colecciones" value={stats.collections} />
-          <PromptMetric label="usos" value={stats.totalUses} />
+          <MetricTile label="prompts" value={stats.total} />
+          <MetricTile label="favoritos" value={stats.favorites} />
+          <MetricTile label="colecciones" value={stats.collections} />
+          <MetricTile label="usos" value={stats.totalUses} />
         </section>
       )}
 
@@ -148,27 +150,22 @@ export function PromptsView() {
               className="w-full rounded-full border border-ink-100 bg-paper-50/60 py-1 pl-7 pr-3 text-caption text-ink-700 placeholder:text-ink-300"
             />
           </div>
-          <button
+          {/* El FilterChip compartido de toda la app: este era uno de los
+              tres clones inline del mundo Notas, ya desincronizados entre sí. */}
+          <FilterChip
+            active={activeFilter === null}
             onClick={() => setFilter(null)}
-            className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border ${
-              activeFilter === null
-                ? 'border-ink-200 text-ink-700 bg-ink-100/50'
-                : 'border-ink-100 text-ink-400'
-            }`}
-          >
-            todas
-          </button>
+            label="todas"
+            activeStyle={{ background: 'var(--accent-sage-soft)', color: ACCENT }}
+          />
           {collections.map((c) => (
-            <button
+            <FilterChip
               key={c}
+              active={activeFilter === c}
               onClick={() => setFilter(activeFilter === c ? null : c)}
-              className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border border-ink-100 text-ink-400 hover:text-ink-700"
-              style={
-                activeFilter === c ? { borderColor: ACCENT, color: ACCENT } : undefined
-              }
-            >
-              {c}
-            </button>
+              label={c}
+              activeStyle={{ background: 'var(--accent-sage-soft)', color: ACCENT }}
+            />
           ))}
         </div>
       )}
@@ -234,18 +231,5 @@ export function PromptsView() {
         </div>
       )}
     </>
-  )
-}
-
-function PromptMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-ink-100/70 bg-paper-50/60 px-3 py-2">
-      <div className="text-lg font-serif leading-none text-ink-800 tabular-nums">
-        {value}
-      </div>
-      <div className="mt-1 text-micro uppercase tracking-eyebrow text-ink-300">
-        {label}
-      </div>
-    </div>
   )
 }

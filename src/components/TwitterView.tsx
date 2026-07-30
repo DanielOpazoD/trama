@@ -301,7 +301,7 @@ export function TwitterView({
                         onClick={handleDeleteCronica}
                         disabled={deleteCronica.isPending}
                         label="Eliminar crónica"
-                        title="Eliminar la crónica (podés generar otra cuando quieras)"
+                        title="Eliminar la crónica (puedes generar otra cuando quieras)"
                         className="rounded p-1 text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
                       >
                         <TrashIcon size={12} />

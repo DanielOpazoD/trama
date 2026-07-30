@@ -127,6 +127,8 @@ describe('<ClavesView />', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'crear vault' }))
 
+    // El alta vive detrás de «Añadir», como en las demás vistas.
+    fireEvent.click(await screen.findByRole('button', { name: 'Añadir' }))
     await screen.findByPlaceholderText('Nombre de la clave')
     fireEvent.change(screen.getByPlaceholderText('Nombre de la clave'), {
       target: { value: 'OpenAI' },
@@ -188,6 +190,8 @@ describe('<ClavesView />', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'crear vault' }))
 
+    // El alta vive detrás de «Añadir», como en las demás vistas.
+    fireEvent.click(await screen.findByRole('button', { name: 'Añadir' }))
     await screen.findByPlaceholderText('Nombre de la clave')
     fireEvent.change(screen.getByPlaceholderText('Nombre de la clave'), {
       target: { value: 'OpenAI' },
@@ -303,6 +307,8 @@ describe('<ClavesView />', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'crear vault' }))
 
+    // El alta vive detrás de «Añadir», como en las demás vistas.
+    fireEvent.click(await screen.findByRole('button', { name: 'Añadir' }))
     await screen.findByPlaceholderText('Nombre de la clave')
     fireEvent.change(screen.getByPlaceholderText('Nombre de la clave'), {
       target: { value: 'OpenAI' },

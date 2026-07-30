@@ -209,7 +209,7 @@ export function RecorteCard({
       </div>
 
       {/* Pie: enlace al original a la izquierda + menú ⋯ a la derecha con toda
-          la triage (→ cita / → entidad / → momento, sugerir, extraer, archivar,
+          la triage (→ Cita / → Entidad / → Momento, sugerir, extraer, archivar,
           eliminar). La cara queda tranquila; nada de fila de verbos. */}
       <div className="mt-3 flex items-center gap-3">
         {r.sourceUrl && (

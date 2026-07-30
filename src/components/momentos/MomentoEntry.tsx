@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { typeAccent } from '../../lib/typeAccents'
 import type { Entity, Momento } from '../../types'
 import { PencilIcon, SparkleIcon, TrashIcon } from '../Icons'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { formatTime, getMomentoPhotoItems, isVideoItem, momentoMediaUrl } from './helpers'
 import {
@@ -11,7 +12,6 @@ import {
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
-import { Tooltip } from '../Tooltip'
 import { MomentoOwnerMark } from './MomentoOwnerMark'
 import { MomentoFeedback } from './MomentoFeedback'
 
@@ -52,7 +52,6 @@ function MomentoEntryInternal({
   // Estado del modal de edición. Aplica a los 3 kinds (nota, recorte,
   // foto) — el modal despacha al sub-renderer correcto según kind.
   const [editOpen, setEditOpen] = useState(false)
-  const [actionsOpen, setActionsOpen] = useState(false)
   const canEdit = momento.accessRole !== 'viewer'
   const canDelete = !momento.shared
 
@@ -103,57 +102,50 @@ function MomentoEntryInternal({
 
         {linkedEntities.length > 0 && <LinkedEntities entities={linkedEntities} />}
       </div>
-      {/* Menú contextual compacto — evita llenar la esquina de iconos sueltos. */}
+      {/* Menú contextual compacto — evita llenar la esquina de iconos sueltos.
+          Es el OverflowMenu compartido, no un popover artesanal: la versión a
+          mano no se cerraba ni con Escape ni con clic afuera — en teclado o
+          táctil quedaba abierto hasta pulsar el propio botón otra vez. */}
       {(canEdit || canDelete) && (
         <div className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          <Tooltip content="Más opciones">
-            <button
-              type="button"
-              onClick={() => setActionsOpen((v) => !v)}
-              className="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
-              aria-label="Opciones del momento"
-              aria-expanded={actionsOpen}
-            >
+          <OverflowMenu
+            label="Opciones del momento"
+            width="w-36"
+            triggerClassName="p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-100 rounded transition-colors"
+            triggerContent={
               <span aria-hidden className="block text-lead leading-none -mt-1">
                 ⋯
               </span>
-            </button>
-          </Tooltip>
-          {actionsOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 top-8 z-20 w-36 rounded-xl border border-ink-100 bg-paper-50 p-1.5 shadow-xl shadow-ink-900/15"
-            >
-              {canEdit && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setActionsOpen(false)
-                    setEditOpen(true)
-                  }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
-                >
-                  <PencilIcon size={12} />
-                  Editar
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setActionsOpen(false)
-                    onDelete()
-                  }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body text-[color:var(--accent-clay)] hover:bg-[color:var(--accent-clay-soft)]"
-                >
-                  <TrashIcon size={12} />
-                  Eliminar
-                </button>
-              )}
-            </div>
-          )}
+            }
+          >
+            {(close) => (
+              <>
+                {canEdit && (
+                  <OverflowMenuItem
+                    onClick={() => {
+                      close()
+                      setEditOpen(true)
+                    }}
+                  >
+                    <PencilIcon size={12} />
+                    Editar
+                  </OverflowMenuItem>
+                )}
+                {canDelete && (
+                  <OverflowMenuItem
+                    danger
+                    onClick={() => {
+                      close()
+                      onDelete()
+                    }}
+                  >
+                    <TrashIcon size={12} />
+                    Eliminar
+                  </OverflowMenuItem>
+                )}
+              </>
+            )}
+          </OverflowMenu>
         </div>
       )}
       <MomentoEditModal

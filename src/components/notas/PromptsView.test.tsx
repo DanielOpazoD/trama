@@ -133,7 +133,7 @@ describe('<PromptsView />', () => {
 
     renderWithProviders(<PromptsView />)
 
-    const copyButtons = await screen.findAllByRole('button', { name: /Copiar prompt/i })
+    const copyButtons = await screen.findAllByRole('button', { name: /^Copiar$/ })
     const firstCopyButton = copyButtons[0]
     expect(firstCopyButton).toBeDefined()
     await user.click(firstCopyButton!)
