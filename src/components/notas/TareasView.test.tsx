@@ -101,6 +101,47 @@ describe('<TareasView />', () => {
     ).toBeGreaterThan(0)
   })
 
+  /**
+   * El orden es UN estado de la vista, así que su control aparece UNA vez.
+   * Antes se renderizaba dentro de la cabecera de cada cuadro semanal —4-5
+   * copias idénticas— y cambiarlo en una semana reordenaba silenciosamente
+   * todas las demás, aunque el menú se leía junto a una semana concreta.
+   */
+  it('el control de orden aparece una sola vez, no uno por semana', async () => {
+    renderWithProviders(<TareasView />)
+
+    // Varias hojas semanales en pantalla…
+    const semanas = await screen.findAllByRole('article')
+    expect(semanas.length).toBeGreaterThan(1)
+
+    // …y un único control de orden para todas.
+    const ordenar = screen.getAllByRole('button', { name: /^Ordenar —/ })
+    expect(ordenar).toHaveLength(1)
+  })
+
+  it('el orden vive fuera de las hojas semanales', async () => {
+    renderWithProviders(<TareasView />)
+
+    const ordenar = await screen.findByRole('button', { name: /^Ordenar —/ })
+    // Si estuviera dentro de una hoja, se leería como "ordenar esta semana".
+    expect(ordenar.closest('article')).toBeNull()
+  })
+
+  it('el menú de orden anuncia el criterio activo y lo cambia', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<TareasView />)
+
+    const ordenar = await screen.findByRole('button', {
+      name: /^Ordenar — Fecha de ingreso$/,
+    })
+    await user.click(ordenar)
+    await user.click(screen.getByRole('menuitem', { name: /Prioridad/ }))
+
+    expect(
+      screen.getByRole('button', { name: /^Ordenar — Prioridad$/ }),
+    ).toBeInTheDocument()
+  })
+
   it('marca la entrada de la semana actual como punto de partida claro en móvil', async () => {
     renderWithProviders(<TareasView />)
 

@@ -203,34 +203,6 @@ export function TareasView() {
                   ? 'todo hecho'
                   : ''}
             </span>
-            <OverflowMenu
-              label={`Ordenar — ${SORT_LABELS[sortMode]}`}
-              width="w-52"
-              triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
-              triggerContent={<SortIcon />}
-            >
-              {(close) => (
-                <>
-                  <p className="px-2.5 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
-                    Ordenar por
-                  </p>
-                  {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
-                    <OverflowMenuItem
-                      key={m}
-                      onClick={() => {
-                        setSortMode(m)
-                        close()
-                      }}
-                    >
-                      <span className="inline-flex w-3 justify-center text-ink-500">
-                        {sortMode === m ? '·' : ''}
-                      </span>
-                      {SORT_LABELS[m]}
-                    </OverflowMenuItem>
-                  ))}
-                </>
-              )}
-            </OverflowMenu>
             <IconButton
               onClick={() => togglePhotos(week)}
               label="Fotos de la semana"
@@ -306,6 +278,40 @@ export function TareasView() {
         spacing="tight"
         density="compact"
         subtitle="Cada semana es una hoja. Lo pendiente se arrastra hasta resolverse."
+        action={
+          /* El orden es UNO para toda la vista, así que vive UNA vez aquí.
+             Repetido en la cabecera de cada cuadro semanal —4-5 menús
+             idénticos— decía «Ordenar» junto a una semana concreta pero
+             reordenaba todas las demás en silencio. */
+          <OverflowMenu
+            label={`Ordenar — ${SORT_LABELS[sortMode]}`}
+            width="w-52"
+            triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+            triggerContent={<SortIcon />}
+          >
+            {(close) => (
+              <>
+                <p className="px-2.5 pt-1 pb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+                  Ordenar por
+                </p>
+                {(Object.keys(SORT_LABELS) as SortMode[]).map((m) => (
+                  <OverflowMenuItem
+                    key={m}
+                    onClick={() => {
+                      setSortMode(m)
+                      close()
+                    }}
+                  >
+                    <span className="inline-flex w-3 justify-center text-ink-500">
+                      {sortMode === m ? '·' : ''}
+                    </span>
+                    {SORT_LABELS[m]}
+                  </OverflowMenuItem>
+                ))}
+              </>
+            )}
+          </OverflowMenu>
+        }
       />
 
       {/* Media página: navegador a la izquierda, notas del mes a la derecha.
