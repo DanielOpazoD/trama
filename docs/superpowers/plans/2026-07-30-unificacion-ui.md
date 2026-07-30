@@ -100,7 +100,7 @@ bundle y 33 e2e (a11y, oclusión, capturas, momentos, citas, historial de
 prompts). La suite completa se corrió cuatro veces en local con la máquina
 compartida con otra sesión de validación: cada pasada falló en ficheros
 DISTINTOS, todos por `Test timed out in 5000ms` (una pasada registró un fichero
-tardando 609s), y cada área falló verde al reejecutarla en aislamiento —
+tardando 609s), y cada área salió verde al reejecutarla en aislamiento —
 recortes 64, notas 669, momentos 183, quotes 39, biblioteca 89, planillas 146.
 Es la firma del flaky por carga documentada del repo; el `unit` de CI, en
 runner limpio, es el árbitro. Un fallo que SÍ era real salió de esas pasadas:
