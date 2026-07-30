@@ -77,7 +77,7 @@ export function PersonalizationPanel() {
       <div>
         <PanelHeader
           title="Secciones"
-          hint="Elegí qué secciones se ven en la barra de cada mundo. Una sección oculta sigue siendo accesible con un comando en el buscador (⌘K)."
+          hint="Elige qué secciones se ven en la barra de cada mundo. Una sección oculta sigue siendo accesible con un comando en el buscador (⌘K)."
         />
         {/* Tabs */}
         <div className="flex gap-1 mb-3">

@@ -10,7 +10,7 @@ import { useToast } from '../state/toast'
 import { useSearchParamState } from '../hooks/useSearchParamState'
 import { ViewHeader } from './ViewHeader'
 import { ErrorState } from './ErrorState'
-import { PlusIcon, SearchIcon } from './Icons'
+import { PlusIcon, SearchIcon, TrashIcon } from './Icons'
 import { CloseButton } from './CloseButton'
 import { BibliotecaTabs } from './biblioteca/BibliotecaTabs'
 import { BibliotecaToolbar } from './biblioteca/BibliotecaToolbar'
@@ -24,7 +24,7 @@ import { BibliotecaListView } from './biblioteca/BibliotecaListView'
 import { BibliotecaListSkeleton } from './biblioteca/BibliotecaListSkeleton'
 import { BibliotecaGridView } from './biblioteca/BibliotecaGridView'
 import { BibliotecaGridSkeleton } from './biblioteca/BibliotecaGridSkeleton'
-import { BibliotecaEmptyState } from './biblioteca/BibliotecaEmptyState'
+import { EmptyMessage } from './EmptyMessage'
 import { RenameModal } from './biblioteca/RenameModal'
 import { BibliotecaViewer } from './biblioteca/BibliotecaViewer'
 import { BibliotecaSelectionBar } from './biblioteca/BibliotecaSelectionBar'
@@ -418,7 +418,20 @@ export function BibliotecaView({
           retrying={query.isFetching}
         />
       ) : items.length === 0 ? (
-        <BibliotecaEmptyState trash={incluyeEliminados} />
+        // El EmptyMessage compartido: BibliotecaEmptyState era un clon con la
+        // misma tipografía exacta y envoltorio propio. En la papelera cambia
+        // copia e icono — una papelera vacía no es un «no se encontró».
+        <EmptyMessage
+          icon={incluyeEliminados ? <TrashIcon size={22} /> : <SearchIcon size={22} />}
+          title={
+            incluyeEliminados ? 'La papelera está vacía' : 'No se encontraron archivos'
+          }
+          body={
+            incluyeEliminados
+              ? 'Los archivos que elimines de la Biblioteca aparecerán aquí.'
+              : 'Prueba con otra búsqueda o cambiando los filtros.'
+          }
+        />
       ) : (
         <>
           {vista === 'cuadricula' ? (

@@ -6,7 +6,6 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  FileIcon,
   InfoIcon,
   PencilIcon,
   TrashIcon,
@@ -326,7 +325,7 @@ export function TaskItem({
             title="Detalle"
             className="touch-target p-1 rounded text-ink-400 hover:text-ink-700 transition-colors"
           >
-            <FileIcon size={12} />
+            <InfoIcon size={12} />
           </IconButton>
           <span
             role="tooltip"

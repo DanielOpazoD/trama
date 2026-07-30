@@ -48,63 +48,74 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
 
   return (
     <li className="group relative card-paper-soft rounded-xl border border-ink-100/70 p-3.5 transition-shadow hover:shadow-sm">
-      {thumb ? (
-        <LinkMediaPreview
-          href={f.url}
-          host={host}
-          dateLabel={dateLabel}
-          imageUrl={thumb}
-          ariaLabel={`Abrir ${f.title || host || 'favorito'}`}
-          onImageError={() => setThumb(null)}
-        />
-      ) : (
-        (host || dateLabel) && (
-          <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
-            {host}
-            {host && dateLabel && ' · '}
-            {dateLabel && <span className="tabular-nums">{dateLabel}</span>}
-          </p>
-        )
-      )}
+      {/* La tarjeta hermana de RecorteCard, con su mismo diseño de escritorio:
+          la miniatura al LADO del texto desde `md` y acotada a 'mediana' — a
+          ancho completo llegaba a ~930×524px de imagen OG para dos líneas de
+          texto. En móvil sigue apilada. */}
+      <div className="md:flex md:items-start md:gap-4">
+        {thumb ? (
+          <LinkMediaPreview
+            href={f.url}
+            host={host}
+            dateLabel={dateLabel}
+            imageUrl={thumb}
+            size="mediana"
+            className="md:mb-0 md:shrink-0"
+            ariaLabel={`Abrir ${f.title || host || 'favorito'}`}
+            onImageError={() => setThumb(null)}
+          />
+        ) : (
+          (host || dateLabel) && (
+            <p className="mb-1.5 text-micro uppercase tracking-eyebrow text-ink-300">
+              {host}
+              {host && dateLabel && ' · '}
+              {dateLabel && <span className="tabular-nums">{dateLabel}</span>}
+            </p>
+          )
+        )}
 
-      <div className="min-w-0">
-        <a
-          href={f.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block font-serif text-xl leading-tight text-ink-700 hover:underline"
-        >
-          {f.title || host || f.url}
-        </a>
-      </div>
+        <div className="min-w-0 md:flex-1">
+          <a
+            href={f.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block font-serif text-xl leading-tight text-ink-700 hover:underline"
+          >
+            {f.title || host || f.url}
+          </a>
 
-      {editingNote || note.trim() ? (
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          onBlur={commitNote}
-          autoFocus={!note.trim()}
-          aria-label="Nota del favorito"
-          className="mt-2 w-full bg-transparent font-serif text-sm text-ink-600"
-        />
-      ) : (
-        <IconButton
-          onClick={() => setEditingNote(true)}
-          label="Añadir nota al favorito"
-          title="Nota"
-          className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100/50 hover:text-ink-600"
-        >
-          <PencilIcon size={12} />
-        </IconButton>
-      )}
+          {editingNote || note.trim() ? (
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={commitNote}
+              autoFocus={!note.trim()}
+              aria-label="Nota del favorito"
+              className="mt-2 w-full bg-transparent font-serif text-body text-ink-600"
+            />
+          ) : (
+            <IconButton
+              onClick={() => setEditingNote(true)}
+              label="Añadir nota al favorito"
+              title="Nota"
+              className="mt-2 inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-300 transition-colors hover:bg-ink-100/50 hover:text-ink-600"
+            >
+              <PencilIcon size={12} />
+            </IconButton>
+          )}
 
-      <div className="mt-1.5 flex items-center justify-end">
-        <button
-          onClick={() => remove.mutate(f.id)}
-          className="text-micro text-ink-300 opacity-0 transition-opacity hover:text-[color:var(--accent-clay)] group-hover:opacity-100 focus:opacity-100"
-        >
-          eliminar
-        </button>
+          <div className="mt-1.5 flex items-center justify-end">
+            {/* Visible en táctil, discreto con puntero: el guard `sm:` es la
+                convención que biblioteca ya aplica — un hover-only a secas es
+                invisible e indescubrible en móvil. */}
+            <button
+              onClick={() => remove.mutate(f.id)}
+              className="text-micro text-ink-300 transition-opacity hover:text-[color:var(--accent-clay)] sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+            >
+              eliminar
+            </button>
+          </div>
+        </div>
       </div>
     </li>
   )

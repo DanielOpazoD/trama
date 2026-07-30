@@ -61,7 +61,7 @@ export function RecorteCardMenu({
                   close()
                 }}
               >
-                <QuoteIcon size={13} /> → cita
+                <QuoteIcon size={13} /> → Cita
               </OverflowMenuItem>
               <OverflowMenuItem
                 onClick={() => {
@@ -69,7 +69,7 @@ export function RecorteCardMenu({
                   close()
                 }}
               >
-                <EntitiesIcon size={13} /> → entidad
+                <EntitiesIcon size={13} /> → Entidad
               </OverflowMenuItem>
               <OverflowMenuItem
                 onClick={() => {
@@ -77,7 +77,7 @@ export function RecorteCardMenu({
                   close()
                 }}
               >
-                <MomentosIcon size={13} /> → momento
+                <MomentosIcon size={13} /> → Momento
               </OverflowMenuItem>
               {!suggestionReady && (
                 <OverflowMenuItem
@@ -91,7 +91,7 @@ export function RecorteCardMenu({
                     <AIThinkingLabel />
                   ) : (
                     <>
-                      <SparkleIcon size={13} /> sugerir destino
+                      <SparkleIcon size={13} /> Sugerir destino
                     </>
                   )}
                 </OverflowMenuItem>
@@ -108,7 +108,7 @@ export function RecorteCardMenu({
                     <AIThinkingLabel state="reading" />
                   ) : (
                     <>
-                      <TextIcon size={13} /> extraer texto
+                      <TextIcon size={13} /> Extraer texto
                     </>
                   )}
                 </OverflowMenuItem>

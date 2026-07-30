@@ -385,7 +385,7 @@ export function ListeningView({
                       <button
                         onClick={() => handleAccept(item)}
                         disabled={addEntity.isPending || enrichingKey !== null}
-                        className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 active:scale-[0.95] transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30 flex items-center gap-1.5"
+                        className="text-xs px-3 py-1.5 border border-ink-100/60 rounded-md hover:bg-ink-50 active:scale-[0.95] transition-all sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-30 flex items-center gap-1.5"
                         title="La IA propondrá descripción, año y posibles conexiones"
                       >
                         {enrichingKey === item.key ? (

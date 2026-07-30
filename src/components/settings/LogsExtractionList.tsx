@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { MetricTile } from '../MetricTile'
 import { api, type ExtractionLogEntry } from '../../api'
 import { LoadingHint } from '../LoadingHint'
 
@@ -42,25 +43,12 @@ export function LogsExtractionList() {
 
   return (
     <div className="space-y-3">
-      <div className="card-paper p-3 grid grid-cols-3 gap-2 text-center">
-        <div>
-          <div className="text-xl font-serif text-ink-800 tabular-nums leading-none">
-            {data.totals.totalCalls}
-          </div>
-          <div className="mt-1 section-eyebrow">llamadas</div>
-        </div>
-        <div>
-          <div className="text-xl font-serif text-ink-800 tabular-nums leading-none">
-            USD {totalCostEur}
-          </div>
-          <div className="mt-1 section-eyebrow">costo total</div>
-        </div>
-        <div>
-          <div className="text-xl font-serif text-ink-800 tabular-nums leading-none">
-            {data.totals.totalTokens.toLocaleString('es')}
-          </div>
-          <div className="mt-1 section-eyebrow">tokens</div>
-        </div>
+      {/* El mismo MetricTile del resto de la app — este strip era una de las
+          cuatro reimplementaciones del gesto número+etiqueta. */}
+      <div className="grid grid-cols-3 gap-2">
+        <MetricTile label="llamadas" value={data.totals.totalCalls} />
+        <MetricTile label="costo total" value={`USD ${totalCostEur}`} />
+        <MetricTile label="tokens" value={data.totals.totalTokens.toLocaleString('es')} />
       </div>
 
       <div className="flex items-baseline justify-between">

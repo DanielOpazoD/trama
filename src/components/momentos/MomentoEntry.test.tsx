@@ -106,6 +106,32 @@ describe('<MomentoEntry />', () => {
     expect(screen.queryByRole('button', { name: /compartir momento/i })).toBeNull()
   })
 
+  /**
+   * El bug que motivó migrar este menú al OverflowMenu compartido: la versión
+   * artesanal no se cerraba ni con Escape ni con clic afuera — en teclado o
+   * táctil quedaba abierta hasta pulsar el propio botón otra vez.
+   */
+  it('el menú de opciones se cierra con Escape y con clic afuera', () => {
+    render(
+      <MomentoEntry
+        momento={baseMomento('nota', { bodyText: 'Nota.' })}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /opciones del momento/i }))
+    expect(screen.getByRole('menuitem', { name: /editar/i })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menuitem', { name: /editar/i })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /opciones del momento/i }))
+    expect(screen.getByRole('menuitem', { name: /editar/i })).toBeInTheDocument()
+    // useAnchoredPopover escucha mousedown, no pointerdown.
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByRole('menuitem', { name: /editar/i })).toBeNull()
+  })
+
   it('muestra quién subió un momento compartido con una marca de autoría premium', () => {
     render(
       <MomentoEntry

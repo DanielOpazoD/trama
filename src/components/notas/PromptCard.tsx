@@ -1,7 +1,16 @@
 import { useState } from 'react'
 import type { Prompt } from '../../api'
-import { ArchiveIcon, ClipboardIcon, PencilIcon, TrashIcon } from '../Icons'
+import {
+  ArchiveIcon,
+  ClipboardIcon,
+  DuplicateIcon,
+  FileIcon,
+  PencilIcon,
+  TrashIcon,
+  UndoIcon,
+} from '../Icons'
 import { IconButton } from '../IconButton'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { AttachmentsPanel } from './AttachmentsPanel'
 import { PromptVersionsPanel } from './PromptVersionsPanel'
 import { ComposerFooter, composerTitleClass, editingFrameStyle } from './composerChrome'
@@ -33,6 +42,8 @@ export function PromptCard({
 }) {
   const [editing, setEditing] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showFiles, setShowFiles] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [title, setTitle] = useState(prompt.title)
   const [collection, setCollection] = useState(prompt.collection ?? '')
   const [content, setContent] = useState(prompt.content)
@@ -138,70 +149,138 @@ export function PromptCard({
               ))}
             </div>
           )}
-          {/* `flex-wrap` no es cosmético: a 375px estos seis controles no
-              caben en una línea y sin envolver el último queda fuera de la
-              tarjeta. El contador se queda solo arriba para que la fila de
-              acciones no se parta por la mitad. */}
-          <footer className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-micro text-ink-300">
-            <span className="tabular-nums">{prompt.useCount} usos</span>
-            <span className="hidden flex-1 sm:block" />
-            <IconButton
-              onClick={onCopy}
-              disabled={busy}
-              className="p-1 hover:text-ink-700 transition-colors"
-              title="Copiar"
-              label="Copiar prompt"
-            >
-              <ClipboardIcon size={13} />
-            </IconButton>
-            <IconButton
-              onClick={() => {
-                setTitle(prompt.title)
-                setCollection(prompt.collection ?? '')
-                setContent(prompt.content)
-                setEditing(true)
-              }}
-              disabled={busy}
-              className="p-1 hover:text-ink-700 transition-colors"
-              title="Editar"
-              label="Editar prompt"
-            >
-              <PencilIcon size={13} />
-            </IconButton>
-            <button
-              onClick={onFavorite}
-              disabled={busy}
-              className="uppercase tracking-eyebrow hover:text-ink-700 transition-colors"
-            >
-              {prompt.favorite ? 'soltar' : 'favorito'}
-            </button>
-            <button
-              onClick={onDuplicate}
-              disabled={busy}
-              className="uppercase tracking-eyebrow hover:text-ink-700 transition-colors"
-            >
-              duplicar
-            </button>
-            <button
-              onClick={() => setShowHistory((v) => !v)}
-              aria-expanded={showHistory}
-              className="uppercase tracking-eyebrow transition-colors hover:text-ink-700"
-              style={showHistory ? { color: ACCENT } : undefined}
-            >
-              historial
-            </button>
-            <IconButton
-              onClick={onDelete}
-              disabled={busy}
-              className="p-1 hover:text-[color:var(--accent-clay)] transition-colors"
-              title="Borrar"
-              label="Borrar prompt"
-            >
-              <TrashIcon size={13} />
-            </IconButton>
+          {/* La única de las siete tarjetas de la app que exponía SEIS
+              controles siempre visibles (y los anexos desplegados debajo, en
+              cada tarjeta). Ahora sigue la convención de NoteCard: la acción
+              que da sentido a la biblioteca —copiar— visible con nombre; las
+              rápidas (favorito, editar) aparecen al hover o foco; y el resto
+              vive tras el menú ⋯, con el borrado pidiendo confirmación ahí
+              dentro como en las demás tarjetas. */}
+          <footer className="mt-3 flex items-center justify-between gap-2 text-micro text-ink-300">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                onClick={onCopy}
+                disabled={busy}
+                className="inline-flex shrink-0 items-center gap-1.5 font-medium uppercase tracking-eyebrow text-ink-500 transition-colors hover:text-ink-800"
+              >
+                <ClipboardIcon size={13} />
+                Copiar
+              </button>
+              <span className="tabular-nums">{prompt.useCount} usos</span>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                <button
+                  onClick={onFavorite}
+                  disabled={busy}
+                  className="uppercase tracking-eyebrow px-1 transition-colors hover:text-ink-700 disabled:opacity-40"
+                >
+                  {prompt.favorite ? 'soltar' : 'favorito'}
+                </button>
+                <IconButton
+                  onClick={() => {
+                    setTitle(prompt.title)
+                    setCollection(prompt.collection ?? '')
+                    setContent(prompt.content)
+                    setEditing(true)
+                  }}
+                  disabled={busy}
+                  label="Editar prompt"
+                  title="Editar"
+                  className="touch-target rounded p-1 text-ink-300 transition-colors hover:bg-ink-100 hover:text-ink-700 disabled:opacity-40"
+                >
+                  <PencilIcon size={13} />
+                </IconButton>
+              </div>
+
+              <OverflowMenu
+                label="Acciones del prompt"
+                width="w-48"
+                triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+              >
+                {(close) => (
+                  <>
+                    <OverflowMenuItem
+                      disabled={busy}
+                      onClick={() => {
+                        setTitle(prompt.title)
+                        setCollection(prompt.collection ?? '')
+                        setContent(prompt.content)
+                        setEditing(true)
+                        close()
+                      }}
+                    >
+                      <PencilIcon size={13} /> Editar
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      disabled={busy}
+                      onClick={() => {
+                        onFavorite()
+                        close()
+                      }}
+                    >
+                      ★ {prompt.favorite ? 'Soltar favorito' : 'Favorito'}
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      disabled={busy}
+                      onClick={() => {
+                        onDuplicate()
+                        close()
+                      }}
+                    >
+                      <DuplicateIcon size={13} /> Duplicar
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        setShowHistory((v) => !v)
+                        close()
+                      }}
+                    >
+                      <UndoIcon size={13} />{' '}
+                      {showHistory ? 'Ocultar historial' : 'Historial'}
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      onClick={() => {
+                        setShowFiles((v) => !v)
+                        close()
+                      }}
+                    >
+                      <FileIcon size={13} /> {showFiles ? 'Ocultar anexos' : 'Anexos'}
+                    </OverflowMenuItem>
+
+                    {confirming ? (
+                      <>
+                        <OverflowMenuItem
+                          danger
+                          disabled={busy}
+                          onClick={() => {
+                            onDelete()
+                            close()
+                          }}
+                        >
+                          <TrashIcon size={13} /> Sí, borrar
+                        </OverflowMenuItem>
+                        <OverflowMenuItem onClick={() => setConfirming(false)}>
+                          Cancelar
+                        </OverflowMenuItem>
+                      </>
+                    ) : (
+                      <OverflowMenuItem
+                        danger
+                        disabled={busy}
+                        onClick={() => setConfirming(true)}
+                      >
+                        <TrashIcon size={13} /> Borrar
+                      </OverflowMenuItem>
+                    )}
+                  </>
+                )}
+              </OverflowMenu>
+            </div>
           </footer>
           <PromptVersionsPanel prompt={prompt} open={showHistory} busy={busy} />
-          <AttachmentsPanel ownerType="prompt" ownerId={prompt.id} />
+          {showFiles && <AttachmentsPanel ownerType="prompt" ownerId={prompt.id} />}
         </div>
       </div>
     </article>
