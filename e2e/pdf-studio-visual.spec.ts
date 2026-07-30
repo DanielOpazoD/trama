@@ -28,10 +28,13 @@ import { emptyState, enableDemoMode, mockBackend } from './fixtures'
  * de MacBook Air se comía el 87 % de su tolerancia y seguía verde, y sólo
  * reventó la de móvil, donde el diff se concentra en 330 px de ancho.
  *
- * Las cinco capturas de página/modal siguen mostrando la barra previa a #257 y
- * el tooltip cerrado que #295 abrió al enfocar: pasan de sobra (3–44 % de su
- * tolerancia) y se dejaron a propósito sin refrescar, para no bendecir de una
- * sentada estados que nadie revisó. Refréscalas cuando toques esas pantallas.
+ * Las cinco capturas de página/modal están obsoletas por dos motivos a la vez:
+ * muestran la barra previa a #257, y muestran el tooltip CERRADO porque son
+ * anteriores a que #295 lo abriera también al enfocar (hoy, tras un `click()`
+ * de Playwright, el botón queda con foco y a los 400 ms el tooltip entra en la
+ * foto). Pasan de sobra igual (3–44 % de su tolerancia) y se dejaron a propósito
+ * sin refrescar, para no bendecir de una sentada estados que nadie revisó.
+ * Refréscalas cuando toques esas pantallas.
  */
 const runVisual = process.env.PDF_STUDIO_VISUAL === '1' && process.platform === 'darwin'
 

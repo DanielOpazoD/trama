@@ -22,8 +22,8 @@ Medido con `maxDiffPixelRatio: 0` en las siete:
 
 **#257 «Imprenta Firma y Timbre Studio v1»** (`2f82ae87`, 20-jun-2026). Sumó
 `stampAssetMenu` al grupo «Insertar» de `EditorToolbar.tsx` —cuatro líneas— y
-tocó 22 archivos, ninguno de ellos una captura. Las capturas siguen firmadas por
-#201 (`e74ba416`).
+tocó 22 archivos, ninguno de ellos una captura. Las capturas siguen firmadas
+por #201 (`e74ba416`).
 
 El grupo «Insertar» pasó de 34 px (sólo la cámara) a 80 px (`✒ ▾` de «Firma y
 timbre» + cámara). Todo lo que va después se corrió ~45 px. En móvil el ancho
@@ -58,9 +58,9 @@ de MacBook Air, ahora corrido 45 px. Probado por tres vías:
 
 No es que la prueba no corra en CI: **sí corre**, en
 `.github/workflows/pdf-visual.yml` sobre `macos-latest`. Pero sólo por
-`schedule` (martes) y `workflow_dispatch`. Ningún check de PR la ejecuta, así que
-#257 mergeó en verde y la corrida semanal lleva seis semanas roja sin bloquear
-nada ni mirarla nadie.
+`schedule` (martes) y `workflow_dispatch`. Ningún check de PR la ejecuta, así
+que #257 mergeó en verde y la corrida semanal lleva seis semanas roja sin
+bloquear nada ni mirarla nadie.
 
 Y aunque hubiera corrido en el PR, la captura de MacBook Air **habría seguido
 verde**: 427 px de cambio contra 488 px de presupuesto. La tolerancia era lo
@@ -111,7 +111,7 @@ barra en móvil es otra conversación, no un arreglo de snapshot.
 
 ## Validación
 
-- `PDF_STUDIO_VISUAL=1 playwright test e2e/pdf-studio-visual.spec.ts` → **7/7**.
+- `npm run e2e:pdf-visual` → **7/7**.
 - Mutación (quitar `stampAssetMenu`) → `toolbar-macbook-air` y `toolbar-mobile`
   rojas; revertida.
 - Las dos capturas nuevas son **idénticas píxel a píxel** (0 distintos) a las que
@@ -129,7 +129,7 @@ barra en móvil es otra conversación, no un arreglo de snapshot.
   no hay Docker. Viven en el job `migrations` del CI, que levanta su propio
   servicio; este PR no toca SQL, migraciones ni esquemas.
 
-Pendiente de confirmar en CI: que `macos-latest` renderice estos píxeles igual
-que esta máquina con las tolerancias nuevas, más estrechas. Si el runner difiere,
-diferiría también con las viejas (los diffs estructurales son de cientos de
-píxeles), pero las nuevas dejan menos margen a la variación de antialiasing.
+Confirmado en CI: el job `pdf-visual` corrió **por `pull_request`** (el
+disparador nuevo) en `macos-latest` y pasó, así que ese runner reproduce estos
+píxeles con las tolerancias más estrechas. Y `migrations` cubrió los cuatro
+gates de Postgres que aquí no se pudieron correr.
