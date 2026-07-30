@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useLocalStorageState } from '../../hooks/useLocalStorageState'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
 import { PencilIcon, TrashIcon } from '../Icons'
@@ -27,10 +26,9 @@ import { VideoPlayBadge } from './VideoPlayBadge'
  * (defensa contra props mal pasados).
  */
 
-type TileSize = 'small' | 'medium' | 'large'
+import { TILE_SIZES, type TileSize } from './useAlbumTileSize'
 
-const SIZE_STORAGE_KEY = 'trama:album-size'
-const TILE_SIZES: readonly TileSize[] = ['small', 'medium', 'large']
+export type { TileSize }
 
 const SIZE_LABELS: Record<TileSize, string> = {
   small: 'mini',
@@ -54,18 +52,16 @@ export function AlbumGrid({
   items,
   entitiesById,
   onDelete,
+  size,
 }: {
   items: Momento[]
   entitiesById: Map<string, Entity>
   onDelete: (id: string) => void
+  /** El control vive en la barra, junto a los demás de vista — antes se
+      renderizaba aquí y se comía una fila entera para sí solo. */
+  size: TileSize
 }) {
   const photoItems = useMemo(() => items.filter((m) => m.kind === 'foto'), [items])
-
-  const [size, setSize] = useLocalStorageState<TileSize>(
-    SIZE_STORAGE_KEY,
-    'medium',
-    (raw): raw is TileSize => TILE_SIZES.includes(raw as TileSize),
-  )
   // Cronología fija: año primero, mes secundario. Evita otro control visible
   // en una pantalla que ya tiene filtros de contenido y vista.
   const yearlyGroups = useMemo(() => groupByYearThenMonth(photoItems), [photoItems])
@@ -82,10 +78,6 @@ export function AlbumGrid({
 
   return (
     <div className="space-y-4">
-      <div className="-mt-2 flex justify-end">
-        <SizeMenu value={size} onChange={setSize} />
-      </div>
-
       <div className="space-y-12">
         {yearlyGroups.map(({ year, months }) => (
           <section key={year} className="animate-fade-up">
@@ -134,7 +126,7 @@ export function AlbumGrid({
   )
 }
 
-function SizeMenu({
+export function SizeMenu({
   value,
   onChange,
 }: {
