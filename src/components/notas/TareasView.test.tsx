@@ -142,6 +142,20 @@ describe('<TareasView />', () => {
     ).toBeInTheDocument()
   })
 
+  /**
+   * El criterio activo se lee SIN hover ni abrir el menú: como el orden vale
+   * para toda la hoja mensual, su estado tiene que estar a la vista. Un icono
+   * suelto obligaría a abrir el menú para saber cómo está ordenado — y sería
+   * además el único `action` de cabecera solo-icono de la app (Citas y Claves
+   * usan texto).
+   */
+  it('el criterio activo se lee sin abrir el menú', async () => {
+    renderWithProviders(<TareasView />)
+
+    const ordenar = await screen.findByRole('button', { name: /^Ordenar —/ })
+    expect(ordenar).toHaveTextContent('Fecha de ingreso')
+  })
+
   it('marca la entrada de la semana actual como punto de partida claro en móvil', async () => {
     renderWithProviders(<TareasView />)
 

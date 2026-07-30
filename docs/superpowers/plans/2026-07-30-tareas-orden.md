@@ -21,6 +21,21 @@ activo (`Ordenar — Prioridad`), que ahí sí describe el estado real.
 repite por cuadro, pero ése sí es estado por semana (`photosOpen` es un `Set`
 indexado por semana). Repetirlo es correcto; moverlo sería el error simétrico.
 
+## Lo que encontró la autorrevisión
+
+CodeRabbit no revisó este PR —su check pasó con «Review rate limited», que es un
+verde sin revisión—, así que el diff se releyó a mano. Y salió algo:
+
+**El disparador quedaba como icono suelto en el slot `action` del `ViewHeader`,
+y ahí la convención del repo es texto.** Citas usa `icono + «Imprenta» + ⌄`;
+Claves usa «Añadir» y «bloquear vault»; Twitter usa «Sincronizar». Un icono a
+secas habría sido el único `action` de cabecera solo-icono de la app — y
+precisamente en la vista donde el criterio de orden vale para TODA la hoja
+mensual, de modo que obligaba a abrir el menú para saber cómo estaba ordenado.
+
+Ahora el disparador muestra `⇅ Fecha de ingreso ⌄`: dice qué hace y en qué
+estado está, sin hover ni clic. 194px de ancho, cabe en 375px sin desborde.
+
 ## Validación
 
 En el navegador (demo): **4 hojas semanales, 1 control de orden**, situado en
@@ -36,6 +51,7 @@ escribieron los tres que faltaban.
 | ------------------------------------------------- | ----------------------------------------------------- |
 | el menú vuelve a repetirse en cada cuadro semanal | «aparece una sola vez» + «anuncia el criterio activo» |
 | el menú deja de anunciar el criterio activo       | los tres tests de orden                               |
+| el disparador vuelve a ser un icono suelto        | «el criterio activo se lee sin abrir el menú»         |
 
 `typecheck`, `lint`, `format:check`, **los 33 gates no-DB** y la suite completa.
 

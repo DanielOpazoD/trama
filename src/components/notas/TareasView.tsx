@@ -286,8 +286,14 @@ export function TareasView() {
           <OverflowMenu
             label={`Ordenar — ${SORT_LABELS[sortMode]}`}
             width="w-52"
-            triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
-            triggerContent={<SortIcon />}
+            triggerClassName="touch-target inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-caption uppercase tracking-eyebrow text-ink-300 transition-colors hover:text-ink-700"
+            triggerContent={
+              <>
+                <SortIcon />
+                {SORT_LABELS[sortMode]}
+                <span aria-hidden>⌄</span>
+              </>
+            }
           >
             {(close) => (
               <>
