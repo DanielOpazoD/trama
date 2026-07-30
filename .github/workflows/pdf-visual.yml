@@ -1,6 +1,30 @@
 name: pdf-visual
 
+# Estas capturas son de macOS (ver el encabezado de e2e/pdf-studio-visual.spec.ts),
+# así que no pueden vivir en los jobs ubuntu de test.yml. Corren acá:
+#
+#   - pull_request + paths: los PR que tocan el editor de PDF o las piezas
+#     compartidas que dibuja la barra pagan un runner macOS y se enteran en el
+#     acto. Antes sólo había schedule y workflow_dispatch: #257 sumó «Firma y
+#     timbre» a la barra, nadie refrescó las capturas y la deriva vivió seis
+#     semanas en main sin que ningún check de PR se pusiera rojo.
+#   - schedule: red de seguridad. Ninguna lista de `paths` adivina todo lo que
+#     mueve un píxel (un token de Tailwind, un hook compartido, el propio
+#     Chromium), así que la corrida semanal sigue cubriendo el resto.
 on:
+  pull_request:
+    paths:
+      - 'src/components/notas/pdfStudio/**'
+      - 'src/components/IconButton.tsx'
+      - 'src/components/Icons.tsx'
+      - 'src/components/OverflowMenu.tsx'
+      - 'src/components/Tooltip.tsx'
+      - 'src/index.css'
+      - 'tailwind.config.js'
+      - 'e2e/fixtures.ts'
+      - 'e2e/pdf-studio-visual.spec.ts'
+      - 'e2e/pdf-studio-visual.spec.ts-snapshots/**'
+      - '.github/workflows/pdf-visual.yml'
   workflow_dispatch:
   schedule:
     # Martes temprano UTC: cadencia semanal fuera del camino crítico de PR.
