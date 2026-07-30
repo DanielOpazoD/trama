@@ -115,4 +115,46 @@ test.describe('Recortes → Imprenta', () => {
     })
     await expect(page.getByText(/imagen enviada a Imprenta/i)).toBeVisible()
   })
+
+  /**
+   * El caso que motivó el cambio: dos envíos, UN documento.
+   *
+   * Imprenta se desmonta al salir de su sección (`key={section}` en
+   * NotasWorld) y su documento vivía en estado interno, así que el segundo
+   * recorte enviado lo encontraba vacío: cada envío empezaba un documento desde
+   * cero y el anterior se perdía sin aviso. Ahora el historial vive por encima
+   * del cambio de sección y cada envío suma páginas.
+   */
+  test('dos recortes enviados por separado se suman al mismo documento', async ({
+    page,
+  }) => {
+    await setupRecorteImage(page)
+    await page.goto('/?world=notas&section=notas&segment=capturas')
+    await expect(page.getByText('Recibo WhatsApp')).toBeVisible()
+
+    const enviarDesdeElMenu = async () => {
+      await page.getByRole('button', { name: 'Acciones del recorte' }).first().click()
+      await page.getByRole('menuitem', { name: /Imprenta/i }).click()
+      await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible({
+        timeout: 15_000,
+      })
+    }
+
+    await enviarDesdeElMenu()
+    await expect(page.getByAltText('Página 1').first()).toBeVisible({ timeout: 15_000 })
+
+    // Volver a Notas desmonta el estudio: es justo el paso que borraba el
+    // documento. El aviso del segundo envío debe nombrar lo que ya había.
+    await page
+      .getByRole('button', { name: /^Notas/ })
+      .first()
+      .click()
+    await expect(page.getByText('Recibo WhatsApp')).toBeVisible()
+    await enviarDesdeElMenu()
+
+    await expect(page.getByText(/documento en curso/i)).toBeVisible()
+    // La página del primer envío sigue ahí, y hay una segunda.
+    await expect(page.getByAltText('Página 1').first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByAltText('Página 2').first()).toBeVisible({ timeout: 15_000 })
+  })
 })

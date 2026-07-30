@@ -7,9 +7,10 @@ import { WaitingVoice } from '../../../WaitingVoice'
 import {
   FilePdfIcon,
   FileIcon,
-  GalleryIcon,
   PrinterIcon,
   RedoIcon,
+  SettingsIcon,
+  TrashIcon,
   UndoIcon,
   UploadIcon,
 } from '../../../Icons'
@@ -160,42 +161,20 @@ export function PdfStudioDocumentToolbar({
             </IconButton>
           </div>
         )}
-        {!isTemplates && (
-          <div
-            role="group"
-            aria-label="Imágenes por hoja al importar"
-            className="hidden items-center overflow-hidden rounded-md border border-ink-100 bg-paper-50 sm:inline-flex"
-          >
-            <span
-              aria-hidden
-              className="inline-flex h-7 w-7 items-center justify-center border-r border-ink-100 text-ink-400"
-              title="Imágenes por hoja al importar"
-            >
-              <GalleryIcon size={12} />
-            </span>
-            {IMAGE_LAYOUT_OPTIONS.map((count) => {
-              const selected = imagesPerPage === count
-              return (
-                <button
-                  key={count}
-                  type="button"
-                  aria-label={`${count} ${count === 1 ? 'imagen' : 'imágenes'} por hoja al importar`}
-                  aria-pressed={selected}
-                  onClick={() => onSetImagesPerPage(count)}
-                  className={`h-7 min-w-7 px-2 text-caption font-medium transition-colors ${
-                    selected
-                      ? 'bg-ink-800 text-paper-50'
-                      : 'text-ink-500 hover:bg-ink-100/60 hover:text-ink-800'
-                  }`}
-                >
-                  {count}
-                </button>
-              )
-            })}
-          </div>
-        )}
       </div>
-      <div className="ml-auto flex min-w-0 items-center gap-1.5">
+      {/* Con el documento vacío sólo tiene sentido traer algo: el lienzo ya
+          muestra la zona de arrastre con la invitación y los formatos. Antes
+          había ocho controles ahí sin nada sobre lo que actuar —el primario
+          deshabilitado, ajustes de un documento inexistente, «Nuevo documento»
+          en un documento ya nuevo—, y eso es lo que volvía la barra ilegible.
+          La interfaz crece con el trabajo: en Imprenta vacía queda «Importar».
+          En Planillas no se aplica, porque ahí se entra a rellenar una plantilla
+          que se abre de la nube, no a componer desde cero. */}
+      <div
+        className={`ml-auto flex min-w-0 items-center gap-1.5 ${
+          empty && !isTemplates ? 'hidden' : ''
+        }`}
+      >
         {!empty && (
           <span className="hidden text-micro text-ink-300 tabular-nums sm:inline">
             {total} {total === 1 ? 'página' : 'páginas'}
@@ -203,13 +182,13 @@ export function PdfStudioDocumentToolbar({
         )}
         {!isTemplates && (
           <OverflowMenu
-            label="Ajustes de página"
+            label="Ajustes del documento"
             width="w-72"
             triggerClassName="inline-flex h-7 items-center gap-1.5 rounded-md border border-ink-200 px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900"
             triggerContent={
               <>
-                <FileIcon size={12} />
-                <span className="hidden sm:inline">Página</span>
+                <SettingsIcon size={12} />
+                <span className="hidden sm:inline">Ajustes</span>
               </>
             }
           >
@@ -290,11 +269,14 @@ export function PdfStudioDocumentToolbar({
                   placeholder="Ej: Uso interno"
                   className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
                 />
+                <p className="mb-2 mt-3 text-micro uppercase tracking-eyebrow text-ink-300">
+                  Al importar
+                </p>
                 <label
-                  className="mt-2 block text-caption text-ink-700 sm:hidden"
+                  className="block text-caption text-ink-700"
                   htmlFor="pdf-images-per-page-page"
                 >
-                  Imágenes por hoja al importar
+                  Imágenes por hoja
                 </label>
                 <select
                   id="pdf-images-per-page-page"
@@ -306,7 +288,7 @@ export function PdfStudioDocumentToolbar({
                       >['imagesPerPage'],
                     )
                   }
-                  className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption sm:hidden"
+                  className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
                 >
                   {IMAGE_LAYOUT_OPTIONS.map((count) => (
                     <option key={count} value={count}>
@@ -314,24 +296,50 @@ export function PdfStudioDocumentToolbar({
                     </option>
                   ))}
                 </select>
+
+                {/* Marca de agua y compresión vivían en el menú «···», junto a
+                    herramientas como el OCR. Eran ajustes del documento igual
+                    que la numeración o el encabezado, y estar repartidos entre
+                    dos menús sin regla adivinable obligaba a buscar en ambos. */}
+                <p className="mb-2 mt-3 text-micro uppercase tracking-eyebrow text-ink-300">
+                  Al exportar
+                </p>
+                <label
+                  className="block text-caption text-ink-700"
+                  htmlFor="pdf-watermark-page"
+                >
+                  Marca de agua
+                </label>
+                <input
+                  id="pdf-watermark-page"
+                  type="text"
+                  value={watermarkText}
+                  onChange={(e) => onSetWatermark(e.target.value)}
+                  placeholder="Ej: BORRADOR"
+                  className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                />
+                <label
+                  className="mt-2 block text-caption text-ink-700"
+                  htmlFor="pdf-compression-page"
+                >
+                  Compresión
+                </label>
+                <select
+                  id="pdf-compression-page"
+                  value={exportCompression ?? 'balanced'}
+                  onChange={(e) =>
+                    onSetExportCompression(
+                      e.currentTarget.value as AssembleOptions['compression'],
+                    )
+                  }
+                  className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
+                >
+                  <option value="balanced">Optimizada</option>
+                  <option value="compatibility">Máxima compatibilidad</option>
+                </select>
               </div>
             )}
           </OverflowMenu>
-        )}
-        {/* "Nuevo documento" salió del menú "···" y queda como acción a la par
-            del guardado (sólo Imprenta; en Planillas sigue en el menú). */}
-        {!isTemplates && (
-          <button
-            type="button"
-            onClick={onNewDoc}
-            disabled={empty || busy}
-            aria-label="Nuevo documento"
-            title="Empezar un documento nuevo (descarta el actual)"
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-ink-200 px-2.5 text-caption font-medium text-ink-700 transition-colors hover:bg-ink-100/50 hover:text-ink-900 disabled:opacity-40"
-          >
-            <FileIcon size={12} />
-            <span className="hidden sm:inline">Nuevo documento</span>
-          </button>
         )}
         {/* En LLENADO la acción de imprimir vive en el banner contextual
             (PdfTemplateModeBanner), así no se duplica el botón. En diseño sin
@@ -388,18 +396,6 @@ export function PdfStudioDocumentToolbar({
                   Descargar PDF rellenable
                 </OverflowMenuItem>
               )}
-              {isTemplates && (
-                <OverflowMenuItem
-                  disabled={empty || busy}
-                  onClick={() => {
-                    close()
-                    onNewDoc()
-                  }}
-                >
-                  <FileIcon size={12} />
-                  Nuevo documento
-                </OverflowMenuItem>
-              )}
               {formsEnabled && (
                 <OverflowMenuItem
                   disabled={empty || saving || busy}
@@ -422,46 +418,20 @@ export function PdfStudioDocumentToolbar({
                 <FileIcon size={12} />
                 OCR buscable
               </OverflowMenuItem>
-              {!empty && (
-                <div className="mt-1 border-t border-ink-100 px-2 py-2">
-                  <p className="mb-2 text-micro uppercase tracking-eyebrow text-ink-300">
-                    Ajustes
-                  </p>
-                  <label
-                    className="mt-2 block text-caption text-ink-700"
-                    htmlFor="pdf-watermark-menu"
-                  >
-                    Marca de agua
-                  </label>
-                  <input
-                    id="pdf-watermark-menu"
-                    type="text"
-                    value={watermarkText}
-                    onChange={(e) => onSetWatermark(e.target.value)}
-                    placeholder="Ej: BORRADOR"
-                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
-                  />
-                  <label
-                    className="mt-2 block text-caption text-ink-700"
-                    htmlFor="pdf-compression-menu"
-                  >
-                    Exportación
-                  </label>
-                  <select
-                    id="pdf-compression-menu"
-                    value={exportCompression ?? 'balanced'}
-                    onChange={(e) =>
-                      onSetExportCompression(
-                        e.currentTarget.value as AssembleOptions['compression'],
-                      )
-                    }
-                    className="input-paper mt-1 w-full rounded-md border border-ink-200 px-2 py-1 text-caption"
-                  >
-                    <option value="balanced">Optimizada</option>
-                    <option value="compatibility">Máxima compatibilidad</option>
-                  </select>
-                </div>
-              )}
+              {/* Descartar el documento estaba PEGADO al botón de guardar: un
+                  clic de más y se perdía el trabajo. Baja aquí, marcado como
+                  destructivo y lejos de la acción primaria. */}
+              <OverflowMenuItem
+                danger
+                disabled={empty || busy}
+                onClick={() => {
+                  close()
+                  onNewDoc()
+                }}
+              >
+                <TrashIcon size={12} />
+                Descartar y empezar de nuevo
+              </OverflowMenuItem>
             </>
           )}
         </OverflowMenu>
