@@ -97,5 +97,25 @@ export function usePdfStudioImport({
     [commit, doc, onImageAssets, toast],
   )
 
-  return { addFiles, busy }
+  // Los dos adaptadores de eventos del navegador viven junto a lo que
+  // alimentan: `<input type=file>` y soltar archivos son la misma intención
+  // —traer algo— expresada por dos gestos, y no tenían nada que hacer en el
+  // cuerpo de la vista.
+  const onFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      void addFiles(e.target.files)
+      e.currentTarget.value = ''
+    },
+    [addFiles],
+  )
+  const onDropFiles = useCallback(
+    (e: React.DragEvent) => {
+      if (e.dataTransfer.files.length === 0) return
+      e.preventDefault()
+      void addFiles(e.dataTransfer.files)
+    },
+    [addFiles],
+  )
+
+  return { addFiles, busy, onFileInput, onDropFiles }
 }

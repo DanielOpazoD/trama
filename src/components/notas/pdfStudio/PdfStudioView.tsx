@@ -27,7 +27,10 @@ import { usePdfStudioDraftSanitizer } from './workspace/usePdfStudioDraftSanitiz
 import { usePdfStudioTemplateMode } from './planillas/design/usePdfStudioTemplateMode'
 import { usePdfStudioWorkspace } from './workspace/usePdfStudioWorkspace'
 import { pdfStudioPageInteractionMode as pageMode } from './shell/pdfStudioPageInteractionMode'
-import { usePdfStudioDocumentHistory } from './shell/usePdfStudioDocumentHistory'
+import {
+  usePdfStudioDocumentHistory,
+  type ExternalDocumentHistory,
+} from './shell/usePdfStudioDocumentHistory'
 import { usePdfStudioDocumentSettings } from './shell/usePdfStudioDocumentSettings'
 import { usePdfStudioExternalFiles } from './shell/usePdfStudioExternalFiles'
 import { usePdfStudioKeyboardRefs } from './shell/usePdfStudioKeyboardRefs'
@@ -41,19 +44,26 @@ type PdfStudioViewProps = {
   onExternalFilesConsumed?: () => void
   topBar?: ReactNode
   studioMode?: PdfStudioMode
+  /**
+   * Historial del documento gobernado desde fuera. Imprenta se desmonta al
+   * salir de su sección, así que sin esto el documento en curso se pierde y el
+   * siguiente recorte enviado empieza uno nuevo en vez de sumar páginas.
+   */
+  documentHistory?: ExternalDocumentHistory
 }
 export function PdfStudioView({
   externalFiles = [],
   onExternalFilesConsumed,
   topBar,
   studioMode = 'editor',
+  documentHistory,
 }: PdfStudioViewProps) {
   const toast = useToast()
   const templatesEnabled = studioMode === 'templates'
   const [exportCompression, setExportCompression] =
     useState<AssembleOptions['compression']>('balanced')
   const { history, setHistory, doc, commit, updateSettings, updateTitle } =
-    usePdfStudioDocumentHistory()
+    usePdfStudioDocumentHistory(documentHistory)
   const { cancelExport, downloadSaved, exportPdf, preparePdf, exportStatus, saving } =
     usePdfStudioExport({ compression: exportCompression })
   const { openPreview, previewModal } = usePdfStudioPreview({ preparePdf })
@@ -100,7 +110,7 @@ export function PdfStudioView({
   })
   const { docRef, pageClipboardRef, selectedIndicesRef, selectAllRef } =
     usePdfStudioKeyboardRefs({ doc, selectedIndices, selectAll })
-  const { addFiles, busy } = usePdfStudioImport({
+  const { addFiles, busy, onFileInput, onDropFiles } = usePdfStudioImport({
     commit,
     doc,
     onImageAssets: workspace.addAssets,
@@ -171,16 +181,6 @@ export function PdfStudioView({
     setHistory,
     showToast: (message) => toast.show({ message, tone: 'default' }),
   })
-  function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    void addFiles(e.target.files)
-    e.currentTarget.value = ''
-  }
-  function onDropFiles(e: React.DragEvent) {
-    if (e.dataTransfer.files.length > 0) {
-      e.preventDefault()
-      void addFiles(e.dataTransfer.files)
-    }
-  }
   function closeTextEditor(edits: PdfTextEditorResult | null) {
     if (edits) commit((d) => applyPdfTextEditorResult(d, edits))
     // Cancelar: el borrador local vuelve al doc confirmado (descarta autosaves vivos).

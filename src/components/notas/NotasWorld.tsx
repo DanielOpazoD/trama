@@ -1,4 +1,7 @@
 import { lazy, Suspense, useCallback, useState } from 'react'
+import { initHistory, type History } from '../../lib/pdfStudio/model/history'
+import { emptyDoc } from '../../lib/pdfStudio/model/model'
+import type { PdfDoc } from '../../lib/pdfStudio/model/modelTypes'
 import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
 import { NotasMobileTabs, NotasSidebar, NotasTopBar } from './NotasWorldChrome'
@@ -78,6 +81,15 @@ export function NotasWorld({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pendingPdfFiles, setPendingPdfFiles] = useState<File[]>([])
+  // El documento de Imprenta vive AQUÍ, no dentro de PdfStudioView: el estudio
+  // se desmonta al salir de su sección (`key={section}` más abajo), así que un
+  // estado interno se destruiría al volver a Notas y el siguiente recorte
+  // enviado empezaría un documento desde cero en lugar de sumarle páginas.
+  // Planillas no lo comparte: sus plantillas se abren de la nube, no se
+  // acumulan, y mezclar ambos documentos sería confundir dos flujos.
+  const [imprentaHistory, setImprentaHistory] = useState<History<PdfDoc>>(() =>
+    initHistory(emptyDoc()),
+  )
   const { theme, setTheme } = useTheme()
   const { isVisible } = useModuleVisibility()
   // La sección activa se clampa a Inicio si deja de ser visible (anti-trampa).
@@ -116,14 +128,21 @@ export function NotasWorld({
         return
       }
       try {
+        // Cuántas páginas hay YA: sumar a un documento en curso sin decirlo
+        // desorienta tanto como reemplazarlo. El destino se nombra explícito.
+        const yaHabia = imprentaHistory.present.pages.length
+        const enviadas =
+          failures.length > 0
+            ? `${files.length} de ${files.length + failures.length} imágenes`
+            : `${files.length} ${files.length === 1 ? 'imagen' : 'imágenes'}`
         setPendingPdfFiles(files)
         preloadPdfStudioView()
         setSection('pdf')
         toast.show({
           message:
-            failures.length > 0
-              ? `${files.length} de ${files.length + failures.length} imágenes enviadas a Imprenta`
-              : `${files.length} ${files.length === 1 ? 'imagen enviada' : 'imágenes enviadas'} a Imprenta`,
+            yaHabia > 0
+              ? `${enviadas} al documento en curso (tenía ${yaHabia} ${yaHabia === 1 ? 'página' : 'páginas'})`
+              : `${enviadas} ${files.length === 1 && failures.length === 0 ? 'enviada' : 'enviadas'} a Imprenta`,
           tone: failures.length > 0 ? 'default' : 'success',
         })
       } catch (error) {
@@ -136,7 +155,7 @@ export function NotasWorld({
         })
       }
     },
-    [setSection, toast],
+    [imprentaHistory, setSection, toast],
   )
 
   return (
@@ -177,6 +196,11 @@ export function NotasWorld({
                 <PdfStudioView
                   externalFiles={section === 'pdf' ? pendingPdfFiles : []}
                   onExternalFilesConsumed={() => setPendingPdfFiles([])}
+                  documentHistory={
+                    section === 'pdf'
+                      ? { history: imprentaHistory, setHistory: setImprentaHistory }
+                      : undefined
+                  }
                   topBar={<NotasTopBar section={section} />}
                   studioMode={section === 'planillas' ? 'templates' : 'editor'}
                 />
