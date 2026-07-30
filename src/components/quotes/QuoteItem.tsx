@@ -1,13 +1,13 @@
 import { memo, useState } from 'react'
 import { useReflectQuote, useUpdateQuote, useToast } from '../../state'
 import type { Entity, Quote } from '../../types'
-import { SparkleIcon, ChevronDownIcon } from '../Icons'
+import { SparkleIcon, ChevronDownIcon, TrashIcon } from '../Icons'
 import { typeAccent } from '../graph/GraphNode'
 import { AISourceTag } from '../AISourceTag'
 import { WhatsAppSourceTag } from '../WhatsAppSourceTag'
 import { QuoteEditModal } from '../QuoteEditModal'
 import { ResonanceDots } from './ResonanceDots'
-import { QuoteActionsMenu } from './QuoteActionsMenu'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { LaminaModal } from './LaminaModal'
 import { AIThinkingLabel } from '../AIThinkingLabel'
 import { QuoteMark } from '../QuoteMark'
@@ -248,14 +248,64 @@ function QuoteItemInternal({
               {quote.pinnedAt ? '★' : '☆'}
             </span>
           </button>
-          <QuoteActionsMenu
-            onEdit={() => setEditOpen(true)}
-            onPostal={() => setLaminaOpen(true)}
-            onReflect={handleReflect}
-            onDelete={onDelete}
-            reflectPending={reflect.isPending}
-            canReflect={!quote.aiReflection && !draftReflection}
-          />
+          {/* El menú compartido, no un popover propio: QuoteActionsMenu era
+              una copia casi literal de OverflowMenu (mismo hook, mismo portal,
+              misma fila) mantenida aparte sin ninguna restricción que lo
+              justificara. */}
+          <OverflowMenu
+            label="Más acciones"
+            width="w-44"
+            triggerClassName="p-1.5 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
+            triggerContent={
+              <span aria-hidden className="block text-lead leading-none -mt-1">
+                ⋯
+              </span>
+            }
+          >
+            {(close) => (
+              <>
+                <OverflowMenuItem
+                  onClick={() => {
+                    close()
+                    setEditOpen(true)
+                  }}
+                >
+                  Editar
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  onClick={() => {
+                    close()
+                    setLaminaOpen(true)
+                  }}
+                >
+                  Lámina
+                </OverflowMenuItem>
+                {!quote.aiReflection && !draftReflection && (
+                  <OverflowMenuItem
+                    disabled={reflect.isPending}
+                    onClick={() => {
+                      close()
+                      handleReflect()
+                    }}
+                  >
+                    <SparkleIcon size={12} />
+                    {reflect.isPending ? 'Leyendo…' : 'Reflexionar con IA'}
+                  </OverflowMenuItem>
+                )}
+                <div className="h-px bg-ink-100 my-1" />
+                <OverflowMenuItem
+                  danger
+                  onClick={() => {
+                    close()
+                    onDelete()
+                  }}
+                >
+                  <TrashIcon size={12} />
+                  Eliminar
+                </OverflowMenuItem>
+              </>
+            )}
+          </OverflowMenu>
         </div>
       </div>
 

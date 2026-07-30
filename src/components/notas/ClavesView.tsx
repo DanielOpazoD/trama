@@ -13,6 +13,8 @@ import {
   useUpdateSecret,
 } from '../../state'
 import { EmptyMessage } from '../EmptyMessage'
+import { FilterChip } from '../FilterChip'
+import { MetricTile } from '../MetricTile'
 import { LoadingHint } from '../LoadingHint'
 import { ViewHeader } from '../ViewHeader'
 import {
@@ -47,6 +49,11 @@ export function ClavesView({
   const deleteSecret = useDeleteSecret()
   const toast = useToast()
 
+  // El alta vive detrás de «Añadir», como en Entidades/Citas/Relaciones:
+  // crear una clave es la acción menos frecuente de la vista, y sus nueve
+  // controles siempre expandidos empujaban la lista —lo que se viene a ver—
+  // por debajo del pliegue.
+  const [showForm, setShowForm] = useState(false)
   const [label, setLabel] = useState('')
   const [secret, setSecret] = useState('')
   const [kind, setKind] = useState<SecretKind>('api_key')
@@ -287,129 +294,133 @@ export function ClavesView({
         density="compact"
         subtitle="Cifradas con tu clave de acceso. El vault se bloquea solo tras unos minutos sin uso."
         action={
-          <button
-            onClick={lockVault}
-            className="section-eyebrow hover:text-ink-700 transition-colors"
-          >
-            bloquear vault
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="section-eyebrow hover:text-ink-700 transition-colors"
+            >
+              {showForm ? 'Cerrar' : 'Añadir'}
+            </button>
+            <button
+              onClick={lockVault}
+              className="section-eyebrow hover:text-ink-700 transition-colors"
+            >
+              bloquear vault
+            </button>
+          </div>
         }
       />
 
       {secrets.length > 0 && (
         <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <VaultMetric label="claves" value={stats.total} />
-          <VaultMetric label="críticas" value={stats.critical} tone="danger" />
-          <VaultMetric label="favoritas" value={stats.favorites} />
-          <VaultMetric label="vencidas" value={stats.expired} tone="danger" />
+          <MetricTile label="claves" value={stats.total} />
+          <MetricTile label="críticas" value={stats.critical} tone="danger" />
+          <MetricTile label="favoritas" value={stats.favorites} />
+          <MetricTile label="vencidas" value={stats.expired} tone="danger" />
         </section>
       )}
 
-      <section className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
-        <div className="grid sm:grid-cols-[1fr_160px] gap-2 mb-2">
-          <input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Nombre de la clave"
-            aria-label="Nombre de la clave"
-            className="input-paper w-full text-sm"
-          />
-          <select
-            value={kind}
-            onChange={(e) => setKind(e.target.value as SecretKind)}
-            aria-label="Tipo de clave"
-            className="input-paper w-full text-sm"
-          >
-            {SECRET_KINDS.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <input
-          value={secret}
-          onChange={(e) => setSecret(e.target.value)}
-          placeholder="Valor secreto"
-          type="password"
-          aria-label="Valor secreto"
-          className="input-paper w-full text-sm mb-2"
-        />
-        <div className="grid sm:grid-cols-[1fr_1fr_160px_auto] gap-2 items-center">
-          <input
-            value={service}
-            onChange={(e) => setService(e.target.value)}
-            placeholder="Servicio o cuenta"
-            aria-label="Servicio o cuenta"
-            className="input-paper w-full text-sm"
-          />
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Usuario o identificador"
-            aria-label="Usuario o identificador"
-            className="input-paper w-full text-sm"
-          />
-          <input
-            type="date"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-            aria-label="Fecha de vencimiento"
-            className="input-paper w-full text-sm"
-          />
-          <label className="inline-flex items-center gap-2 text-micro uppercase tracking-eyebrow text-ink-400">
-            {/* form-control-label-exempt: Checkbox envuelto por <label> con el texto "crítica". */}
+      {showForm && (
+        <section className="card-paper-soft rounded-xl border border-ink-100/70 p-3 mb-5">
+          <div className="grid sm:grid-cols-[1fr_160px] gap-2 mb-2">
             <input
-              type="checkbox"
-              checked={critical}
-              onChange={(e) => setCritical(e.target.checked)}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Nombre de la clave"
+              aria-label="Nombre de la clave"
+              className="input-paper w-full text-sm"
             />
-            crítica
-          </label>
-        </div>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={2}
-          placeholder="Notas privadas"
-          aria-label="Notas privadas"
-          className="input-paper mt-2 w-full resize-y text-body leading-relaxed"
-        />
-        <div className="mt-2 flex justify-end">
-          <button
-            onClick={save}
-            disabled={!label.trim() || !secret.trim() || createSecret.isPending}
-            className="btn-ink text-xs disabled:opacity-40"
-          >
-            guardar clave
-          </button>
-        </div>
-      </section>
+            <select
+              value={kind}
+              onChange={(e) => setKind(e.target.value as SecretKind)}
+              aria-label="Tipo de clave"
+              className="input-paper w-full text-sm"
+            >
+              {SECRET_KINDS.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <input
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            placeholder="Valor secreto"
+            type="password"
+            aria-label="Valor secreto"
+            className="input-paper w-full text-sm mb-2"
+          />
+          <div className="grid sm:grid-cols-[1fr_1fr_160px_auto] gap-2 items-center">
+            <input
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              placeholder="Servicio o cuenta"
+              aria-label="Servicio o cuenta"
+              className="input-paper w-full text-sm"
+            />
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Usuario o identificador"
+              aria-label="Usuario o identificador"
+              className="input-paper w-full text-sm"
+            />
+            <input
+              type="date"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              aria-label="Fecha de vencimiento"
+              className="input-paper w-full text-sm"
+            />
+            <label className="inline-flex items-center gap-2 text-micro uppercase tracking-eyebrow text-ink-400">
+              {/* form-control-label-exempt: Checkbox envuelto por <label> con el texto "crítica". */}
+              <input
+                type="checkbox"
+                checked={critical}
+                onChange={(e) => setCritical(e.target.checked)}
+              />
+              crítica
+            </label>
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Notas privadas"
+            aria-label="Notas privadas"
+            className="input-paper mt-2 w-full resize-y text-body leading-relaxed"
+          />
+          <div className="mt-2 flex justify-end">
+            <button
+              onClick={save}
+              disabled={!label.trim() || !secret.trim() || createSecret.isPending}
+              className="btn-ink text-xs disabled:opacity-40"
+            >
+              guardar clave
+            </button>
+          </div>
+        </section>
+      )}
 
       {secrets.length > 0 && (
         <div className="mb-5 flex flex-wrap gap-1.5">
-          <button
+          {/* FilterChip compartido — antes un clon inline más. */}
+          <FilterChip
+            active={activeFilter === null}
             onClick={() => setFilter(null)}
-            className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border ${
-              activeFilter === null
-                ? 'border-ink-200 text-ink-700 bg-ink-100/50'
-                : 'border-ink-100 text-ink-400'
-            }`}
-          >
-            todas
-          </button>
+            label="todas"
+            activeStyle={{ background: 'var(--accent-sage-soft)', color: ACCENT }}
+          />
           {SECRET_KINDS.filter((k) => counts.has(k.id)).map((k) => (
-            <button
+            <FilterChip
               key={k.id}
+              active={activeFilter === k.id}
               onClick={() => setFilter(activeFilter === k.id ? null : k.id)}
-              className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border border-ink-100 text-ink-400 hover:text-ink-700"
-              style={
-                activeFilter === k.id ? { borderColor: ACCENT, color: ACCENT } : undefined
-              }
-            >
-              {k.label}{' '}
-              <span className="tabular-nums opacity-60">{counts.get(k.id)}</span>
-            </button>
+              label={k.label}
+              count={counts.get(k.id)}
+              activeStyle={{ background: 'var(--accent-sage-soft)', color: ACCENT }}
+            />
           ))}
         </div>
       )}
@@ -426,6 +437,16 @@ export function ClavesView({
             <>Guarda contraseñas, tokens, PINs, licencias o códigos de recuperación.</>
           }
           hint="Los secretos se ocultan en la lista y se revelan temporalmente."
+          action={
+            !showForm && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="section-eyebrow rounded-full border border-ink-200 px-3 py-1.5 transition-colors hover:text-ink-700"
+              >
+                Añadir la primera
+              </button>
+            )
+          }
         />
       ) : (
         <div className="space-y-3">
@@ -476,30 +497,4 @@ async function buildEncryptedSecretPatch(input: SecretEditInput, vaultKey: Crypt
     expiresAt: input.expiresAt,
     critical: input.critical,
   }
-}
-
-function VaultMetric({
-  label,
-  value,
-  tone = 'neutral',
-}: {
-  label: string
-  value: number
-  tone?: 'neutral' | 'danger'
-}) {
-  return (
-    <div className="rounded-lg border border-ink-100/70 bg-paper-50/60 px-3 py-2">
-      <div
-        className="text-lg font-serif leading-none text-ink-800 tabular-nums"
-        style={
-          tone === 'danger' && value > 0 ? { color: 'var(--accent-clay)' } : undefined
-        }
-      >
-        {value}
-      </div>
-      <div className="mt-1 text-micro uppercase tracking-eyebrow text-ink-300">
-        {label}
-      </div>
-    </div>
-  )
 }

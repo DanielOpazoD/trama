@@ -20,9 +20,18 @@ function formatBytes(bytes: number): string {
 export function AttachmentsPanel({
   ownerType,
   ownerId,
+  soloSiHay = false,
 }: {
   ownerType: NotasAttachmentOwner
   ownerId: string
+  /**
+   * Con `true` el panel se calla cuando la ficha no tiene anexos, pero SIGUE
+   * mostrándolos cuando existen. Esconder un control poco frecuente es
+   * compactar; esconder un archivo que el usuario adjuntó es perderlo de
+   * vista — por eso la decisión la toma el panel, que ya conoce el conteo, y
+   * no la tarjeta.
+   */
+  soloSiHay?: boolean
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const toast = useToast()
@@ -77,6 +86,8 @@ export function AttachmentsPanel({
       setDownloadingId(null)
     }
   }
+
+  if (soloSiHay && attachments.length === 0) return null
 
   return (
     <div className="mt-3 border-t border-ink-100/60 pt-3">

@@ -82,8 +82,32 @@ nada — el test recorría el chip sin haber puesto los cuatro filtros a la vez.
 Eso reveló que el control más nuevo estaba sin cubrir en su parte valiosa, no
 que la sonda fuera mala. El test se reforzó hasta que la mutación muerde.
 
+**Dos voseos que el barrido de #371 no cazó.** Aquel pack corrigió cuatro
+textos visibles; al rebasar esta rama sobre él aparecieron dos más, y ambos son
+copy que el usuario lee:
+
+- `TwitterView.tsx` — el `confirm()` de borrar la crónica («Podés generar otra
+  cuando quieras»). Cae dentro de esta vista.
+- `settings/WhatsAppPanel.tsx` — «Podés desvincular cuando quieras». Es una
+  palabra de la misma convención; se arregla aquí en vez de dejarla viva.
+
+Quedan tres «querés» en **comentarios de código** (MusicPaletteCard, Sidebar,
+QuoteEchoesPanel): no los ve nadie desde la app y no se tocan en este pack.
+
+## Rebase sobre el main de #369/#370/#371
+
+La rama salió de `1108fe58`, tres merges atrás. Al traer main hubo un conflicto
+en `TwitterView.tsx`: #371 corrigió el voseo del tooltip de «Eliminar crónica»
+justo en el bloque que este pack **extrae** a `XCronicaCard`. Se resolvió
+quedándose con la extracción tras comprobar que el arreglo de #371 sobrevive en
+el fichero nuevo —lo único que ese PR tocó aquí fue esa línea, y el componente
+extraído ya la lleva en tuteo—.
+
+## Validación
+
 `typecheck`, `lint`, `format:check`, **los 33 gates no-DB**, `build`, budget de
-bundle y la suite completa.
+bundle, **la suite completa (5098 tests, exit 0)** y 18 e2e (a11y, oclusión,
+anexos) — todo sobre el main que ya lleva los tres PRs mergeados.
 
 ## Fuera de alcance
 

@@ -35,19 +35,23 @@ afterEach(() => {
 })
 
 describe('<PromptCard />', () => {
-  it('muestra metadata del prompt y dispara acciones rápidas', () => {
+  /**
+   * La convención de todas las tarjetas: la acción primaria visible con nombre
+   * (aquí copiar, que es a lo que se viene a una biblioteca de prompts), las
+   * rápidas al hover, y el resto tras el menú ⋯. Antes ésta era la única de
+   * las siete tarjetas con seis controles siempre a la vista.
+   */
+  it('muestra metadata y expone la acción primaria a la vista', () => {
     const onCopy = vi.fn()
     const onFavorite = vi.fn()
-    const onDuplicate = vi.fn()
-    const onDelete = vi.fn()
 
     renderWithProviders(
       <PromptCard
         prompt={basePrompt}
         busy={false}
         onFavorite={onFavorite}
-        onDuplicate={onDuplicate}
-        onDelete={onDelete}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
         onSave={vi.fn()}
         onCopy={onCopy}
       />,
@@ -59,14 +63,118 @@ describe('<PromptCard />', () => {
     expect(screen.getByText('tono')).toBeInTheDocument()
     expect(screen.getByText('2 usos')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copiar prompt' }))
-    fireEvent.click(screen.getByRole('button', { name: 'favorito' }))
-    fireEvent.click(screen.getByRole('button', { name: 'duplicar' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Borrar prompt' }))
-
+    fireEvent.click(screen.getByRole('button', { name: /Copiar/ }))
     expect(onCopy).toHaveBeenCalledTimes(1)
+
+    // Favorito es acción rápida (hover/foco), fuera del menú.
+    fireEvent.click(screen.getByRole('button', { name: 'favorito' }))
     expect(onFavorite).toHaveBeenCalledTimes(1)
+  })
+
+  /**
+   * La regresión que este PR introdujo y el e2e de anexos cazó: al mandar los
+   * anexos al menú, un prompt CON archivo adjunto dejaba de mostrarlo.
+   * Esconder un control poco frecuente compacta; esconder un archivo que el
+   * usuario adjuntó es perderlo de vista.
+   */
+  it('un prompt con anexo lo muestra sin abrir el menú', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify([
+            {
+              id: 'a1',
+              owner_type: 'prompt',
+              owner_id: 'p1',
+              file_name: 'brief.md',
+              mime_type: 'text/markdown',
+              byte_size: 900,
+              storage_key: 'user/brief.md',
+              created_at: '2026-06-01T00:00:00.000Z',
+              updated_at: '2026-06-01T00:00:00.000Z',
+            },
+          ]),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    )
+
+    renderWithProviders(
+      <PromptCard
+        prompt={basePrompt}
+        busy={false}
+        onFavorite={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onSave={vi.fn()}
+        onCopy={vi.fn()}
+      />,
+    )
+
+    expect(await screen.findByRole('button', { name: /brief\.md/ })).toBeInTheDocument()
+  })
+
+  it('sin anexos, la tarjeta no gasta una fila en el panel', async () => {
+    renderWithProviders(
+      <PromptCard
+        prompt={basePrompt}
+        busy={false}
+        onFavorite={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onSave={vi.fn()}
+        onCopy={vi.fn()}
+      />,
+    )
+
+    await screen.findByText('2 usos')
+    expect(screen.queryByRole('button', { name: 'Subir anexo' })).toBeNull()
+    expect(screen.queryByText(/subir/i)).toBeNull()
+  })
+
+  it('duplicar e historial viven tras el menú ⋯', () => {
+    const onDuplicate = vi.fn()
+    renderWithProviders(
+      <PromptCard
+        prompt={basePrompt}
+        busy={false}
+        onFavorite={vi.fn()}
+        onDuplicate={onDuplicate}
+        onDelete={vi.fn()}
+        onSave={vi.fn()}
+        onCopy={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones del prompt' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Duplicar/ }))
     expect(onDuplicate).toHaveBeenCalledTimes(1)
+  })
+
+  /**
+   * Borrar pide confirmación dentro del menú, como NoteCard y RecorteCard: un
+   * clic suelto sobre «Borrar» no puede llevarse un prompt.
+   */
+  it('borrar exige confirmación en el menú', () => {
+    const onDelete = vi.fn()
+    renderWithProviders(
+      <PromptCard
+        prompt={basePrompt}
+        busy={false}
+        onFavorite={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={onDelete}
+        onSave={vi.fn()}
+        onCopy={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acciones del prompt' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Borrar' }))
+    // El primer clic NO borra: pide confirmación.
+    expect(onDelete).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sí, borrar' }))
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
 

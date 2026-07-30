@@ -144,7 +144,7 @@ export function TwitterView({
   async function handleDeleteCronica() {
     if (
       !confirm(
-        '¿Eliminar la crónica de tus bookmarks? Podés generar otra cuando quieras.',
+        '¿Eliminar la crónica de tus bookmarks? Puedes generar otra cuando quieras.',
       )
     ) {
       return

@@ -196,9 +196,9 @@ test.describe('captura unificada en Notas', () => {
       timeout: 15_000,
     })
 
-    // La curaduría vive en el menú ⋯: «→ momento» abre el modal de promoción.
+    // La curaduría vive en el menú ⋯: «→ Momento» abre el modal de promoción.
     await page.getByRole('button', { name: 'Acciones del recorte' }).first().click()
-    await page.getByRole('menuitem', { name: /→ momento/ }).click()
+    await page.getByRole('menuitem', { name: /→ Momento/ }).click()
     await expect(page.getByRole('dialog', { name: 'Promover a momento' })).toBeVisible()
 
     // Cerrar el modal (cancelar) deja el recorte presente; el enlace no se perdió.

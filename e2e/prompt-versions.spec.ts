@@ -16,6 +16,13 @@ import { enableDemoMode } from './fixtures'
 
 const TARJETA = 'article:has-text("Síntesis de lectura")'
 
+/** El historial vive tras el menú ⋯ de la tarjeta, como el resto de acciones
+ *  poco frecuentes; abrirlo son dos gestos, igual que en NoteCard. */
+async function abrirHistorial(tarjeta: import('@playwright/test').Locator) {
+  await tarjeta.getByRole('button', { name: 'Acciones del prompt' }).click()
+  await tarjeta.page().getByRole('menuitem', { name: 'Historial' }).click()
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem('trama:splash-seen', '1')
@@ -27,7 +34,7 @@ test.beforeEach(async ({ page }) => {
 
 test('el historial guarda lo que había antes de cada edición', async ({ page }) => {
   const tarjeta = page.locator(TARJETA).first()
-  await tarjeta.getByRole('button', { name: 'historial' }).click()
+  await abrirHistorial(tarjeta)
 
   const versiones = tarjeta.locator('ol > li')
   await expect(versiones).toHaveCount(2)
@@ -46,7 +53,7 @@ test('el historial guarda lo que había antes de cada edición', async ({ page }
  */
 test('editar guarda el texto anterior sin que haya que pedirlo', async ({ page }) => {
   const tarjeta = page.locator(TARJETA).first()
-  await tarjeta.getByRole('button', { name: 'historial' }).click()
+  await abrirHistorial(tarjeta)
   await expect(tarjeta.locator('ol > li')).toHaveCount(2)
 
   await tarjeta.getByRole('button', { name: 'Editar prompt' }).click()
@@ -73,7 +80,7 @@ test('editar guarda el texto anterior sin que haya que pedirlo', async ({ page }
 
 test('restaurar no destruye: lo actual queda guardado a su vez', async ({ page }) => {
   const tarjeta = page.locator(TARJETA).first()
-  await tarjeta.getByRole('button', { name: 'historial' }).click()
+  await abrirHistorial(tarjeta)
   await expect(tarjeta.locator('ol > li')).toHaveCount(2)
 
   const textoActual = await tarjeta.locator('h3').innerText()
@@ -94,7 +101,7 @@ test('restaurar no destruye: lo actual queda guardado a su vez', async ({ page }
 
 test('un cambio que no toca el texto no ensucia el historial', async ({ page }) => {
   const tarjeta = page.locator(TARJETA).first()
-  await tarjeta.getByRole('button', { name: 'historial' }).click()
+  await abrirHistorial(tarjeta)
   await expect(tarjeta.locator('ol > li')).toHaveCount(2)
 
   // Soltar el favorito es un PATCH, pero no cambia texto: nada que versionar.

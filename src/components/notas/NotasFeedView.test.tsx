@@ -230,7 +230,7 @@ describe('<NotasFeedView />', () => {
     expect(screen.getByRole('button', { name: /Quitar anexo/ })).toBeInTheDocument()
   })
 
-  it('triage por menú ⋯: «→ momento» abre el modal de promoción prellenado', async () => {
+  it('triage por menú ⋯: «→ Momento» abre el modal de promoción prellenado', async () => {
     const user = userEvent.setup()
     renderWithProviders(
       <>
@@ -245,7 +245,7 @@ describe('<NotasFeedView />', () => {
     expect(screen.queryByRole('button', { name: 'curar' })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Acciones del recorte' }))
-    await user.click(screen.getByRole('menuitem', { name: /→ momento/ }))
+    await user.click(screen.getByRole('menuitem', { name: /→ Momento/ }))
 
     // Se abre el modal de promoción (no promueve directo: el usuario confirma).
     expect(

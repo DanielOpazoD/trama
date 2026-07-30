@@ -216,7 +216,7 @@ export function WhatsAppPanel() {
 
         <p className="text-micro text-ink-400 leading-relaxed">
           El número se conecta vía Twilio. Solo los números vinculados pueden escribir, y
-          cada mensaje queda bajo tu cuenta. Podés desvincular cuando quieras.
+          cada mensaje queda bajo tu cuenta. Puedes desvincular cuando quieras.
         </p>
 
         {/* Observabilidad: capturas por ruta + tasa de fallas (se oculta si aún

@@ -87,7 +87,7 @@ export function PromoteModal({
     try {
       if (target === 'quote') {
         if (!entityId) {
-          toast.show({ message: 'Elegí a quién atribuir la cita', tone: 'error' })
+          toast.show({ message: 'Elige a quién atribuir la cita', tone: 'error' })
           setBusy(false)
           return
         }

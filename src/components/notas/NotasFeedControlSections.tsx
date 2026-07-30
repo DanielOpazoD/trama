@@ -7,6 +7,7 @@ import {
   SearchIcon,
   ThumbSizeIcon,
 } from '../Icons'
+import { FilterChip } from '../FilterChip'
 import { CloseButton } from '../CloseButton'
 import { IconButton } from '../IconButton'
 import { OverflowMenu } from '../OverflowMenu'
@@ -347,39 +348,27 @@ function TagFilterChips({
   tagCounts: Array<[string, number]>
   onActiveTagChange: (next: string | null) => void
 }) {
+  // El FilterChip compartido de toda la app: éste era el tercer clon inline
+  // del mundo Notas, y los tres ya se habían desincronizado en hover y fondo.
+  const activeStyle = { background: 'var(--accent-sage-soft)', color: accent }
   return (
     <div className="flex flex-wrap gap-1.5">
-      <button
+      <FilterChip
+        active={activeTag === null}
         onClick={() => onActiveTagChange(null)}
-        className={`text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors ${
-          activeTag === null
-            ? 'border-ink-200 text-ink-700 bg-ink-100/50'
-            : 'border-ink-100 text-ink-400 hover:text-ink-700'
-        }`}
-      >
-        todas
-      </button>
-      {tagCounts.map(([tag, count]) => {
-        const on = activeTag === tag
-        return (
-          <button
-            key={tag}
-            onClick={() => onActiveTagChange(on ? null : tag)}
-            className="text-micro uppercase tracking-eyebrow px-2 py-0.5 rounded-full border transition-colors"
-            style={
-              on
-                ? {
-                    borderColor: accent,
-                    color: accent,
-                    background: 'var(--accent-sage-soft, transparent)',
-                  }
-                : undefined
-            }
-          >
-            #{tag} <span className="tabular-nums opacity-60">{count}</span>
-          </button>
-        )
-      })}
+        label="todas"
+        activeStyle={activeStyle}
+      />
+      {tagCounts.map(([tag, count]) => (
+        <FilterChip
+          key={tag}
+          active={activeTag === tag}
+          onClick={() => onActiveTagChange(activeTag === tag ? null : tag)}
+          label={`#${tag}`}
+          count={count}
+          activeStyle={activeStyle}
+        />
+      ))}
     </div>
   )
 }

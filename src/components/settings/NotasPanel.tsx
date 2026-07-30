@@ -25,7 +25,7 @@ export function NotasPanel() {
       <div>
         <PanelHeader
           title="Secciones de Notas"
-          hint="Elegí qué subsecciones del mundo Notas se ven en la barra. Inicio siempre está. Una sección oculta sigue siendo accesible desde Configuración o con un comando en el buscador."
+          hint="Elige qué subsecciones del mundo Notas se ven en la barra. Inicio siempre está. Una sección oculta sigue siendo accesible desde Configuración o con un comando en el buscador."
         />
         <div className="card-segment flex flex-col">
           {SECTIONS.map((s) => {
