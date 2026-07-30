@@ -11,6 +11,7 @@ import {
 } from './Icons'
 import { FilterChip } from './FilterChip'
 import { XCronicaCard } from './twitter/XCronicaCard'
+import { XFilterPanels } from './twitter/XFilterPanels'
 import { useScrollRail } from '../hooks/useScrollRail'
 import { IconButton } from './IconButton'
 import { CloseButton } from './CloseButton'
@@ -357,18 +358,24 @@ export function TwitterView({
                   <CalendarIcon size={14} />
                 </IconButton>
               )}
-              <IconButton
-                onClick={() => setShowAuthors((v) => !v)}
-                label="Filtrar por autor"
-                aria-expanded={showAuthors}
-                className={`touch-target rounded-md p-1.5 transition-colors ${
-                  showAuthors || author != null
-                    ? 'bg-ink-100/70 text-ink-700'
-                    : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
-                }`}
-              >
-                <UserIcon size={14} />
-              </IconButton>
+              {/* Sólo si hay autores: el panel se renderiza con
+                  `authors.length > 0`, así que sin ellos el botón alternaba
+                  estado y no abría nada — el mismo control muerto que este
+                  pack quita en «Clasificar temas». */}
+              {authors.length > 0 && (
+                <IconButton
+                  onClick={() => setShowAuthors((v) => !v)}
+                  label="Filtrar por autor"
+                  aria-expanded={showAuthors}
+                  className={`touch-target rounded-md p-1.5 transition-colors ${
+                    showAuthors || author != null
+                      ? 'bg-ink-100/70 text-ink-700'
+                      : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
+                  }`}
+                >
+                  <UserIcon size={14} />
+                </IconButton>
+              )}
               {/* Clasificar sólo aparece cuando HAY algo que clasificar: antes
                   vivía fijo y deshabilitado en el estado estable más común. */}
               {unclassified > 0 && (
@@ -385,90 +392,29 @@ export function TwitterView({
             </div>
           </div>
 
-          {searchOpen && (
-            <div className="mb-3 animate-fade-up">
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar en tus bookmarks…"
-                aria-label="Buscar"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setQuery('')
-                    setSearchOpen(false)
-                  }
-                }}
-                className="w-full rounded-lg border border-ink-100/60 bg-paper-50 px-3 py-1.5 text-body text-ink-700 placeholder:text-ink-300 focus:border-ink-300"
-              />
-            </div>
-          )}
-
-          {showAuthors && authors.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-1.5 border-l-2 border-ink-100 pl-3 animate-fade-up">
-              {author && (
-                <FilterChip
-                  active={false}
-                  onClick={() => setAuthor(null)}
-                  label="✕ quitar filtro"
-                />
-              )}
-              {authors.slice(0, 24).map(([u, n]) => (
-                <FilterChip
-                  key={u}
-                  active={author === u}
-                  onClick={() => setAuthor((prev) => (prev === u ? null : u))}
-                  label={`@${u}`}
-                  count={n}
-                  title={`${n} bookmark${n === 1 ? '' : 's'} de @${u}`}
-                  activeStyle={ACTIVE_CHIP}
-                />
-              ))}
-            </div>
-          )}
-
-          {datesOpen && years.length > 0 && (
-            <div className="mb-4 space-y-1.5 border-l-2 border-ink-100 pl-3 animate-fade-up">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <FilterChip
-                  active={year == null}
-                  onClick={() => selectYear(null)}
-                  label="Todos los años"
-                  activeStyle={ACTIVE_CHIP}
-                />
-                {years.map((y) => (
-                  <FilterChip
-                    key={y}
-                    active={year === y}
-                    onClick={() => selectYear(y)}
-                    label={String(y)}
-                    count={byYear.get(y)?.count}
-                    activeStyle={ACTIVE_CHIP}
-                  />
-                ))}
-              </div>
-              {year != null && months.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <FilterChip
-                    active={month == null}
-                    onClick={() => setMonth(null)}
-                    label={`Todo ${year}`}
-                    activeStyle={ACTIVE_CHIP}
-                  />
-                  {months.map((m) => (
-                    <FilterChip
-                      key={m}
-                      active={month === m}
-                      onClick={() => setMonth((prev) => (prev === m ? null : m))}
-                      label={monthName(m)}
-                      activeStyle={ACTIVE_CHIP}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <XFilterPanels
+            searchOpen={searchOpen}
+            query={query}
+            onQueryChange={setQuery}
+            onCloseSearch={() => {
+              setQuery('')
+              setSearchOpen(false)
+            }}
+            authorsOpen={showAuthors}
+            authors={authors}
+            author={author}
+            onAuthorChange={setAuthor}
+            datesOpen={datesOpen}
+            years={years}
+            countForYear={(y) => byYear.get(y)?.count}
+            year={year}
+            onYearChange={selectYear}
+            months={months}
+            month={month}
+            onMonthChange={setMonth}
+            monthName={monthName}
+            activeStyle={ACTIVE_CHIP}
+          />
 
           {filtered.length === 0 && (
             <p className="py-8 text-center text-body text-ink-400 italic">

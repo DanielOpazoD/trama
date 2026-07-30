@@ -1,4 +1,4 @@
-import { buildSeed } from './demoSeed'
+import { buildSeed, X_BOOKMARKS_SEED } from './demoSeed'
 import type { Store } from './demoTypes'
 
 export const STORE_KEY = 'trama-demo-store'
@@ -22,6 +22,9 @@ function normalizeStore(parsed: Partial<Store>): Store {
     momento_comments: parsed.momento_comments ?? [],
     momento_reactions: parsed.momento_reactions ?? [],
     month_notes: parsed.month_notes ?? [],
+    // A la semilla, no a []: un demo ya guardado en localStorage se quedaría
+    // sin la sección de X entera.
+    x_bookmarks: parsed.x_bookmarks ?? X_BOOKMARKS_SEED.map((r) => ({ ...r })),
     user_prefs: parsed.user_prefs ?? {},
   }
 }

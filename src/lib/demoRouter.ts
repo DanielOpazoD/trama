@@ -1054,8 +1054,20 @@ export function routeDemoRequest(
       if (id === 'classify') return { classified: 0, remaining: false }
       if (id === 'cronica') return { cronica: null }
       if (id === 'bookmarks') {
-        if (method === 'DELETE') return { ok: true }
-        return { items: DEMO_X_BOOKMARKS }
+        // Viven en el store como cualquier otra tabla del demo, para que
+        // «quitar bookmark» borre de verdad: devolver siempre la semilla hacía
+        // que el borrado se deshiciera solo en el siguiente refetch.
+        if (method === 'DELETE') {
+          const objetivo = store.x_bookmarks.find((r) => r.id === params.get('id'))
+          if (objetivo) {
+            const timestamp = nowIso()
+            objetivo.deleted_at = timestamp
+            objetivo.updated_at = timestamp
+            save(store)
+          }
+          return { ok: true }
+        }
+        return { items: live(store.x_bookmarks) }
       }
       return { connected: true, lastSyncedAt: '2026-07-28T09:12:00.000Z' }
     case 'export':
@@ -1072,80 +1084,6 @@ export function routeDemoRequest(
       return method === 'GET' ? [] : { ok: true }
   }
 }
-
-/**
- * Bookmarks de X sembrados para el modo demo. Variados a propósito en autor,
- * tema y año: son las tres facetas que la vista ofrece como filtro, y con una
- * sola combinación no habría nada que filtrar.
- */
-const DEMO_X_BOOKMARKS = [
-  {
-    id: 'xb1',
-    tweetId: '1',
-    text: 'La memoria no archiva: reescribe. Cada vez que recuerdas algo, lo editas un poco.',
-    authorName: 'Ana Iribarren',
-    authorUsername: 'anairib',
-    tweetCreatedAt: '2026-06-18T08:30:00.000Z',
-    url: 'https://x.com/anairib/status/1',
-    capturedAt: '2026-06-18T09:00:00.000Z',
-    topic: 'memoria',
-  },
-  {
-    id: 'xb2',
-    tweetId: '2',
-    text: 'Un buen sistema de notas no te hace recordar más. Te hace olvidar sin miedo.',
-    authorName: 'Tomás Vera',
-    authorUsername: 'tvera',
-    tweetCreatedAt: '2026-05-02T14:10:00.000Z',
-    url: 'https://x.com/tvera/status/2',
-    capturedAt: '2026-05-02T14:40:00.000Z',
-    topic: 'método',
-  },
-  {
-    id: 'xb3',
-    tweetId: '3',
-    text: 'Leer dos libros a la vez sobre el mismo tema es la forma más rápida de dejar de creerle a uno.',
-    authorName: 'Ana Iribarren',
-    authorUsername: 'anairib',
-    tweetCreatedAt: '2026-03-11T19:05:00.000Z',
-    url: 'https://x.com/anairib/status/3',
-    capturedAt: '2026-03-11T19:20:00.000Z',
-    topic: 'lectura',
-  },
-  {
-    id: 'xb4',
-    tweetId: '4',
-    text: 'Toda interfaz enseña una teoría de la atención. La mayoría enseña que no vale nada.',
-    authorName: 'Lena Ferrer',
-    authorUsername: 'lenaferrer',
-    tweetCreatedAt: '2025-11-27T10:00:00.000Z',
-    url: 'https://x.com/lenaferrer/status/4',
-    capturedAt: '2025-11-27T10:30:00.000Z',
-    topic: 'diseño',
-  },
-  {
-    id: 'xb5',
-    tweetId: '5',
-    text: 'Guardo cosas que no voy a leer. El gesto de guardar ya es una forma de pensar.',
-    authorName: 'Tomás Vera',
-    authorUsername: 'tvera',
-    tweetCreatedAt: '2025-08-09T22:45:00.000Z',
-    url: 'https://x.com/tvera/status/5',
-    capturedAt: '2025-08-09T23:00:00.000Z',
-    topic: 'método',
-  },
-  {
-    id: 'xb6',
-    tweetId: '6',
-    text: 'Nadie tiene un problema de organización. Todos tenemos un problema de decidir qué importa.',
-    authorName: 'Lena Ferrer',
-    authorUsername: 'lenaferrer',
-    tweetCreatedAt: '2025-04-14T07:20:00.000Z',
-    url: 'https://x.com/lenaferrer/status/6',
-    capturedAt: '2025-04-14T07:50:00.000Z',
-    topic: null,
-  },
-]
 
 let benchCache: { n: number; entities: Row[]; relationships: Row[] } | null = null
 

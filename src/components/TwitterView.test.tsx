@@ -215,9 +215,9 @@ describe('<TwitterView />', () => {
     renderWithProviders(<TwitterView />)
 
     expect(await screen.findByText('Sin bookmarks todavía')).toBeInTheDocument()
-    const sincronizadores = screen
-      .getAllByRole('button')
-      .filter((b) => /sincroniz/i.test(b.textContent ?? ''))
+    // Por nombre accesible, no por textContent: un duplicado solo-icono
+    // (con aria-label y sin texto) se le escapaba al filtro anterior.
+    const sincronizadores = screen.getAllByRole('button', { name: /sincroniz/i })
     expect(sincronizadores).toHaveLength(1)
     expect(sincronizadores[0]).toHaveTextContent(/Sincronizar ahora/i)
   })

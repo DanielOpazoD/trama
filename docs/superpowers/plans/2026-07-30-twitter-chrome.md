@@ -27,9 +27,8 @@ marcado en el propio icono (fondo lavado) para que un filtro puesto nunca quede
 invisible. Los chips pasan al `FilterChip` compartido, así que la forma es la
 misma que en el resto de la app y la identidad de la vista la lleva el acento.
 
-**Un chip «Todo»** suelta los cuatro filtros de un golpe: con tema + autor + año
-
-- búsqueda puestos, volver al estado limpio era cuatro gestos.
+**Un chip «Todo»** suelta los cuatro filtros de un golpe: con tema, autor, año y
+búsqueda puestos, volver al estado limpio era cuatro gestos.
 
 **Los tres controles de más.** «Clasificar temas» sólo aparece cuando hay algo
 que clasificar. «Regenerar» y «Eliminar» viven dentro de la crónica abierta
@@ -108,6 +107,39 @@ extraído ya la lleva en tuteo—.
 `typecheck`, `lint`, `format:check`, **los 33 gates no-DB**, `build`, budget de
 bundle, **la suite completa (5098 tests, exit 0)** y 18 e2e (a11y, oclusión,
 anexos) — todo sobre el main que ya lleva los tres PRs mergeados.
+
+## Hallazgos de CodeRabbit, aplicados
+
+Los cuatro eran válidos y se verificaron contra el código antes de tocar nada:
+
+1. **El icono de autor no estaba condicionado a que haya autores.** El panel se
+   renderiza con `authors.length > 0`, así que sin autores el botón alternaba
+   estado y no abría nada — el mismo control muerto que este pack quita en
+   «Clasificar temas», y `authors` sí puede quedar vacío: sólo cuenta bookmarks
+   con `authorUsername`. Ahora lleva la misma guarda que el de fecha.
+
+2. **El test contaba los botones de sincronizar por `textContent`.** Un
+   duplicado solo-icono (con `aria-label` y sin texto) se le escapaba. Se
+   comprobó de verdad: con un duplicado inyectado, **la sonda vieja pasaba en
+   verde**; la nueva, por nombre accesible, lo caza.
+
+3. **El borrado de bookmarks del demo no afectaba a la lista.** La ruta
+   devolvía `{ ok: true }` pero la lectura siempre servía la semilla, así que
+   el bookmark volvía en el siguiente refetch. Los bookmarks pasan al store
+   como cualquier otra tabla del demo, con borrado suave. `normalizeStore` cae
+   a la semilla —no a `[]`— para que un demo ya guardado en localStorage no se
+   quede sin la sección entera.
+
+4. **Una frase del plan partida en un bullet accidental** por el formateador.
+
+Dos mutaciones nuevas, una por arreglo funcional: el borrado del demo vuelve a
+ser un no-op → cae el test de borrado; se inyecta un «Sincronizar» solo-icono →
+cae el test del duplicado.
+
+**`XFilterPanels` extraído.** Aplicar el punto 1 dejó el fichero en 579/575 del
+ratchet estructural. Extraer, no subir: los tres paneles a demanda —buscador,
+autores, fechas— son la parte ocasional de la vista y salen juntos. Queda en
+**519/575**. De paso unifica el Escape del buscador: limpia y repliega.
 
 ## Fuera de alcance
 
