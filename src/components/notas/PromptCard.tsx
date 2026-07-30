@@ -280,7 +280,13 @@ export function PromptCard({
             </div>
           </footer>
           <PromptVersionsPanel prompt={prompt} open={showHistory} busy={busy} />
-          {showFiles && <AttachmentsPanel ownerType="prompt" ownerId={prompt.id} />}
+          {/* Un prompt con anexo lo muestra siempre; sin anexos no gasta una
+              fila y el control vive en el ⋯. */}
+          <AttachmentsPanel
+            ownerType="prompt"
+            ownerId={prompt.id}
+            soloSiHay={!showFiles}
+          />
         </div>
       </div>
     </article>

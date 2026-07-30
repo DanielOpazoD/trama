@@ -71,6 +71,68 @@ describe('<PromptCard />', () => {
     expect(onFavorite).toHaveBeenCalledTimes(1)
   })
 
+  /**
+   * La regresión que este PR introdujo y el e2e de anexos cazó: al mandar los
+   * anexos al menú, un prompt CON archivo adjunto dejaba de mostrarlo.
+   * Esconder un control poco frecuente compacta; esconder un archivo que el
+   * usuario adjuntó es perderlo de vista.
+   */
+  it('un prompt con anexo lo muestra sin abrir el menú', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify([
+            {
+              id: 'a1',
+              owner_type: 'prompt',
+              owner_id: 'p1',
+              file_name: 'brief.md',
+              mime_type: 'text/markdown',
+              byte_size: 900,
+              storage_key: 'user/brief.md',
+              created_at: '2026-06-01T00:00:00.000Z',
+              updated_at: '2026-06-01T00:00:00.000Z',
+            },
+          ]),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    )
+
+    renderWithProviders(
+      <PromptCard
+        prompt={basePrompt}
+        busy={false}
+        onFavorite={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onSave={vi.fn()}
+        onCopy={vi.fn()}
+      />,
+    )
+
+    expect(await screen.findByRole('button', { name: /brief\.md/ })).toBeInTheDocument()
+  })
+
+  it('sin anexos, la tarjeta no gasta una fila en el panel', async () => {
+    renderWithProviders(
+      <PromptCard
+        prompt={basePrompt}
+        busy={false}
+        onFavorite={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+        onSave={vi.fn()}
+        onCopy={vi.fn()}
+      />,
+    )
+
+    await screen.findByText('2 usos')
+    expect(screen.queryByRole('button', { name: 'Subir anexo' })).toBeNull()
+    expect(screen.queryByText(/subir/i)).toBeNull()
+  })
+
   it('duplicar e historial viven tras el menú ⋯', () => {
     const onDuplicate = vi.fn()
     renderWithProviders(

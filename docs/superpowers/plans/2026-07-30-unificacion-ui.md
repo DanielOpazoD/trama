@@ -107,6 +107,15 @@ runner limpio, es el árbitro. Un fallo que SÍ era real salió de esas pasadas:
 un test buscaba «→ momento» en minúscula tras la capitalización del menú —
 corregido, no silenciado.
 
+**Una regresión propia, cazada por el e2e de CI y corregida:** al mandar los
+anexos de PromptCard al menú ⋯, un prompt CON archivo adjunto dejaba de
+mostrarlo — `notas-attachments` falló en `e2e` y tenía razón. Esconder un
+control poco frecuente es compactar; esconder un archivo que el usuario adjuntó
+es perderlo de vista. La decisión la toma ahora el panel, que ya conoce el
+conteo (`soloSiHay`): con anexos se muestra siempre, sin anexos no gasta una
+fila y el control vive en el ⋯. Dos mutaciones, una por cada mitad de la regla,
+y cada una tumba sólo su test.
+
 Nota de proceso: `check:hard-delete-allowlist` lee los ficheros de
 `git ls-files`, así que un borrado sin stagear lo hace fallar con ENOENT — se
 resuelve al stagear, no es un fallo del gate.
