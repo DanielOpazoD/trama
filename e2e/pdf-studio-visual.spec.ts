@@ -2,6 +2,37 @@ import { expect, test, type Page } from '@playwright/test'
 import { PDFDocument } from 'pdf-lib'
 import { emptyState, enableDemoMode, mockBackend } from './fixtures'
 
+/**
+ * Por qué esta suite es opt-in (y qué NO protege):
+ *
+ * Las capturas guardadas son de macOS. Playwright sufija cada snapshot con la
+ * plataforma (`-chromium-darwin`), y el rasterizado de fuentes y el antialiasing
+ * subpíxel difieren lo suficiente entre macOS y Linux como para que una única
+ * baseline no sirva para ambos. Los jobs `lint`/`unit`/`e2e` del CI corren en
+ * ubuntu-latest: allí Playwright buscaría `-chromium-linux`, que no existe, y
+ * generaría una segunda baseline que nadie revisó. De ahí el doble candado
+ * `PDF_STUDIO_VISUAL=1` + `darwin`.
+ *
+ * Dónde SÍ corre en CI: `.github/workflows/pdf-visual.yml` (macos-latest), en
+ * los PR que tocan el editor y una vez por semana como red de seguridad.
+ *
+ * Consecuencia práctica: `npm test` no cubre estos píxeles. Si cambias la barra
+ * del editor, refresca acá a propósito:
+ *   npm run e2e:pdf-visual -- --update-snapshots       # sólo las que fallan
+ *   npm run e2e:pdf-visual -- --update-snapshots=all   # también las obsoletas
+ *                                                      # que aún pasan por poco
+ *
+ * Ese segundo modo importa porque `maxDiffPixelRatio` absorbe cambios reales sin
+ * fallar, y el modo por defecto se niega a reescribir lo que “pasa”. Así vivió
+ * seis semanas en main que #257 sumara «Firma y timbre» a la barra: la captura
+ * de MacBook Air se comía el 87 % de su tolerancia y seguía verde, y sólo
+ * reventó la de móvil, donde el diff se concentra en 330 px de ancho.
+ *
+ * Las cinco capturas de página/modal siguen mostrando la barra previa a #257 y
+ * el tooltip cerrado que #295 abrió al enfocar: pasan de sobra (3–44 % de su
+ * tolerancia) y se dejaron a propósito sin refrescar, para no bendecir de una
+ * sentada estados que nadie revisó. Refréscalas cuando toques esas pantallas.
+ */
 const runVisual = process.env.PDF_STUDIO_VISUAL === '1' && process.platform === 'darwin'
 
 async function makePdfBuffer(): Promise<Buffer> {
@@ -47,8 +78,12 @@ test.describe('Imprenta · PDF visual regression', () => {
     await expect(
       page.getByRole('toolbar', { name: 'Barra de herramientas de edición del PDF' }),
     ).toHaveScreenshot('pdf-studio-toolbar-macbook-air.png', {
+      // 0.01 sobre 1086×45 daba 488 px de presupuesto: suficiente para que un
+      // grupo entero apareciera o desapareciera de la barra sin poner rojo el
+      // test (fue exactamente lo que pasó con #257, 427 px). 0.002 ≈ 97 px:
+      // sigue absorbiendo ruido de antialiasing, no un cambio estructural.
       animations: 'disabled',
-      maxDiffPixelRatio: 0.01,
+      maxDiffPixelRatio: 0.002,
     })
   })
 
@@ -158,8 +193,9 @@ test.describe('Imprenta · PDF visual regression', () => {
     await expect(
       page.getByRole('toolbar', { name: 'Barra de herramientas de edición del PDF' }),
     ).toHaveScreenshot('pdf-studio-toolbar-mobile.png', {
+      // Mismo criterio que la captura de MacBook Air: 0.004 sobre 330×45 ≈ 59 px.
       animations: 'disabled',
-      maxDiffPixelRatio: 0.015,
+      maxDiffPixelRatio: 0.004,
     })
   })
 })
