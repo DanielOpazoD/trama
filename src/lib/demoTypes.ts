@@ -23,5 +23,6 @@ export type Store = {
   momento_comments: Row[]
   momento_reactions: Row[]
   month_notes: Row[]
+  x_bookmarks: Row[]
   user_prefs: Record<string, unknown>
 }

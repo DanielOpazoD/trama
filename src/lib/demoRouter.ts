@@ -1047,15 +1047,29 @@ export function routeDemoRequest(
       if (id === 'timing') return { byHour: [], byWeekday: [] }
       return { connected: false }
     case 'x':
-      // Integración con X — inerte en demo (necesita app de X + red real).
+      // Sincronizar y clasificar siguen inertes (necesitan app de X + red
+      // real), pero los bookmarks vienen sembrados: sin ellos la sección
+      // entera quedaba invisible en demo y no había forma de revisarla.
       if (id === 'sync') return { fetched: 0, inserted: 0, classified: 0 }
       if (id === 'classify') return { classified: 0, remaining: false }
       if (id === 'cronica') return { cronica: null }
       if (id === 'bookmarks') {
-        if (method === 'DELETE') return { ok: true }
-        return { items: [] }
+        // Viven en el store como cualquier otra tabla del demo, para que
+        // «quitar bookmark» borre de verdad: devolver siempre la semilla hacía
+        // que el borrado se deshiciera solo en el siguiente refetch.
+        if (method === 'DELETE') {
+          const objetivo = store.x_bookmarks.find((r) => r.id === params.get('id'))
+          if (objetivo) {
+            const timestamp = nowIso()
+            objetivo.deleted_at = timestamp
+            objetivo.updated_at = timestamp
+            save(store)
+          }
+          return { ok: true }
+        }
+        return { items: live(store.x_bookmarks) }
       }
-      return { connected: false }
+      return { connected: true, lastSyncedAt: '2026-07-28T09:12:00.000Z' }
     case 'export':
       return {
         entities: live(store.entities),

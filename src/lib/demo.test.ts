@@ -252,3 +252,35 @@ describe('demo — IA desactivada', () => {
     expect(out.entities).toEqual([])
   })
 })
+
+describe('demo — bookmarks de X', () => {
+  it('la lista viene sembrada y variada en autor, tema y año', async () => {
+    const { items } = await demoRequest<{ items: Array<Record<string, unknown>> }>(
+      '/api/x/bookmarks',
+    )
+
+    expect(items.length).toBeGreaterThan(0)
+    // Las tres facetas que la vista ofrece como filtro: sin variedad no habría
+    // nada que filtrar y la sección no sería revisable.
+    expect(new Set(items.map((b) => b.authorUsername)).size).toBeGreaterThan(1)
+    expect(new Set(items.map((b) => b.topic)).size).toBeGreaterThan(1)
+    expect(
+      new Set(items.map((b) => String(b.tweetCreatedAt).slice(0, 4))).size,
+    ).toBeGreaterThan(1)
+    // Alguno sin clasificar, para que el chip «sin clasificar» tenga sentido.
+    expect(items.some((b) => b.topic === null)).toBe(true)
+  })
+
+  it('quitar un bookmark lo borra de verdad: no vuelve en el siguiente refetch', async () => {
+    const antes = await demoRequest<{ items: Array<{ id: string }> }>('/api/x/bookmarks')
+    const victima = antes.items[0]!.id
+
+    await demoRequest(`/api/x/bookmarks?id=${victima}`, { method: 'DELETE' })
+
+    const despues = await demoRequest<{ items: Array<{ id: string }> }>(
+      '/api/x/bookmarks',
+    )
+    expect(despues.items.map((b) => b.id)).not.toContain(victima)
+    expect(despues.items).toHaveLength(antes.items.length - 1)
+  })
+})
