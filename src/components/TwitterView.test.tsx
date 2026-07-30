@@ -132,6 +132,11 @@ describe('<TwitterView />', () => {
     )
   })
 
+  /**
+   * El chrome es on-demand, como en NotasFeedView: los temas viven en la única
+   * fila visible, y autor / fecha / buscador se expanden desde su icono. Antes
+   * esta vista apilaba cuatro filas abiertas a la vez.
+   */
   it('renderiza bookmarks y permite filtrar por autor, tema, año y búsqueda', async () => {
     const user = userEvent.setup()
     setTwitterMocks()
@@ -141,23 +146,92 @@ describe('<TwitterView />', () => {
     expect(screen.getByText(/Un hilo sobre memoria/i)).toBeInTheDocument()
     expect(screen.getByText(/Notas sobre música generativa/i)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /^Autores/i }))
+    // Autores: detrás del icono.
+    await user.click(screen.getByRole('button', { name: /Filtrar por autor/i }))
     await user.click(screen.getByRole('button', { name: /@alice/i }))
     expect(screen.getByText(/Un hilo sobre memoria/i)).toBeInTheDocument()
     expect(screen.queryByText(/Notas sobre música generativa/i)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /✕ quitar filtro/i }))
+
+    // Tema: en la fila visible, sin abrir nada.
     await user.click(screen.getByRole('button', { name: /^memoria/i }))
     expect(screen.getByText(/Un hilo sobre memoria/i)).toBeInTheDocument()
     expect(screen.queryByText(/Notas sobre música generativa/i)).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /^Todos los temas/i }))
+    // «Todo» limpia cualquier filtro activo de una sola vez.
+    await user.click(screen.getByRole('button', { name: /^Todo$/i }))
+    expect(screen.getByText(/Notas sobre música generativa/i)).toBeInTheDocument()
+
+    // Fechas: detrás del calendario.
+    await user.click(screen.getByRole('button', { name: /Filtrar por fecha/i }))
     await user.click(screen.getByRole('button', { name: /^2025/i }))
     expect(screen.queryByText(/Un hilo sobre memoria/i)).not.toBeInTheDocument()
     expect(screen.getByText(/Notas sobre música generativa/i)).toBeInTheDocument()
 
+    // Buscador: detrás de la lupa.
+    await user.click(screen.getByRole('button', { name: /Buscar en tus bookmarks/i }))
     await user.type(screen.getByRole('searchbox'), 'no coincide')
     expect(screen.getByText(/Ningún bookmark coincide/i)).toBeInTheDocument()
+  })
+
+  /**
+   * El botón «Sincronizar» de la cabecera y el «Sincronizar ahora» del estado
+   * vacío eran la misma acción, visible dos veces en la misma pantalla.
+   */
+  /**
+   * «Todo» es el único control nuevo que toca CUATRO estados a la vez (tema,
+   * autor, año, búsqueda). Con los cuatro puestos, un solo clic los suelta —
+   * si limpiara sólo el tema, el usuario vería la lista aún filtrada sin nada
+   * marcado que lo explique.
+   */
+  it('«Todo» suelta los cuatro filtros de un clic', async () => {
+    const user = userEvent.setup()
+    setTwitterMocks()
+    renderWithProviders(<TwitterView />)
+
+    await user.click(screen.getByRole('button', { name: /Filtrar por autor/i }))
+    await user.click(screen.getByRole('button', { name: /@alice/i }))
+    await user.click(screen.getByRole('button', { name: /^memoria/i }))
+    await user.click(screen.getByRole('button', { name: /Filtrar por fecha/i }))
+    await user.click(screen.getByRole('button', { name: /^2026/i }))
+    await user.click(screen.getByRole('button', { name: /Buscar en tus bookmarks/i }))
+    await user.type(screen.getByRole('searchbox'), 'memoria')
+
+    // Con los cuatro filtros puestos sólo sobrevive un bookmark.
+    expect(screen.queryByText(/Notas sobre música generativa/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^Todo$/i }))
+
+    // Los dos vuelven: ninguno de los cuatro filtros quedó vivo.
+    expect(screen.getByText(/Un hilo sobre memoria/i)).toBeInTheDocument()
+    expect(screen.getByText(/Notas sobre música generativa/i)).toBeInTheDocument()
+    expect(screen.getByRole('searchbox')).toHaveValue('')
+  })
+
+  it('con cero bookmarks sólo hay un botón de sincronizar', async () => {
+    setTwitterMocks({ items: [] })
+
+    renderWithProviders(<TwitterView />)
+
+    expect(await screen.findByText('Sin bookmarks todavía')).toBeInTheDocument()
+    const sincronizadores = screen
+      .getAllByRole('button')
+      .filter((b) => /sincroniz/i.test(b.textContent ?? ''))
+    expect(sincronizadores).toHaveLength(1)
+    expect(sincronizadores[0]).toHaveTextContent(/Sincronizar ahora/i)
+  })
+
+  it('los filtros ocasionales no ocupan sitio hasta que se piden', () => {
+    setTwitterMocks()
+    renderWithProviders(<TwitterView />)
+
+    // Ni buscador ni chips de año/autor antes de tocar sus iconos.
+    expect(screen.queryByRole('searchbox')).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Todos los años/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /@alice/i })).toBeNull()
+    // Los temas SÍ: son el filtro que se usa siempre.
+    expect(screen.getByRole('button', { name: /^memoria/i })).toBeInTheDocument()
   })
 
   it('ejecuta sync, clasificar, crónica, extracción, nota y borrado', async () => {

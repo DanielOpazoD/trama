@@ -1,10 +1,19 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ViewHeader } from './ViewHeader'
-import { EndMark, SparkleIcon, TwitterIcon, ChevronDownIcon, TrashIcon } from './Icons'
+import {
+  CalendarIcon,
+  EndMark,
+  SearchIcon,
+  SparkleIcon,
+  TwitterIcon,
+  UserIcon,
+} from './Icons'
+import { FilterChip } from './FilterChip'
+import { XCronicaCard } from './twitter/XCronicaCard'
+import { useScrollRail } from '../hooks/useScrollRail'
 import { IconButton } from './IconButton'
 import { CloseButton } from './CloseButton'
-import { AISourceTag } from './AISourceTag'
 import { EmptyMessage } from './EmptyMessage'
 import { LoadingHint } from './LoadingHint'
 import {
@@ -60,6 +69,15 @@ export function TwitterView({
   const [query, setQuery] = useState('')
   const [author, setAuthor] = useState<string | null>(null)
   const [showAuthors, setShowAuthors] = useState(false)
+  // Chrome on-demand, el patrón que NotasFeedView documenta: el buscador y la
+  // navegación temporal se expanden desde un icono. Antes esta vista apilaba
+  // CUATRO filas de filtros siempre abiertas — la zona más cargada del repo.
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [datesOpen, setDatesOpen] = useState(false)
+  // A 375px los chips de tema envolvían en tres líneas; el rail los deja en
+  // una sola que se desliza, con el mismo degradado de máscara que las
+  // pestañas del mundo Notas.
+  const railTemas = useScrollRail<HTMLDivElement>()
   // La crónica arranca visible pero se puede colapsar (ocultar) sin borrarla.
   const [cronicaOpen, setCronicaOpen] = useState(true)
 
@@ -184,12 +202,12 @@ export function TwitterView({
     del.mutate(b.id)
   }
 
-  const chip = (active: boolean) =>
-    `shrink-0 rounded-full px-2.5 py-1 text-xs transition-colors ${
-      active
-        ? 'bg-ink-100 text-ink-800'
-        : 'text-ink-400 hover:bg-ink-100/60 hover:text-ink-700'
-    }`
+  // Estilo activo de los chips de esta vista — el acento del mundo lo lleva
+  // el `activeStyle`, la forma la lleva el FilterChip compartido.
+  const ACTIVE_CHIP = {
+    background: 'var(--accent-primary-soft)',
+    color: 'var(--accent-primary)',
+  }
 
   return (
     <>
@@ -204,13 +222,18 @@ export function TwitterView({
         action={
           connected ? (
             <div className="flex flex-col items-end gap-1">
-              <button
-                onClick={handleSync}
-                disabled={syncing}
-                className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
-              >
-                {syncing ? 'sincronizando…' : 'Sincronizar'}
-              </button>
+              {/* Sin bookmarks, el CTA del estado vacío ya ofrece sincronizar:
+                  dos botones para la misma acción en la misma pantalla. Se
+                  mantiene mientras carga para que la cabecera no parpadee. */}
+              {(bookmarks.isLoading || items.length > 0) && (
+                <button
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="text-caption uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
+                >
+                  {syncing ? 'sincronizando…' : 'Sincronizar'}
+                </button>
+              )}
               <span className="text-micro text-ink-300 tabular-nums">
                 {lastSyncedAt
                   ? `sincronizado ${formatRelative(lastSyncedAt)}`
@@ -250,214 +273,205 @@ export function TwitterView({
         />
       ) : (
         <>
-          {/* #4 Crónica IA de tus bookmarks (se guarda y aparece en Inicio). */}
-          {(() => {
-            const c = cronicaQuery.data?.cronica
-            return (
-              <div className="card-paper mb-6 p-4">
-                <div className="flex items-baseline justify-between gap-3">
-                  {c ? (
-                    <button
-                      type="button"
-                      onClick={() => setCronicaOpen((v) => !v)}
-                      aria-expanded={cronicaOpen}
-                      className="flex items-baseline gap-1.5 hover:opacity-80 transition-opacity"
-                      title={cronicaOpen ? 'Ocultar la crónica' : 'Mostrar la crónica'}
-                    >
-                      <span className="section-eyebrow-serif">
-                        Crónica de tus bookmarks
-                      </span>
-                      <ChevronDownIcon
-                        size={12}
-                        className={`text-ink-300 transition-transform ${cronicaOpen ? '' : '-rotate-90'}`}
-                      />
-                    </button>
-                  ) : (
-                    <span className="section-eyebrow-serif">
-                      Crónica de tus bookmarks
-                    </span>
-                  )}
-                  <div className="flex items-center gap-3 shrink-0">
-                    {c && (
-                      <AISourceTag
-                        provider={c.provider}
-                        model={c.model}
-                        at={c.generatedAt}
-                      />
-                    )}
-                    <button
-                      onClick={handleGenerateCronica}
-                      disabled={genCronica.isPending}
-                      className="text-xs uppercase tracking-eyebrow text-ink-300 hover:text-ink-700 transition-colors disabled:opacity-50"
-                    >
-                      {genCronica.isPending
-                        ? 'escribiendo…'
-                        : c
-                          ? 'Regenerar'
-                          : 'Generar'}
-                    </button>
-                    {c && (
-                      <IconButton
-                        onClick={handleDeleteCronica}
-                        disabled={deleteCronica.isPending}
-                        label="Eliminar crónica"
-                        title="Eliminar la crónica (podés generar otra cuando quieras)"
-                        className="rounded p-1 text-ink-300 hover:text-[color:var(--accent-clay)] transition-colors disabled:opacity-50"
-                      >
-                        <TrashIcon size={12} />
-                      </IconButton>
-                    )}
-                  </div>
-                </div>
-                {c ? (
-                  cronicaOpen && (
-                    <div className="mt-2 animate-fade-up">
-                      <p className="whitespace-pre-wrap font-serif text-body leading-relaxed text-ink-700">
-                        {c.text}
-                      </p>
-                      <p className="mt-2 text-micro text-ink-300 tabular-nums">
-                        {formatRelative(c.generatedAt)} · {c.sourceCount} bookmarks
-                      </p>
-                    </div>
-                  )
-                ) : (
-                  <p className="mt-1 text-sm text-ink-400 italic">
-                    Un ensayo breve, escrito por la IA, sobre qué guardas en X.
-                  </p>
-                )}
-              </div>
-            )
-          })()}
+          <XCronicaCard
+            cronica={cronicaQuery.data?.cronica}
+            open={cronicaOpen}
+            onToggle={() => setCronicaOpen((v) => !v)}
+            onGenerate={handleGenerateCronica}
+            onDelete={handleDeleteCronica}
+            generating={genCronica.isPending}
+            deleting={deleteCronica.isPending}
+          />
 
-          {/* Buscar + autores. */}
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar en tus bookmarks…"
-              aria-label="Buscar"
-              className="min-w-0 flex-1 rounded-lg border border-ink-100/60 bg-paper-50 px-3 py-1.5 text-sm text-ink-700 placeholder:text-ink-300 focus:border-ink-300"
-            />
-            <button
-              onClick={() => setShowAuthors((v) => !v)}
-              className={chip(showAuthors || author != null)}
+          {/* Chrome on-demand, como NotasFeedView: una sola fila con lo
+              que se usa siempre (los temas) y dos iconos que expanden lo
+              ocasional (buscar, fechas). Antes eran cuatro filas abiertas a la
+              vez, ≥10 controles fijos antes del primer tweet. */}
+          <div className="mb-3 flex items-center gap-1.5">
+            <div
+              ref={railTemas.ref}
+              className="scroll-rail flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto md:flex-wrap md:[mask-image:none] md:overflow-visible"
+              data-rail-start={railTemas.hint.inicio}
+              data-rail-end={railTemas.hint.fin}
             >
-              Autores
-              {author && <span className="ml-1 text-ink-500">· @{author}</span>}
-            </button>
-          </div>
-          {showAuthors && authors.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-1.5 border-l-2 border-ink-100 pl-3">
-              {author && (
-                <button onClick={() => setAuthor(null)} className={chip(false)}>
-                  ✕ quitar filtro
+              <FilterChip
+                active={topic == null && author == null && year == null && !query}
+                onClick={() => {
+                  setTopic(null)
+                  setAuthor(null)
+                  selectYear(null)
+                  setQuery('')
+                }}
+                label="Todo"
+                activeStyle={ACTIVE_CHIP}
+              />
+              {topicCounts.map(([t, n]) => (
+                <FilterChip
+                  key={t}
+                  active={topic === t}
+                  onClick={() => setTopic((prev) => (prev === t ? null : t))}
+                  label={t}
+                  count={n}
+                  activeStyle={ACTIVE_CHIP}
+                />
+              ))}
+              {unclassified > 0 && (
+                <FilterChip
+                  active={topic === UNCLASSIFIED_TOPIC}
+                  onClick={() =>
+                    setTopic((prev) =>
+                      prev === UNCLASSIFIED_TOPIC ? null : UNCLASSIFIED_TOPIC,
+                    )
+                  }
+                  label="sin clasificar"
+                  count={unclassified}
+                  activeStyle={ACTIVE_CHIP}
+                />
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-0.5">
+              <IconButton
+                onClick={() => setSearchOpen((v) => !v)}
+                label="Buscar en tus bookmarks"
+                aria-expanded={searchOpen}
+                className={`touch-target rounded-md p-1.5 transition-colors ${
+                  searchOpen || query
+                    ? 'bg-ink-100/70 text-ink-700'
+                    : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
+                }`}
+              >
+                <SearchIcon size={14} />
+              </IconButton>
+              {years.length > 0 && (
+                <IconButton
+                  onClick={() => setDatesOpen((v) => !v)}
+                  label="Filtrar por fecha"
+                  aria-expanded={datesOpen}
+                  className={`touch-target rounded-md p-1.5 transition-colors ${
+                    datesOpen || year != null
+                      ? 'bg-ink-100/70 text-ink-700'
+                      : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
+                  }`}
+                >
+                  <CalendarIcon size={14} />
+                </IconButton>
+              )}
+              <IconButton
+                onClick={() => setShowAuthors((v) => !v)}
+                label="Filtrar por autor"
+                aria-expanded={showAuthors}
+                className={`touch-target rounded-md p-1.5 transition-colors ${
+                  showAuthors || author != null
+                    ? 'bg-ink-100/70 text-ink-700'
+                    : 'text-ink-300 hover:bg-ink-100/60 hover:text-ink-700'
+                }`}
+              >
+                <UserIcon size={14} />
+              </IconButton>
+              {/* Clasificar sólo aparece cuando HAY algo que clasificar: antes
+                  vivía fijo y deshabilitado en el estado estable más común. */}
+              {unclassified > 0 && (
+                <button
+                  onClick={handleClassify}
+                  disabled={classify.isPending}
+                  title={`Clasificar ${unclassified} sin tema con IA`}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-caption text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40"
+                >
+                  <SparkleIcon size={12} className="text-ink-400" />
+                  {classify.isPending ? 'clasificando…' : 'Clasificar temas'}
                 </button>
               )}
-              {authors.slice(0, 24).map(([u, n]) => (
-                <button
-                  key={u}
-                  onClick={() => setAuthor((prev) => (prev === u ? null : u))}
-                  className={chip(author === u)}
-                  title={`${n} bookmark${n === 1 ? '' : 's'} de @${u}`}
-                >
-                  @{u}
-                  <span className="ml-1 text-micro text-ink-300 tabular-nums">{n}</span>
-                </button>
-              ))}
             </div>
-          )}
-
-          {/* Temas (clasificación IA) + botón clasificar. */}
-          <div className="mb-3 flex flex-wrap items-center gap-1.5">
-            <span className="mr-1 self-center text-micro uppercase tracking-eyebrow text-ink-300">
-              tema
-            </span>
-            <button onClick={() => setTopic(null)} className={chip(topic == null)}>
-              Todos los temas
-            </button>
-            {topicCounts.map(([t, n]) => (
-              <button
-                key={t}
-                onClick={() => setTopic((prev) => (prev === t ? null : t))}
-                className={chip(topic === t)}
-              >
-                {t}
-                <span className="ml-1 text-micro text-ink-300 tabular-nums">{n}</span>
-              </button>
-            ))}
-            {unclassified > 0 && (
-              <button
-                onClick={() =>
-                  setTopic((prev) =>
-                    prev === UNCLASSIFIED_TOPIC ? null : UNCLASSIFIED_TOPIC,
-                  )
-                }
-                className={chip(topic === UNCLASSIFIED_TOPIC)}
-              >
-                sin clasificar
-                <span className="ml-1 text-micro text-ink-300 tabular-nums">
-                  {unclassified}
-                </span>
-              </button>
-            )}
-            <button
-              onClick={handleClassify}
-              disabled={classify.isPending || unclassified === 0}
-              title={
-                unclassified === 0
-                  ? 'Todo clasificado'
-                  : `Clasificar ${unclassified} sin tema con IA`
-              }
-              className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700 disabled:opacity-40"
-            >
-              <SparkleIcon size={12} className="text-ink-400" />
-              {classify.isPending ? 'clasificando…' : 'Clasificar temas'}
-            </button>
           </div>
 
-          {/* Navegación por año (y mes al elegir un año) — sobre la fecha del tweet. */}
-          {years.length > 0 && (
-            <div className="mb-3 flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 self-center text-micro uppercase tracking-eyebrow text-ink-300">
-                año
-              </span>
-              <button onClick={() => selectYear(null)} className={chip(year == null)}>
-                Todos los años
-              </button>
-              {years.map((y) => (
-                <button
-                  key={y}
-                  onClick={() => selectYear(y)}
-                  className={chip(year === y)}
-                >
-                  {y}
-                  <span className="ml-1 text-micro text-ink-300 tabular-nums">
-                    {byYear.get(y)?.count}
-                  </span>
-                </button>
+          {searchOpen && (
+            <div className="mb-3 animate-fade-up">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar en tus bookmarks…"
+                aria-label="Buscar"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setQuery('')
+                    setSearchOpen(false)
+                  }
+                }}
+                className="w-full rounded-lg border border-ink-100/60 bg-paper-50 px-3 py-1.5 text-body text-ink-700 placeholder:text-ink-300 focus:border-ink-300"
+              />
+            </div>
+          )}
+
+          {showAuthors && authors.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-1.5 border-l-2 border-ink-100 pl-3 animate-fade-up">
+              {author && (
+                <FilterChip
+                  active={false}
+                  onClick={() => setAuthor(null)}
+                  label="✕ quitar filtro"
+                />
+              )}
+              {authors.slice(0, 24).map(([u, n]) => (
+                <FilterChip
+                  key={u}
+                  active={author === u}
+                  onClick={() => setAuthor((prev) => (prev === u ? null : u))}
+                  label={`@${u}`}
+                  count={n}
+                  title={`${n} bookmark${n === 1 ? '' : 's'} de @${u}`}
+                  activeStyle={ACTIVE_CHIP}
+                />
               ))}
             </div>
           )}
-          {year != null && months.length > 0 && (
-            <div className="mb-6 flex flex-wrap items-center gap-1.5 border-l-2 border-ink-100 pl-3">
-              <button onClick={() => setMonth(null)} className={chip(month == null)}>
-                Todo {year}
-              </button>
-              {months.map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMonth((prev) => (prev === m ? null : m))}
-                  className={chip(month === m)}
-                >
-                  {monthName(m)}
-                </button>
-              ))}
+
+          {datesOpen && years.length > 0 && (
+            <div className="mb-4 space-y-1.5 border-l-2 border-ink-100 pl-3 animate-fade-up">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <FilterChip
+                  active={year == null}
+                  onClick={() => selectYear(null)}
+                  label="Todos los años"
+                  activeStyle={ACTIVE_CHIP}
+                />
+                {years.map((y) => (
+                  <FilterChip
+                    key={y}
+                    active={year === y}
+                    onClick={() => selectYear(y)}
+                    label={String(y)}
+                    count={byYear.get(y)?.count}
+                    activeStyle={ACTIVE_CHIP}
+                  />
+                ))}
+              </div>
+              {year != null && months.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <FilterChip
+                    active={month == null}
+                    onClick={() => setMonth(null)}
+                    label={`Todo ${year}`}
+                    activeStyle={ACTIVE_CHIP}
+                  />
+                  {months.map((m) => (
+                    <FilterChip
+                      key={m}
+                      active={month === m}
+                      onClick={() => setMonth((prev) => (prev === m ? null : m))}
+                      label={monthName(m)}
+                      activeStyle={ACTIVE_CHIP}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {filtered.length === 0 && (
-            <p className="py-8 text-center text-sm text-ink-400 italic">
+            <p className="py-8 text-center text-body text-ink-400 italic">
               Ningún bookmark coincide con el filtro.
             </p>
           )}
