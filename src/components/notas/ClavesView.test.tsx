@@ -325,8 +325,9 @@ describe('<ClavesView />', () => {
     fireEvent.click(screen.getByRole('button', { name: 'guardar clave' }))
 
     await screen.findByText('daniel@example.com')
-    await screen.findByRole('button', { name: 'Editar clave' })
-    fireEvent.click(screen.getByRole('button', { name: 'Editar clave' }))
+    // Editar vive tras el ⋯ de la tarjeta, como en las demás tarjetas.
+    fireEvent.click(await screen.findByRole('button', { name: 'Acciones de la clave' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Editar/ }))
     fireEvent.change(screen.getByDisplayValue('daniel@example.com'), {
       target: { value: 'nuevo@example.com' },
     })

@@ -10,6 +10,7 @@ import {
 } from '../../lib/vaultCrypto'
 import { ClipboardIcon, KeyIcon, PencilIcon, ShieldIcon, TrashIcon } from '../Icons'
 import { IconButton } from '../IconButton'
+import { OverflowMenu, OverflowMenuItem } from '../OverflowMenu'
 import { formatShortDate, secretHealth } from './notasUtils'
 
 const ACCENT = 'var(--accent-sage)'
@@ -197,6 +198,7 @@ export function SecretCard({
   onDelete: () => void
   onSaveEdit: (input: SecretEditInput) => void
 }) {
+  const [confirming, setConfirming] = useState(false)
   const metadataReady = metadata !== undefined
   const [editing, setEditing] = useState(false)
   const [label, setLabel] = useState(item.label)
@@ -357,6 +359,11 @@ export function SecretCard({
             <code className="min-w-0 truncate rounded-md border border-ink-100/70 bg-paper-50 px-2 py-1.5 text-sm text-ink-500">
               {value ?? '••••••••••••••••••••'}
             </code>
+            {/* Sacar la clave del llavero —revelarla y copiarla— es a lo que se
+                viene; eso se queda a la vista. Editar, marcar y borrar son
+                ocasionales y viven tras el ⋯, como en las otras seis tarjetas
+                de la app. Con veinte claves, cinco controles por tarjeta eran
+                cien botones en pantalla. */}
             <div className="flex items-center gap-1">
               <button
                 onClick={onReveal}
@@ -374,24 +381,65 @@ export function SecretCard({
               >
                 <ClipboardIcon size={12} />
               </IconButton>
-              <IconButton
-                onClick={beginEdit}
-                disabled={busy || !metadataReady}
-                title="Editar"
-                label="Editar clave"
-                className="p-1 text-ink-300 hover:text-ink-700"
+              <OverflowMenu
+                label="Acciones de la clave"
+                width="w-48"
+                triggerClassName="touch-target p-1 rounded text-ink-300 hover:text-ink-700 hover:bg-ink-100 transition-colors"
               >
-                <PencilIcon size={12} />
-              </IconButton>
-              <IconButton
-                onClick={onDelete}
-                disabled={busy}
-                title="Borrar"
-                label="Borrar clave"
-                className="p-1 text-ink-300 hover:text-[color:var(--accent-clay)]"
-              >
-                <TrashIcon size={12} />
-              </IconButton>
+                {(close) => (
+                  <>
+                    <OverflowMenuItem
+                      disabled={busy || !metadataReady}
+                      onClick={() => {
+                        beginEdit()
+                        close()
+                      }}
+                    >
+                      <PencilIcon size={12} /> Editar
+                    </OverflowMenuItem>
+                    <OverflowMenuItem
+                      disabled={busy}
+                      onClick={() => {
+                        onFavorite()
+                        close()
+                      }}
+                    >
+                      ★ {item.favorite ? 'Soltar favorita' : 'Favorita'}
+                    </OverflowMenuItem>
+
+                    {/* Borrar una clave NO tiene deshacer: el backend la marca
+                        con `deleted_at` pero la app no expone restauración.
+                        Era el borrado menos protegido de todos —un clic sobre
+                        el dato más valioso— y ahora pide confirmación, como
+                        NoteCard y RecorteCard. */}
+                    {confirming ? (
+                      <>
+                        <OverflowMenuItem
+                          danger
+                          disabled={busy}
+                          onClick={() => {
+                            onDelete()
+                            close()
+                          }}
+                        >
+                          <TrashIcon size={12} /> Sí, borrar
+                        </OverflowMenuItem>
+                        <OverflowMenuItem onClick={() => setConfirming(false)}>
+                          Cancelar
+                        </OverflowMenuItem>
+                      </>
+                    ) : (
+                      <OverflowMenuItem
+                        danger
+                        disabled={busy}
+                        onClick={() => setConfirming(true)}
+                      >
+                        <TrashIcon size={12} /> Borrar
+                      </OverflowMenuItem>
+                    )}
+                  </>
+                )}
+              </OverflowMenu>
             </div>
           </div>
           <footer className="mt-3 flex items-center gap-3 flex-wrap text-micro text-ink-300">
@@ -410,14 +458,6 @@ export function SecretCard({
                 {health.flags.join(' · ')}
               </span>
             )}
-            <span className="flex-1" />
-            <button
-              onClick={onFavorite}
-              disabled={busy}
-              className="uppercase tracking-eyebrow hover:text-ink-700"
-            >
-              {item.favorite ? 'soltar' : 'favorita'}
-            </button>
           </footer>
         </div>
       </div>
