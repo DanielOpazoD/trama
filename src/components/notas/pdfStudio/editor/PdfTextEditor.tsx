@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   type Annotation,
   type TextAnnotation,
 } from '../../../../lib/pdfStudio/model/model'
 import { initHistory, type History } from '../../../../lib/pdfStudio/model/history'
-import { useFocusTrap } from '../../../../hooks/useFocusTrap'
 import { EditorToolbar } from './EditorToolbar'
 import { PdfTextEditorHeaderSlot } from './PdfTextEditorHeaderSlot'
 import { SelectionInspector } from './SelectionInspector'
@@ -21,6 +20,7 @@ import { STAMP_ACCEPT } from './pdfImageStamp'
 import { PdfTextEditorStampAssetSlot } from './PdfTextEditorStampAssetSlot'
 import { PdfTextEditorPageSurface } from './PdfTextEditorPageSurface'
 import { usePdfTextEditorPageNavigation } from './usePdfTextEditorPageNavigation'
+import { usePdfTextEditorDialogShell } from './usePdfTextEditorDialogShell'
 import { usePdfTextEditorViewport } from './usePdfTextEditorViewport'
 import { PdfTextEditorFloatingFormTools } from './PdfTextEditorFloatingFormTools'
 import { PdfTextEditorFillSidebar } from '../planillas/fill/PdfTextEditorFillSidebar'
@@ -108,19 +108,7 @@ export function PdfTextEditor({
   } = usePdfTextEditorXMarks({ doc, setHistory, activeLayout, activeLayoutRef })
   const stampInputRef = useRef<HTMLInputElement>(null)
   const backdropDownRef = useRef<{ x: number; y: number } | null>(null)
-  const dialogRef = useRef<HTMLDivElement>(null)
-  // El inspector flotante vive portaleado al body (se puede arrastrar fuera
-  // del modal): el focus trap lo cuenta como parte del editor.
-  const floatingToolsRef = useRef<HTMLDivElement>(null)
-  const focusTrapRoots = useRef([floatingToolsRef]).current
-  useFocusTrap(dialogRef, true, focusTrapRoots)
-  useEffect(() => {
-    dialogRef.current?.focus()
-    // Calienta las fuentes del menú de estilo. Caveat ("Manuscrita") puede no
-    // haberse usado aún en esta sesión: si se descargara recién al abrir el
-    // menú, el reflow de la carga dispara el cierre-por-scroll del popover.
-    void document.fonts?.load?.('16px Caveat')?.catch(() => {})
-  }, [])
+  const { dialogRef, floatingToolsRef } = usePdfTextEditorDialogShell()
   const selectedRef = useRef<string | null>(null)
   const editingRef = useRef<string | null>(null)
   editingRef.current = editingId
@@ -275,18 +263,23 @@ export function PdfTextEditor({
     applyStyle(patch)
     applyDraftFieldStyle(patch)
   }
-  const { activatePage, goToPage, isInitialPagePositioning, syncPageFromScroll } =
-    usePdfTextEditorPageNavigation({
-      currentPage,
-      scrollContainerRef,
-      setActivePageLayout,
-      setCurrentPage,
-      setEditingId,
-      setSelectedId,
-      scrollInitialPage: true,
-      total,
-      zoom,
-    })
+  const {
+    activatePage,
+    goToPage,
+    isInitialPagePositioning,
+    isOpeningPage,
+    syncPageFromScroll,
+  } = usePdfTextEditorPageNavigation({
+    currentPage,
+    scrollContainerRef,
+    setActivePageLayout,
+    setCurrentPage,
+    setEditingId,
+    setSelectedId,
+    scrollInitialPage: true,
+    total,
+    zoom,
+  })
   const { status: formSuggestionStatus, suggestCurrentPage } =
     usePdfTextEditorFormSuggestions({
       currentPage,
@@ -509,6 +502,7 @@ export function PdfTextEditor({
             fillMode={fillMode}
             onScroll={(event) => syncPageFromScroll(event.currentTarget)}
             positioning={isInitialPagePositioning}
+            opening={isOpeningPage}
             scrollContainerRef={scrollContainerRef}
           >
             <div className="mx-auto flex min-w-full flex-col items-center gap-4">
