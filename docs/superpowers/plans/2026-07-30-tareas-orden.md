@@ -45,12 +45,14 @@ en las hojas con más de un pendiente.
 
 Los tests que ya existían pasaban **igual con el menú duplicado**: ninguno
 miraba el orden. Ese verde no decía nada sobre este cambio, así que se
-escribieron los tres que faltaban.
+escribieron los cuatro que faltaban — tres sobre dónde vive el control y cómo
+se comporta, y un cuarto, salido de la autorrevisión, sobre que su estado se
+lee sin abrirlo.
 
 | mutación                                          | qué falla                                             |
 | ------------------------------------------------- | ----------------------------------------------------- |
 | el menú vuelve a repetirse en cada cuadro semanal | «aparece una sola vez» + «anuncia el criterio activo» |
-| el menú deja de anunciar el criterio activo       | los tres tests de orden                               |
+| el menú deja de anunciar el criterio activo       | los tres tests que leen su etiqueta                   |
 | el disparador vuelve a ser un icono suelto        | «el criterio activo se lee sin abrir el menú»         |
 
 `typecheck`, `lint`, `format:check`, **los 33 gates no-DB** y la suite completa.
