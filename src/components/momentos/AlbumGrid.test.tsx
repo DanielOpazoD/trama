@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -102,6 +102,7 @@ describe('<AlbumGrid />', () => {
   it('muestra estado vacío cuando no recibe fotos', () => {
     render(
       <AlbumGrid
+        size="medium"
         items={[noteMomento]}
         entitiesById={new Map([['e1', entity]])}
         onDelete={() => {}}
@@ -117,6 +118,7 @@ describe('<AlbumGrid />', () => {
 
     render(
       <AlbumGrid
+        size="medium"
         items={[noteMomento, photoMomento]}
         entitiesById={new Map([['e1', entity]])}
         onDelete={onDelete}
@@ -139,6 +141,7 @@ describe('<AlbumGrid />', () => {
 
     render(
       <AlbumGrid
+        size="medium"
         items={[photoMomento]}
         entitiesById={new Map([['e1', entity]])}
         onDelete={() => {}}
@@ -156,6 +159,7 @@ describe('<AlbumGrid />', () => {
 
     render(
       <AlbumGrid
+        size="medium"
         items={[photoMomento]}
         entitiesById={new Map([['e1', entity]])}
         onDelete={() => {}}
@@ -173,6 +177,7 @@ describe('<AlbumGrid />', () => {
   it('renderiza fotos persistidas con payload photos legado', async () => {
     render(
       <AlbumGrid
+        size="medium"
         items={[legacyPhotoMomento]}
         entitiesById={new Map([['e1', entity]])}
         onDelete={() => {}}
@@ -191,6 +196,7 @@ describe('<AlbumGrid />', () => {
   it('usa agrupación cronológica por defecto sin mostrar configuración de agrupar', async () => {
     render(
       <AlbumGrid
+        size="medium"
         items={[photoMomento]}
         entitiesById={new Map([['e1', entity]])}
         onDelete={() => {}}
@@ -202,31 +208,47 @@ describe('<AlbumGrid />', () => {
     expect(screen.getByText('2026')).toBeInTheDocument()
   })
 
-  it('permite cambiar el tamaño desde un menú compacto y lo persiste', async () => {
-    const user = userEvent.setup()
-
-    render(
+  /**
+   * El menú de tamaño se movió a la barra (MomentosToolbar), donde viven los
+   * demás controles de vista: aquí se comía una fila entera para sí solo. Su
+   * comportamiento se prueba en MomentosViewSections.test.tsx; lo que AlbumGrid
+   * debe garantizar ahora es que respeta el tamaño que le llega.
+   */
+  it('respeta el tamaño que recibe por props', () => {
+    const { container } = render(
       <AlbumGrid
+        size="large"
         items={[photoMomento]}
         entitiesById={new Map([['e1', entity]])}
         onDelete={() => {}}
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: /tamaño: medio/i }))
-    await user.click(screen.getByRole('menuitem', { name: 'grande' }))
-
-    expect(window.localStorage.getItem('trama:album-size')).toBe('large')
+    // Cada tamaño tiene su propia maqueta: 'large' es la de una columna.
+    expect(container.querySelector('.columns-1')).not.toBeNull()
+    expect(container.querySelector('.grid-cols-3')).toBeNull()
     expect(screen.getByText('Valparaíso')).toBeInTheDocument()
   })
 
-  it('usa el hook compartido para persistir preferencias de album', () => {
-    const src = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), 'AlbumGrid.tsx'),
-      'utf8',
-    )
+  /**
+   * El invariante es «nadie del mundo Momentos habla con localStorage a mano»,
+   * no «tal fichero contiene tal import»: la persistencia del tamaño ya se
+   * movió dos veces (AlbumGrid → MomentosView → useAlbumTileSize) y una sonda
+   * atada a una ruta se rompe en cada mudanza sin que nada esté mal.
+   */
+  it('nadie toca window.localStorage a mano: el hook compartido lo hace', () => {
+    const aquí = dirname(fileURLToPath(import.meta.url))
+    const ficheros = readdirSync(aquí)
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes('.test.'))
+      .map((f) => join(aquí, f))
+      .concat(join(aquí, '..', 'MomentosView.tsx'))
 
-    expect(src).toContain('useLocalStorageState')
-    expect(src).not.toContain('window.localStorage')
+    for (const fichero of ficheros) {
+      expect(readFileSync(fichero, 'utf8'), fichero).not.toContain('window.localStorage')
+    }
+
+    // Y la persistencia existe de verdad, vía el hook compartido.
+    const hook = readFileSync(join(aquí, 'useAlbumTileSize.ts'), 'utf8')
+    expect(hook).toContain('useLocalStorageState')
   })
 })

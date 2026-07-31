@@ -2,6 +2,8 @@ import type { Entity } from '../../types'
 import { Paginator } from '../Paginator'
 import { EmptyMessage } from '../EmptyMessage'
 import { ShareIcon } from '../Icons'
+import { IconButton } from '../IconButton'
+import { SizeMenu, type TileSize } from './AlbumGrid'
 import { MomentosFilters } from './MomentosFilters'
 import { SelectableMomento } from './SelectableMomento'
 import { formatDateHeading, type groupByDay } from './helpers'
@@ -44,6 +46,9 @@ export function MomentosToolbar({
   onChangeViewMode,
   onShare,
   onToggleSelectionMode,
+  tileSize,
+  onTileSizeChange,
+  showTileSize,
 }: {
   contentFilter: ContentFilter
   viewMode: 'timeline' | 'album'
@@ -53,9 +58,17 @@ export function MomentosToolbar({
   onChangeViewMode: (next: 'timeline' | 'album') => void
   onShare: () => void
   onToggleSelectionMode: () => void
+  tileSize: TileSize
+  onTileSizeChange: (next: TileSize) => void
+  /** Sólo en álbum: en la línea de tiempo no hay miniaturas que dimensionar. */
+  showTileSize: boolean
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    // A 375px esto eran CUATRO filas apiladas —chips, Línea/Álbum, compartir y
+    // tamaño— que se comían 184px antes de la primera foto en una pantalla de
+    // 812. Ahora los filtros y las acciones comparten fila: los chips se
+    // deslizan en un rail y lo de la derecha se queda compacto.
+    <div className="mb-4 flex items-center justify-between gap-3">
       <MomentosFilters
         contentFilter={contentFilter}
         onChangeContentFilter={onChangeContentFilter}
@@ -64,21 +77,21 @@ export function MomentosToolbar({
       />
       {/* Acciones agrupadas a la derecha — compartir + seleccionar viven juntas
           para que la fila lea como "filtros … acciones", sin dispersar. */}
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          aria-label="compartir momentos"
+      <div className="flex shrink-0 items-center gap-1.5">
+        {showTileSize && <SizeMenu value={tileSize} onChange={onTileSizeChange} />}
+        <IconButton
           onClick={onShare}
-          className="inline-flex items-center gap-2 rounded-full border border-ink-100/70 bg-paper-50/80 px-3 py-1.5 text-caption uppercase tracking-eyebrow text-ink-400 shadow-sm transition-colors hover:text-ink-700"
+          label="compartir momentos"
+          title="Compartir"
+          className="touch-target rounded-md p-1.5 text-ink-400 transition-colors hover:bg-ink-100/60 hover:text-ink-700"
         >
-          <ShareIcon size={13} />
-          compartir
-        </button>
+          <ShareIcon size={14} />
+        </IconButton>
         {itemCount > 1 && viewMode === 'timeline' && (
           <button
             type="button"
             onClick={onToggleSelectionMode}
-            className={`text-micro uppercase tracking-eyebrow transition-colors shrink-0 ${
+            className={`shrink-0 text-micro uppercase tracking-eyebrow transition-colors ${
               selectionMode ? 'text-ink-700' : 'text-ink-400 hover:text-ink-700'
             }`}
             aria-pressed={selectionMode}

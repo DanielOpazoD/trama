@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { FilterChip } from '../FilterChip'
+import { useScrollRail } from '../../hooks/useScrollRail'
 import type { ContentFilter } from './momentosViewModel'
 
 /**
@@ -43,13 +44,22 @@ export function MomentosFilters({
   viewMode: 'timeline' | 'album'
   onChangeViewMode: (v: 'timeline' | 'album') => void
 }) {
+  // A 375px los cinco chips más el segmentado envolvían en dos filas; el rail
+  // los deja en una que se desliza, con la misma máscara que el resto de la app.
+  const rail = useScrollRail<HTMLDivElement>()
+
   // Álbum tiene sentido cuando el resultado son fotos/clips en grilla.
   const canShowAlbum =
     contentFilter === 'all' || contentFilter === 'foto' || contentFilter === 'video'
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <div className="flex flex-wrap items-center gap-1">
+    <div
+      ref={rail.ref}
+      data-rail-start={rail.hint.inicio}
+      data-rail-end={rail.hint.fin}
+      className="scroll-rail flex min-w-0 items-center gap-x-3 gap-y-2 overflow-x-auto md:flex-wrap md:[mask-image:none] md:overflow-visible"
+    >
+      <div className="flex shrink-0 items-center gap-1 md:flex-wrap">
         {CONTENT_CHIPS.map((chip) => (
           <FilterChip
             key={chip.value}
@@ -67,7 +77,7 @@ export function MomentosFilters({
       {/* AA-D: Álbum disponible también en Todos/Videos, no solo Fotos. En
           Todos filtra internamente a kind=foto; Videos suma el refinado por
           clip. Para nota/recorte un grid de tiles no aporta → deshabilitado. */}
-      <div className="flex items-center gap-0.5 rounded-full border border-ink-100/70 bg-paper-100/50 p-0.5">
+      <div className="flex shrink-0 items-center gap-0.5 rounded-full border border-ink-100/70 bg-paper-100/50 p-0.5">
         <ViewChip
           label="Línea"
           active={viewMode === 'timeline'}

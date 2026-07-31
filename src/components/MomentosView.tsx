@@ -8,6 +8,8 @@ import {
 import type { MomentoKind } from '../types'
 import { ErrorState } from './ErrorState'
 import { AlbumGrid } from './momentos/AlbumGrid'
+import { useAlbumTileSize } from './momentos/useAlbumTileSize'
+import { useMomentoSelection } from './momentos/useMomentoSelection'
 import { MomentoComposer } from './momentos/MomentoComposer'
 import { MergeMomentosBar } from './momentos/MergeMomentosBar'
 import { ConfirmDestroy } from './ConfirmDestroy'
@@ -52,6 +54,8 @@ export function MomentosView() {
   const [contentFilter, setContentFilter] = useState<ContentFilter>('all')
   const [viewMode, setViewMode] = useState<'timeline' | 'album'>('album')
   const [shareOpen, setShareOpen] = useState(false)
+
+  const [tileSize, setTileSize] = useAlbumTileSize()
 
   // El filtro de contenido se traduce a un kind real para la query; 'video'
   // consulta fotos (el clip vive dentro de kind='foto') y se refina abajo.
@@ -124,42 +128,19 @@ export function MomentosView() {
   //   - cada momento se vuelve clickeable como checkbox (sin abrir nada)
   //   - aparece la MergeMomentosBar flotante al pie
   // Al fusionar (o cancelar), salimos del modo y limpiamos selección.
-  const [selectionMode, setSelectionMode] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const selectedMomentos = useMemo(
-    () => items.filter((m) => selectedIds.has(m.id)),
-    [items, selectedIds],
-  )
-  function toggleSelect(id: string): void {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-  function exitSelection(): void {
-    setSelectionMode(false)
-    setSelectedIds(new Set())
-  }
-  function toggleSelectionMode(): void {
-    if (selectionMode) exitSelection()
-    else setSelectionMode(true)
-  }
+  const {
+    selectionMode,
+    selectedIds,
+    selectedMomentos,
+    toggleSelect,
+    exitSelection,
+    toggleSelectionMode,
+  } = useMomentoSelection(items, viewMode)
+
   function showAllMomentos(): void {
     if (dayFilter) clearDayFilter()
     if (contentFilter !== 'all') setContentFilter('all')
   }
-
-  // EE: si el usuario cambia a vista álbum mientras selectionMode=true,
-  // limpiar para no dejar la barra flotante huérfana. AlbumGrid no
-  // renderiza los SelectableMomento — el wrapping vive solo en el
-  // timeline.
-  useEffect(() => {
-    if (viewMode !== 'timeline' && selectionMode) {
-      exitSelection()
-    }
-  }, [viewMode, selectionMode])
 
   // ω-álbum: el álbum es una galería completa por año, no una página, y el
   // filtro Videos junta clips de cualquier año — ambos recogen TODAS las
@@ -209,6 +190,9 @@ export function MomentosView() {
         onChangeViewMode={setViewMode}
         onShare={() => setShareOpen(true)}
         onToggleSelectionMode={toggleSelectionMode}
+        tileSize={tileSize}
+        onTileSizeChange={setTileSize}
+        showTileSize={shouldUseAlbumView({ viewMode, filterKind: queryKind })}
       />
 
       {momentosQuery.isLoading ? (
@@ -241,7 +225,12 @@ export function MomentosView() {
         // internamente a kind=foto, así que el usuario ve solo las
         // fotos en grid sin tener que cambiar de pestaña antes.
         <>
-          <AlbumGrid items={items} entitiesById={entitiesById} onDelete={handleDelete} />
+          <AlbumGrid
+            items={items}
+            entitiesById={entitiesById}
+            onDelete={handleDelete}
+            size={tileSize}
+          />
           {/* ω-álbum: mientras se recogen las páginas anteriores (todos los
               años), un pie sereno para que no parezca que faltan fotos. */}
           {isFetchingNextPage && (
