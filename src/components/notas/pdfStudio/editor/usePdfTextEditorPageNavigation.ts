@@ -73,6 +73,17 @@ export function usePdfTextEditorPageNavigation({
   const [isInitialPagePositioning, setIsInitialPagePositioning] = useState(
     () => scrollInitialPage && currentPage > 0,
   )
+  /**
+   * ¿Sigue vivo el pin de apertura? `isInitialPagePositioning` NO sirve para
+   * esto: se apaga en cuanto la hoja es visible (`revealInitial`), mientras la
+   * colocación continúa recentrando ante cada cambio de geometría. Publicarlo
+   * como si fuera «ya terminó» hacía que un observador —el e2e, y cualquiera
+   * que mire `aria-busy`— midiera dentro de la ventana en que las hojas de
+   * arriba todavía se inflan y corren el centro.
+   */
+  const [isOpeningPage, setIsOpeningPage] = useState(
+    () => scrollInitialPage && currentPage > 0,
+  )
   const initialPageScrolledRef = useRef(false)
   const openingRef = useRef<PdfEditorOpeningState | null>(null)
   const openingRunRef = useRef(0)
@@ -110,6 +121,7 @@ export function usePdfTextEditorPageNavigation({
       const opening = openingRef.current
       if (!opening) return
       openingRef.current = null
+      setIsOpeningPage(false)
       clearTimer()
       revealInitial()
       const container = getScrollContainer()
@@ -153,6 +165,7 @@ export function usePdfTextEditorPageNavigation({
       clearTimer()
       const run = (openingRunRef.current += 1)
       openingRef.current = beginPdfEditorOpening(pageIndex)
+      setIsOpeningPage(true)
       if (initial) openingIsInitialRef.current = true
       const container = getScrollContainer()
       const { placed, sheetReady } = placePdfEditorPage(container, pageIndex)
@@ -285,6 +298,7 @@ export function usePdfTextEditorPageNavigation({
     activatePage,
     goToPage,
     isInitialPagePositioning,
+    isOpeningPage,
     scrollInitialPageIntoView,
     syncGeometry,
     syncPageFromScroll,
