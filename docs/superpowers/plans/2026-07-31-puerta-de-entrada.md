@@ -41,7 +41,7 @@ pero la aplicación **renderiza una página en blanco**: las claves de Clerk son
 de producción y están atadas al dominio `tramahub.app`, así que Clerk falla al
 cargar y React nunca monta.
 
-```
+```text
 Clerk: Production Keys are only allowed for domain "tramahub.app".
 ```
 

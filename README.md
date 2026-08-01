@@ -32,7 +32,7 @@ Las funciones de IA quedan desactivadas ahí (no gastan API de nadie).
 </tr>
 </table>
 
-> Las capturas se regeneran con `npm run capturas` desde el propio modo prueba, contra la app de verdad. No son fotos congeladas que puedan quedarse mintiendo cuando una pantalla cambie.
+<sub>Las capturas se regeneran con `npm run capturas` desde el propio modo prueba, contra la app de verdad. No son fotos congeladas que puedan quedarse mintiendo cuando una pantalla cambie.</sub>
 
 > Para entender **qué es Trama y por qué existe**, ver [`FILOSOFIA.md`](./FILOSOFIA.md). Es la pieza más importante del repositorio.
 
