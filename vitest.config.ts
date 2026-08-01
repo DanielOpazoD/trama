@@ -92,11 +92,19 @@ export default defineConfig({
       //   _lib/cost-cap.ts  94.11 / 92.85 /  100 /  100
       //   _lib/user-rls.ts  93.87 / 78.57 /  100 / 95.45
       // Ojo: Vitest saca del cómputo global a los archivos con umbral propio.
+      //
+      // 2026-07-31: cubiertos `llm/retry.ts` y `llm/transcription.ts`, que
+      // estaban SIN un solo test. Medido tras esos tests:
+      //   statements 77.76 · branches 68.71 · functions 76.65 · lines 80.10
+      // Los pisos quedan ~2 puntos por debajo, como el resto: margen para el
+      // jitter de v8, no un objetivo. Branches sube de 63 a 66 — el salto
+      // viene de que `transcription.ts` estaba en 0/0/0 y `retry.ts` tenía
+      // ocho ramas sin tocar.
       thresholds: {
-        lines: 77,
-        functions: 72,
-        branches: 63,
-        statements: 74,
+        lines: 78,
+        functions: 74,
+        branches: 66,
+        statements: 75,
         '**/netlify/functions/_lib/auth.ts': {
           statements: 80,
           branches: 68,
@@ -106,6 +114,24 @@ export default defineConfig({
         '**/netlify/functions/_lib/cost-cap.ts': {
           statements: 90,
           branches: 88,
+          functions: 95,
+          lines: 95,
+        },
+        // Los dos módulos que deciden GASTO. Un desplome aquí no movería la
+        // aguja del total (124 líneas sobre ~102.000), que es justo el motivo
+        // por el que llevan piso propio: `retry.ts` decide cuántas veces se
+        // factura una llamada, y `transcription.ts` estima lo que el tope
+        // mensual descuenta por cada nota de voz. Ambos medidos al 100%; el
+        // piso queda en 95 para absorber jitter.
+        '**/netlify/functions/_lib/llm/retry.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
+        '**/netlify/functions/_lib/llm/transcription.ts': {
+          statements: 95,
+          branches: 95,
           functions: 95,
           lines: 95,
         },
