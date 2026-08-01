@@ -89,7 +89,8 @@
     "db:up": "docker compose up -d postgres && sleep 3 && scripts/apply-migrations.sh",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d postgres && sleep 3 && scripts/apply-migrations.sh",
-    "db:psql": "docker exec -it trama-postgres psql -U trama -d trama"
+    "db:psql": "docker exec -it trama-postgres psql -U trama -d trama",
+    "capturas": "TRAMA_CAPTURAS=1 playwright test e2e/capturas-readme.spec.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [

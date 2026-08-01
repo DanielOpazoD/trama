@@ -2,7 +2,37 @@
 
 Mapa cognitivo personal de afinidades intelectuales y estéticas.
 
+[![CI](https://github.com/DanielOpazoD/trama/actions/workflows/test.yml/badge.svg)](https://github.com/DanielOpazoD/trama/actions/workflows/test.yml)
+[![Licencia MIT](https://img.shields.io/badge/licencia-MIT-black)](./LICENSE)
+
 Un lugar donde guardar las ideas que han pasado por la cabeza —propias o prestadas— y dejar que con el tiempo el mapa muestre por dónde se ha movido el pensamiento, qué patrones aparecen, qué cosas aparentemente desconectadas resultan estar unidas.
+
+## ▶ Pruébalo ahora, sin instalar nada
+
+### **[tramahub.app/?demo=1](https://tramahub.app/?demo=1)**
+
+Ese enlace abre la aplicación **funcionando**, con datos de ejemplo ya sembrados. Sin cuenta, sin base de datos, sin claves de IA.
+
+Es el **modo prueba**: un backend completo que corre dentro de tu navegador. Puedes recorrerlo todo y también **editar** —crear entidades, relaciones, citas, notas, tareas, momentos— y lo que hagas queda en tu `localStorage`, en tu máquina, y en ningún otro sitio. Nada viaja a un servidor. Para irte, el botón «salir» del banner borra lo que se guardó.
+
+Las funciones de IA quedan desactivadas ahí (no gastan API de nadie).
+
+<p align="center">
+  <img src="docs/images/grafo.png" alt="El grafo de Trama: nodos de entidades —escritores, libros, bandas— unidos por relaciones tipadas" width="900">
+</p>
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/notas.png" alt="El feed de Notas: apuntes, recortes con miniatura y notas de voz en un solo hilo"></td>
+<td width="50%"><img src="docs/images/momentos.png" alt="Momentos en vista álbum: las fotos agrupadas por mes"></td>
+</tr>
+<tr>
+<td align="center"><em>Notas — apuntes y recortes en un hilo</em></td>
+<td align="center"><em>Momentos — la memoria fechada</em></td>
+</tr>
+</table>
+
+> Las capturas se regeneran con `npm run capturas` desde el propio modo prueba, contra la app de verdad. No son fotos congeladas que puedan quedarse mintiendo cuando una pantalla cambie.
 
 > Para entender **qué es Trama y por qué existe**, ver [`FILOSOFIA.md`](./FILOSOFIA.md). Es la pieza más importante del repositorio.
 
@@ -42,11 +72,13 @@ Ver [`CLAUDE.md`](./CLAUDE.md) para convenciones que no deben romperse sin pensa
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173 con localStorage fallback
+npm run dev          # http://localhost:5173
 npm test             # corre Vitest
 npm run typecheck    # tsc -b
 npm run build        # tsc + vite build
 ```
+
+Para verlo con datos y sin montar nada más, abre **<http://localhost:5173/?demo=1>**: es el mismo modo prueba del enlace de arriba, sembrado y editable, contra `localStorage`.
 
 Sin backend desplegado, la app funciona en modo local: los datos viven en `localStorage` del navegador. Cuando se conecta a Netlify (con DB provisionada), los datos pasan a Postgres.
 
@@ -132,6 +164,7 @@ Primera vez: en el dashboard de Netlify hay que:
 npm run test:watch          # Vitest en modo watch
 npm run test:coverage       # con reporte de cobertura
 npm run preview             # vite preview del build
+npm run capturas            # regenera las capturas del README desde el modo prueba
 ```
 
 ## Arquitectura
