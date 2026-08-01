@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { isDemoMode, enterDemoMode, exitDemoMode, demoRequest } from './demo'
+import {
+  isDemoMode,
+  enterDemoMode,
+  enterDemoModeFromUrl,
+  exitDemoMode,
+  demoRequest,
+} from './demo'
 
 /**
  * Modo prueba (demo.ts) — backend local en localStorage.
@@ -282,5 +288,72 @@ describe('demo — bookmarks de X', () => {
     )
     expect(despues.items.map((b) => b.id)).not.toContain(victima)
     expect(despues.items).toHaveLength(antes.items.length - 1)
+  })
+})
+
+describe('enterDemoModeFromUrl', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    window.history.replaceState(null, '', '/')
+  })
+
+  /**
+   * La puerta de entrada del README: un enlace `?demo=1` tiene que dejar la app
+   * usable en un clic. Sin esto había que descubrir el botón «explorar en modo
+   * prueba» de la pantalla de acceso, y quien llega de fuera no sabe que existe.
+   */
+  it('entra al modo prueba con ?demo=1 y limpia el parámetro', () => {
+    const entro = enterDemoModeFromUrl({
+      search: '?demo=1',
+      href: 'https://ejemplo.test/?demo=1',
+    })
+
+    expect(entro).toBe(true)
+    expect(isDemoMode()).toBe(true)
+    expect(window.location.search).not.toContain('demo')
+  })
+
+  it('conserva los demás parámetros al limpiar el suyo', () => {
+    enterDemoModeFromUrl({
+      search: '?demo=1&world=notas',
+      href: 'https://ejemplo.test/?demo=1&world=notas',
+    })
+
+    expect(window.location.search).toContain('world=notas')
+    expect(window.location.search).not.toContain('demo')
+  })
+
+  it('no hace nada sin el parámetro', () => {
+    expect(enterDemoModeFromUrl({ search: '', href: 'https://ejemplo.test/' })).toBe(
+      false,
+    )
+    expect(isDemoMode()).toBe(false)
+  })
+
+  /**
+   * Sólo `=1` entra. Un `?demo=0` no significa «sal»: salir borra el store, y
+   * un enlace compartido no puede tirar los datos de nadie. Por eso el
+   * parámetro es de un solo sentido, y cualquier valor que no sea `1` se
+   * ignora por completo.
+   */
+  it('sólo entra con =1: cualquier otro valor se ignora', () => {
+    for (const valor of ['0', 'true', '', 'sí']) {
+      window.localStorage.clear()
+      expect(
+        enterDemoModeFromUrl({
+          search: `?demo=${valor}`,
+          href: `https://ejemplo.test/?demo=${valor}`,
+        }),
+      ).toBe(false)
+      expect(isDemoMode()).toBe(false)
+    }
+  })
+
+  it('no saca del modo prueba a quien ya está dentro', () => {
+    enterDemoMode()
+
+    enterDemoModeFromUrl({ search: '?demo=0', href: 'https://ejemplo.test/?demo=0' })
+
+    expect(isDemoMode()).toBe(true)
   })
 })

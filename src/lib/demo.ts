@@ -30,6 +30,37 @@ export function exitDemoMode(): void {
   clearDemoStore()
 }
 
+/** Parámetro de la URL que entra al modo prueba sin pasar por el login. */
+const DEMO_URL_PARAM = 'demo'
+
+/**
+ * Entra al modo prueba si la URL trae `?demo=1`, y borra el parámetro de la
+ * barra de direcciones.
+ *
+ * Existe para que un enlace del README lleve a la app FUNCIONANDO en un clic:
+ * sin cuenta, sin base de datos y sin claves de IA. Antes había que descubrir
+ * el botón «explorar en modo prueba» en la pantalla de acceso, y nadie que
+ * llega de fuera sabe que ese botón existe.
+ *
+ * Es de un solo sentido —nunca saca del modo prueba— para que un enlace
+ * compartido no pueda tirar los datos de nadie: salir es siempre un gesto
+ * explícito del usuario, con su confirmación.
+ */
+export function enterDemoModeFromUrl(location: {
+  search: string
+  href: string
+}): boolean {
+  const params = new URLSearchParams(location.search)
+  if (params.get(DEMO_URL_PARAM) !== '1') return false
+  enterDemoMode()
+  // El parámetro ya cumplió: se quita para que la barra de direcciones (y lo
+  // que el usuario copie de ahí) no arrastre un modo que ya está activo.
+  const url = new URL(location.href)
+  url.searchParams.delete(DEMO_URL_PARAM)
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+  return true
+}
+
 // ---------- Store ----------
 
 export async function demoRequest<T>(url: string, init?: RequestInit): Promise<T> {

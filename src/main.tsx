@@ -6,6 +6,7 @@ import { ApiAuthBridge } from './components/ApiAuthBridge'
 import './index.css'
 import { shouldUseClerk } from './lib/clerkRuntime'
 import { clerkLocalization } from './lib/clerkLocalization'
+import { enterDemoModeFromUrl } from './lib/demo'
 import { installClientErrorTracking } from './lib/clientErrorTracking'
 import { initWebVitals } from './lib/webVitals'
 
@@ -13,6 +14,11 @@ import { initWebVitals } from './lib/webVitals'
 // que el ErrorBoundary de React NO ve (porque ocurren fuera del render tree).
 // Los enviamos al mismo /api/error-log → aparecen en Settings → Logs.
 installClientErrorTracking()
+
+// La puerta de entrada del README: `?demo=1` abre la app funcionando, sin
+// cuenta ni base de datos. Corre antes de montar para que el primer render ya
+// vea el modo activo y no haya un parpadeo por la pantalla de acceso.
+enterDemoModeFromUrl(window.location)
 
 // N6: Core Web Vitals (LCP, INP, CLS, FCP, TTFB) → /api/web-vitals.
 // Activo solo en producción (en dev no spammea el endpoint).
