@@ -45,9 +45,9 @@ describe('RescueOrphansPanel', () => {
 
     renderWithProviders(<RescueOrphansPanel />)
 
-    expect(screen.getByText('buscando fotos huérfanas…').closest('[role="status"]')).toBe(
-      screen.getByRole('status'),
-    )
+    expect(
+      screen.getByText('buscando fotos y videos huérfanos…').closest('[role="status"]'),
+    ).toBe(screen.getByRole('status'))
   })
 
   it('muestra mensaje cuando no hay huérfanos', async () => {
@@ -58,7 +58,7 @@ describe('RescueOrphansPanel', () => {
     })
     renderWithProviders(<RescueOrphansPanel />)
     await waitFor(() => {
-      expect(screen.getByText(/no hay fotos huérfanas/i)).toBeInTheDocument()
+      expect(screen.getByText(/no hay fotos ni videos huérfanos/i)).toBeInTheDocument()
     })
   })
 
@@ -70,7 +70,7 @@ describe('RescueOrphansPanel', () => {
     })
     renderWithProviders(<RescueOrphansPanel />)
     await waitFor(() => {
-      expect(screen.getByText(/recuperar todas \(2\)/i)).toBeInTheDocument()
+      expect(screen.getByText(/recuperar todo \(2\)/i)).toBeInTheDocument()
     })
     expect(screen.getAllByRole('img')).toHaveLength(2)
     const imgs = screen.getAllByRole('img') as HTMLImageElement[]
@@ -102,13 +102,35 @@ describe('RescueOrphansPanel', () => {
       expect(screen.getAllByRole('img')).toHaveLength(2)
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /recuperar foto abc.jpg/i }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /recuperar foto huérfano abc.jpg/i }),
+    )
 
     await waitFor(() => {
       expect(rescueSpy).toHaveBeenCalledWith({ storageKey: 'abc.jpg' })
       // Tras recuperar, solo queda una foto.
       expect(screen.getAllByRole('img')).toHaveLength(1)
     })
+  })
+
+  it('monta un <video> para el huérfano de video y un <img> para la foto', async () => {
+    // Un clip huérfano de R2 llega como una key suelta, sin item con `type`:
+    // si el panel lo metiera en un <img> se vería una caja vacía y el usuario
+    // no sabría qué está recuperando.
+    vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockResolvedValue({
+      orphans: ['legacy-single-user/r2-aaaa1111.mp4', 'abc.jpg'],
+      totalInStore: 2,
+      referenced: 0,
+    })
+    const { container } = renderWithProviders(<RescueOrphansPanel />)
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('video')).toHaveLength(1)
+    })
+    expect(screen.getAllByRole('img')).toHaveLength(1)
+    expect(
+      screen.getByRole('button', { name: /recuperar video huérfano legacy-s/i }),
+    ).toBeInTheDocument()
   })
 
   it('si la API falla, muestra reintentar', async () => {

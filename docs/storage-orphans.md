@@ -51,15 +51,25 @@ script, sino la **regla de lifecycle del bucket** (abajo).
 
 ### Limitación de enumeración (categoría b)
 
-Detectar (b) requiere ENUMERAR el store. `r2.ts` no expone un `LIST` firmado y este
-script no lista R2 read-only, así que la corrida cruza el manifest contra HEADs:
-confirma de forma fiable la categoría **(a)**, pero `objectsWithoutManifest` queda
-vacío porque toda key sondeada proviene de una fila. La detección operativa de (b)
-recae en la **regla de lifecycle** del bucket, que caduca los objetos incompletos
-sin depender de un escaneo. Para netlify-blobs el adapter tampoco expone un `exists`
-read-only por objeto, así que ese provider no se sondea desde acá. Si más adelante
-se agrega un `LIST` firmado, basta alimentar esas keys a `presentKeys`: el núcleo
-puro ya las clasifica como (b).
+Detectar (b) requiere ENUMERAR el store. `r2.ts` **ya expone** un `LIST` firmado
+(`r2ListObjects`, `ListObjectsV2` paginado), pero **este script todavía no lo usa**:
+la corrida sigue cruzando el manifest contra HEADs, así que confirma de forma
+fiable la categoría **(a)** y `objectsWithoutManifest` queda vacío porque toda key
+sondeada proviene de una fila. Para netlify-blobs el adapter tampoco expone un
+`exists` read-only por objeto, así que ese provider no se sondea desde acá.
+
+Cerrar (b) acá es alimentar `presentKeys` con el resultado de `r2ListObjects` — el
+núcleo puro ya las clasifica. Mientras tanto la detección operativa de (b) recae en
+la **regla de lifecycle** del bucket, que caduca los objetos incompletos sin
+depender de un escaneo.
+
+**Dónde sí se usa el LIST.** El endpoint `momentos-orphaned-blobs` enumera R2 en
+vivo (prefijo `${userId}/`, filtrado por el marcador `r2-`) y lo une al listado de
+Netlify Blobs. No cruza contra `storage_assets` a propósito: ese endpoint ADOPTA lo
+que lista, así que su fuente de verdad debe ser "objetos que existen" y no "filas
+que se registraron" — una fila de categoría (a) se ofrecería para adoptar y crearía
+un Momento apuntando a nada, y los huérfanos nacidos en un deploy preview no tienen
+fila que listar (el momento y su manifest se perdieron en la misma BD efímera).
 
 ## Regla de lifecycle del bucket R2 (limpieza correcta)
 

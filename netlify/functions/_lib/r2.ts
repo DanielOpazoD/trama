@@ -82,6 +82,11 @@ function r2Endpoint(config: R2Config): string {
   return `https://${config.accountId}.r2.cloudflarestorage.com`
 }
 
+/** URL del bucket (sin key): la base de las operaciones de nivel bucket (LIST). */
+function r2BucketUrl(config: R2Config): string {
+  return `${r2Endpoint(config)}/${encodeURIComponent(config.bucket)}`
+}
+
 /**
  * URL canónica del objeto: `${endpoint}/${bucket}/${key}`, con CADA segmento de
  * la key codificado por separado (preserva las barras de `${userId}/hash.ext`;
@@ -154,4 +159,126 @@ export async function r2ObjectExists(
   const lengthHeader = response.headers.get('content-length')
   const size = lengthHeader != null ? Number.parseInt(lengthHeader, 10) : NaN
   return { exists: true, size: Number.isFinite(size) ? size : null }
+}
+
+/** Objetos que devuelve un `ListObjectsV2`. `size` es null si R2 no lo informa. */
+export type R2ListedObject = { key: string; size: number | null }
+
+export type R2ListResult = {
+  objects: R2ListedObject[]
+  /**
+   * true si el listado se cortó por el tope de páginas y quedaron objetos sin
+   * enumerar. Quien lo consuma DEBE decir que su respuesta es parcial: un
+   * "no hay huérfanos" calculado sobre medio bucket es una mentira, no un ok.
+   */
+  truncated: boolean
+}
+
+/** Objetos por página. 1000 es el máximo que acepta S3/R2 en `max-keys`. */
+const LIST_MAX_KEYS = 1000
+
+/**
+ * Tope de páginas por llamada (20 × 1000 = 20k objetos). Existe para que un
+ * bucket enorme no cuelgue la función hasta el timeout: se prefiere una
+ * respuesta parcial y marcada como tal a una que nunca llega.
+ */
+const LIST_MAX_PAGES = 20
+
+/**
+ * Decodifica las entidades XML de un texto en UNA sola pasada — importante:
+ * dos pasadas convertirían `&amp;lt;` en `<` en vez de en `&lt;`.
+ */
+function decodeXmlText(value: string): string {
+  return value.replace(
+    /&(?:(amp|lt|gt|quot|apos)|#(\d+)|#[xX]([0-9a-fA-F]+));/g,
+    (_match, named: string | undefined, dec: string | undefined, hex) => {
+      if (named) {
+        return { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }[named] ?? _match
+      }
+      const code = dec ? Number.parseInt(dec, 10) : Number.parseInt(hex as string, 16)
+      return Number.isFinite(code) ? String.fromCodePoint(code) : _match
+    },
+  )
+}
+
+function firstTagText(xml: string, tag: string): string | null {
+  const match = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`).exec(xml)
+  return match ? decodeXmlText(match[1]!) : null
+}
+
+/**
+ * Parsea la respuesta de `ListObjectsV2`.
+ *
+ * Con regex y no con un parser XML a propósito: el runtime de las funciones no
+ * trae `DOMParser` y meter una dependencia de XML para leer tres etiquetas de
+ * una respuesta que genera el propio S3 (forma fija, sin atributos ni
+ * namespaces en `<Contents>`) es desproporcionado. Lo único delicado —el
+ * escapado de entidades en `<Key>`— se maneja explícitamente en `decodeXmlText`.
+ */
+function parseListObjectsV2(xml: string): {
+  objects: R2ListedObject[]
+  nextContinuationToken: string | null
+} {
+  const objects: R2ListedObject[] = []
+  for (const match of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+    const entry = match[1]!
+    const key = firstTagText(entry, 'Key')
+    if (!key) continue
+    const rawSize = firstTagText(entry, 'Size')
+    const size = rawSize != null ? Number.parseInt(rawSize, 10) : NaN
+    objects.push({ key, size: Number.isFinite(size) ? size : null })
+  }
+  // El token solo vale si el listado sigue: S3 puede emitirlo igual, pero
+  // seguir paginando con IsTruncated=false daría una vuelta de más.
+  const truncated = firstTagText(xml, 'IsTruncated') === 'true'
+  const token = firstTagText(xml, 'NextContinuationToken')
+  return { objects, nextContinuationToken: truncated ? token : null }
+}
+
+/**
+ * Enumera los objetos del bucket bajo `prefix` con `ListObjectsV2` firmado.
+ *
+ * **Por qué existe.** Sin esto, la única forma de saber qué hay en R2 es
+ * preguntarle a la base (`storage_assets`), y la base solo conoce lo que algún
+ * `complete` alcanzó a registrar. Un PUT presignado que llegó al bucket y nunca
+ * se confirmó es invisible para toda consulta a Postgres — y es justo el caso
+ * que deja un video ocupando espacio sin dueño.
+ *
+ * El `prefix` NO es cosmético: el bucket es compartido (Biblioteca y Momentos,
+ * y a futuro varios usuarios), así que quien llame debe acotar a lo suyo —
+ * típicamente `${userId}/`— y filtrar además por dominio. Un listado sin
+ * prefijo devolvería objetos ajenos.
+ *
+ * Read-only: un LIST no modifica nada. Los no-2xx se propagan (igual que en el
+ * HEAD) para no confundir "no pude leer el bucket" con "el bucket está vacío".
+ */
+export async function r2ListObjects(
+  prefix: string,
+  { maxPages = LIST_MAX_PAGES }: { maxPages?: number } = {},
+): Promise<R2ListResult> {
+  const config = requireR2Config()
+  const client = r2Client(config)
+  const objects: R2ListedObject[] = []
+  let continuationToken: string | null = null
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const url = new URL(r2BucketUrl(config))
+    url.searchParams.set('list-type', '2')
+    url.searchParams.set('max-keys', String(LIST_MAX_KEYS))
+    if (prefix) url.searchParams.set('prefix', prefix)
+    if (continuationToken) url.searchParams.set('continuation-token', continuationToken)
+
+    const signed = await client.sign(new Request(url.toString(), { method: 'GET' }))
+    const response = await fetch(signed)
+    if (!response.ok) {
+      throw new Error(`R2 LIST falló con status ${response.status}`)
+    }
+    const parsed = parseListObjectsV2(await response.text())
+    objects.push(...parsed.objects)
+    continuationToken = parsed.nextContinuationToken
+    if (!continuationToken) return { objects, truncated: false }
+  }
+
+  // Salimos por el tope de páginas con token pendiente: quedan objetos sin ver.
+  return { objects, truncated: true }
 }

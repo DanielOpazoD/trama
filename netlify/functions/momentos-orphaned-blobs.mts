@@ -8,7 +8,13 @@ import { getAuthedUser } from './_lib/auth.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { parseJsonBody } from './_lib/zod-body.js'
 import { OrphanedBlobRescueBody } from './_lib/momento-extra-schemas.js'
-import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import {
+  createNetlifyBlobStorageAdapter,
+  type StorageAdapter,
+} from './_lib/storage-adapter.js'
+import { isR2Configured, r2ListObjects, r2ObjectExists } from './_lib/r2.js'
+import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
+import { isR2MomentoKey, isVideoMomentoKey } from './_lib/momentos-media-mime.js'
 
 /**
  * DD1: recuperación de blobs huérfanos.
@@ -27,11 +33,28 @@ import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
  * Idempotente: si el blob ya está referenciado por algún Momento en la BD
  * actual, no aparece en la lista. Si todos están referenciados, devuelve
  * { orphans: [] }.
+ *
+ * **Dos backends, un barrido.** Desde la subida directa a R2, la media que pesa
+ * más de 4 MB —los videos— no está en Netlify Blobs sino en el bucket. Este
+ * barrido enumera LOS DOS stores; si mirara solo uno, el huérfano más caro en
+ * espacio sería justo el invisible.
+ *
+ * **Por qué se enumeran los stores y no `storage_assets`.** La tabla parece la
+ * fuente obvia (tiene filas de ambos providers) pero contesta otra pregunta:
+ * "qué se registró", no "qué hay". Falla por los dos lados —
+ *   - por defecto: el bug DD1 original perdía el momento Y su fila de manifest
+ *     en la misma BD efímera del preview, así que esos huérfanos no tienen fila
+ *     que listar; y un PUT presignado que nunca llamó a `complete` tampoco;
+ *   - por exceso: una fila viva cuyo objeto ya no está (categoría (a) de
+ *     `docs/storage-orphans.md`) se ofrecería para adoptar y crearía un Momento
+ *     apuntando a nada.
+ * Como este endpoint ADOPTA lo que lista, su fuente de verdad tiene que ser
+ * "objetos que existen de verdad".
  */
 
 type FotoPayload = {
   storageKey?: string
-  items?: Array<{ storageKey: string }>
+  items?: Array<{ storageKey: string; type?: 'video' }>
   photos?: Array<{ storageKey: string }>
   audioKey?: string
 }
@@ -85,6 +108,55 @@ async function collectReferencedKeys(
   return set
 }
 
+type MediaKeyInventory = {
+  /** Todas las keys que existen hoy en los stores de media de Momentos. */
+  keys: string[]
+  /** Cuántas aportó cada backend. `r2: null` = NO se escaneó (R2 sin configurar). */
+  scanned: { netlifyBlobs: number; r2: number | null }
+  /** true si el listado de R2 se cortó: la lista de huérfanos es incompleta. */
+  partial: boolean
+}
+
+/**
+ * Enumera la media de Momentos que existe de verdad, juntando los dos backends.
+ *
+ * El listado de R2 va acotado al prefijo `${userId}/` Y filtrado por el marcador
+ * `r2-`: ese bucket es COMPARTIDO con la Biblioteca (mismas credenciales, mismo
+ * `${userId}/` de prefijo). Sin el filtro por marcador, un PDF de la Biblioteca
+ * se ofrecería como foto huérfana y adoptarlo crearía un Momento apuntando a un
+ * archivo de otro dominio.
+ *
+ * Si R2 no está configurado se devuelve `r2: null` en vez de 0: "no miré" y
+ * "miré y no había nada" no son lo mismo, y confundirlos escondería todos los
+ * videos huérfanos detrás de un "está todo bien".
+ */
+async function listMomentoMediaKeys(
+  store: StorageAdapter,
+  userId: string,
+): Promise<MediaKeyInventory> {
+  const { blobs } = await store.list()
+  const blobKeys = blobs.map((b) => b.key)
+
+  if (!isR2Configured()) {
+    return {
+      keys: blobKeys,
+      scanned: { netlifyBlobs: blobKeys.length, r2: null },
+      partial: false,
+    }
+  }
+
+  // Un LIST que falla se propaga (igual que el HEAD de `r2ObjectExists`): mejor
+  // un error visible que una lista corta que se lee como "no hay huérfanos".
+  const { objects, truncated } = await r2ListObjects(`${userId}/`)
+  const r2Keys = objects.map((o) => o.key).filter(isR2MomentoKey)
+
+  return {
+    keys: [...new Set([...blobKeys, ...r2Keys])],
+    scanned: { netlifyBlobs: blobKeys.length, r2: r2Keys.length },
+    partial: truncated,
+  }
+}
+
 export default withObservability(
   'momentos-orphaned-blobs',
   async (req: Request, _ctx, { requestId }) => {
@@ -96,16 +168,15 @@ export default withObservability(
     // GET: listar las keys huérfanas + algún metadata útil (mime) para que
     // el cliente pueda renderizar thumbs apuntando al endpoint /file/:key.
     if (req.method === 'GET') {
-      const { blobs } = await store.list()
+      const inventory = await listMomentoMediaKeys(store, userId)
       const referenced = await collectReferencedKeys(sql, userId)
-      const orphans = blobs
-        .map((b) => b.key)
-        .filter((k) => !referenced.has(k))
-        .sort() // estable para que el cliente pueda asumir orden
+      const orphans = inventory.keys.filter((k) => !referenced.has(k)).sort() // estable para que el cliente pueda asumir orden
       return Response.json({
         orphans,
-        totalInStore: blobs.length,
+        totalInStore: inventory.keys.length,
         referenced: referenced.size,
+        scanned: inventory.scanned,
+        partial: inventory.partial,
       })
     }
 
@@ -120,9 +191,28 @@ export default withObservability(
       const storageKey = body.storageKey.trim()
 
       // Verificar que el blob existe — evita crear Momentos apuntando a keys
-      // inventadas. También recupera el mime original.
-      const meta = await store.getMetadata(storageKey)
-      if (!meta) {
+      // inventadas. Se comprueba en el backend que le corresponde a la key: un
+      // `getMetadata` del store de blobs sobre una key de R2 daría null y el
+      // rescate de un video fallaría con un 404 mentiroso.
+      if (isR2MomentoKey(storageKey)) {
+        if (!isR2Configured()) {
+          return ApiErrors.unprocessable(
+            requestId,
+            'Almacenamiento de archivos grandes no configurado (R2)',
+          )
+        }
+        // El bucket es compartido entre dominios y usuarios, así que acá SÍ se
+        // exige el prefijo del usuario (igual que en `momentos-uploads-complete`);
+        // el store de blobs, en cambio, tiene keys legacy sin namespace que el
+        // rescate original debe seguir pudiendo adoptar.
+        if (!storageKeyBelongsToUser(storageKey, userId)) {
+          return ApiErrors.notFound(requestId, 'Blob no encontrado en el store')
+        }
+        const head = await r2ObjectExists(storageKey)
+        if (!head.exists) {
+          return ApiErrors.notFound(requestId, 'Blob no encontrado en el store')
+        }
+      } else if (!(await store.getMetadata(storageKey))) {
         return ApiErrors.notFound(requestId, 'Blob no encontrado en el store')
       }
 
@@ -135,7 +225,13 @@ export default withObservability(
       const capturedAt = body.capturedAt ?? new Date().toISOString()
       const note = body.note?.trim() || null
       const payload: FotoPayload = {
-        items: [{ storageKey }],
+        // `type: 'video'` para los clips: sin él, el álbum monta un `<img>` y el
+        // video rescatado queda como una caja que nunca carga.
+        items: [
+          isVideoMomentoKey(storageKey)
+            ? { storageKey, type: 'video' as const }
+            : { storageKey },
+        ],
         // legacy back-compat: también guardamos como single
         storageKey,
       }

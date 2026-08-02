@@ -2,16 +2,25 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { LoadingHint } from '../LoadingHint'
 import { useToast } from '../../state'
-import { AuthenticatedMomentoImage } from './AuthenticatedMedia'
+import {
+  AuthenticatedMomentoImage,
+  AuthenticatedMomentoVideo,
+} from './AuthenticatedMedia'
+import { isVideoStorageKey } from './helpers'
+import { VideoPlayBadge } from './VideoPlayBadge'
 
 /**
- * DD1: panel de recuperación de blobs huérfanos.
+ * DD1: panel de recuperación de media huérfana.
  *
  * Si subiste fotos en un deploy preview, los blobs siguen en el store
  * global de Netlify Blobs pero los Momentos que las referenciaban se
  * perdieron al cambiar de BD (Neon branching). Este panel lista los
  * blobs huérfanos como thumbnails y permite "adoptarlos" creando un
  * Momento por cada uno.
+ *
+ * También lista videos: la media grande vive en R2 y el barrido del endpoint
+ * enumera los dos backends. Por eso cada miniatura elige `<video>` o `<img>`
+ * según la extensión de la key — un clip en un `<img>` sería una caja vacía.
  *
  * Vive en Settings/Data y se muestra solo si hay al menos 1 huérfano.
  */
@@ -46,7 +55,10 @@ export function RescueOrphansPanel() {
       await api.rescueOrphanedBlob({ storageKey })
       // Quitar de la lista local sin re-fetchear (UI snappy)
       setOrphans((prev) => (prev ?? []).filter((k) => k !== storageKey))
-      toast.show({ message: 'Foto recuperada', tone: 'success' })
+      toast.show({
+        message: isVideoStorageKey(storageKey) ? 'Video recuperado' : 'Foto recuperada',
+        tone: 'success',
+      })
     } catch (err) {
       toast.show({
         message: err instanceof Error ? err.message : 'No se pudo recuperar',
@@ -74,14 +86,13 @@ export function RescueOrphansPanel() {
     }
     setRescuing(null)
     toast.show({
-      message:
-        fail === 0 ? `${ok} fotos recuperadas` : `${ok} recuperadas, ${fail} con error`,
+      message: fail === 0 ? `${ok} recuperados` : `${ok} recuperados, ${fail} con error`,
       tone: fail === 0 ? 'success' : 'default',
     })
   }
 
   if (loading) {
-    return <LoadingHint text="buscando fotos huérfanas" />
+    return <LoadingHint text="buscando fotos y videos huérfanos" />
   }
 
   if (error) {
@@ -101,7 +112,7 @@ export function RescueOrphansPanel() {
   if (!orphans || orphans.length === 0) {
     return (
       <p className="text-xs text-ink-300 italic">
-        no hay fotos huérfanas — todos los blobs están referenciados.
+        no hay fotos ni videos huérfanos — toda la media está referenciada.
       </p>
     )
   }
@@ -110,40 +121,58 @@ export function RescueOrphansPanel() {
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-body text-ink-500 leading-relaxed">
-          Estas fotos viven en el storage pero ningún Momento las referencia
-          (probablemente subidas desde un deploy preview que tenía su propia BD).
-          Recupéralas para que vuelvan a aparecer en tu timeline.
+          Estas fotos y videos viven en el storage pero ningún Momento los referencia
+          (probablemente subidos desde un deploy preview que tenía su propia BD).
+          Recupéralos para que vuelvan a aparecer en tu timeline.
         </p>
         <button
           onClick={handleRescueAll}
           disabled={rescuing !== null}
           className="shrink-0 text-micro uppercase tracking-eyebrow text-ink-500 hover:text-ink-700 transition-colors disabled:opacity-50"
         >
-          recuperar todas ({orphans.length})
+          recuperar todo ({orphans.length})
         </button>
       </div>
       <ul className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-        {orphans.map((key) => (
-          <li
-            key={key}
-            className="relative aspect-square rounded-md overflow-hidden border border-ink-100/60 bg-paper-100"
-          >
-            <AuthenticatedMomentoImage
-              storageKey={key}
-              alt={`Foto huérfana ${key.slice(0, 8)}`}
-              loading="lazy"
-              className="w-full h-full object-cover"
-            />
-            <button
-              onClick={() => handleRescue(key)}
-              disabled={rescuing !== null}
-              className="absolute inset-0 flex items-end justify-center bg-ink-900/0 hover:bg-ink-900/55 transition-colors text-paper-50 text-micro uppercase tracking-eyebrow font-medium pb-2 opacity-0 hover:opacity-100 focus-visible:opacity-100 disabled:opacity-100 disabled:bg-ink-900/55"
-              aria-label={`Recuperar foto ${key.slice(0, 8)}`}
+        {orphans.map((key) => {
+          const esVideo = isVideoStorageKey(key)
+          const etiqueta = `${esVideo ? 'Video' : 'Foto'} huérfano ${key.slice(0, 8)}`
+          return (
+            <li
+              key={key}
+              className="relative aspect-square rounded-md overflow-hidden border border-ink-100/60 bg-paper-100"
             >
-              {rescuing === key ? 'recuperando…' : 'recuperar'}
-            </button>
-          </li>
-        ))}
+              {esVideo ? (
+                <>
+                  <AuthenticatedMomentoVideo
+                    storageKey={key}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    aria-label={etiqueta}
+                    className="w-full h-full object-cover"
+                  />
+                  <VideoPlayBadge />
+                </>
+              ) : (
+                <AuthenticatedMomentoImage
+                  storageKey={key}
+                  alt={etiqueta}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
+              )}
+              <button
+                onClick={() => handleRescue(key)}
+                disabled={rescuing !== null}
+                className="absolute inset-0 flex items-end justify-center bg-ink-900/0 hover:bg-ink-900/55 transition-colors text-paper-50 text-micro uppercase tracking-eyebrow font-medium pb-2 opacity-0 hover:opacity-100 focus-visible:opacity-100 disabled:opacity-100 disabled:bg-ink-900/55"
+                aria-label={`Recuperar ${etiqueta.toLowerCase()}`}
+              >
+                {rescuing === key ? 'recuperando…' : 'recuperar'}
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

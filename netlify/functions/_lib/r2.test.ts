@@ -23,9 +23,33 @@ import {
   isR2Configured,
   presignGet,
   presignPut,
+  r2ListObjects,
   r2ObjectExists,
   r2ObjectUrl,
 } from './r2'
+
+/** Respuesta XML de un `ListObjectsV2` con las keys dadas. */
+function listXml(
+  keys: Array<string | { key: string; size: number }>,
+  { nextToken = null as string | null, truncated = nextToken !== null } = {},
+): string {
+  const contents = keys
+    .map((entry) => {
+      const { key, size } = typeof entry === 'string' ? { key: entry, size: 10 } : entry
+      return `<Contents><Key>${key}</Key><Size>${size}</Size></Contents>`
+    })
+    .join('')
+  const token = nextToken
+    ? `<NextContinuationToken>${nextToken}</NextContinuationToken>`
+    : ''
+  return `<?xml version="1.0" encoding="UTF-8"?><ListBucketResult><IsTruncated>${truncated}</IsTruncated>${contents}${token}</ListBucketResult>`
+}
+
+function xmlResponses(...bodies: string[]) {
+  const fetchMock = vi.fn(async () => new Response(bodies.shift() ?? listXml([])))
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
 
 function stubR2Env(overrides: Record<string, string | undefined> = {}) {
   const env: Record<string, string | undefined> = {
@@ -131,5 +155,102 @@ describe('r2 helper', () => {
         `R2 HEAD falló con status ${status}`,
       )
     }
+  })
+
+  describe('r2ListObjects', () => {
+    it('lista los objetos del prefijo con un ListObjectsV2 firmado', async () => {
+      stubR2Env()
+      const fetchMock = xmlResponses(
+        listXml([{ key: 'user-1/r2-abc.mp4', size: 4096 }, 'user-1/r2-def.jpg']),
+      )
+
+      const result = await r2ListObjects('user-1/')
+
+      expect(result).toEqual({
+        objects: [
+          { key: 'user-1/r2-abc.mp4', size: 4096 },
+          { key: 'user-1/r2-def.jpg', size: 10 },
+        ],
+        truncated: false,
+      })
+      const url = new URL((fetchMock.mock.calls[0]![0] as Request).url)
+      expect(url.searchParams.get('list-type')).toBe('2')
+      expect(url.searchParams.get('prefix')).toBe('user-1/')
+      // Nivel bucket, no de objeto: el path es solo /<bucket>.
+      expect(url.pathname).toBe('/trama-biblioteca')
+      expect((signMock.mock.calls[0]![0] as Request).method).toBe('GET')
+    })
+
+    it('pagina con continuation-token y concatena las páginas', async () => {
+      stubR2Env()
+      const fetchMock = xmlResponses(
+        listXml(['user-1/r2-uno.mp4'], { nextToken: 'tok-2' }),
+        listXml(['user-1/r2-dos.mp4']),
+      )
+
+      const result = await r2ListObjects('user-1/')
+
+      expect(result.objects.map((o) => o.key)).toEqual([
+        'user-1/r2-uno.mp4',
+        'user-1/r2-dos.mp4',
+      ])
+      expect(result.truncated).toBe(false)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      const segunda = new URL((fetchMock.mock.calls[1]![0] as Request).url)
+      expect(segunda.searchParams.get('continuation-token')).toBe('tok-2')
+    })
+
+    it('no sigue paginando si IsTruncated es false aunque venga token', async () => {
+      stubR2Env()
+      const fetchMock = xmlResponses(
+        listXml(['user-1/r2-uno.mp4'], { nextToken: 'tok-2', truncated: false }),
+      )
+
+      expect((await r2ListObjects('user-1/')).truncated).toBe(false)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('marca truncated cuando se corta por el tope de páginas', async () => {
+      stubR2Env()
+      const fetchMock = xmlResponses(
+        listXml(['user-1/r2-uno.mp4'], { nextToken: 'tok-2' }),
+        listXml(['user-1/r2-dos.mp4'], { nextToken: 'tok-3' }),
+      )
+
+      const result = await r2ListObjects('user-1/', { maxPages: 2 })
+
+      // Parcial y DICHO: quien consuma esto no puede afirmar "no hay más".
+      expect(result.truncated).toBe(true)
+      expect(result.objects).toHaveLength(2)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it('decodifica las entidades XML de la key en una sola pasada', async () => {
+      stubR2Env()
+      xmlResponses(listXml(['user-1/a&amp;b.jpg', 'user-1/lit&amp;lt;.jpg']))
+
+      const keys = (await r2ListObjects('user-1/')).objects.map((o) => o.key)
+
+      expect(keys[0]).toBe('user-1/a&b.jpg')
+      // Una segunda pasada dejaría `user-1/lit<.jpg`: el `&amp;` ya decodificado
+      // no debe volver a interpretarse junto con lo que le sigue.
+      expect(keys[1]).toBe('user-1/lit&lt;.jpg')
+    })
+
+    it('LANZA ante un LIST no-ok (no colapsa a "bucket vacío")', async () => {
+      stubR2Env()
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response('denied', { status: 403 })),
+      )
+      await expect(r2ListObjects('user-1/')).rejects.toThrow(
+        'R2 LIST falló con status 403',
+      )
+    })
+
+    it('lanza R2NotConfiguredError sin env vars', async () => {
+      stubR2Env({ R2_BUCKET: undefined })
+      await expect(r2ListObjects('user-1/')).rejects.toBeInstanceOf(R2NotConfiguredError)
+    })
   })
 })

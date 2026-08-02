@@ -171,12 +171,12 @@ export function DataPanel() {
         </Suspense>
       )}
 
-      {/* DD1: recovery de fotos subidas desde deploy previews. Solo aparece
-          si hay blobs huérfanos. */}
+      {/* DD1: recovery de media subida desde deploy previews. Solo aparece
+          si hay blobs huérfanos. Incluye los videos, que viven en R2. */}
       <div className="mt-10 pt-6 border-t border-ink-100/50">
         <PanelHeader
-          title="Fotos huérfanas"
-          hint="Imágenes que están en el storage pero ningún Momento las referencia. Suele pasar cuando se sube desde un deploy preview (la BD del preview es efímera)."
+          title="Media huérfana"
+          hint="Fotos y videos que están en el storage pero ningún Momento los referencia. Suele pasar cuando se sube desde un deploy preview (la BD del preview es efímera) o cuando se cierra el composer con la subida ya hecha."
         />
         <RescueOrphansPanel />
       </div>
