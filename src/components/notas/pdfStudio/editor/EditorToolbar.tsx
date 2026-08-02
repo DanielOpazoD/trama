@@ -17,6 +17,7 @@ import {
   EditorToolbarToolsGroup,
 } from './EditorToolbarGroups'
 import { EditorToolbarStyleMenu } from './EditorToolbarStyleMenu'
+import { EditorToolbarShell } from './EditorToolbarShell'
 import { EditorToolbarZoomControl } from './EditorToolbarZoomControl'
 
 export function EditorToolbar({
@@ -87,10 +88,18 @@ export function EditorToolbar({
   const primaryInsert = editorToolbarPrimaryInsertAction(context)
 
   return (
-    <div
-      role="toolbar"
-      aria-label="Barra de herramientas de edición del PDF"
-      className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-ink-100/70 bg-paper-100/65 px-2 py-1 shadow-sm shadow-ink-900/5 shrink-0"
+    <EditorToolbarShell
+      trailing={
+        capabilities.canShowToolbarZoom ? (
+          <ToolbarGroup label="Vista">
+            <EditorToolbarZoomControl
+              zoom={zoom}
+              onBeforeChange={onPrepareZoomAnchor}
+              onZoomChange={onZoomChange}
+            />
+          </ToolbarGroup>
+        ) : null
+      }
     >
       <EditorToolbarToolsGroup
         canShowPdfMarkupTools={capabilities.canShowPdfMarkupTools}
@@ -136,15 +145,6 @@ export function EditorToolbar({
         onDelete={onDelete}
         onDuplicate={onDuplicate}
       />
-      {capabilities.canShowToolbarZoom ? (
-        <ToolbarGroup label="Vista" grow>
-          <EditorToolbarZoomControl
-            zoom={zoom}
-            onBeforeChange={onPrepareZoomAnchor}
-            onZoomChange={onZoomChange}
-          />
-        </ToolbarGroup>
-      ) : null}
-    </div>
+    </EditorToolbarShell>
   )
 }
