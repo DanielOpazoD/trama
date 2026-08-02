@@ -334,7 +334,7 @@ flowchart TD
     P1 --> R{"¿falló?"}
     R -->|no| OK["cachea y devuelve"]
     R -->|"5xx · 429 · red<br/><b>transitorio</b>"| P2["siguiente proveedor"]
-    R -->|"4xx<br/><b>permanente</b>"| STOP["relanza<br/><i>sin probar otro</i>"]
+    R -->|"resto de 4xx<br/><b>permanente</b>"| STOP["relanza<br/><i>sin probar otro</i>"]
 
     P2 --> OK
 
@@ -342,9 +342,16 @@ flowchart TD
     style HIT fill:#e8f0e8,stroke:#5a7a5a
 ```
 
-Un 4xx es una clave mala o una petición inválida: probar otro proveedor no lo
-arregla, gasta una llamada facturada por eslabón y entierra el error real. El
-porqué, en [ADR 0017](./docs/adr/0017-fallback-solo-ante-fallo-transitorio.md).
+La clasificación es **por código HTTP**, con el 429 como excepción deliberada:
+va con los transitorios aunque sea un 4xx. El resto de 4xx se tratan como
+permanentes porque la causa típica —credencial o petición inválida— no se
+arregla cambiando de proveedor, y recorrer la cadena gastaría una llamada
+facturada por eslabón enterrando el error real.
+
+Esa clasificación por código es una aproximación, y su límite está declarado en
+[ADR 0017](./docs/adr/0017-fallback-solo-ante-fallo-transitorio.md): un
+proveedor que devuelva 400 ante una sobrecarga temporal no tendrá reserva, y un
+429 por cuota mensual agotada recorrerá la cadena entera para nada.
 
 ### 3. Lo que hay entre un commit y `main`
 
