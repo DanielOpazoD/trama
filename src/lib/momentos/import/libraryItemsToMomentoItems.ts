@@ -42,7 +42,8 @@ type Dimensions = { width: number; height: number }
 
 type LibraryItemsToMomentoItemsOptions = {
   fetchBlob: (url: string) => Promise<Blob>
-  uploadMedia: (file: File) => Promise<{ storageKey: string }>
+  /** Devuelve la clave del blob guardado y, si lo sabe, su mime REAL. */
+  uploadMedia: (file: File) => Promise<{ storageKey: string; mime?: string }>
   readImageDimensions: (file: File) => Promise<Dimensions>
   readVideoDimensions: (file: File) => Promise<Dimensions>
 }
@@ -124,11 +125,20 @@ export async function libraryItemsToMomentoItems(
         isVideo ? readVideoDimensions(file) : readImageDimensions(file)
       ).catch(() => ({ width: 0, height: 0 }))
       const uploaded = await uploadMedia(file)
+      // `type` describe lo que quedó ALMACENADO, no el archivo de origen. La
+      // diferencia importa cuando el store no guarda lo mismo que se le mandó:
+      // en modo prueba devuelve un placeholder de imagen, y heredar el `video`
+      // del item de origen montaría un `<video>` sobre un SVG — reproductor
+      // roto, sin error. Si el servidor no informa mime, caemos a la
+      // clasificación del item, que es lo mejor que sabemos.
+      const storedIsVideo = uploaded.mime
+        ? uploaded.mime.toLowerCase().startsWith('video/')
+        : isVideo
       media.push({
         storageKey: uploaded.storageKey,
         width: dims.width || undefined,
         height: dims.height || undefined,
-        ...(isVideo ? { type: 'video' as const } : {}),
+        ...(storedIsVideo ? { type: 'video' as const } : {}),
       })
     } catch (error) {
       failures.push({ id: item.id, reason: failureReason(error) })

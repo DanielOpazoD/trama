@@ -236,7 +236,11 @@ export function routeDemoRequest(
     const variante = (nombre.length % 3) + 1
     return {
       storageKey: `demo/enviado-${variante}.svg`,
-      mime: file?.mime ?? 'image/svg+xml',
+      // El mime que se declara es el de lo que se GUARDA, no el de lo que se
+      // mandó: acá siempre es el placeholder SVG. Devolver `video/mp4` porque
+      // el original lo era haría que el momento se tipara como video y montara
+      // un `<video>` sobre un SVG, que no reproduce nada.
+      mime: 'image/svg+xml',
       size: file?.size ?? 0,
     }
   }

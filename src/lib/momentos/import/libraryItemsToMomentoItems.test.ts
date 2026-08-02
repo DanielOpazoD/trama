@@ -204,6 +204,44 @@ describe('libraryItemsToMomentoItems', () => {
     expect(items).toEqual([{ storageKey: 'subido/clip.mp4', type: 'video' }])
   })
 
+  /**
+   * Hallazgo de revisión (CodeRabbit, #384): el `type` describe lo ALMACENADO,
+   * no el origen. En modo prueba el store devuelve un placeholder de imagen; si
+   * el item heredara el `video` del archivo de origen, el render montaría un
+   * `<video>` sobre un SVG y el reproductor quedaría en blanco sin ningún error.
+   */
+  it('si el store guardó una imagen, el item NO se marca como video', async () => {
+    const d = deps({
+      uploadMedia: vi.fn(async (file: File) => ({
+        storageKey: `subido/${file.name}`,
+        mime: 'image/svg+xml',
+      })),
+    })
+
+    const { items } = await libraryItemsToMomentoItems([clip()], d)
+
+    expect(items[0]).not.toHaveProperty('type')
+  })
+
+  it('si el store confirma video, el item sí se marca', async () => {
+    const d = deps({
+      uploadMedia: vi.fn(async (file: File) => ({
+        storageKey: `subido/${file.name}`,
+        mime: 'video/mp4',
+      })),
+    })
+
+    const { items } = await libraryItemsToMomentoItems([clip()], d)
+
+    expect(items[0]?.type).toBe('video')
+  })
+
+  /** Sin mime informado no podemos hacer nada mejor que creerle al origen. */
+  it('sin mime del servidor, cae a la clasificación del item', async () => {
+    const { items } = await libraryItemsToMomentoItems([clip()], deps())
+    expect(items[0]?.type).toBe('video')
+  })
+
   it('conserva el orden de la selección', async () => {
     const { items } = await libraryItemsToMomentoItems([clip(), item()], deps())
     expect(items.map((i) => i.storageKey)).toEqual(['subido/clip.mp4', 'subido/foto.png'])
