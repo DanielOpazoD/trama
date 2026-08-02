@@ -179,6 +179,9 @@ describe('r2 helper', () => {
       // Nivel bucket, no de objeto: el path es solo /<bucket>.
       expect(url.pathname).toBe('/trama-biblioteca')
       expect((signMock.mock.calls[0]![0] as Request).method).toBe('GET')
+      // Cada página lleva su propio abort: una que se cuelgue no puede comerse
+      // el presupuesto de ejecución de las otras 19.
+      expect(fetchMock.mock.calls[0]![1]?.signal).toBeInstanceOf(AbortSignal)
     })
 
     it('pagina con continuation-token y concatena las páginas', async () => {

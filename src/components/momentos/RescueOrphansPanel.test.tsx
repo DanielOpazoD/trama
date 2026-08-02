@@ -102,9 +102,7 @@ describe('RescueOrphansPanel', () => {
       expect(screen.getAllByRole('img')).toHaveLength(2)
     })
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /recuperar foto huérfano abc.jpg/i }),
-    )
+    fireEvent.click(screen.getByRole('button', { name: /recuperar foto huérfano abc/i }))
 
     await waitFor(() => {
       expect(rescueSpy).toHaveBeenCalledWith({ storageKey: 'abc.jpg' })
@@ -118,19 +116,33 @@ describe('RescueOrphansPanel', () => {
     // si el panel lo metiera en un <img> se vería una caja vacía y el usuario
     // no sabría qué está recuperando.
     vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockResolvedValue({
-      orphans: ['legacy-single-user/r2-aaaa1111.mp4', 'abc.jpg'],
-      totalInStore: 2,
+      orphans: [
+        'legacy-single-user/r2-aaaa1111.mp4',
+        'legacy-single-user/r2-bbbb2222.mp4',
+        'abc.jpg',
+      ],
+      totalInStore: 3,
       referenced: 0,
     })
     const { container } = renderWithProviders(<RescueOrphansPanel />)
 
     await waitFor(() => {
-      expect(container.querySelectorAll('video')).toHaveLength(1)
+      expect(container.querySelectorAll('video')).toHaveLength(2)
     })
     expect(screen.getAllByRole('img')).toHaveLength(1)
-    expect(
-      screen.getByRole('button', { name: /recuperar video huérfano legacy-s/i }),
-    ).toBeInTheDocument()
+
+    // Las etiquetas se derivan del nombre POSTERIOR al `${userId}/`. Con la key
+    // entera, los tres botones se llamarían "legacy-s" y quien navegue con
+    // lector de pantalla no podría distinguirlos.
+    const etiquetas = screen
+      .getAllByRole('button', { name: /^recuperar (video|foto) huérfano/i })
+      .map((b) => b.getAttribute('aria-label'))
+    expect(etiquetas).toEqual([
+      'Recuperar video huérfano r2-aaaa1111',
+      'Recuperar video huérfano r2-bbbb2222',
+      'Recuperar foto huérfano abc',
+    ])
+    expect(new Set(etiquetas).size).toBe(3)
   })
 
   it('si la API falla, muestra reintentar', async () => {

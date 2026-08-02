@@ -184,6 +184,10 @@ const LIST_MAX_KEYS = 1000
  */
 const LIST_MAX_PAGES = 20
 
+/** Tope por página del LIST. Holgado para una respuesta normal (decenas de ms) y
+ *  muy por debajo del presupuesto de ejecución de la función. */
+const LIST_PAGE_TIMEOUT_MS = 10_000
+
 /**
  * Decodifica las entidades XML de un texto en UNA sola pasada — importante:
  * dos pasadas convertirían `&amp;lt;` en `<` en vez de en `&lt;`.
@@ -269,7 +273,13 @@ export async function r2ListObjects(
     if (continuationToken) url.searchParams.set('continuation-token', continuationToken)
 
     const signed = await client.sign(new Request(url.toString(), { method: 'GET' }))
-    const response = await fetch(signed)
+    // Timeout POR PÁGINA. A diferencia del HEAD —una sola ida y vuelta—, acá hay
+    // hasta `maxPages` llamadas encadenadas en una misma invocación: una que se
+    // cuelgue se come el presupuesto de ejecución entero y la función muere por
+    // timeout de plataforma, sin decir por qué. Con el abort falla rápido y claro.
+    const response = await fetch(signed, {
+      signal: AbortSignal.timeout(LIST_PAGE_TIMEOUT_MS),
+    })
     if (!response.ok) {
       throw new Error(`R2 LIST falló con status ${response.status}`)
     }
