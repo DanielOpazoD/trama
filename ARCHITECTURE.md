@@ -287,6 +287,89 @@ Una falla en cualquier paso aparece como check rojo. No hay branch protection fo
 - **Búsqueda dentro del chat.** Los hilos están en DB; falta vista de búsqueda.
 - **Streaming en Anthropic/Gemini.** Por ahora fallback de un chunk. Cuando se use uno de esos providers en producción, agregar el SSE específico.
 
+## La forma del sistema, de un vistazo
+
+Tres diagramas para lo que cuesta entender leyendo prosa. El resto de este
+documento entra en el detalle.
+
+### 1. La bifurcación que hace única a esta app
+
+`src/api/request.ts` decide, en una línea, si la petición sale a la red o se
+queda en el navegador. Todo lo que hay por encima —vistas, hooks, transforms—
+no sabe en qué modo está.
+
+```mermaid
+flowchart LR
+    UI["Vistas · hooks<br/>TanStack Query"] --> REQ["src/api/request.ts"]
+    REQ -->|"isDemoMode()"| DEMO["demoRouter.ts<br/><i>21 rutas</i>"]
+    REQ -->|"si no"| NET["fetch /api/*"]
+
+    DEMO --> STORE[("localStorage<br/>entidades · relaciones<br/>citas · momentos…")]
+    NET --> FN["Netlify Functions<br/>Node 22 ESM"]
+    FN --> RLS["RLS por user_id"]
+    RLS --> PG[("Postgres · Neon")]
+
+    style DEMO fill:#e8f0e8,stroke:#5a7a5a
+    style STORE fill:#e8f0e8,stroke:#5a7a5a
+```
+
+La rama verde es el **modo prueba**: un backend completo dentro del navegador.
+Devuelve formas de servidor (`snake_case`), así que los transforms de
+`src/api/` corren igual que contra Postgres. Es lo que permite abrir la app con
+[`?demo=1`](https://tramahub.app/?demo=1) sin cuenta ni base de datos, y lo que
+hace deterministas los e2e. El porqué está en
+[ADR 0015](./docs/adr/0015-modo-prueba-backend-en-el-navegador.md).
+
+### 2. La cadena de proveedores de IA
+
+La regla que la gobierna no es «reintenta hasta que alguno responda»: es
+**transitorio cae, permanente no**.
+
+```mermaid
+flowchart TD
+    CALL["askLLMForJson / Text / Vision"] --> CACHE{"¿en caché?"}
+    CACHE -->|sí| HIT["devuelve<br/>fromCache: true"]
+    CACHE -->|no| P1["proveedor primario"]
+
+    P1 --> R{"¿falló?"}
+    R -->|no| OK["cachea y devuelve"]
+    R -->|"5xx · 429 · red<br/><b>transitorio</b>"| P2["siguiente proveedor"]
+    R -->|"resto de 4xx<br/><b>permanente</b>"| STOP["relanza<br/><i>sin probar otro</i>"]
+
+    P2 --> OK
+
+    style STOP fill:#f5e6e6,stroke:#a06060
+    style HIT fill:#e8f0e8,stroke:#5a7a5a
+```
+
+La clasificación es **por código HTTP**, con el 429 como excepción deliberada:
+va con los transitorios aunque sea un 4xx. El resto de 4xx se tratan como
+permanentes porque la causa típica —credencial o petición inválida— no se
+arregla cambiando de proveedor, y recorrer la cadena gastaría una llamada
+facturada por eslabón enterrando el error real.
+
+Esa clasificación por código es una aproximación, y su límite está declarado en
+[ADR 0017](./docs/adr/0017-fallback-solo-ante-fallo-transitorio.md): un
+proveedor que devuelva 400 ante una sobrecarga temporal no tendrá reserva, y un
+429 por cuota mensual agotada recorrerá la cadena entera para nada.
+
+### 3. Lo que hay entre un commit y `main`
+
+```mermaid
+flowchart LR
+    C["commit"] --> L["<b>lint</b><br/>38 gates propios"]
+    C --> U["<b>unit</b><br/>~5.200 tests<br/>+ cobertura + build<br/>+ budget de bundle"]
+    C --> E["<b>e2e</b><br/>Playwright"]
+    C --> S["<b>secrets</b>"]
+    C --> M["<b>migrations</b>"]
+    L & U & E & S & M --> MAIN["main"]
+```
+
+Los gates no son lint genérico: comprueban invariantes de **este** proyecto —
+escrituras con `user_id`, contratos de RLS, tokens de diseño, ratchets
+estructurales, presupuesto de bundle, índice de ADR—. La lista vive en
+`scripts/script-registry.mjs`.
+
 ## Las decisiones, una por una
 
 Este documento describe **cómo está montado**. El **porqué** de cada decisión
