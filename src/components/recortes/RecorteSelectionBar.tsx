@@ -160,7 +160,7 @@ export function RecorteSelectionBar({
     <div
       role="toolbar"
       aria-label="Acciones de las capturas seleccionadas"
-      className="fixed bottom-6 left-1/2 z-40 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 animate-fade-up"
+      className="fixed bottom-6 inset-x-0 z-40 mx-auto w-[calc(100%-2rem)] max-w-2xl animate-fade-up"
     >
       <div
         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-100/80 px-4 py-3 shadow-xl shadow-ink-900/15"

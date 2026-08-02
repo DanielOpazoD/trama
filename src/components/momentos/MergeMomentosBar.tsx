@@ -142,7 +142,7 @@ export function MergeMomentosBar({
     <div
       role="toolbar"
       aria-label="Acciones de fusión"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-2xl w-[calc(100%-2rem)] animate-fade-up"
+      className="fixed bottom-6 inset-x-0 mx-auto z-40 max-w-2xl w-[calc(100%-2rem)] animate-fade-up"
     >
       <div
         className="rounded-xl border border-ink-100/80 shadow-xl shadow-ink-900/15 overflow-hidden"

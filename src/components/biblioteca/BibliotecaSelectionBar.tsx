@@ -4,24 +4,36 @@ import { api } from '../../api'
 import { requestBlob } from '../../api/request'
 import { invalidateBibliotecaSurface } from '../../state/cacheInvalidation'
 import { useToast } from '../../state'
+import { useAddMomento } from '../../state/useMomentos'
 import type { LibraryItem } from '../../types/biblioteca'
-import { FilePdfIcon, TrashIcon } from '../Icons'
+import { FilePdfIcon, MomentosIcon, TrashIcon } from '../Icons'
 import { Tooltip } from '../Tooltip'
+import { readImageDimensions, readVideoDimensions } from '../momentos/helpers'
 import {
   canSendLibraryItemToImprenta,
   libraryItemsToPdfFiles,
 } from '../../lib/pdfStudio/import/libraryItemsToPdfFiles'
+import {
+  canSendLibraryItemToMomentos,
+  libraryItemsToMomentoItems,
+} from '../../lib/momentos/import/libraryItemsToMomentoItems'
 
 /**
  * Barra flotante de acciones en lote para los archivos seleccionados de la
  * Biblioteca. Espejo de `RecorteSelectionBar` (Capturas): pegada al fondo,
- * muestra el conteo y las acciones —Enviar a Imprenta, Eliminar (a la papelera,
- * con deshacer)— aplicadas a toda la selección de una vez, más "Deseleccionar
- * todo".
+ * muestra el conteo y las acciones —Enviar a Imprenta, Enviar a Momentos,
+ * Eliminar (a la papelera, con deshacer)— aplicadas a toda la selección de una
+ * vez, más "Deseleccionar todo".
  *
- * "Enviar a Imprenta" solo se habilita si la selección tiene al menos un item
- * que Imprenta sabe ingerir (imágenes y PDFs servibles); baja sus blobs y los
- * entrega como `File`s vía `onSendToImprenta` (que los enruta al estudio PDF).
+ * Ambos "Enviar a" siguen el mismo patrón: un predicado puro decide qué items
+ * acepta el destino y habilita el botón, y el envío reporta éxito parcial.
+ *
+ *   - **Imprenta** ingiere imágenes y PDFs servibles; baja sus blobs y los
+ *     entrega como `File`s vía `onSendToImprenta` (que los enruta al estudio).
+ *   - **Momentos** ingiere imágenes y videos, EXCEPTO los que ya son de
+ *     Momentos (la Biblioteca proyecta ese store, así que reenviarlos
+ *     duplicaría el episodio). Copia los blobs al store de Momentos y crea un
+ *     único episodio con todos.
  *
  * NOTA — "Eliminar definitivamente" (purga del blob) NO va en esta PR: para los
  * items que la Biblioteca no posee (adjuntos, recortes, momentos, PDFs) sería una
@@ -42,13 +54,16 @@ export function BibliotecaSelectionBar({
 }) {
   const queryClient = useQueryClient()
   const toast = useToast()
-  const [busy, setBusy] = useState<'imprenta' | 'delete' | null>(null)
+  const addMomento = useAddMomento()
+  const [busy, setBusy] = useState<'imprenta' | 'momentos' | 'delete' | null>(null)
 
   if (selected.length === 0) return null
 
   const n = selected.length
   const imprentaItems = selected.filter(canSendLibraryItemToImprenta)
   const canSendToImprenta = !!onSendToImprenta && imprentaItems.length > 0
+  const momentosItems = selected.filter(canSendLibraryItemToMomentos)
+  const canSendToMomentos = momentosItems.length > 0
 
   async function handleSendToImprenta() {
     if (busy || !onSendToImprenta) return
@@ -82,6 +97,65 @@ export function BibliotecaSelectionBar({
           error instanceof Error
             ? error.message
             : 'No se pudieron enviar los archivos a Imprenta',
+        tone: 'error',
+      })
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /**
+   * Crea UN episodio de Momentos con toda la media seleccionada, igual que el
+   * composer al elegir varias fotos de una vez: `items[]` es un episodio, no una
+   * foto. Enviar cinco imágenes produce un momento de cinco, no cinco momentos
+   * sueltos que habría que fusionar después.
+   */
+  async function handleSendToMomentos() {
+    if (busy) return
+    setBusy('momentos')
+    try {
+      const { items, failures } = await libraryItemsToMomentoItems(momentosItems, {
+        fetchBlob: requestBlob,
+        uploadMedia: api.uploadMedia,
+        readImageDimensions,
+        readVideoDimensions,
+      })
+      if (items.length === 0) {
+        toast.show({
+          message:
+            failures.length > 0
+              ? 'No se pudo enviar ningún archivo a Momentos'
+              : 'No hay imágenes ni videos para enviar a Momentos',
+          tone: 'error',
+        })
+        return
+      }
+      const [first] = items
+      await addMomento.mutateAsync({
+        kind: 'foto',
+        payload: {
+          items,
+          // Espejo del composer: el campo legacy conserva la primera para los
+          // renders viejos que aún no leen `items[]`.
+          storageKey: first?.storageKey,
+          width: first?.width,
+          height: first?.height,
+        },
+      })
+      toast.show({
+        message:
+          failures.length > 0
+            ? `${items.length} de ${items.length + failures.length} archivos enviados a Momentos`
+            : `${items.length} ${items.length === 1 ? 'archivo enviado' : 'archivos enviados'} a Momentos`,
+        tone: failures.length > 0 ? 'default' : 'success',
+      })
+      onClear()
+    } catch (error) {
+      toast.show({
+        message:
+          error instanceof Error
+            ? error.message
+            : 'No se pudieron enviar los archivos a Momentos',
         tone: 'error',
       })
     } finally {
@@ -134,7 +208,11 @@ export function BibliotecaSelectionBar({
     <div
       role="toolbar"
       aria-label="Acciones de los archivos seleccionados"
-      className="fixed bottom-6 left-1/2 z-40 w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 animate-fade-up"
+      /* Centrado por márgenes automáticos, NO por `-translate-x-1/2`: los
+         keyframes de `fade-up` terminan en `transform: translateY(0)`, que
+         reemplaza el transform entero y borraría el centrado en X — la barra
+         quedaba anclada al 50% y se salía por la derecha. */
+      className="fixed bottom-6 inset-x-0 z-40 mx-auto w-[calc(100%-2rem)] max-w-2xl animate-fade-up"
     >
       <div
         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-100/80 px-4 py-3 shadow-xl shadow-ink-900/15"
@@ -170,6 +248,29 @@ export function BibliotecaSelectionBar({
               </button>
             </Tooltip>
           )}
+          <Tooltip
+            content={
+              canSendToMomentos
+                ? 'Enviar a Momentos'
+                : 'Solo imágenes y videos que no sean ya de Momentos'
+            }
+          >
+            {/* Mismo criterio que Imprenta: `aria-disabled` en vez de `disabled`
+                nativo para que el Tooltip siga explicando por qué no se habilita. */}
+            <button
+              type="button"
+              aria-disabled={!canSendToMomentos || !!busy}
+              onClick={() => {
+                if (!canSendToMomentos || busy) return
+                void handleSendToMomentos()
+              }}
+              className={`${btn} ${
+                !canSendToMomentos || busy ? 'cursor-not-allowed opacity-50' : ''
+              }`}
+            >
+              <MomentosIcon size={14} /> {busy === 'momentos' ? '…' : 'Enviar a Momentos'}
+            </button>
+          </Tooltip>
           <button
             type="button"
             onClick={() => void handleDelete()}
