@@ -8,7 +8,57 @@
 
 import type { Momento, MomentoKind, MomentoPayload, Origin } from '../types'
 import { request } from './request'
+import { isDemoMode } from '../lib/demo'
 import { momentoFromRow, type MomentoRow } from './transform'
+
+/**
+ * Umbral chico/grande de subida (4 MB), espejo del de la Biblioteca. Por encima,
+ * el archivo va DIRECTO a R2 (presign → PUT → complete) en vez de atravesar una
+ * Netlify Function, cuyo body topa muy por debajo de lo que pesa un video de
+ * teléfono. Es lo que hace que "Momentos acepta video" sea cierto para clips
+ * reales y no solo para los diminutos.
+ */
+const LARGE_FILE_THRESHOLD = 4 * 1024 * 1024
+
+type UploadedMedia = { storageKey: string; mime: string; size: number }
+
+/**
+ * Sube media grande DIRECTO a R2: presign → PUT al bucket → complete.
+ *
+ *   1. `POST /api/momentos-uploads-presign` → `{ uploadUrl, storageKey }`. Si R2
+ *      no está configurado, el endpoint responde con un mensaje accionable que
+ *      se propaga tal cual al usuario.
+ *   2. `PUT uploadUrl` con el archivo crudo. Va DERECHO a R2 (no a una función),
+ *      así que sin el límite de body. Un PUT no-ok lanza.
+ *   3. `POST /api/momentos-uploads-complete` verifica que el objeto llegó y lo
+ *      registra en `storage_assets`.
+ */
+async function uploadMediaToR2(file: File): Promise<UploadedMedia> {
+  const mime = file.type || 'application/octet-stream'
+  const { uploadUrl, storageKey } = await request<{
+    uploadUrl: string
+    storageKey: string
+  }>('/api/momentos-uploads-presign', {
+    method: 'POST',
+    body: JSON.stringify({ mimeType: mime, byteSize: file.size }),
+  })
+
+  // PUT directo a R2 — no pasa por `request`: es cross-origin y sin auth de
+  // Trama (la URL ya va firmada y vigente).
+  const putResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: file,
+    headers: { 'Content-Type': mime },
+  })
+  if (!putResponse.ok) {
+    throw new Error(`No se pudo subir el archivo (${putResponse.status})`)
+  }
+
+  return request<UploadedMedia>('/api/momentos-uploads-complete', {
+    method: 'POST',
+    body: JSON.stringify({ storageKey, mimeType: mime }),
+  })
+}
 
 export type MomentoUrlPreview = {
   url: string
@@ -210,23 +260,28 @@ export const momentosApi = {
     })
   },
 
-  /** ξ3: sube un archivo de imagen a Netlify Blobs. Devuelve la storageKey
-      que el cliente luego inserta en el payload del momento foto. */
-  async momentoUpload(file: File): Promise<{
-    storageKey: string
-    mime: string
-    size: number
-  }> {
+  /**
+   * ξ3: sube media (imagen o video) y devuelve la storageKey que el cliente
+   * inserta en el payload del momento foto.
+   *
+   * Enruta por tamaño: los archivos chicos van por multipart a la función; los
+   * grandes van DIRECTO a R2. El enrutado vive acá, y no en cada llamador, para
+   * que composer, edición y "enviar desde la Biblioteca" ganen el tope alto sin
+   * tener que acordarse de elegir camino.
+   *
+   * En modo prueba todo va por multipart: no hay R2 y el router de demo resuelve
+   * esa ruta.
+   */
+  async momentoUpload(file: File): Promise<UploadedMedia> {
+    if (!isDemoMode() && file.size > LARGE_FILE_THRESHOLD) {
+      return uploadMediaToR2(file)
+    }
     const form = new FormData()
     form.append('file', file)
     // υ-bugfix: path movido de `/api/momentos/upload` a
     // `/api/momentos-upload` por el mismo conflicto con :id que causaba
     // 405 Method not allowed.
-    return request<{
-      storageKey: string
-      mime: string
-      size: number
-    }>('/api/momentos-upload', {
+    return request<UploadedMedia>('/api/momentos-upload', {
       method: 'POST',
       body: form,
     })

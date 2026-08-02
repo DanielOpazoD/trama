@@ -158,8 +158,8 @@ export function useMomentoComposer({
       toast.show({
         message:
           rejectedForSize === 1
-            ? 'El video supera los 10 MB. Usa un clip más corto.'
-            : `${rejectedForSize} videos superan los 10 MB y no se agregaron.`,
+            ? 'El video supera los 200 MB. Usa un clip más corto.'
+            : `${rejectedForSize} videos superan los 200 MB y no se agregaron.`,
         tone: 'error',
       })
     }

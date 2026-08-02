@@ -431,7 +431,7 @@ function FotoFields({ composer }: { composer: Composer }) {
               Arrastra fotos o videos aquí, o haz click para elegir
             </p>
             <p className="text-caption italic mt-1">
-              Fotos JPEG / PNG / WebP / GIF · videos MP4 / WebM / MOV hasta 10 MB
+              Fotos JPEG / PNG / WebP / GIF · videos MP4 / WebM / MOV hasta 200 MB
             </p>
           </div>
         )}

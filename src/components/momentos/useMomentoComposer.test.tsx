@@ -102,13 +102,35 @@ describe('useMomentoComposer', () => {
     expect(result.current.photoDrafts[0]?.isVideo).toBe(true)
   })
 
+  /**
+   * El tope se declara en bytes pero se comprueba contra `file.size`, así que
+   * fingimos el tamaño en vez de reservar cientos de MB de verdad: un test no
+   * debería costar memoria real para probar un número.
+   */
+  function videoDeTamano(bytes: number, name = 'clip.mp4'): File {
+    const file = new File(['x'], name, { type: 'video/mp4' })
+    Object.defineProperty(file, 'size', { value: bytes })
+    return file
+  }
+
+  /**
+   * El caso que motiva la subida directa a R2: 40 MB es un video de teléfono
+   * normal y ANTES se rechazaba, porque el tope era el del body de una Netlify
+   * Function (10 MB). Si alguien vuelve a bajar `MAX_MEDIA_BYTES` a ese valor,
+   * este test lo dice.
+   */
+  it('acepta un video de 40 MB — el tope ya no es el del body de la función', () => {
+    const { result } = renderHook(() => useMomentoComposer({}))
+    act(() => result.current.addPhotoFiles([videoDeTamano(40 * 1024 * 1024)]))
+    expect(result.current.photoDrafts).toHaveLength(1)
+    expect(result.current.photoDrafts[0]?.isVideo).toBe(true)
+    expect(mocks.toastShow).not.toHaveBeenCalled()
+  })
+
   it('rechaza un video que supera el tope de tamaño y avisa con un toast', () => {
     const { result } = renderHook(() => useMomentoComposer({}))
-    // 11 MB supera MAX_MEDIA_BYTES (10 MB): el composer no lo agrega.
-    const bigVideo = new File([new Uint8Array(11 * 1024 * 1024)], 'largo.mp4', {
-      type: 'video/mp4',
-    })
-    act(() => result.current.addPhotoFiles([bigVideo]))
+    // Por encima de MAX_MEDIA_BYTES (200 MB): el composer no lo agrega.
+    act(() => result.current.addPhotoFiles([videoDeTamano(201 * 1024 * 1024)]))
     expect(mocks.toastShow).toHaveBeenCalledWith(
       expect.objectContaining({ tone: 'error' }),
     )

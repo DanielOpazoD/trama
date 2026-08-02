@@ -6,6 +6,11 @@ import { getSql } from './_lib/db.js'
 import { ensureUserRow } from './_lib/user-provisioning.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
 import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
+import {
+  isAllowedMomentoMime,
+  momentoExtensionFor,
+  UNSUPPORTED_MOMENTO_MIME,
+} from './_lib/momentos-media-mime.js'
 
 /**
  * POST /api/momentos/upload
@@ -19,28 +24,20 @@ import { checksumSha256, recordStorageAsset } from './_lib/storage-assets.js'
  * blob NO devuelve los headers EXIF, así que el browser nunca los muestra.
  * Los metadatos viven en el blob pero no se exponen.
  *
- * Tamaño máximo: 10 MB (sobre eso Netlify Functions rechaza el body de
- * todos modos en el plan estándar). Alcanza para fotos y para clips cortos;
- * los videos NO se comprimen client-side (haría falta transcodificar), así
- * que el composer valida este mismo tope antes de subir. Aceptar videos
- * largos exigiría upload directo al store con URL firmada — otro trabajo.
+ * Tamaño máximo: 10 MB — el body de una Netlify Function no da para más. Este
+ * es el camino de los archivos CHICOS.
+ *
+ * Los grandes (>4 MB) ya no pasan por acá: van directo a R2 con URL firmada
+ * (`momentos-uploads-presign` → PUT → `momentos-uploads-complete`), que es lo
+ * que hace posible subir un video de teléfono. El cliente enruta solo en
+ * `api.momentoUpload`; este endpoint sigue existiendo porque para una foto
+ * comprimida el viaje de ida y vuelta del presign no compensa.
  */
 
 const MAX_BYTES = 10 * 1024 * 1024
 
-// ω-video: extensión por mimeType. Las claves son además la lista blanca
-// (ALLOWED_MIMES se deriva de acá) para que ambas no se desincronicen. Los
-// videos comparten store y flujo con las fotos; solo cambian mime y ext.
-const EXT_BY_MIME: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-  'video/mp4': 'mp4',
-  'video/webm': 'webm',
-  'video/quicktime': 'mov',
-}
-const ALLOWED_MIMES = new Set(Object.keys(EXT_BY_MIME))
+// ω-video: la lista blanca y las extensiones viven en `_lib/momentos-media-mime`
+// porque las comparte con el camino de subida directa a R2. Ver allí el porqué.
 
 function randomKey(): string {
   // 16 bytes hex — espacio de colisión suficiente para fotos personales.
@@ -84,18 +81,18 @@ export default withObservability(
       return ApiErrors.validation(requestId, 'Falta el field "file"')
     }
 
-    if (!ALLOWED_MIMES.has(file.type)) {
+    if (!isAllowedMomentoMime(file.type)) {
       return ApiErrors.unsupportedMediaType(
         requestId,
-        `mimeType "${file.type}" no soportado. Usa una imagen (jpeg, png, webp, gif) o un video (mp4, webm, mov).`,
+        `mimeType "${file.type}" no soportado. ${UNSUPPORTED_MOMENTO_MIME}`,
       )
     }
     if (file.size > MAX_BYTES) {
       return ApiErrors.payloadTooLarge(requestId, 'Archivo > 10 MB')
     }
 
-    // El type ya pasó el filtro ALLOWED_MIMES, así que siempre está en el map.
-    const ext = EXT_BY_MIME[file.type] ?? 'bin'
+    // El type ya pasó el filtro de la lista blanca: siempre está en el mapa.
+    const ext = momentoExtensionFor(file.type)
     // Key con namespace por usuario: `${userId}/${random}.${ext}`. La
     // storageKey completa se persiste tal cual en el payload del momento;
     // momentos-file.mts re-deriva el userId del path al servir el blob.
