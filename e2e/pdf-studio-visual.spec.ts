@@ -201,4 +201,44 @@ test.describe('Imprenta · PDF visual regression', () => {
       maxDiffPixelRatio: 0.004,
     })
   })
+
+  /**
+   * El zoom queda FUERA del scroll horizontal.
+   *
+   * Medido a 390px antes de separarlo: la barra mostraba 330px de un contenido
+   * de 607 —277px, el 46%, fuera de pantalla— y el zoom estaba entre lo
+   * escondido, detrás de un scroll que no se anuncia. En un editor de PDF en
+   * pantalla pequeña es de lo más usado.
+   *
+   * Las herramientas SIGUEN scrolleando (la fila única es deliberada); lo que se
+   * afirma es que el zoom es alcanzable sin scrollear.
+   *
+   * Ojo al tocar esto: el scroll vive en el contenedor INTERNO, así que medir
+   * `scrollWidth` del `role=toolbar` externo diría "no desborda" siempre y sería
+   * un verde falso.
+   */
+  test('el zoom es alcanzable sin scrollear, también en móvil', async ({ page }) => {
+    await openPdfEditor(page, { width: 390, height: 844 })
+    const barra = page.getByRole('toolbar', {
+      name: 'Barra de herramientas de edición del PDF',
+    })
+
+    const medida = await barra.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      const scroller = [...el.querySelectorAll('div')].find(
+        (d) => getComputedStyle(d).overflowX === 'auto',
+      )
+      const zoom = el.querySelector('[aria-label*="Zoom"]')
+      const zr = zoom?.getBoundingClientRect()
+      return {
+        herramientasScrollean: scroller
+          ? scroller.scrollWidth > scroller.clientWidth + 1
+          : null,
+        zoomAlcanzable: zr ? zr.right <= r.right + 1 && zr.left >= r.left - 1 : null,
+      }
+    })
+
+    expect(medida.herramientasScrollean, 'las herramientas siguen en una fila').toBe(true)
+    expect(medida.zoomAlcanzable, 'el zoom no puede quedar fuera de pantalla').toBe(true)
+  })
 })

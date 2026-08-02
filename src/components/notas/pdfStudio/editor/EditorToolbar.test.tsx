@@ -82,11 +82,20 @@ describe('<EditorToolbar />', () => {
     const toolbar = screen.getByRole('toolbar', {
       name: /barra de herramientas de edición del pdf/i,
     })
-    expect(toolbar).toHaveClass('flex-nowrap')
+
+    // Una sola fila: el `flex-nowrap` vive ahora en el carril que SCROLLEA, no
+    // en la barra entera. La separación es el arreglo: con el scroll aplicado a
+    // todo, a 390px quedaban 277px (el 46%) fuera de pantalla, y el zoom entre
+    // lo escondido.
+    const carril = toolbar.querySelector('.overflow-x-auto')
+    expect(carril).toHaveClass('flex-nowrap')
     expect(toolbar).not.toHaveClass('flex-wrap')
-    expect(
-      screen.getByRole('toolbar', { name: /barra de herramientas de edición del pdf/i }),
-    ).toBeInTheDocument()
+
+    // El zoom queda FUERA del carril: es lo más usado en pantalla pequeña y no
+    // puede depender de scrollear una barra que no anuncia que scrollea.
+    const vista = screen.getByRole('group', { name: 'Vista' })
+    expect(carril?.contains(vista)).toBe(false)
+
     expect(screen.getByRole('group', { name: 'Herramientas' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Insertar' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Estilo' })).toBeInTheDocument()
