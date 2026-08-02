@@ -31,6 +31,10 @@ Usamos un MADR-lite — ver [`template.md`](./template.md).
 | [0011](./0011-legacy-identity-cutover.md)               | `legacy-single-user` como compatibilidad, no default DB      | Accepted | 2026-06-21 |
 | [0012](./0012-legacy-data-reassignment-dry-run.md)      | Dry-run read-only antes de reasignar datos legacy            | Accepted | 2026-06-21 |
 | [0013](./0013-storage-provider-migration-sequencing.md) | Adapter y manifest antes de migrar provider de storage       | Accepted | 2026-06-21 |
+| [0014](./0014-multiuser-operational-observability.md)   | Contratos de observabilidad operacional multiusuario         | Accepted | 2026-06-19 |
+| [0015](./0015-modo-prueba-backend-en-el-navegador.md)   | El modo prueba es un backend completo en el navegador        | Accepted | 2026-07-31 |
+| [0016](./0016-ratchets-estructurales.md)                | Los ficheros grandes llevan un tope que sólo puede bajar     | Accepted | 2026-07-31 |
+| [0017](./0017-fallback-solo-ante-fallo-transitorio.md)  | Sólo un fallo transitorio cae al siguiente proveedor de LLM  | Accepted | 2026-07-31 |
 
 ## Cómo agregar uno
 

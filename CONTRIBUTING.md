@@ -29,6 +29,11 @@ Ver [`docs/deploy.md`](./docs/deploy.md) para detalles de env vars.
 
 ## Flujo de PR
 
+0. **Si la decisión es costosa de revertir, escribe un ADR.** Antes de un cambio
+   de esquema, de modelo de autenticación o de cualquier cosa que dentro de un
+   año haga preguntar «¿por qué está así?», pasa por
+   [`docs/adr/`](./docs/adr/): ahí está el criterio de cuándo hace falta uno y
+   la plantilla.
 1. **Rama nueva** con prefijo descriptivo: `chore/`, `feat/`, `fix/`, `docs/`, `refactor/`.
 2. **Commits pequeños y enfocados** — un commit por cambio lógico.
 3. **Antes de pushear, corré localmente**:

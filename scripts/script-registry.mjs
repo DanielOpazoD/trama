@@ -241,6 +241,14 @@ const SCRIPT_ENTRIES = [
       'Travesía recursiva de archivos compartida por los gates (reemplaza el walk/isScannedFile duplicado en ~9 scripts).',
   },
   {
+    file: 'scripts/check-adr-index.mjs',
+    domain: 'docs',
+    kind: 'check',
+    critical: false,
+    packageScripts: ['check:adr-index'],
+    summary: 'Cada ADR con número único y presente en el índice.',
+  },
+  {
     file: 'scripts/check-hard-delete-allowlist.mjs',
     domain: 'database',
     kind: 'check',
@@ -790,6 +798,13 @@ export const QUALITY_GATES = [
     phase: 'auth',
     required: true,
     summary: 'Fallback sin auth de media legacy no puede crecer.',
+  },
+  {
+    command: 'npm run check:adr-index',
+    job: 'lint',
+    phase: 'docs',
+    required: true,
+    summary: 'Ningún ADR duplicado ni fuera del índice.',
   },
   {
     command: 'npm run check:hard-delete-allowlist',
