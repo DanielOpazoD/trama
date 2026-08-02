@@ -96,17 +96,18 @@ async function controlesDeLaBarra(page: Page): Promise<string[]> {
 }
 
 test.describe('Barra de Imprenta', () => {
-  test('con el documento vacío sólo ofrece traer algo', async ({ page }) => {
+  test('con el documento vacío no hay barra: la puerta es el lienzo', async ({
+    page,
+  }) => {
     await conRecorteImagen(page)
     await page.goto('/?world=notas&section=pdf')
-    await page.locator(BARRA).waitFor()
 
-    const controles = await controlesDeLaBarra(page)
-    // El lienzo ya lleva la invitación y los formatos aceptados; la barra no
-    // necesita repetirlo con controles que no pueden actuar.
-    expect(controles, `la barra muestra ${controles.length} controles`).toEqual([
-      'Importar',
-    ])
+    // El lienzo ya lleva la invitación y los formatos aceptados. La barra
+    // llegó a quedarse con un único "Importar" —una segunda puerta apilada
+    // sobre la primera— y un menú "···" con todos sus items deshabilitados
+    // por estar el documento vacío. No se gana su sitio: no se pinta.
+    await expect(page.getByText(/Trae un PDF o unas imágenes/)).toBeVisible()
+    await expect(page.locator(BARRA)).toHaveCount(0)
   })
 
   test('con documento, descartar no está junto a guardar', async ({ page }) => {

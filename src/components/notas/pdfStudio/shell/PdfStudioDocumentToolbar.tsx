@@ -122,6 +122,18 @@ export function PdfStudioDocumentToolbar({
     : isTemplates
       ? onStartSaveTemplate
       : onSavePdf
+
+  // Documento vacío y sin historial: la barra no tiene nada que ofrecer. El
+  // lienzo ya muestra la zona de arrastre, que dice "arrastra o haz clic para
+  // elegirlos" — un botón "Importar" encima es una segunda puerta a lo mismo,
+  // apilada sobre la primera.
+  //
+  // El historial es la excepción, por el motivo de abajo: si el vacío viene de
+  // borrar las páginas o de deshacer la importación, estos botones son el camino
+  // de vuelta y ocultarlos dejaría el trabajo irrecuperable. En Planillas no
+  // aplica: allí se entra a rellenar una plantilla, no a componer desde cero.
+  if (empty && !isTemplates && !undoable && !redoable) return null
+
   return (
     <div
       role="toolbar"
