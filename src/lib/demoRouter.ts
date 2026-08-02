@@ -223,6 +223,24 @@ export function routeDemoRequest(
     return routeDemoLibraryUploadComplete(body)
   }
 
+  // Momentos — subida de media: POST /api/momentos-upload. En modo prueba no hay
+  // store de blobs, pero `demoMedia` sirve un placeholder para CUALQUIER key bajo
+  // `/api/momentos-file/`, así que basta con devolver una clave coherente para
+  // que el momento resultante se vea. La extensión `-N.svg` elige la paleta del
+  // placeholder; la derivamos del nombre (no del azar) para que sea determinista.
+  if (resource === 'momentos-upload' && method === 'POST') {
+    const [file] = Array.isArray(body.__uploadFiles)
+      ? (body.__uploadFiles as DemoUploadFile[])
+      : []
+    const nombre = file?.name ?? 'archivo'
+    const variante = (nombre.length % 3) + 1
+    return {
+      storageKey: `demo/enviado-${variante}.svg`,
+      mime: file?.mime ?? 'image/svg+xml',
+      size: file?.size ?? 0,
+    }
+  }
+
   // Biblioteca — conexiones (PR-C): /api/biblioteca-links/:kind/:id (GET/POST/DELETE).
   // `:kind` y `:id` llegan codificados. El resolutor de títulos lee el store
   // para que `targetTitle` coincida con los candidatos del picker.

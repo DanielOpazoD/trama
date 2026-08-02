@@ -196,7 +196,7 @@ export function ReadingMode({
         className="fixed inset-0 z-30 bg-ink-900/30 backdrop-blur-sm cursor-default"
         tabIndex={-1}
       />
-      <div className="fixed inset-x-4 top-12 bottom-12 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[680px] md:max-w-[calc(100vw-2rem)] z-40 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up">
+      <div className="fixed inset-x-4 top-12 bottom-12 md:inset-x-0 md:mx-auto md:w-[680px] md:max-w-[calc(100vw-2rem)] z-40 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up">
         <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
           <div className="min-w-0">
             <p className="text-micro uppercase tracking-eyebrow text-ink-300 flex items-center gap-1.5">
