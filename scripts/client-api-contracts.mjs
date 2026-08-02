@@ -46,6 +46,12 @@ const DIRECT_FETCH_ALLOWLIST = [
     reason: 'direct PUT to R2 presigned URL (cross-origin, no Trama auth)',
     requires: ['await fetch(uploadUrl, {', "method: 'PUT'"],
   },
+  {
+    file: 'src/api/momentos.ts',
+    count: 1,
+    reason: 'direct PUT to R2 presigned URL (cross-origin, no Trama auth)',
+    requires: ['await fetch(uploadUrl, {', "method: 'PUT'"],
+  },
 ]
 
 const RAW_API_FETCH_ALLOWLIST = [
@@ -81,6 +87,16 @@ const RAW_RESPONSE_USAGE_ALLOWLIST = [
       'const response = await apiFetch(`/api/chat/threads/${threadId}/messages`',
       'response.body.getReader()',
       'messageFromErrorText(text) || `HTTP ${response.status}`',
+    ],
+  },
+  {
+    file: 'src/api/momentos.ts',
+    count: 2,
+    reason: 'R2 presigned PUT is cross-origin and only exposes status/ok',
+    requires: [
+      'const putResponse = await fetch(uploadUrl, {',
+      'if (!putResponse.ok)',
+      'putResponse.status',
     ],
   },
   {

@@ -9,6 +9,8 @@ import {
 } from './_lib/legacy-identity.js'
 import { runWithSystemRls } from './_lib/user-rls.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { presignGet } from './_lib/r2.js'
+import { isR2MomentoKey } from './_lib/momentos-media-mime.js'
 
 /**
  * GET /api/momentos-file/:key
@@ -131,6 +133,25 @@ export default withObservability(
     //   solo si un Momento foto activo suyo referencia exactamente esa key.
     if (!(await canReadStorageKey(userId, key))) {
       return ApiErrors.notFound(requestId, 'No encontrado')
+    }
+
+    // Media grande en R2 (videos, sobre todo): firmamos un GET presignado y
+    // redirigimos en vez de pasar el stream por la función — el objeto puede
+    // pesar cientos de MB. La URL firmada lleva su propia auth en el query
+    // string, así que el bearer que se cae cross-origin no hace falta.
+    //
+    // El origen se decide por la PROPIA key (ver `_lib/momentos-media-mime.ts`),
+    // no consultando la base: esto es camino caliente — se ejecuta una vez por
+    // cada miniatura del álbum.
+    if (isR2MomentoKey(key)) {
+      const signedUrl = await presignGet(key)
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: signedUrl,
+          'Cache-Control': 'private, no-store',
+        },
+      })
     }
 
     const blob = await createNetlifyBlobStorageAdapter(

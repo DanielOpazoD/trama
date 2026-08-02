@@ -249,14 +249,16 @@ export function readImageDimensions(
 }
 
 /**
- * ω-video: tope de tamaño para media de Momentos, alineado con el
- * `MAX_BYTES` del endpoint `momentos-upload.mts`. Los videos no se
- * comprimen client-side (haría falta transcodificar), así que el composer
- * valida ESTE límite antes de intentar subir y da un mensaje claro en vez
- * de dejar que el backend rechace el body. Subirlo requeriría upload
- * directo al store (fuera del alcance de esta capa).
+ * ω-video: tope de tamaño para media de Momentos, alineado con el `MAX_BYTES`
+ * de `momentos-uploads-presign.mts`. Los videos no se comprimen client-side
+ * (haría falta transcodificar), así que el composer valida ESTE límite antes de
+ * intentar subir y da un mensaje claro en vez de dejar que el backend rechace.
+ *
+ * Eran 10 MB, el tope del body de una Netlify Function — que un video de
+ * teléfono supera en segundos. Ahora los archivos sobre 4 MB van DIRECTO a R2
+ * (`api.momentoUpload` enruta solo), así que el límite real es el del bucket.
  */
-export const MAX_MEDIA_BYTES = 10 * 1024 * 1024
+export const MAX_MEDIA_BYTES = 200 * 1024 * 1024
 
 /** Formatos de video que aceptamos. DEBE coincidir con la lista blanca del
  *  backend (`momentos-upload.mts`) y con el `accept` del input del composer.
