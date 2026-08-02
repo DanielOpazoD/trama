@@ -58,3 +58,25 @@ export function isR2MomentoKey(storageKey: string): boolean {
   const tail = slashIdx > 0 ? storageKey.slice(slashIdx + 1) : storageKey
   return tail.startsWith(R2_KEY_MARKER)
 }
+
+/** Inverso de `EXT_BY_MIME`. Las extensiones no se repiten, así que es unívoco. */
+const MIME_BY_EXT: Record<string, string> = Object.fromEntries(
+  Object.entries(EXT_BY_MIME).map(([mime, ext]) => [ext, mime]),
+)
+
+/**
+ * ¿La key apunta a un video? Se decide por la EXTENSIÓN, que es fiable porque
+ * ambos caminos de subida la derivan del mime ya validado (`momentoExtensionFor`),
+ * nunca del nombre que mandó el cliente.
+ *
+ * Hace falta al adoptar un huérfano: el item del payload necesita `type: 'video'`
+ * para que el álbum monte un `<video>` y no un `<img>` que nunca carga. La
+ * alternativa —consultar la metadata del objeto— cuesta una llamada de red y no
+ * existe para las keys de R2, que no guardan mime en el store.
+ */
+export function isVideoMomentoKey(storageKey: string): boolean {
+  const dot = storageKey.lastIndexOf('.')
+  if (dot < 0) return false
+  const mime = MIME_BY_EXT[storageKey.slice(dot + 1).toLowerCase()]
+  return mime !== undefined && mime.startsWith('video/')
+}

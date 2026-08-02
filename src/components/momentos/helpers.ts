@@ -14,6 +14,21 @@ export function isVideoItem(item: Pick<MomentoPhotoItem, 'type'>): boolean {
   return item.type === 'video'
 }
 
+/** Extensiones de video que el backend acepta (espejo de `EXT_BY_MIME` en
+ *  `netlify/functions/_lib/momentos-media-mime.ts`). */
+const VIDEO_KEY_EXTENSIONS = ['.mp4', '.webm', '.mov']
+
+/**
+ * True si la storageKey apunta a un clip. Se usa cuando hay key pero NO hay
+ * item con `type` — el caso del panel de huérfanos, que recibe keys sueltas del
+ * barrido de storage. La extensión es fiable porque la pone el servidor a
+ * partir del mime ya validado, nunca el nombre del archivo del usuario.
+ */
+export function isVideoStorageKey(storageKey: string): boolean {
+  const key = storageKey.toLowerCase()
+  return VIDEO_KEY_EXTENSIONS.some((ext) => key.endsWith(ext))
+}
+
 /**
  * Helpers puros para Momentos. Sin React, sin queries — todo testeable
  * con vitest sin DOM. La idea es que MomentosView y sus sub-componentes
