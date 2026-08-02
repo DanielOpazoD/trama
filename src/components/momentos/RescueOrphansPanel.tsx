@@ -136,7 +136,11 @@ export function RescueOrphansPanel() {
       <ul className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
         {orphans.map((key) => {
           const esVideo = isVideoStorageKey(key)
-          const etiqueta = `${esVideo ? 'Video' : 'Foto'} huérfano ${key.slice(0, 8)}`
+          // El nombre va DESPUÉS del `${userId}/`: recortar la key entera daría el
+          // prefijo del usuario, idéntico en todos, y todos los botones quedarían
+          // con el mismo nombre accesible.
+          const nombre = key.slice(key.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '')
+          const etiqueta = `${esVideo ? 'Video' : 'Foto'} huérfano ${nombre.slice(0, 12)}`
           return (
             <li
               key={key}
