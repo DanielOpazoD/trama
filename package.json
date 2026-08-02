@@ -32,6 +32,7 @@
     "check:knip": "node_modules/.bin/knip --no-progress --reporter compact",
     "check:dead-code": "node_modules/.bin/knip --no-progress --reporter compact",
     "check:architecture": "node scripts/check-architecture-boundaries.mjs",
+    "check:adr-index": "node scripts/check-adr-index.mjs",
     "check:dependency-cruiser": "node scripts/check-architecture-boundaries.mjs",
     "report:quality-gates": "node scripts/report-quality-gates.mjs",
     "check:structure-ratchets": "node scripts/check-structure-ratchets.mjs",

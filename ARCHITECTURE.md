@@ -287,4 +287,10 @@ Una falla en cualquier paso aparece como check rojo. No hay branch protection fo
 - **Búsqueda dentro del chat.** Los hilos están en DB; falta vista de búsqueda.
 - **Streaming en Anthropic/Gemini.** Por ahora fallback de un chunk. Cuando se use uno de esos providers en producción, agregar el SSE específico.
 
+## Las decisiones, una por una
+
+Este documento describe **cómo está montado**. El **porqué** de cada decisión
+costosa de revertir vive en [`docs/adr/`](./docs/adr/), con su contexto, sus
+alternativas descartadas y sus consecuencias negativas declaradas.
+
 Última revisión: 2026-05-21
