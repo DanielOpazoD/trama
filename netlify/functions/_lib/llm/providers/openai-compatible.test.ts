@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  askOpenAICompatible,
+  askOpenAIVision,
   embedOpenAI,
   isNewOpenAIModel,
   openOpenAICompatibleStream,
@@ -160,5 +162,147 @@ describe('openOpenAICompatibleStream', () => {
       temperature: 0.6,
       max_tokens: 512,
     })
+  })
+})
+
+/**
+ * Las dos entradas principales del proveedor por defecto, que estaban sin
+ * cubrir (de ahí el 50 % de ramas del fichero).
+ *
+ * Lo que más caro sale: `isNewOpenAIModel` decide, **desde el nombre del
+ * modelo**, si se manda `max_tokens` o `max_completion_tokens` y si se manda
+ * temperatura. Los modelos nuevos rechazan el parámetro viejo con un 400
+ * `unsupported_parameter`, así que equivocarse falla el 100 % de las llamadas
+ * a esa familia — y como la decisión sale de una expresión regular, se rompe
+ * en silencio al añadir un modelo.
+ */
+const configCon = (model: string) => ({
+  baseUrl: 'https://api.test/v1',
+  model,
+  costPerMillionIn: 10,
+  costPerMillionOut: 30,
+})
+
+const chatOk = (texto: string) => ({
+  ok: true,
+  json: async () => ({
+    choices: [{ message: { content: texto } }],
+    usage: { prompt_tokens: 12, completion_tokens: 34 },
+  }),
+})
+
+function cuerpoDe(fetchMock: ReturnType<typeof vi.fn>): Record<string, unknown> {
+  const [, init] = fetchMock.mock.calls.at(-1)!
+  return JSON.parse(init.body)
+}
+
+function stubFetch(respuesta: unknown) {
+  const fetchMock = vi.fn().mockResolvedValue(respuesta)
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+describe('askOpenAICompatible', () => {
+  it('los modelos clásicos reciben max_tokens y temperatura', async () => {
+    const fetchMock = stubFetch(chatOk('hola'))
+
+    await askOpenAICompatible('k', configCon('deepseek-chat'), [], 500, 'text')
+
+    const body = cuerpoDe(fetchMock)
+    expect(body.max_tokens).toBe(500)
+    expect(body.max_completion_tokens).toBeUndefined()
+    expect(body.temperature).toBe(0.6)
+  })
+
+  /** Mandarles `max_tokens` o temperatura da un 400 `unsupported_parameter`. */
+  it('los modelos nuevos reciben max_completion_tokens y NINGUNA temperatura', async () => {
+    const fetchMock = stubFetch(chatOk('{"ok":true}'))
+
+    await askOpenAICompatible('k', configCon('gpt-5'), [], 500, 'json')
+
+    const body = cuerpoDe(fetchMock)
+    expect(body.max_completion_tokens).toBe(500)
+    expect(body.max_tokens).toBeUndefined()
+    expect(body.temperature).toBeUndefined()
+  })
+
+  it('el modo json baja la temperatura y pide json_object', async () => {
+    const fetchMock = stubFetch(chatOk('{"a":1}'))
+
+    const res = await askOpenAICompatible('k', configCon('gpt-4o'), [], 100, 'json')
+
+    const body = cuerpoDe(fetchMock)
+    expect(body.temperature).toBe(0.2)
+    expect(body.response_format).toEqual({ type: 'json_object' })
+    // Y llega ya parseado, no como cadena.
+    expect(res.content).toEqual({ a: 1 })
+  })
+
+  it('el modo texto no pide formato y devuelve la cadena', async () => {
+    const fetchMock = stubFetch(chatOk('hola'))
+
+    const res = await askOpenAICompatible('k', configCon('gpt-4o'), [], 100, 'text')
+
+    expect(cuerpoDe(fetchMock).response_format).toBeUndefined()
+    expect(res.content).toBe('hola')
+  })
+
+  it('manda la clave como Bearer y lee el recuento de tokens', async () => {
+    const fetchMock = stubFetch(chatOk('hola'))
+
+    const res = await askOpenAICompatible(
+      'k-secreta',
+      configCon('gpt-4o'),
+      [],
+      100,
+      'text',
+    )
+
+    const [url, init] = fetchMock.mock.calls.at(-1)!
+    expect(String(url)).toContain('/chat/completions')
+    expect(init.headers.Authorization).toBe('Bearer k-secreta')
+    expect(res.tokensIn).toBe(12)
+    expect(res.tokensOut).toBe(34)
+  })
+
+  /**
+   * Un 4xx es permanente: `fetchWithRetry` lo devuelve sin reintentar y este
+   * proveedor lo convierte en un error con su código. (Un 429 NO sirve para
+   * este test: es transitorio, se reintenta con backoff real y acaba saliendo
+   * como `LLMTransientError`, que es otra cosa.)
+   */
+  it('un HTTP permanente estalla con su código', async () => {
+    stubFetch({ ok: false, status: 400, text: async () => 'petición inválida' })
+
+    await expect(
+      askOpenAICompatible('k', configCon('gpt-4o'), [], 100, 'text'),
+    ).rejects.toThrow(/400/)
+  })
+})
+
+describe('askOpenAIVision', () => {
+  it('manda la imagen como data URL con su mime', async () => {
+    const fetchMock = stubFetch(chatOk('{"ocr":"texto"}'))
+
+    await askOpenAIVision(
+      'k',
+      configCon('gpt-4o'),
+      'sistema',
+      'lee',
+      'BASE64DATA',
+      'image/png',
+      100,
+    )
+
+    const body = JSON.stringify(cuerpoDe(fetchMock))
+    expect(body).toContain('data:image/png;base64,BASE64DATA')
+  })
+
+  it('un HTTP no-ok en visión también estalla', async () => {
+    stubFetch({ ok: false, status: 400, text: async () => 'imagen inválida' })
+
+    await expect(
+      askOpenAIVision('k', configCon('gpt-4o'), 's', 'u', 'B', 'image/png', 100),
+    ).rejects.toThrow(/400/)
   })
 })

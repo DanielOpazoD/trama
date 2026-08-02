@@ -139,6 +139,48 @@ export default defineConfig({
           functions: 84,
           lines: 95,
         },
+        // 2026-07-31 · la capa que decide si se PAGA o se sirve de caché, y
+        // la que traduce tokens a dinero. Medido tras cubrirlas:
+        //   cache.ts     100 / 90    / 100 / 100   (era 76,19 / 60)
+        //   config.ts    100 / 92,06 / 100 / 100   (era 72,54 / 61,9)
+        //   db-cache.ts  100 / 100   / 100 / 100   (era 51,85 / 40)
+        // Piso propio por lo de siempre: son pocas líneas sobre ~102.000 y
+        // podrían desplomarse sin mover el total.
+        '**/netlify/functions/_lib/llm/cache.ts': {
+          statements: 95,
+          branches: 85,
+          functions: 95,
+          lines: 95,
+        },
+        '**/netlify/functions/_lib/llm/config.ts': {
+          statements: 95,
+          branches: 88,
+          functions: 95,
+          lines: 95,
+        },
+        '**/netlify/functions/_lib/llm/db-cache.ts': {
+          statements: 95,
+          branches: 90,
+          functions: 95,
+          lines: 95,
+        },
+        // Los proveedores. `gemini.ts` tiene rarezas de protocolo (clave en la
+        // URL, system aparte, rol assistant→model) y `openai-compatible.ts`
+        // decide desde el NOMBRE del modelo si manda `max_tokens` o
+        // `max_completion_tokens`: equivocarse falla el 100 % de las llamadas
+        // a la familia gpt-5/o. Medido: 96,15 y 76,19 de ramas (eran 46 y 50).
+        '**/netlify/functions/_lib/llm/providers/gemini.ts': {
+          statements: 92,
+          branches: 92,
+          functions: 95,
+          lines: 95,
+        },
+        '**/netlify/functions/_lib/llm/providers/openai-compatible.ts': {
+          statements: 85,
+          branches: 72,
+          functions: 95,
+          lines: 85,
+        },
         '**/netlify/functions/_lib/llm/retry.ts': {
           statements: 95,
           branches: 95,
