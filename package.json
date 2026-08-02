@@ -103,7 +103,7 @@
     ]
   },
   "dependencies": {
-    "@clerk/backend": "^3.4.4",
+    "@clerk/backend": "^3.14.0",
     "@clerk/react": "^6.7.2",
     "@netlify/blobs": "^10.7.8",
     "@netlify/database": "^1.0.0",
