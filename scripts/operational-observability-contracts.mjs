@@ -48,7 +48,7 @@ const REQUIRED_DOC_SNIPPETS = [
     ],
   },
   {
-    file: 'docs/adr/0011-multiuser-operational-observability.md',
+    file: 'docs/adr/0014-multiuser-operational-observability.md',
     snippets: [
       'Multiuser Operational Observability',
       'smoke:production-report',

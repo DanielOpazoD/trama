@@ -1,4 +1,11 @@
-# ADR 0011: Multiuser Operational Observability
+# ADR 0014: Multiuser Operational Observability
+
+> **Nota de numeración.** Este ADR se archivó originalmente como `0011`
+> (PR #249, 2026-06-19). Otro ADR posterior —«Legacy Identity Cutover»,
+> PR #260— tomó el mismo número y fue el que entró al índice, así que éste
+> quedó huérfano: existía en el repositorio pero no figuraba en ninguna
+> lista. Se renumera al siguiente libre y se añade al índice. Si encuentras
+> una referencia a «ADR 0011 · observabilidad», es este documento.
 
 ## Estado
 

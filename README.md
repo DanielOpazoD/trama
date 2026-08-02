@@ -68,6 +68,11 @@ Las funciones de IA quedan desactivadas ahí (no gastan API de nadie).
 Ver [`ARCHITECTURE.md`](./ARCHITECTURE.md) para detalle de decisiones técnicas y modelo de datos.
 Ver [`CLAUDE.md`](./CLAUDE.md) para convenciones que no deben romperse sin pensarlo dos veces.
 
+**¿Por qué está hecho así?** Las decisiones costosas de revertir están razonadas
+una por una en [`docs/adr/`](./docs/adr/) — con sus alternativas descartadas y,
+sobre todo, con lo que costó cada una. Si algo del código te hace preguntar «¿y
+por qué no lo hicieron de la forma normal?», la respuesta suele estar ahí.
+
 ## Desarrollo local
 
 ```bash
