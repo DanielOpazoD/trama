@@ -191,16 +191,16 @@ beforeEach(() => {
 })
 
 describe('<PdfStudioView />', () => {
-  it('muestra el estado vacío con Guardar deshabilitado', () => {
+  it('en el estado vacío la única puerta es el lienzo', () => {
     renderWithProviders(<PdfStudioView />)
     expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
+    // Sin documento no hay barra: su "Importar" repetía la invitación del
+    // lienzo y su menú "···" tenía todos los items deshabilitados por estar
+    // vacío el documento. Nada de eso se gana su sitio.
     expect(
-      screen.getByRole('button', { name: /Importar PDF o imagen/i }),
-    ).toHaveTextContent('Importar')
-    expect(
-      screen.getByRole('button', { name: /Más acciones del documento/i }),
-    ).toBeInTheDocument()
+      screen.queryByRole('toolbar', { name: /Acciones del documento PDF/i }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
   })
 
   it('importa archivos externos enviados desde Recortes', async () => {
@@ -315,12 +315,27 @@ describe('<PdfStudioView />', () => {
    * algo, y descartar el documento —que antes estaba PEGADO al botón de
    * guardar— baja al menú, marcado como destructivo.
    */
-  it('con el documento vacío la barra sólo ofrece importar', async () => {
+  it('la barra vuelve si el vacío deja historial que deshacer', async () => {
+    const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
 
+    // Vacío de arranque: sin barra.
+    expect(
+      screen.queryByRole('toolbar', { name: /Acciones del documento PDF/i }),
+    ).not.toBeInTheDocument()
+
+    // Importar y borrarlo todo deja el documento vacío OTRA VEZ, pero ahora con
+    // historial: la barra tiene que volver, porque deshacer es el camino de
+    // vuelta y sin ella el trabajo quedaría irrecuperable.
+    await user.upload(fileInput(), pdfFile())
+    await screen.findByAltText('Página 1')
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    await user.click(screen.getByRole('button', { name: /^Todo$/i }))
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }))
+
+    expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     const toolbar = screen.getByRole('toolbar', { name: /Acciones del documento PDF/i })
-    expect(toolbar).toHaveClass('flex-nowrap')
-    expect(within(toolbar).getByRole('button', { name: /Importar/i })).toBeInTheDocument()
+    expect(within(toolbar).getByRole('button', { name: /Deshacer/i })).toBeInTheDocument()
     // El grupo derecho queda oculto: ni primaria deshabilitada, ni ajustes de un
     // documento inexistente. Se afirma la CLASE y no `toBeVisible`, porque en
     // los unitarios no hay hoja de estilos y `hidden` de Tailwind no tendría
@@ -1127,11 +1142,20 @@ describe('<PdfStudioView />', () => {
 
     renderWithProviders(<PdfStudioView />)
 
+    // "Borrador recuperado" SÍ se dice: apareció contenido que el usuario no
+    // acaba de traer, y conviene que sepa de dónde salió.
     expect(await screen.findByText('Borrador recuperado')).toBeInTheDocument()
     expect(
       screen.getByText(/2 páginas restauradas desde este dispositivo/i),
     ).toBeInTheDocument()
-    expect(screen.getByText(/2 páginas · listo para exportar/i)).toBeInTheDocument()
+    // El preflight en verde NO se dice: sin bloqueos ni advertencias, el aviso
+    // de preflight no debe existir. Se afirma sobre la REGLA (no hay más avisos
+    // que el del borrador) y no sobre una frase concreta: comprobar que
+    // desapareció un texto puntual dejaría pasar cualquier otro mensaje de
+    // "todo va bien" que ocupara la misma banda.
+    const avisos = screen.getByRole('region', { name: /Avisos de Imprenta/i })
+    expect(within(avisos).getAllByRole('paragraph')).toHaveLength(1)
+    expect(screen.queryByText(/listo para exportar/i)).not.toBeInTheDocument()
   })
 
   it('muestra advertencias de preflight para planillas incompletas', async () => {
@@ -1325,13 +1349,14 @@ describe('<PdfStudioView />', () => {
 
     await user.upload(fileInput(), pdfFile('roto.pdf'))
 
-    // Esperamos a que termine el import (el botón vuelve de "Agregando…").
-    await screen.findByRole('button', { name: /Importar PDF o imagen/i })
-    expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1)
-    // No se agregó ninguna página: sigue el estado vacío y Guardar deshabilitado.
+    // Esperamos al intento de lectura en sí: con el import fallido el documento
+    // sigue vacío y sin historial, así que ya no hay barra por la que esperar.
+    await waitFor(() => expect(mocks.getPdfPageCount).toHaveBeenCalledTimes(1))
+    // No se agregó ninguna página: sigue el estado vacío, y por tanto tampoco
+    // hay barra ni acción de guardar sobre la que dudar.
     expect(screen.getByText(/Trae un PDF o unas imágenes/)).toBeInTheDocument()
     expect(screen.queryByAltText('Página 1')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Guardar PDF/i })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: /Guardar PDF/i })).not.toBeInTheDocument()
   })
 
   it('selecciona varias páginas y las elimina en lote', async () => {
@@ -1344,7 +1369,7 @@ describe('<PdfStudioView />', () => {
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 2/i }))
 
-    // La barra de edición (siempre visible) refleja el conteo de marcadas.
+    // La barra de edición aparece AL marcar (es contextual) y refleja el conteo.
     expect(
       screen.getByRole('toolbar', { name: /Barra de hojas de PDF/i }),
     ).toBeInTheDocument()
@@ -1367,18 +1392,31 @@ describe('<PdfStudioView />', () => {
     expectAtLeastOneText(/3 páginas/)
   })
 
-  it('la barra de edición de hojas no mezcla acciones de texto', async () => {
+  it('la barra de hojas es contextual y no mezcla acciones de texto', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile())
     await screen.findByAltText('Página 1')
 
+    // Con el documento cargado pero SIN nada marcado, la barra no existe: sus
+    // seis acciones no tendrían sobre qué actuar y antes ocupaban su franja
+    // permanentemente, casi entera en gris.
+    expect(
+      screen.queryByRole('toolbar', { name: /Barra de hojas de PDF/i }),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
     expect(
       screen.getByRole('toolbar', { name: /Barra de hojas de PDF/i }),
     ).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Texto' })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
+    // Y al desmarcar vuelve a desaparecer.
+    await user.click(screen.getByRole('button', { name: /Desmarcar todo/i }))
+    expect(
+      screen.queryByRole('toolbar', { name: /Barra de hojas de PDF/i }),
+    ).not.toBeInTheDocument()
+
+    // Las acciones de texto siguen sin vivir en esta barra.
     expect(screen.queryByRole('button', { name: 'Texto' })).not.toBeInTheDocument()
   })
 
@@ -1441,7 +1479,7 @@ describe('<PdfStudioView />', () => {
     )
   })
 
-  it('Guardar PDF exporta TODO; "Exportar" exporta sólo las marcadas', async () => {
+  it('Guardar PDF exporta TODO; la barra de hojas dice cuántas exporta', async () => {
     const user = userEvent.setup()
     renderWithProviders(<PdfStudioView />)
     await user.upload(fileInput(), pdfFile()) // 2 páginas
@@ -1457,9 +1495,12 @@ describe('<PdfStudioView />', () => {
       within(preview).getByRole('button', { name: /Cerrar vista previa/i }),
     )
 
-    // Marco 1 hoja → "Exportar" (barra) exporta SÓLO esa (descarga directa).
+    // Marco 1 hoja → la barra contextual exporta SÓLO esa. El rótulo lleva el
+    // ALCANCE ("Guardar 1 hoja"), no un verbo distinto: antes convivían
+    // "Guardar PDF" y "Exportar" sin que ninguno dijera sobre qué actuaba.
     await user.click(screen.getByRole('button', { name: /Marcar la hoja 1/i }))
-    await user.click(screen.getByRole('button', { name: /^Exportar$/i }))
+    expect(screen.queryByRole('button', { name: /^Exportar$/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /^Guardar 1 hoja$/i }))
     expect(mocks.assemblePdfInWorker).toHaveBeenCalledTimes(2)
     expect(mocks.assemblePdfInWorker.mock.calls[1]![0].pages).toHaveLength(1)
   })
