@@ -123,6 +123,22 @@ export default defineConfig({
         // factura una llamada, y `transcription.ts` estima lo que el tope
         // mensual descuenta por cada nota de voz. Ambos medidos al 100%; el
         // piso queda en 95 para absorber jitter.
+        // 2026-07-31: el router de todo el subsistema LLM. Decide QUÉ
+        // proveedor se llama, si se cae a otro cuando falla y si se sirve de
+        // caché — las tres cosas con factura. Pasó de 24,32 % de ramas a
+        // 82,43 % (medido: 96,74 / 82,43 / 87,5 / 98,29). Las dos únicas
+        // líneas sin cubrir son los `throw` que el propio fichero marca como
+        // inalcanzables para satisfacer a TS: perseguirlas sería inflar el
+        // número, no verificar nada.
+        //
+        // Lleva piso propio por el mismo motivo que los demás: son 393 líneas
+        // sobre ~102.000, así que podría desplomarse sin mover el total.
+        '**/netlify/functions/_lib/llm/dispatch.ts': {
+          statements: 93,
+          branches: 78,
+          functions: 84,
+          lines: 95,
+        },
         '**/netlify/functions/_lib/llm/retry.ts': {
           statements: 95,
           branches: 95,
