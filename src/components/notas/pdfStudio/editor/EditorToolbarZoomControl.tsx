@@ -1,4 +1,3 @@
-import { ZoomIcon } from '../../../Icons'
 import { clamp, stepBtn } from './editorStyle'
 import { Hint, segGroup } from './EditorToolbarPrimitives'
 import { ZoomPercentInput } from './ZoomPercentInput'
@@ -22,10 +21,11 @@ export function EditorToolbarZoomControl({
   }
 
   return (
+    /* Sin icono de lupa: era decorativo (`aria-hidden`) y "− 100 % +" ya dice
+       zoom sin él. Costaba ~22px en TODAS las pantallas, y desde que el zoom va
+       anclado fuera del carril que scrollea, su ancho se lo quita directamente a
+       las herramientas — justo en móvil, donde menos sobra. */
     <div className={segGroup} aria-label="Zoom del documento">
-      <span className="pl-1 text-ink-400" aria-hidden>
-        <ZoomIcon size={14} />
-      </span>
       <Hint content="Zoom del documento: reducir">
         <button
           type="button"

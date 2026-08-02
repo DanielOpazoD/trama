@@ -67,11 +67,26 @@ async function toolbarMetrics(page: Page) {
       }
     })
     const centers = children.map((child) => child.centerY)
+    // El carril interno es quien scrollea; el `role="toolbar"` externo ya no.
+    // Medirle `scrollWidth` al externo diría "no desborda" SIEMPRE — un verde
+    // falso que no notaría si las herramientas dejaran de caber.
+    const rail = Array.from(toolbar.querySelectorAll<HTMLElement>('div')).find(
+      (node) => getComputedStyle(node).overflowX === 'auto',
+    )
+    const toolbarRect = toolbar.getBoundingClientRect()
+    const zoom = toolbar.querySelector('[aria-label*="Zoom"]')
+    const zoomRect = zoom?.getBoundingClientRect()
     return {
       className: toolbar.className,
-      height: toolbar.getBoundingClientRect().height,
-      scrollWidth: toolbar.scrollWidth,
-      clientWidth: toolbar.clientWidth,
+      railClassName: rail?.className ?? '',
+      height: toolbarRect.height,
+      railScrollWidth: rail?.scrollWidth ?? 0,
+      railClientWidth: rail?.clientWidth ?? 0,
+      // ¿El zoom se alcanza sin scrollear? Vive FUERA del carril a propósito.
+      zoomInsideRail: rail && zoom ? rail.contains(zoom) : null,
+      zoomReachable: zoomRect
+        ? zoomRect.right <= toolbarRect.right + 1 && zoomRect.left >= toolbarRect.left - 1
+        : null,
       centerRange: Math.max(...centers) - Math.min(...centers),
       maxChildBottom: Math.max(...children.map((child) => child.bottom)),
       minChildTop: Math.min(...children.map((child) => child.top)),
@@ -358,10 +373,18 @@ test.describe('Imprenta · editor PDF', () => {
     await waitForEditableSheetReady(page)
 
     const metrics = await toolbarMetrics(page)
-    expect(metrics.className).toContain('flex-nowrap')
+    // La fila única sigue siendo el contrato, pero el `flex-nowrap` vive ahora
+    // en el carril que scrollea, no en la barra entera.
+    expect(metrics.railClassName).toContain('flex-nowrap')
     expect(metrics.className).not.toContain('flex-wrap')
     expect(metrics.height).toBeLessThanOrEqual(48)
-    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1)
+    // A este ancho las herramientas caben: el carril no debe desbordar.
+    expect(metrics.railScrollWidth).toBeLessThanOrEqual(metrics.railClientWidth + 1)
+    // El zoom queda FUERA del carril y alcanzable. Medido a 390px antes de
+    // separarlo: 277px de la barra (el 46%) caían fuera de pantalla y el zoom
+    // estaba entre lo escondido, detrás de un scroll que no se anuncia.
+    expect(metrics.zoomInsideRail).toBe(false)
+    expect(metrics.zoomReachable).toBe(true)
     expect(metrics.centerRange).toBeLessThanOrEqual(1)
     expect(metrics.maxChildBottom - metrics.minChildTop).toBeLessThanOrEqual(36)
     expect(metrics.bodyOverflow).toBeLessThanOrEqual(1)
