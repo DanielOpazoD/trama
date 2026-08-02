@@ -165,6 +165,10 @@ registra por sí mismo.
 
 ## Reglas de oro
 
+- **Verde no es verificado.** Antes de afirmar que algo funciona, mide X o quedó
+  cubierto, pasa por [`bucle-de-evidencia`](../bucle-de-evidencia/SKILL.md): las
+  seis preguntas de arranque, el presupuesto declarado, la verificación por
+  mutación y el catálogo de verdes falsos que ya se han cobrado tiempo aquí.
 - **El usuario hace TODOS los merges. Tú nunca mergeas.** Entregas el PR con CI
   verde y avisas; el merge es decisión suya.
 - **Una rama por pack**, siempre desde main fresco.
