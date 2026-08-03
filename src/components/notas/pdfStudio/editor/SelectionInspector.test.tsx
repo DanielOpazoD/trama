@@ -37,10 +37,17 @@ describe('<SelectionInspector />', () => {
       screen.getByRole('complementary', { name: 'Inspector de selección' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('1 objeto seleccionado')
-    expect(screen.getByText('x 25%')).toBeInTheDocument()
-    expect(screen.getByText('y 10%')).toBeInTheDocument()
-    expect(screen.getByText('w 35%')).toBeInTheDocument()
-    expect(screen.getByText('h 20%')).toBeInTheDocument()
+    // Una sola fuente de verdad para posición/tamaño: los INPUTS (antes había
+    // además una fila de chips de solo-lectura con los mismos números).
+    expect(screen.getByRole('spinbutton', { name: 'X de selección (%)' })).toHaveValue(25)
+    expect(screen.getByRole('spinbutton', { name: 'Y de selección (%)' })).toHaveValue(10)
+    expect(
+      screen.getByRole('spinbutton', { name: 'Ancho de selección (%)' }),
+    ).toHaveValue(35)
+    expect(screen.getByRole('spinbutton', { name: 'Alto de selección (%)' })).toHaveValue(
+      20,
+    )
+    expect(screen.queryByText('x 25%')).toBeNull()
     expect(
       screen.getByRole('button', { name: 'Alinear a la izquierda' }),
     ).toBeInTheDocument()

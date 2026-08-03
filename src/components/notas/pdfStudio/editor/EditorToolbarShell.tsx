@@ -34,7 +34,7 @@ export function EditorToolbarShell({
     <div
       role="toolbar"
       aria-label="Barra de herramientas de edición del PDF"
-      className="flex shrink-0 items-center gap-1.5 border-b border-ink-100/70 bg-paper-100/65 px-2 py-1 shadow-sm shadow-ink-900/5"
+      className="flex shrink-0 items-center gap-1.5 border-b border-ink-100/70 bg-paper-50/95 px-2.5 py-1.5 shadow-sm shadow-ink-900/5"
     >
       <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-1.25rem),transparent)]">
         {children}

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { IconButton } from './IconButton'
+import { Tooltip } from './Tooltip'
 
 describe('<IconButton />', () => {
   it('expone el label como nombre accesible y renderiza el ícono', () => {
@@ -60,5 +61,29 @@ describe('<IconButton />', () => {
     )
     fireEvent.click(screen.getByRole('button'))
     expect(onClick).toHaveBeenCalledOnce() // disabled: no dispara de nuevo
+  })
+
+  it('reenvía la ref al <button>: un Tooltip que lo envuelve SÍ se abre', () => {
+    // Tooltip clona el hijo y le inyecta un ref para medir dónde posicionarse;
+    // si el ref no llega (function component sin forwardRef), sale temprano y
+    // el tooltip nunca aparece. Toda la barra del editor de PDF depende de
+    // este contrato: sus pistas de hover son <Tooltip><IconButton/></Tooltip>.
+    vi.useFakeTimers()
+    try {
+      render(
+        <Tooltip content="Eliminar anotación" delayMs={200}>
+          <IconButton label="Eliminar">i</IconButton>
+        </Tooltip>,
+      )
+      act(() => {
+        fireEvent.mouseEnter(screen.getByRole('button', { name: 'Eliminar' }))
+      })
+      act(() => {
+        vi.advanceTimersByTime(250)
+      })
+      expect(screen.getByRole('tooltip')).toHaveTextContent('Eliminar anotación')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

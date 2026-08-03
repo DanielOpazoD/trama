@@ -77,27 +77,33 @@ export const SHAPES: { key: Tool; label: string; glyph: ReactNode }[] = [
 ]
 
 export const segGroup =
-  'inline-flex shrink-0 items-center gap-0.5 rounded-md bg-ink-100/45 p-0.5'
+  'inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-ink-100/45 p-0.5'
 
 export const focusRing = 'focus-ring'
 
+/** Herramienta de la barra. El estado activo es salvia SÓLIDA a propósito:
+ *  es el modo en el que está el editor y debe leerse de un vistazo — el
+ *  pastel anterior (paper sobre gris) se confundía con un hover. */
 export const segBtnTool = (on: boolean) =>
-  `h-7 min-w-7 px-2 rounded inline-flex items-center justify-center transition-colors ${focusRing} ${
+  `h-8 min-w-8 px-2 rounded-md inline-flex items-center justify-center transition-colors ${focusRing} ${
     on
-      ? 'bg-paper-50 shadow-sm text-[color:var(--accent-sage)]'
-      : 'text-ink-400 hover:text-ink-700'
+      ? 'bg-[color:var(--accent-sage)] text-paper-50 shadow-sm'
+      : 'text-ink-500 hover:bg-paper-50/80 hover:text-ink-800'
   }`
 
-export const primaryAction = `inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-700 transition-colors hover:bg-ink-100/60 hover:text-ink-900 ${focusRing}`
+export const primaryAction = `inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-700 transition-colors hover:bg-ink-100/60 hover:text-ink-900 ${focusRing}`
 
-export const objectAction = `shrink-0 touch-target inline-flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/50 hover:text-ink-800 disabled:opacity-30 ${focusRing}`
+/** La acción de inserción PRIMARIA: la única de la barra con etiqueta visible.
+ *  Todo lo demás son modos/ajustes; esto crea contenido, y se nota. */
+export const primaryInsertAction = `inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[color:var(--accent-sage-soft)] px-2.5 text-caption font-medium text-[color:var(--accent-sage)] transition-colors hover:bg-[color:var(--accent-sage)] hover:text-paper-50 disabled:opacity-40 ${focusRing}`
 
-export const menuTrigger = `inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md px-2 text-ink-600 transition-colors hover:bg-ink-100/60 hover:text-ink-900 ${focusRing}`
+export const objectAction = `shrink-0 touch-target inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100/50 hover:text-ink-800 disabled:opacity-30 ${focusRing}`
+
+export const menuTrigger = `inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md px-2 text-caption text-ink-600 transition-colors hover:bg-ink-100/60 hover:text-ink-900 ${focusRing}`
 
 export const editorMenuLayer = 'z-[80]'
 
-const toolbarGroup =
-  'inline-flex shrink-0 items-center gap-0.5 rounded-md bg-paper-50/60 px-1 py-0.5'
+const toolbarGroup = 'inline-flex shrink-0 items-center gap-1'
 
 const menuItem =
   'w-full flex items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm text-ink-600 transition-colors hover:bg-ink-100/60 hover:text-ink-800'
@@ -123,6 +129,14 @@ export function ToolbarGroup({
       {children}
     </div>
   )
+}
+
+/** Separador entre grupos de la barra. Antes cada grupo era un chip de fondo
+ *  casi invisible (paper/60 sobre paper): los límites no se leían y la barra
+ *  parecía una sopa de iconos. Un hairline dice "acá termina un grupo" sin
+ *  gastar espacio. */
+export function ToolbarSeparator() {
+  return <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-ink-100" />
 }
 
 export function Hint({

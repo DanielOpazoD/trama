@@ -10,7 +10,7 @@ import {
 } from './EditorToolbarModel'
 import { type ReactNode } from 'react'
 import { type TextStyle, type Tool } from './editorStyle'
-import { ToolbarGroup } from './EditorToolbarPrimitives'
+import { ToolbarGroup, ToolbarSeparator } from './EditorToolbarPrimitives'
 import {
   EditorToolbarInsertGroup,
   EditorToolbarObjectGroup,
@@ -110,12 +110,15 @@ export function EditorToolbar({
         primaryFieldKind={primaryInsert.fieldKind}
         primaryHint={primaryInsert.hint}
         primaryLabel={primaryInsert.label}
+        primaryShortLabel={primaryInsert.shortLabel}
         tool={tool}
         xMarkSize={xMarkSize}
         xMarkStroke={xMarkStroke}
         onXMarkSizeChange={onXMarkSizeChange}
         onXMarkStrokeChange={onXMarkStrokeChange}
       />
+
+      <ToolbarSeparator />
 
       <EditorToolbarInsertGroup
         canStampImage={capabilities.canStampImage}
@@ -124,6 +127,8 @@ export function EditorToolbar({
         onSuggestFormFields={onSuggestFormFields}
         stampAssetMenu={stampAssetMenu}
       />
+
+      <ToolbarSeparator />
 
       <ToolbarGroup label="Estilo">
         <EditorToolbarStyleMenu
@@ -137,6 +142,8 @@ export function EditorToolbar({
           onApplyStyle={onApplyStyle}
         />
       </ToolbarGroup>
+      <ToolbarSeparator />
+
       <EditorToolbarObjectGroup
         duplicateLabel={duplicateLabel}
         hasDuplicableSelection={hasDuplicableSelection}
