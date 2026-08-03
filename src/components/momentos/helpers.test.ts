@@ -3,6 +3,7 @@ import {
   formatDateHeading,
   formatMonthLabel,
   formatTime,
+  getMomentoPhotoItems,
   groupByDay,
   groupByMonth,
   momentoMediaUrl,
@@ -194,5 +195,31 @@ describe('momentoMediaUrl', () => {
 
   it('mantiene compatibilidad con keys legacy sin namespace', () => {
     expect(momentoMediaUrl('foto vieja.jpg')).toBe('/api/momentos-file/foto%20vieja.jpg')
+  })
+})
+
+describe('getMomentoPhotoItems', () => {
+  it('arrastra type y posterStorageKey al normalizar items', () => {
+    // Si la normalización "olvida" el póster, todo render vuelve a bajar el
+    // video entero para pintar la miniatura — sin ningún error visible.
+    const items = getMomentoPhotoItems({
+      items: [
+        {
+          storageKey: ' u1/r2-clip.mp4 ',
+          type: 'video',
+          posterStorageKey: 'u1/poster.jpg',
+          width: 1920,
+          height: 1080,
+        },
+        { storageKey: 'u1/foto.jpg' },
+      ],
+    })
+
+    expect(items[0]).toMatchObject({
+      storageKey: 'u1/r2-clip.mp4',
+      type: 'video',
+      posterStorageKey: 'u1/poster.jpg',
+    })
+    expect(items[1]?.posterStorageKey).toBeUndefined()
   })
 })

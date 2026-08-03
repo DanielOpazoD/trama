@@ -66,6 +66,9 @@ const FotoItemSchema = z.object({
   // ω-video: distingue clip de foto. Ausente → imagen (back-compat con
   // los items ya persistidos, que nunca traen este campo).
   type: z.enum(['image', 'video']).optional(),
+  // Póster del clip (JPEG chico capturado al subir). Opcional siempre:
+  // clips viejos y capturas fallidas no lo traen y el render cae al <video>.
+  posterStorageKey: z.string().trim().min(1).optional(),
 })
 
 /** Foto: array `items[]` (nuevo, υ-multi) o `storageKey` legacy.

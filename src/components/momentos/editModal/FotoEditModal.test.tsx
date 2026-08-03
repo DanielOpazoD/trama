@@ -16,6 +16,23 @@ import { ToastProvider } from '../../../state/toast'
 import { FotoEditModal } from './FotoEditModal'
 import type { Momento } from '../../../types'
 
+const updateMocks = vi.hoisted(() => ({
+  mutateAsync: vi.fn(),
+  toastShow: vi.fn(),
+}))
+
+// Solo se interceptan los hooks que el modal usa para GUARDAR; el resto del
+// barrel de state sigue real (los providers del wrapper viven en módulos
+// aparte y no pasan por acá).
+vi.mock('../../../state', async () => {
+  const actual = await vi.importActual<typeof import('../../../state')>('../../../state')
+  return {
+    ...actual,
+    useUpdateMomento: () => ({ isPending: false, mutateAsync: updateMocks.mutateAsync }),
+    useToast: () => ({ show: updateMocks.toastShow }),
+  }
+})
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -121,6 +138,47 @@ describe('<FotoEditModal />', () => {
     })
     expect(screen.getByRole('button', { name: /guardar/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /cancelar/i })).toBeInTheDocument()
+  })
+
+  it('guardar preserva type y posterStorageKey del clip aunque solo cambie el caption', async () => {
+    // El save reconstruye items[] a mano: si olvida un campo, cada edición lo
+    // borra en silencio — con `type` ya pasó (clip degradado a foto rota) y el
+    // póster tiene exactamente el mismo riesgo.
+    const videoMomento = {
+      ...FOTO_MOMENTO,
+      payload: {
+        items: [
+          {
+            storageKey: 'u1/r2-clip.mp4',
+            type: 'video',
+            posterStorageKey: 'u1/poster.jpg',
+            width: 1920,
+            height: 1080,
+          },
+        ],
+        caption: 'clip',
+      },
+    } as unknown as Momento
+    updateMocks.mutateAsync.mockResolvedValue({})
+    const user = userEvent.setup()
+    const qc = makeQueryClient()
+    render(<FotoEditModal momento={videoMomento} onClose={() => {}} />, {
+      wrapper: wrap(qc),
+    })
+
+    await user.click(screen.getByRole('button', { name: /guardar/i }))
+
+    expect(updateMocks.mutateAsync).toHaveBeenCalledTimes(1)
+    const { patch } = updateMocks.mutateAsync.mock.calls[0]![0]
+    expect(patch.payload.items).toEqual([
+      {
+        storageKey: 'u1/r2-clip.mp4',
+        type: 'video',
+        posterStorageKey: 'u1/poster.jpg',
+        width: 1920,
+        height: 1080,
+      },
+    ])
   })
 
   it('si el momento no tiene photos, igual renderiza la shell del modal', () => {

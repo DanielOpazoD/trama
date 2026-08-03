@@ -1,7 +1,4 @@
-import {
-  AuthenticatedMomentoImage,
-  AuthenticatedMomentoVideo,
-} from '../AuthenticatedMedia'
+import { AuthenticatedMomentoImage, MomentoVideoThumb } from '../AuthenticatedMedia'
 import { PencilIcon } from '../../Icons'
 import { IconButton } from '../../IconButton'
 import { VideoPlayBadge } from '../VideoPlayBadge'
@@ -13,6 +10,8 @@ export type ExistingPhotoEditItem = {
   height?: number
   /** ω-video: 'video' si el item ya guardado es un clip (no una foto). */
   type?: 'image' | 'video'
+  /** Póster del clip; la tile lo monta como <img> en vez de bajar el video. */
+  posterStorageKey?: string
 }
 
 export type NewPhotoEditItem = {
@@ -60,11 +59,10 @@ export function FotoPhotoTile({
       {item.kind === 'existing' ? (
         isExistingVideo ? (
           <>
-            <AuthenticatedMomentoVideo
+            <MomentoVideoThumb
               storageKey={item.storageKey}
-              muted
-              playsInline
-              preload="metadata"
+              posterStorageKey={item.posterStorageKey}
+              alt={`video ${idx + 1}`}
               className="w-full h-full object-cover"
             />
             <VideoPlayBadge size="sm" />

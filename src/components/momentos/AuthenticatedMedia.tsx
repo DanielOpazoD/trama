@@ -1,6 +1,7 @@
 import {
   useEffect,
   useState,
+  type CSSProperties,
   type ImgHTMLAttributes,
   type VideoHTMLAttributes,
 } from 'react'
@@ -141,6 +142,55 @@ export function AuthenticatedMomentoImage({
  * arranca en silencio y el usuario sube el volumen con los controles—, salvo
  * que el consumidor pase `muted` explícito.
  */
+/**
+ * Miniatura de un clip: el póster como `<img>` cuando existe, y el `<video>`
+ * de siempre cuando no (clips viejos, captura fallida, keys sueltas).
+ *
+ * La diferencia no es cosmética: la capa autenticada resuelve cada storageKey
+ * bajando el blob COMPLETO, así que un `<video>` de miniatura baja el clip
+ * entero para pintar un frame. El póster pesa kilobytes.
+ *
+ * El disco de play NO va acá: cada caller lo posiciona (tamaños distintos), y
+ * el reproductor real vive en el visor/lightbox — esto es solo la miniatura.
+ */
+export function MomentoVideoThumb({
+  storageKey,
+  posterStorageKey,
+  alt,
+  className = '',
+  style,
+}: {
+  storageKey: string
+  posterStorageKey?: string
+  alt: string
+  className?: string
+  style?: CSSProperties
+}) {
+  if (posterStorageKey) {
+    return (
+      <AuthenticatedMomentoImage
+        storageKey={posterStorageKey}
+        alt={alt}
+        loading="lazy"
+        draggable={false}
+        className={className}
+        style={style}
+      />
+    )
+  }
+  return (
+    <AuthenticatedMomentoVideo
+      storageKey={storageKey}
+      muted
+      playsInline
+      preload="metadata"
+      aria-label={alt}
+      className={className}
+      style={style}
+    />
+  )
+}
+
 export function AuthenticatedMomentoVideo({
   storageKey,
   className = '',

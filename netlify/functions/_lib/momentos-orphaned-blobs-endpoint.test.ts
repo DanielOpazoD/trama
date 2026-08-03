@@ -185,6 +185,37 @@ describe('momentos-orphaned-blobs endpoint', () => {
       expect(listUrl.searchParams.get('prefix')).toBe(`${USER}/`)
     })
 
+    it('GET no ofrece como huérfano el póster de un clip referenciado', async () => {
+      // El póster vive como blob propio junto al clip. Si el barrido no lo
+      // cuenta como referenciado, se ofrecería para "rescatar" y adoptarlo lo
+      // duplicaría como foto suelta del episodio.
+      list.mockResolvedValue({
+        blobs: [{ key: `${USER}/poster-del-clip.jpg` }, { key: `${USER}/suelta.jpg` }],
+      })
+      mockSqlResponses.push([
+        {
+          payload: {
+            items: [
+              {
+                storageKey: `${USER}/r2-clip.mp4`,
+                type: 'video',
+                posterStorageKey: `${USER}/poster-del-clip.jpg`,
+              },
+            ],
+          },
+        },
+      ])
+
+      const res = await handler(
+        new Request('http://localhost/api/momentos-orphaned-blobs'),
+        mockContext(),
+      )
+
+      const body = await res.json()
+      expect(body.orphans).toEqual([`${USER}/suelta.jpg`])
+      expect(body.orphans).not.toContain(`${USER}/poster-del-clip.jpg`)
+    })
+
     it('GET informa r2:null cuando R2 no está configurado (no miré ≠ no había)', async () => {
       list.mockResolvedValue({ blobs: [{ key: `${USER}/foto.jpg` }] })
       mockSqlResponses.push([])

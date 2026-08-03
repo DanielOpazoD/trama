@@ -81,7 +81,11 @@ async function isMediaReferencedByReadableMomento(
                 ELSE '[]'::jsonb
               END
             ) item
+            -- posterStorageKey: el póster de un clip es un blob propio; sin esta
+            -- rama, el miembro de un espacio compartido vería la miniatura rota
+            -- (404) aunque sí pueda reproducir el video.
             WHERE item->>'storageKey' = ${storageKey}
+               OR item->>'posterStorageKey' = ${storageKey}
           )
           OR EXISTS (
             SELECT 1

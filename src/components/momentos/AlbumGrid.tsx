@@ -2,10 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
 import { PencilIcon, TrashIcon } from '../Icons'
-import {
-  AuthenticatedMomentoImage,
-  AuthenticatedMomentoVideo,
-} from './AuthenticatedMedia'
+import { AuthenticatedMomentoImage, MomentoVideoThumb } from './AuthenticatedMedia'
 import {
   formatMonthLabel,
   getMomentoPhotoItems,
@@ -241,13 +238,12 @@ function AlbumTile({
         >
           {coverIsVideo ? (
             <>
-              {/* ω-video: el álbum muestra el póster del clip (primer frame)
-                  con el disco de play; el click abre el visor, que reproduce. */}
-              <AuthenticatedMomentoVideo
+              {/* ω-video: la miniatura es el póster (o el <video> si el clip
+                  no trae uno); el click abre el visor, que reproduce. */}
+              <MomentoVideoThumb
                 storageKey={cover.storageKey}
-                muted
-                playsInline
-                preload="metadata"
+                posterStorageKey={cover.posterStorageKey}
+                alt={caption ?? 'momento'}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
               <VideoPlayBadge />

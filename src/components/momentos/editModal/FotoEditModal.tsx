@@ -45,6 +45,9 @@ function buildInitialItems(momento: Momento): PhotoEditItem[] {
     // Preservar el marcador de video: sin esto, re-guardar el momento (aunque
     // solo se cambie el caption) degradaría el clip a una foto rota.
     type: it.type,
+    // Ídem el póster: perderlo aquí haría que cada edición devuelva las
+    // miniaturas del clip a bajar el video entero.
+    posterStorageKey: it.posterStorageKey,
   }))
 }
 
@@ -237,14 +240,18 @@ export function FotoEditModal({
         width?: number
         height?: number
         type?: 'image' | 'video'
+        posterStorageKey?: string
       }
       const finalItems: FinalItem[] = items.flatMap((it) => {
         if (it.kind === 'existing') {
           const out: FinalItem = { storageKey: it.storageKey }
           if (it.width !== undefined) out.width = it.width
           if (it.height !== undefined) out.height = it.height
-          // Conservar el type ('video') al reconstruir items[] — ver buildInitialItems.
+          // Conservar type ('video') y póster al reconstruir items[] — ver
+          // buildInitialItems.
           if (it.type !== undefined) out.type = it.type
+          if (it.posterStorageKey !== undefined)
+            out.posterStorageKey = it.posterStorageKey
           return [out]
         }
         const data = uploadedKeys.get(it.file)

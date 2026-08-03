@@ -136,5 +136,9 @@ describe('momentos-file endpoint', () => {
     expect(referenceLookup?.template).toMatch(/deleted_at IS NULL/)
     expect(referenceLookup?.values).toContain('user_actual')
     expect(referenceLookup?.values).toContain('legacy-single-user/voz.webm')
+    // El póster de un clip también autoriza lectura por referencia: sin la rama
+    // en el SQL, el miembro de un espacio compartido vería la miniatura en 404
+    // aunque pueda reproducir el video.
+    expect(referenceLookup?.template).toMatch(/OR item->>'posterStorageKey' = /)
   })
 })

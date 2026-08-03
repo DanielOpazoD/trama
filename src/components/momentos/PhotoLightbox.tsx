@@ -7,6 +7,7 @@ import { IconButton } from '../IconButton'
 import {
   AuthenticatedMomentoImage,
   AuthenticatedMomentoVideo,
+  MomentoVideoThumb,
 } from './AuthenticatedMedia'
 import { isVideoItem, type MomentoPhotoItem } from './helpers'
 import { VideoPlayBadge } from './VideoPlayBadge'
@@ -209,11 +210,10 @@ export function PhotoLightbox({
                 >
                   {isVideoItem(p) ? (
                     <>
-                      <AuthenticatedMomentoVideo
+                      <MomentoVideoThumb
                         storageKey={p.storageKey}
-                        muted
-                        playsInline
-                        preload="metadata"
+                        posterStorageKey={p.posterStorageKey}
+                        alt=""
                         className="w-full h-full object-cover"
                       />
                       <VideoPlayBadge size="sm" />

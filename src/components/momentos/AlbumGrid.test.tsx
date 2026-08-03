@@ -174,6 +174,66 @@ describe('<AlbumGrid />', () => {
     expect(screen.getByRole('dialog', { name: /visor de fotos/i })).toBeInTheDocument()
   })
 
+  it('la portada de video CON póster monta <img> del póster, nunca <video>', async () => {
+    const videoConPoster = {
+      ...photoMomento,
+      id: 'video-1',
+      payload: {
+        caption: 'Clip del puerto',
+        items: [
+          {
+            storageKey: 'u1/r2-clip.mp4',
+            type: 'video',
+            posterStorageKey: 'u1/poster.jpg',
+            width: 1920,
+            height: 1080,
+          },
+        ],
+      },
+    } as unknown as Momento
+    const fetchMock = vi.mocked(globalThis.fetch)
+    const { container } = render(
+      <AlbumGrid
+        items={[videoConPoster]}
+        entitiesById={new Map()}
+        onDelete={() => {}}
+        size="medium"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Clip del puerto')).toBeInTheDocument()
+    })
+    // El punto del póster: la tile NO monta <video> (que bajaría el clip
+    // entero por la capa autenticada) y lo único pedido a la red es el póster.
+    expect(container.querySelector('video')).toBeNull()
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(urls.some((u) => u.includes('poster.jpg'))).toBe(true)
+    expect(urls.some((u) => u.includes('r2-clip.mp4'))).toBe(false)
+  })
+
+  it('la portada de video SIN póster cae al <video> de siempre', async () => {
+    const videoSinPoster = {
+      ...photoMomento,
+      id: 'video-2',
+      payload: {
+        items: [{ storageKey: 'u1/r2-viejo.mp4', type: 'video' }],
+      },
+    } as unknown as Momento
+    const { container } = render(
+      <AlbumGrid
+        items={[videoSinPoster]}
+        entitiesById={new Map()}
+        onDelete={() => {}}
+        size="medium"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(container.querySelector('video')).not.toBeNull()
+    })
+  })
+
   it('renderiza fotos persistidas con payload photos legado', async () => {
     render(
       <AlbumGrid
