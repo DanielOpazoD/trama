@@ -198,6 +198,13 @@ describe('r2 helper', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2)
       const segunda = new URL((fetchMock.mock.calls[1]![0] as Request).url)
       expect(segunda.searchParams.get('continuation-token')).toBe('tok-2')
+
+      // El abort es POR PÁGINA, y se comprueba en TODAS: mirar solo la primera
+      // dejaría pasar tanto una página sin signal como un único timeout
+      // compartido, que abortaría las páginas siguientes antes de tiempo.
+      const signals = fetchMock.mock.calls.map((c) => c[1]?.signal)
+      expect(signals.every((s) => s instanceof AbortSignal)).toBe(true)
+      expect(new Set(signals).size).toBe(2)
     })
 
     it('no sigue paginando si IsTruncated es false aunque venga token', async () => {
