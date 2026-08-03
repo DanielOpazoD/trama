@@ -179,9 +179,6 @@ describe('r2 helper', () => {
       // Nivel bucket, no de objeto: el path es solo /<bucket>.
       expect(url.pathname).toBe('/trama-biblioteca')
       expect((signMock.mock.calls[0]![0] as Request).method).toBe('GET')
-      // Cada página lleva su propio abort: una que se cuelgue no puede comerse
-      // el presupuesto de ejecución de las otras 19.
-      expect(fetchMock.mock.calls[0]![1]?.signal).toBeInstanceOf(AbortSignal)
     })
 
     it('pagina con continuation-token y concatena las páginas', async () => {
@@ -201,6 +198,13 @@ describe('r2 helper', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2)
       const segunda = new URL((fetchMock.mock.calls[1]![0] as Request).url)
       expect(segunda.searchParams.get('continuation-token')).toBe('tok-2')
+
+      // El abort es POR PÁGINA, y se comprueba en TODAS: mirar solo la primera
+      // dejaría pasar tanto una página sin signal como un único timeout
+      // compartido, que abortaría las páginas siguientes antes de tiempo.
+      const signals = fetchMock.mock.calls.map((c) => c[1]?.signal)
+      expect(signals.every((s) => s instanceof AbortSignal)).toBe(true)
+      expect(new Set(signals).size).toBe(2)
     })
 
     it('no sigue paginando si IsTruncated es false aunque venga token', async () => {
