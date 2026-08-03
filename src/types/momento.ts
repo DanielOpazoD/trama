@@ -41,6 +41,11 @@ export type MomentoPayload = {
      *  Los items ya persistidos no traen `type` → se leen como imagen, así
      *  que sumar video no altera ningún momento existente. */
     type?: 'image' | 'video'
+    /** Póster del clip: storageKey de un JPEG chico capturado al subir. Las
+     *  miniaturas lo montan en un `<img>` en vez de resolver el video entero
+     *  (la capa autenticada baja el blob COMPLETO antes de pintar un frame).
+     *  Ausente en clips viejos o si la captura falló → cae al `<video>`. */
+    posterStorageKey?: string
   }>
   /** Formato legado usado por algunas fotos ya persistidas antes de
    *  unificar en `items[]`. La UI lo sigue leyendo para no ocultar

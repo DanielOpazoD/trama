@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   momentoAudioUpload: vi.fn(),
   compressImage: vi.fn(),
   readImageDimensions: vi.fn(),
+  readVideoDimensions: vi.fn(),
+  captureVideoPoster: vi.fn(),
   extractPhotoCapturedAtFromFile: vi.fn(),
 }))
 
@@ -32,16 +34,22 @@ vi.mock('../../api', () => ({
 
 vi.mock('./helpers', async () => {
   // Parcial: conservamos las funciones puras reales (isVideoFile,
-  // readVideoDimensions, MAX_MEDIA_BYTES) y solo mockeamos las que tocan
-  // canvas/red. Los tests del hook usan imágenes, así que readVideoDimensions
-  // nunca se invoca.
+  // MAX_MEDIA_BYTES) y solo mockeamos las que tocan canvas/red o esperan
+  // eventos de media que jsdom nunca dispara (readVideoDimensions).
   const actual = await vi.importActual<typeof import('./helpers')>('./helpers')
   return {
     ...actual,
     compressImage: mocks.compressImage,
     readImageDimensions: mocks.readImageDimensions,
+    readVideoDimensions: mocks.readVideoDimensions,
   }
 })
+
+// jsdom no decodifica video: el módulo real quedaría esperando `loadedmetadata`
+// hasta su timeout. El test cubre el CABLEADO (captura → subida → item).
+vi.mock('./captureVideoPoster', () => ({
+  captureVideoPoster: mocks.captureVideoPoster,
+}))
 
 vi.mock('../../lib/photoExif', async () => {
   const actual =
@@ -392,5 +400,94 @@ describe('useMomentoComposer', () => {
         capturedAt: new Date('2026-07-04T09:30').toISOString(),
       }),
     )
+  })
+
+  describe('póster de video', () => {
+    function videoFile(name = 'clip.mp4') {
+      return new File(['video-bytes'], name, { type: 'video/mp4' })
+    }
+
+    beforeEach(() => {
+      mocks.extractPhotoCapturedAtFromFile.mockResolvedValue(null)
+      mocks.readVideoDimensions.mockResolvedValue({ width: 1920, height: 1080 })
+      mocks.addMomento.mutateAsync.mockResolvedValue(momento({ kind: 'foto' }))
+    })
+
+    it('captura el póster, lo sube y lo guarda en el item del clip', async () => {
+      mocks.captureVideoPoster.mockResolvedValue(
+        new File(['poster'], 'poster.jpg', { type: 'image/jpeg' }),
+      )
+      // Primera subida: el clip. Segunda: el póster.
+      mocks.momentoUpload
+        .mockResolvedValueOnce({ storageKey: 'u1/r2-clip.mp4' })
+        .mockResolvedValueOnce({ storageKey: 'u1/poster.jpg' })
+      const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+      await act(async () => {
+        result.current.addPhotoFiles([videoFile()])
+      })
+      await act(async () => {
+        await result.current.submit()
+      })
+
+      expect(mocks.momentoUpload).toHaveBeenCalledTimes(2)
+      expect(mocks.addMomento.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            items: [
+              {
+                storageKey: 'u1/r2-clip.mp4',
+                width: 1920,
+                height: 1080,
+                type: 'video',
+                posterStorageKey: 'u1/poster.jpg',
+              },
+            ],
+          }),
+        }),
+      )
+    })
+
+    it('si la captura devuelve null, el clip entra sin póster y sin subida extra', async () => {
+      mocks.captureVideoPoster.mockResolvedValue(null)
+      mocks.momentoUpload.mockResolvedValueOnce({ storageKey: 'u1/r2-clip.mp4' })
+      const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+      await act(async () => {
+        result.current.addPhotoFiles([videoFile()])
+      })
+      await act(async () => {
+        await result.current.submit()
+      })
+
+      expect(mocks.momentoUpload).toHaveBeenCalledTimes(1)
+      const item = mocks.addMomento.mutateAsync.mock.calls[0]![0].payload.items[0]
+      expect(item.storageKey).toBe('u1/r2-clip.mp4')
+      expect(item.posterStorageKey).toBeUndefined()
+    })
+
+    it('si la SUBIDA del póster falla, el episodio se crea igual (best-effort)', async () => {
+      mocks.captureVideoPoster.mockResolvedValue(
+        new File(['poster'], 'poster.jpg', { type: 'image/jpeg' }),
+      )
+      mocks.momentoUpload
+        .mockResolvedValueOnce({ storageKey: 'u1/r2-clip.mp4' })
+        .mockRejectedValueOnce(new Error('red caída'))
+      const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+      await act(async () => {
+        result.current.addPhotoFiles([videoFile()])
+      })
+      await act(async () => {
+        await result.current.submit()
+      })
+
+      expect(mocks.addMomento.mutateAsync).toHaveBeenCalledTimes(1)
+      const item = mocks.addMomento.mutateAsync.mock.calls[0]![0].payload.items[0]
+      expect(item.posterStorageKey).toBeUndefined()
+      expect(mocks.toastShow).not.toHaveBeenCalledWith(
+        expect.objectContaining({ tone: 'error' }),
+      )
+    })
   })
 })

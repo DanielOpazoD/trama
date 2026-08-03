@@ -10,6 +10,7 @@ import {
   readImageDimensions,
   readVideoDimensions,
 } from './helpers'
+import { captureVideoPoster } from './captureVideoPoster'
 import { extractPhotoCapturedAtFromFile, pickOldestCapturedAt } from '../../lib/photoExif'
 
 /**
@@ -407,9 +408,24 @@ export function useMomentoComposer({
           if (draft.isVideo) {
             // ω-video: los clips se suben tal cual —transcodificar en el
             // cliente exigiría una lib pesada—. Solo leemos sus dimensiones
-            // para conservar el aspect-ratio al reproducir.
-            const dims = await readVideoDimensions(draft.file)
+            // para conservar el aspect-ratio al reproducir, y capturamos un
+            // póster para que las miniaturas no bajen el video entero.
+            const [dims, poster] = await Promise.all([
+              readVideoDimensions(draft.file),
+              captureVideoPoster(draft.file),
+            ])
             const uploaded = await api.momentoUpload(draft.file)
+            // El póster es best-effort de punta a punta: si la captura dio
+            // null o su subida falla, el clip entra igual y el render cae al
+            // <video>. Nunca abortar un episodio por la miniatura.
+            let posterStorageKey: string | undefined
+            if (poster) {
+              try {
+                posterStorageKey = (await api.momentoUpload(poster)).storageKey
+              } catch {
+                posterStorageKey = undefined
+              }
+            }
             setPhotoUploadProgress((prev) =>
               prev ? { done: prev.done + 1, total: prev.total } : prev,
             )
@@ -418,6 +434,7 @@ export function useMomentoComposer({
               width: dims.width || undefined,
               height: dims.height || undefined,
               type: 'video' as const,
+              posterStorageKey,
             }
           }
           // 1. Comprimir client-side (resize a max 2400px + JPEG q0.85).

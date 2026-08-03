@@ -6,6 +6,9 @@ export type MomentoPhotoItem = {
   height?: number
   /** ω-video: 'video' para clips; ausente o 'image' para fotos. */
   type?: 'image' | 'video'
+  /** Póster del clip (JPEG chico). Con él, las miniaturas montan un `<img>`
+   *  en vez de resolver el video ENTERO por la capa autenticada. */
+  posterStorageKey?: string
 }
 
 /** True si el item es un clip de video (no una foto). Los items legacy no
@@ -90,6 +93,7 @@ function normalizePhotoItems(
     width?: number
     height?: number
     type?: 'image' | 'video'
+    posterStorageKey?: string
   }>,
 ): MomentoPhotoItem[] {
   return items
@@ -98,6 +102,9 @@ function normalizePhotoItems(
       width: item.width,
       height: item.height,
       type: item.type,
+      // Sin arrastrarlo acá, todo render "olvidaría" el póster y cada
+      // miniatura volvería a bajar el video entero.
+      posterStorageKey: item.posterStorageKey,
     }))
     .filter((item) => item.storageKey.length > 0)
 }

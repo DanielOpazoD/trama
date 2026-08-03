@@ -8,7 +8,9 @@ import { formatTime, getMomentoPhotoItems, isVideoItem, momentoMediaUrl } from '
 import {
   AuthenticatedMomentoImage,
   AuthenticatedMomentoVideo,
+  MomentoVideoThumb,
 } from './AuthenticatedMedia'
+import { VideoPlayBadge } from './VideoPlayBadge'
 import { MomentoEditModal } from './MomentoEditModal'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
@@ -243,6 +245,10 @@ function FotoBody({ momento }: { momento: Momento }) {
   const { caption, audioKey } = momento.payload
   const photos = getMomentoPhotoItems(momento.payload)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  // Clip con póster: el timeline muestra la miniatura y recién al play monta
+  // el <video> (que baja el blob entero). Sin póster no hay estado: se monta
+  // el reproductor directo, como siempre.
+  const [videoRequested, setVideoRequested] = useState(false)
 
   if (photos.length === 0) {
     return <p className="text-caption italic text-ink-400">(imagen no encontrada)</p>
@@ -260,18 +266,42 @@ function FotoBody({ momento }: { momento: Momento }) {
     <article className="space-y-2">
       <div className="max-w-md relative">
         {coverIsVideo ? (
-          // ω-video: el clip se reproduce inline con los controles nativos.
-          // No se envuelve en el botón de zoom (capturaría los clics del
-          // player). object-contain sobre fondo tinta evita distorsión y da
-          // el letterbox de cine cuando el ratio no calza.
-          <AuthenticatedMomentoVideo
-            storageKey={cover.storageKey}
-            controls
-            playsInline
-            preload="metadata"
-            className="block w-full rounded-md overflow-hidden border border-ink-100/60 bg-ink-900 object-contain"
-            style={{ aspectRatio: aspectRatio ?? '16 / 9' }}
-          />
+          cover.posterStorageKey && !videoRequested ? (
+            // ω-video + póster: miniatura liviana; el blob del clip solo se
+            // baja si el usuario pide reproducir.
+            <button
+              type="button"
+              onClick={() => setVideoRequested(true)}
+              aria-label="Reproducir video"
+              className="relative block w-full rounded-md overflow-hidden border border-ink-100/60 bg-ink-900 cursor-pointer hover:opacity-95 transition-opacity"
+              style={{ aspectRatio: aspectRatio ?? '16 / 9' }}
+            >
+              <MomentoVideoThumb
+                storageKey={cover.storageKey}
+                posterStorageKey={cover.posterStorageKey}
+                alt={caption ?? 'video'}
+                className="h-full w-full object-contain"
+              />
+              <VideoPlayBadge />
+            </button>
+          ) : (
+            // ω-video: el clip se reproduce inline con los controles nativos.
+            // No se envuelve en el botón de zoom (capturaría los clics del
+            // player). object-contain sobre fondo tinta evita distorsión y da
+            // el letterbox de cine cuando el ratio no calza. autoPlay solo si
+            // venimos del póster; arranca mudo (el blob llega DESPUÉS del
+            // click, y un autoplay con sonido fuera del gesto lo bloquea el
+            // navegador — ver AuthenticatedMomentoVideo).
+            <AuthenticatedMomentoVideo
+              storageKey={cover.storageKey}
+              controls
+              playsInline
+              autoPlay={videoRequested || undefined}
+              preload="metadata"
+              className="block w-full rounded-md overflow-hidden border border-ink-100/60 bg-ink-900 object-contain"
+              style={{ aspectRatio: aspectRatio ?? '16 / 9' }}
+            />
+          )
         ) : (
           <button
             type="button"

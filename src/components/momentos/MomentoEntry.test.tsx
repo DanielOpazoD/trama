@@ -272,6 +272,36 @@ describe('<MomentoEntry />', () => {
     expect(screen.getByText('un clip')).toBeInTheDocument()
   })
 
+  it('un clip CON póster muestra la miniatura y monta el <video> recién al play', async () => {
+    const { container } = render(
+      <MomentoEntry
+        momento={baseMomento('foto', {
+          caption: 'clip con póster',
+          items: [
+            {
+              storageKey: 'u1/r2-clip.mp4',
+              type: 'video',
+              posterStorageKey: 'u1/poster.jpg',
+            },
+          ],
+        })}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+
+    // Antes del gesto: solo la miniatura (el <video> bajaría el blob entero).
+    expect(container.querySelector('video')).toBeNull()
+    const play = screen.getByRole('button', { name: /reproducir video/i })
+
+    fireEvent.click(play)
+
+    // Tras el gesto: el reproductor real (cuando su blob resuelve), y el
+    // botón de póster desaparece.
+    await waitFor(() => expect(container.querySelector('video')).not.toBeNull())
+    expect(screen.queryByRole('button', { name: /reproducir video/i })).toBeNull()
+  })
+
   it('con video de portada y más piezas, el contador +N abre el visor', () => {
     render(
       <MomentoEntry
