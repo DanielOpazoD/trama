@@ -77,7 +77,7 @@ export function PdfTextEditorHeader({
         >
           <ChevronLeftIcon size={14} />
         </IconButton>
-        <p className="text-sm font-medium text-ink-700 whitespace-nowrap">
+        <p className="text-caption font-medium text-ink-700 whitespace-nowrap">
           {title ? `${title} · ` : null}
           <span className="tabular-nums">
             Página {currentPage + 1}{' '}
@@ -153,7 +153,7 @@ export function PdfTextEditorHeader({
             </IconButton>
           </div>
         ) : null}
-        <button onClick={onCancel} className="btn-ghost text-xs">
+        <button onClick={onCancel} className="btn-ghost text-caption">
           Cerrar
         </button>
         {onSaveCopy ? (
@@ -161,7 +161,7 @@ export function PdfTextEditorHeader({
             type="button"
             onClick={onSaveCopy}
             aria-label="Guardar copia con datos"
-            className="btn-ghost text-xs"
+            className="btn-ghost text-caption"
           >
             Guardar copia
           </button>
@@ -170,14 +170,14 @@ export function PdfTextEditorHeader({
           <button
             onClick={onPrint}
             aria-label="Imprimir planilla"
-            className="btn-accent inline-flex items-center gap-1 text-xs"
+            className="btn-accent inline-flex items-center gap-1 text-caption"
           >
             <PrinterIcon size={12} />
             Imprimir
           </button>
         ) : null}
         {showPrimaryAction ? (
-          <button onClick={onDone} className="btn-accent text-xs">
+          <button onClick={onDone} className="btn-accent text-caption">
             {primaryLabel}
           </button>
         ) : null}

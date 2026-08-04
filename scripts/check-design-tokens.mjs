@@ -32,7 +32,12 @@ export const DESIGN_TOKEN_BASELINE = {
   // quedado viejo, así que el piso real era mucho más bajo de lo que el gate
   // exigía. Congelarlo aquí es lo que le devuelve el filo: con 499 cabían 76
   // aliases nuevos sin que nadie se enterara.
-  legacy: 423,
+  //
+  // 2026-08-03: 423 → 403. Cinco salen de migrar la cabecera del editor de
+  // PDF a la escala semántica (text-caption); los otros quince ya no estaban
+  // en main y el baseline había vuelto a quedarse viejo. Mismo criterio que
+  // arriba: congelar el piso real es lo que mantiene el filo del gate.
+  legacy: 403,
 }
 
 // text-[<size>] con unidad px/rem/em, descartando text-[color:...].

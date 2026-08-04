@@ -17,11 +17,13 @@ describe('EditorToolbarModel', () => {
   it('define la accion primaria segun contexto editor/planilla', () => {
     expect(editorToolbarPrimaryInsertAction('editor')).toEqual({
       fieldKind: null,
+      shortLabel: 'Texto',
       hint: 'Agregar un cuadro editable',
       label: 'Agregar cuadro de texto',
     })
     expect(editorToolbarPrimaryInsertAction('templateDesign')).toEqual({
       fieldKind: 'text',
+      shortLabel: 'Casillero',
       hint: 'Crear un casillero rellenable · atajo: Shift + clic en la página',
       label: 'Crear casillero de texto',
     })

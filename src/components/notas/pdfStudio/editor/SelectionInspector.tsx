@@ -35,18 +35,27 @@ function Field({
   return (
     <label className="grid gap-0.5 text-micro text-ink-400">
       <span>{label}</span>
-      <input
-        type="number"
-        min="0"
-        max="100"
-        step="1"
-        value={pctNumber(value)}
-        disabled={disabled}
-        aria-label={`${label} de selección (%)`}
-        onChange={(e) => onChange(Number(e.currentTarget.value) / 100)}
-        // focus-ring-exempt: input con foco por cambio de borde (salvia)
-        className="h-7 rounded-md border border-ink-100 bg-paper-50 px-1.5 text-caption tabular-nums text-ink-700 outline-none transition-colors focus:border-[color:var(--accent-sage)] focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 disabled:opacity-45"
-      />
+      <span className="relative">
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          value={pctNumber(value)}
+          disabled={disabled}
+          aria-label={`${label} de selección (%)`}
+          onChange={(e) => onChange(Number(e.currentTarget.value) / 100)}
+          // focus-ring-exempt: input con foco por cambio de borde (salvia)
+          className="h-8 w-full rounded-md border border-ink-100 bg-paper-50 pl-1.5 pr-4 text-caption tabular-nums text-ink-700 outline-none transition-colors focus:border-[color:var(--accent-sage)] focus-visible:ring-2 focus-visible:ring-[color:var(--accent-sage)] focus-visible:ring-offset-1 disabled:opacity-45"
+        />
+        {/* La unidad a la vista: antes había que adivinar si 33 eran px o %. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-micro text-ink-300"
+        >
+          %
+        </span>
+      </span>
     </label>
   )
 }
@@ -68,7 +77,7 @@ function Glyph({
 }) {
   if (kind === 'lock') {
     return (
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden>
         <rect x="5" y="8" width="10" height="8" rx="1.5" stroke="currentColor" />
         <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" />
       </svg>
@@ -76,7 +85,7 @@ function Glyph({
   }
   if (kind === 'front' || kind === 'back') {
     return (
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden>
         <rect
           x={kind === 'front' ? 7 : 4}
           y={kind === 'front' ? 4 : 7}
@@ -100,7 +109,7 @@ function Glyph({
   if (kind === 'distribute-x' || kind === 'distribute-y') {
     const horizontal = kind === 'distribute-x'
     return (
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden>
         <path
           d={horizontal ? 'M3 10h14' : 'M10 3v14'}
           stroke="currentColor"
@@ -127,7 +136,7 @@ function Glyph({
   }
   if (kind === 'group' || kind === 'ungroup') {
     return (
-      <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden>
         <rect x="4" y="4" width="6" height="6" rx="1" stroke="currentColor" />
         <rect x="10" y="10" width="6" height="6" rx="1" stroke="currentColor" />
         {kind === 'group' ? (
@@ -140,7 +149,7 @@ function Glyph({
   }
   const x = kind === 'left' ? 5 : kind === 'center' ? 8 : 11
   return (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden>
       <path
         d={kind === 'center' ? 'M10 3v14' : `M${kind === 'left' ? 4 : 16} 3v14`}
         stroke="currentColor"
@@ -171,7 +180,7 @@ function TinyButton({
       onClick={onClick}
       className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${focusRing} ${
         active
-          ? 'bg-[color:var(--accent-sage-soft)] text-[color:var(--accent-sage)]'
+          ? 'bg-[color:var(--accent-sage)] text-paper-50'
           : 'text-ink-500 hover:bg-ink-100/60 hover:text-ink-800'
       }`}
     >
@@ -222,14 +231,19 @@ export function SelectionInspector({
   return (
     <aside
       aria-label="Inspector de selección"
-      className="absolute right-3 top-28 z-30 w-[17rem] rounded-lg border border-ink-100/70 bg-paper-50/95 p-2 shadow-lg shadow-ink-900/10 backdrop-blur"
+      className="absolute right-3 top-28 z-30 w-[17.5rem] rounded-xl border border-ink-100/70 bg-paper-50/95 p-3 shadow-lg shadow-ink-900/10 backdrop-blur"
     >
       <p role="status" aria-live="polite" className="sr-only">
         {count === 1 ? '1 objeto seleccionado' : `${count} objetos seleccionados`}
         {locked ? ', bloqueado' : ''}
       </p>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-caption font-medium text-ink-700">Selección</p>
+        <p className="text-caption font-medium text-ink-700">
+          Selección
+          {count > 1 ? (
+            <span className="font-normal text-ink-400"> · {count} objetos</span>
+          ) : null}
+        </p>
         <TinyButton
           label={locked ? 'Desbloquear selección' : 'Bloquear selección'}
           active={locked}
@@ -239,14 +253,11 @@ export function SelectionInspector({
         </TinyButton>
       </div>
 
-      <dl className="mt-1 grid grid-cols-4 gap-1 text-micro tabular-nums text-ink-400">
-        <div className="rounded bg-ink-50 px-1.5 py-1">x {pct(bounds.xRatio)}</div>
-        <div className="rounded bg-ink-50 px-1.5 py-1">y {pct(bounds.yRatio)}</div>
-        <div className="rounded bg-ink-50 px-1.5 py-1">w {pct(bounds.wRatio)}</div>
-        <div className="rounded bg-ink-50 px-1.5 py-1">h {pct(bounds.hRatio)}</div>
-      </dl>
-
-      <div className="mt-2 grid grid-cols-4 gap-1">
+      {/* Antes acá había una fila de chips de solo-lectura (x 25% · y 10% …)
+          seguida de inputs con LOS MISMOS números: la misma información dos
+          veces, una editable y otra no. Se queda la editable. */}
+      <p className="section-eyebrow mt-3">Posición y tamaño</p>
+      <div className="mt-1 grid grid-cols-4 gap-1.5">
         <Field
           label="X"
           value={bounds.xRatio}
@@ -273,7 +284,8 @@ export function SelectionInspector({
         />
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <p className="section-eyebrow mt-3">Organizar</p>
+      <div className="mt-1 flex items-center justify-between gap-2">
         <div className="inline-flex rounded-md bg-ink-100/45 p-0.5">
           <TinyButton label="Alinear a la izquierda" onClick={() => onAlign('left')}>
             <Glyph kind="left" />
@@ -330,7 +342,8 @@ export function SelectionInspector({
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-2">
+      <p className="section-eyebrow mt-3">Apariencia</p>
+      <div className="mt-1.5 flex items-center gap-2">
         <div className="flex flex-1 items-center gap-1">
           {COLORS.map((c) => (
             <ColorSwatch
@@ -342,7 +355,7 @@ export function SelectionInspector({
             />
           ))}
         </div>
-        <label className="flex w-24 items-center gap-1 text-micro text-ink-400">
+        <label className="flex w-28 items-center gap-1.5 text-micro text-ink-400">
           <span className="sr-only">Opacidad de selección</span>
           <input
             aria-label="Opacidad de selección"
@@ -354,6 +367,10 @@ export function SelectionInspector({
             onChange={(e) => onOpacityChange(Number(e.currentTarget.value) / 100)}
             className="w-full accent-[color:var(--accent-sage)]"
           />
+          {/* Un slider sin número obliga a adivinar cuánta opacidad quedó. */}
+          <span aria-hidden className="w-7 text-right tabular-nums text-ink-500">
+            {pct(opacity)}
+          </span>
         </label>
       </div>
     </aside>

@@ -247,7 +247,9 @@ describe('<EditorToolbar />', () => {
   it('agrega texto y cambia de herramienta', () => {
     const p = setup()
     const addText = screen.getByRole('button', { name: /Agregar cuadro de texto/i })
-    expect(addText.textContent).toBe('')
+    // La acción primaria es la ÚNICA de la barra con etiqueta visible: crea
+    // contenido, y una palabra la distingue de la sopa de iconos de modos.
+    expect(addText.textContent).toBe('Texto')
     fireEvent.click(addText)
     expect(p.onAddText).toHaveBeenCalledOnce()
     fireEvent.click(screen.getByLabelText('Herramienta redactar'))

@@ -16,6 +16,7 @@ import {
   Hint,
   objectAction,
   primaryAction,
+  primaryInsertAction,
   segBtnTool,
   segGroup,
   ToolbarGroup,
@@ -33,6 +34,7 @@ export function EditorToolbarToolsGroup({
   primaryFieldKind,
   primaryHint,
   primaryLabel,
+  primaryShortLabel,
   tool,
   xMarkSize,
   xMarkStroke,
@@ -47,6 +49,7 @@ export function EditorToolbarToolsGroup({
   primaryFieldKind: PdfFormFieldKind | null
   primaryHint: string
   primaryLabel: string
+  primaryShortLabel: string
   tool: Tool
   xMarkSize: number
   xMarkStroke: number
@@ -63,14 +66,16 @@ export function EditorToolbarToolsGroup({
   return (
     <ToolbarGroup label="Herramientas">
       <Hint content={primaryHint}>
-        <IconButton
+        <button
+          type="button"
           onClick={handlePrimaryInsert}
           disabled={primaryFieldKind !== null && !onAddFormField}
-          label={primaryLabel}
-          className={primaryAction}
+          aria-label={primaryLabel}
+          className={primaryInsertAction}
         >
-          <TextIcon size={14} />
-        </IconButton>
+          <TextIcon size={16} />
+          {primaryShortLabel}
+        </button>
       </Hint>
       <div className={segGroup}>
         <Hint content="Seleccionar y mover">
@@ -80,7 +85,7 @@ export function EditorToolbarToolsGroup({
             label="Herramienta seleccionar"
             aria-pressed={tool === 'select'}
           >
-            <CursorIcon size={14} />
+            <CursorIcon size={16} />
           </IconButton>
         </Hint>
         {canShowPdfMarkupTools ? (
@@ -91,7 +96,7 @@ export function EditorToolbarToolsGroup({
               label="Herramienta redactar"
               aria-pressed={tool === 'redact'}
             >
-              <ShieldIcon size={14} />
+              <ShieldIcon size={16} />
             </IconButton>
           </Hint>
         ) : null}
@@ -103,7 +108,7 @@ export function EditorToolbarToolsGroup({
               label="Herramienta Resaltar"
               aria-pressed={tool === 'highlight'}
             >
-              <HighlighterIcon size={14} />
+              <HighlighterIcon size={16} />
             </IconButton>
           </Hint>
         ) : null}
@@ -118,7 +123,7 @@ export function EditorToolbarToolsGroup({
           label="Herramienta marca X para casilleros"
           aria-pressed={tool === 'x'}
         >
-          <svg width={14} height={14} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <svg width={16} height={16} viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <rect
               x={2.25}
               y={2.25}
@@ -172,7 +177,7 @@ export function EditorToolbarInsertGroup({
             label="Estampar imagen"
             className={primaryAction}
           >
-            <CameraIcon size={14} />
+            <CameraIcon size={16} />
           </IconButton>
         </Hint>
       ) : null}
@@ -214,7 +219,7 @@ export function EditorToolbarObjectGroup({
           disabled={!hasDuplicableSelection}
           className={objectAction}
         >
-          <DuplicateIcon size={14} />
+          <DuplicateIcon size={16} />
         </IconButton>
       </Hint>
       <Hint
@@ -230,7 +235,7 @@ export function EditorToolbarObjectGroup({
           disabled={!hasSelection}
           className={`${objectAction} hover:text-[color:var(--accent-clay)]`}
         >
-          <TrashIcon size={14} />
+          <TrashIcon size={16} />
         </IconButton>
       </Hint>
     </ToolbarGroup>
