@@ -4,6 +4,7 @@ import type { RecorteTarget } from '../../api'
 import { NoteCard } from './NoteCard'
 import { RecorteCard } from '../recortes/RecorteCard'
 import { SelectableRecorte } from '../recortes/SelectableRecorte'
+import { canSendNoteToImprenta } from '../../lib/pdfStudio/import/notesToPdfFiles'
 import type { LinkMediaSize } from '../recortes/RecorteMediaPreview'
 import type { PromoteSeed } from '../recortes/PromoteModal'
 import { buildNotasFeedVirtualItemMeta } from './notasFeedViewModel'
@@ -38,7 +39,8 @@ export function NotasFeedVirtualList({
   onEditNote,
   onDeleteNote,
   onPromoteNote,
-  onToggleRecorteSelect,
+  onToggleItemSelect,
+  onSendNoteToImprenta,
   onPromoteRecorte,
   onArchiveRecorte,
   onRestoreRecorte,
@@ -61,7 +63,8 @@ export function NotasFeedVirtualList({
   onEditNote: (id: string, patch: NoteEditPatch) => void
   onDeleteNote: (id: string) => void
   onPromoteNote: (id: string) => void
-  onToggleRecorteSelect: (id: string) => void
+  onToggleItemSelect: (id: string) => void
+  onSendNoteToImprenta?: (note: Note) => void
   onPromoteRecorte: (recorte: Recorte, target: RecorteTarget, seed?: PromoteSeed) => void
   onArchiveRecorte: (id: string) => void
   onRestoreRecorte: (id: string) => void
@@ -103,20 +106,37 @@ export function NotasFeedVirtualList({
               style={{ animationDelay: delay }}
             >
               {item.type === 'note' ? (
-                <NoteCard
-                  note={item.note}
-                  busy={noteBusy}
-                  promoting={promotingNoteId === item.id}
-                  onTogglePin={() => onToggleNotePin(item.note)}
-                  onEdit={(patch) => onEditNote(item.id, patch)}
-                  onDelete={() => onDeleteNote(item.id)}
-                  onPromote={() => onPromoteNote(item.id)}
-                />
+                // En modo selección solo son marcables las notas CON fotos:
+                // la única acción en lote es enviarlas a Imprenta, y ofrecer
+                // el checkbox a una nota sin imágenes prometería en falso.
+                <SelectableRecorte
+                  selectionMode={selectionMode && canSendNoteToImprenta(item.note)}
+                  selected={selectedIds.has(item.id)}
+                  onToggleSelect={() => onToggleItemSelect(item.id)}
+                  label={`Seleccionar nota: ${
+                    item.note.title ?? item.note.content.slice(0, 40)
+                  }`}
+                >
+                  <NoteCard
+                    note={item.note}
+                    busy={noteBusy}
+                    promoting={promotingNoteId === item.id}
+                    onTogglePin={() => onToggleNotePin(item.note)}
+                    onEdit={(patch) => onEditNote(item.id, patch)}
+                    onDelete={() => onDeleteNote(item.id)}
+                    onPromote={() => onPromoteNote(item.id)}
+                    onSendToImprenta={
+                      onSendNoteToImprenta
+                        ? () => onSendNoteToImprenta(item.note)
+                        : undefined
+                    }
+                  />
+                </SelectableRecorte>
               ) : (
                 <SelectableRecorte
                   selectionMode={selectionMode}
                   selected={selectedIds.has(item.id)}
-                  onToggleSelect={() => onToggleRecorteSelect(item.id)}
+                  onToggleSelect={() => onToggleItemSelect(item.id)}
                   label={`Seleccionar captura: ${
                     item.recorte.sourceTitle ?? item.recorte.text.slice(0, 40)
                   }`}

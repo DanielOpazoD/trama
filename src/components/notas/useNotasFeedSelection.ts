@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CaptureItem, Recorte } from '../../api'
 import {
   isNotasFeedGalleryMode,
+  selectedCaptureItemsFromItems,
   selectedRecortesFromItems,
   type NotasFeedSegment,
 } from './notasFeedViewModel'
@@ -21,6 +22,8 @@ export function useNotasFeedSelection({
   exitSelection: () => void
   galleryMode: boolean
   selectedIds: Set<string>
+  /** Selección mixta (notas + capturas) en orden del feed — para Imprenta. */
+  selectedItems: CaptureItem[]
   selectedRecortes: Recorte[]
   selectionMode: boolean
   toggleSelect: (id: string) => void
@@ -30,11 +33,17 @@ export function useNotasFeedSelection({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const galleryMode = isNotasFeedGalleryMode({ feedView, segment })
-  const canSelect = segment === 'capturas' && !galleryMode
+  // La selección vale en TODOS los segmentos (antes solo capturas): en
+  // escritas/todo habilita el envío en lote de fotos de notas a Imprenta.
+  const canSelect = !galleryMode
   const effectiveSelectionMode = canSelect && selectionMode
   const effectiveSelectedIds = canSelect ? selectedIds : EMPTY_SELECTED_IDS
   const selectedRecortes = useMemo(
     () => selectedRecortesFromItems(items, effectiveSelectedIds),
+    [items, effectiveSelectedIds],
+  )
+  const selectedItems = useMemo(
+    () => selectedCaptureItemsFromItems(items, effectiveSelectedIds),
     [items, effectiveSelectedIds],
   )
 
@@ -62,8 +71,10 @@ export function useNotasFeedSelection({
     else setSelectionMode(true)
   }, [canSelect, exitSelection, selectionMode])
 
+  // Cambiar de segmento sale de selección: los ids seleccionados podrían no
+  // estar ya en pantalla y una barra operando sobre invisibles desorienta.
   useEffect(() => {
-    if (segment !== 'capturas') exitSelection()
+    exitSelection()
   }, [segment, exitSelection])
 
   useEffect(() => {
@@ -74,6 +85,7 @@ export function useNotasFeedSelection({
     exitSelection,
     galleryMode,
     selectedIds: effectiveSelectedIds,
+    selectedItems,
     selectedRecortes,
     selectionMode: effectiveSelectionMode,
     toggleSelect,

@@ -17,10 +17,12 @@ import { SectionSkeleton } from './SectionSkeleton'
 import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
-import type { Recorte } from '../../api'
+import type { CaptureItem, Note, Recorte } from '../../api'
 import { requestBlob } from '../../api/request'
 import { useToast } from '../../state'
 import { recortesToPdfFiles } from '../../lib/pdfStudio/import/recortesToPdfFiles'
+import { notesToPdfFiles } from '../../lib/pdfStudio/import/notesToPdfFiles'
+import { captureItemsToPdfFiles } from '../../lib/pdfStudio/import/captureItemsToPdfFiles'
 
 // Lazy: pdf.js (~1MB) y pdf-lib sólo se bajan al entrar a la sección PDF.
 const loadPdfStudioView = () =>
@@ -112,11 +114,11 @@ export function NotasWorld({
     onClose: () => setSearchOpen(false),
   })
 
-  const sendImagesToPdf = useCallback(
-    async (recortes: Recorte[]) => {
-      const { files, failures } = await recortesToPdfFiles(recortes, {
-        fetchBlob: requestBlob,
-      })
+  // Cola común de entrega a Imprenta: recortes, una nota o una selección
+  // mixta llegan por adaptadores distintos y desembocan acá con el mismo
+  // contrato { files, failures }.
+  const deliverFilesToImprenta = useCallback(
+    ({ files, failures }: { files: File[]; failures: Array<{ reason: string }> }) => {
       if (files.length === 0) {
         toast.show({
           message:
@@ -156,6 +158,33 @@ export function NotasWorld({
       }
     },
     [imprentaHistory, setSection, toast],
+  )
+
+  const sendImagesToPdf = useCallback(
+    async (recortes: Recorte[]) => {
+      deliverFilesToImprenta(
+        await recortesToPdfFiles(recortes, { fetchBlob: requestBlob }),
+      )
+    },
+    [deliverFilesToImprenta],
+  )
+
+  // Nota individual: la acción "Fotos a Imprenta" del menú de la tarjeta.
+  const sendNoteToImprenta = useCallback(
+    async (note: Note) => {
+      deliverFilesToImprenta(await notesToPdfFiles([note], { fetchBlob: requestBlob }))
+    },
+    [deliverFilesToImprenta],
+  )
+
+  // Selección mixta del feed (notas + capturas), en orden del feed.
+  const sendItemsToImprenta = useCallback(
+    async (items: CaptureItem[]) => {
+      deliverFilesToImprenta(
+        await captureItemsToPdfFiles(items, { fetchBlob: requestBlob }),
+      )
+    },
+    [deliverFilesToImprenta],
   )
 
   return (
@@ -219,7 +248,11 @@ export function NotasWorld({
                     {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
                     {section === 'notas' && (
                       <Suspense fallback={<FeedSkeleton />}>
-                        <NotasFeedView onSendImagesToPdf={sendImagesToPdf} />
+                        <NotasFeedView
+                          onSendImagesToPdf={sendImagesToPdf}
+                          onSendNoteToImprenta={sendNoteToImprenta}
+                          onSendItemsToImprenta={sendItemsToImprenta}
+                        />
                       </Suspense>
                     )}
                     {section === 'tareas' && <TareasView />}

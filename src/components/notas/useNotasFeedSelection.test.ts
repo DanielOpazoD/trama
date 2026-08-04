@@ -56,6 +56,23 @@ function renderSelection({
 }
 
 describe('useNotasFeedSelection', () => {
+  it('la seleccion tambien vale en los segmentos de notas, en orden del feed', () => {
+    // Antes canSelect exigia segment==='capturas'; ahora escritas/todo
+    // seleccionan para enviar fotos de notas a Imprenta.
+    const hook = renderSelection({ segment: 'todo' })
+
+    act(() => hook.result.current.toggleSelectionMode())
+    expect(hook.result.current.selectionMode).toBe(true)
+
+    // Selecciono b y luego a: selectedItems respeta el orden del FEED (a, b),
+    // no el de los clics — Imprenta agrupa imagenes consecutivas en hojas.
+    act(() => {
+      hook.result.current.toggleSelect('b')
+      hook.result.current.toggleSelect('a')
+    })
+    expect(hook.result.current.selectedItems.map((i) => i.id)).toEqual(['a', 'b'])
+  })
+
   it('activa, selecciona y limpia seleccion desde el toggle publico', () => {
     const hook = renderSelection()
 

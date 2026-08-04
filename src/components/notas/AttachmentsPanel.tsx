@@ -41,20 +41,30 @@ export function AttachmentsPanel({
   const attachments = attachmentsQuery.data ?? []
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
-  function onFiles(files: FileList | null) {
-    const file = files?.[0]
-    if (!file || upload.isPending) return
-    upload.mutate(
-      { ownerType, ownerId, file },
-      {
-        onSuccess: () => toast.show({ message: 'Anexo guardado.', tone: 'success' }),
-        onError: (err) =>
-          toast.show({
-            message: err instanceof Error ? err.message : 'No se pudo subir',
-            tone: 'error',
-          }),
-      },
-    )
+  // Multi-archivo, como el composer: era la ÚNICA superficie de anexos que
+  // tomaba solo files[0] — elegir cinco fotos subía una sola, en silencio.
+  async function onFiles(files: FileList | null) {
+    const list = files ? [...files] : []
+    if (list.length === 0 || upload.isPending) return
+    let ok = 0
+    let fail = 0
+    for (const file of list) {
+      try {
+        await upload.mutateAsync({ ownerType, ownerId, file })
+        ok++
+      } catch {
+        fail++
+      }
+    }
+    toast.show({
+      message:
+        fail === 0
+          ? ok === 1
+            ? 'Anexo guardado.'
+            : `${ok} anexos guardados.`
+          : `${ok} de ${list.length} anexos guardados.`,
+      tone: fail === 0 ? 'success' : 'error',
+    })
     if (inputRef.current) inputRef.current.value = ''
   }
 
@@ -99,9 +109,10 @@ export function AttachmentsPanel({
           <input
             ref={inputRef}
             type="file"
+            multiple
             className="sr-only"
-            aria-label="Subir anexo"
-            onChange={(e) => onFiles(e.target.files)}
+            aria-label="Subir anexos"
+            onChange={(e) => void onFiles(e.target.files)}
           />
         </label>
       </div>
