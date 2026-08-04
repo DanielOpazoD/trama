@@ -4,6 +4,7 @@ import {
   formatMonthLabel,
   formatTime,
   getMomentoPhotoItems,
+  momentoItemThumbKey,
   groupByDay,
   groupByMonth,
   momentoMediaUrl,
@@ -221,5 +222,18 @@ describe('getMomentoPhotoItems', () => {
       posterStorageKey: 'u1/poster.jpg',
     })
     expect(items[1]?.posterStorageKey).toBeUndefined()
+  })
+
+  it('arrastra thumbStorageKey y momentoItemThumbKey cae al original sin él', () => {
+    const items = getMomentoPhotoItems({
+      items: [
+        { storageKey: 'u1/foto.jpg', thumbStorageKey: 'u1/foto-thumb.jpg' },
+        { storageKey: 'u1/vieja.jpg' },
+      ],
+    })
+    expect(items[0]?.thumbStorageKey).toBe('u1/foto-thumb.jpg')
+    // Las grillas montan la miniatura; sin ella, el original (fotos viejas).
+    expect(momentoItemThumbKey(items[0]!)).toBe('u1/foto-thumb.jpg')
+    expect(momentoItemThumbKey(items[1]!)).toBe('u1/vieja.jpg')
   })
 })

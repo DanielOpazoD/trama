@@ -90,7 +90,8 @@ describe('notas-attachments-file endpoint', () => {
 
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toBe('image/jpeg')
-    expect(res.headers.get('Cache-Control')).toBe('private, no-store')
+    // Key inmutable → cacheable para siempre en el navegador (privado).
+    expect(res.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable')
     expect(res.headers.get('Vary')).toContain('Authorization')
     expect(getWithMetadata).toHaveBeenCalledWith('legacy-single-user/foto.jpg', {
       type: 'arrayBuffer',

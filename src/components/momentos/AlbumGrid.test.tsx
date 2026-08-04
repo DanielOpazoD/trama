@@ -234,6 +234,41 @@ describe('<AlbumGrid />', () => {
     })
   })
 
+  it('la tile de foto pide la MINIATURA derivada, no el original', async () => {
+    const conThumb = {
+      ...photoMomento,
+      id: 'foto-thumb',
+      payload: {
+        caption: 'Con derivado',
+        items: [
+          {
+            storageKey: 'u1/original.jpg',
+            thumbStorageKey: 'u1/mini.jpg',
+            width: 2000,
+            height: 1500,
+          },
+        ],
+      },
+    } as unknown as Momento
+    const fetchMock = vi.mocked(globalThis.fetch)
+    render(
+      <AlbumGrid
+        items={[conThumb]}
+        entitiesById={new Map()}
+        onDelete={() => {}}
+        size="medium"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Con derivado')).toBeInTheDocument()
+    })
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]))
+    // El punto del pack: la grilla pesa KBs, el original queda para el visor.
+    expect(urls.some((u) => u.includes('mini.jpg'))).toBe(true)
+    expect(urls.some((u) => u.includes('original.jpg'))).toBe(false)
+  })
+
   it('renderiza fotos persistidas con payload photos legado', async () => {
     render(
       <AlbumGrid

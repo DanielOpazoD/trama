@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   readImageDimensions: vi.fn(),
   readVideoDimensions: vi.fn(),
   captureVideoPoster: vi.fn(),
+  createImageThumbnail: vi.fn(),
   extractPhotoCapturedAtFromFile: vi.fn(),
 }))
 
@@ -49,6 +50,11 @@ vi.mock('./helpers', async () => {
 // hasta su timeout. El test cubre el CABLEADO (captura → subida → item).
 vi.mock('./captureVideoPoster', () => ({
   captureVideoPoster: mocks.captureVideoPoster,
+}))
+
+// jsdom tampoco decodifica imágenes: mismo trato que el póster.
+vi.mock('../../lib/imageThumbnail', () => ({
+  createImageThumbnail: mocks.createImageThumbnail,
 }))
 
 vi.mock('../../lib/photoExif', async () => {
@@ -400,6 +406,63 @@ describe('useMomentoComposer', () => {
         capturedAt: new Date('2026-07-04T09:30').toISOString(),
       }),
     )
+  })
+
+  describe('miniatura derivada de foto', () => {
+    beforeEach(() => {
+      mocks.extractPhotoCapturedAtFromFile.mockResolvedValue(null)
+      mocks.compressImage.mockImplementation(async (f: File) => f)
+      mocks.readImageDimensions.mockResolvedValue({ width: 2000, height: 1500 })
+      mocks.addMomento.mutateAsync.mockResolvedValue(momento({ kind: 'foto' }))
+    })
+
+    it('deriva la miniatura, la sube y la guarda en el item', async () => {
+      mocks.createImageThumbnail.mockResolvedValue(
+        new File(['thumb'], 'thumb.jpg', { type: 'image/jpeg' }),
+      )
+      mocks.momentoUpload
+        .mockResolvedValueOnce({ storageKey: 'u1/original.jpg' })
+        .mockResolvedValueOnce({ storageKey: 'u1/thumb.jpg' })
+      const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+      await act(async () => {
+        result.current.addPhotoFiles([new File(['a'], 'a.jpg', { type: 'image/jpeg' })])
+      })
+      await act(async () => {
+        await result.current.submit()
+      })
+
+      expect(mocks.momentoUpload).toHaveBeenCalledTimes(2)
+      expect(mocks.addMomento.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                storageKey: 'u1/original.jpg',
+                thumbStorageKey: 'u1/thumb.jpg',
+              }),
+            ],
+          }),
+        }),
+      )
+    })
+
+    it('si la derivación da null (foto ya chica), sube solo el original', async () => {
+      mocks.createImageThumbnail.mockResolvedValue(null)
+      mocks.momentoUpload.mockResolvedValueOnce({ storageKey: 'u1/chica.jpg' })
+      const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
+
+      await act(async () => {
+        result.current.addPhotoFiles([new File(['a'], 'a.jpg', { type: 'image/jpeg' })])
+      })
+      await act(async () => {
+        await result.current.submit()
+      })
+
+      expect(mocks.momentoUpload).toHaveBeenCalledTimes(1)
+      const item = mocks.addMomento.mutateAsync.mock.calls[0]![0].payload.items[0]
+      expect(item.thumbStorageKey).toBeUndefined()
+    })
   })
 
   describe('póster de video', () => {

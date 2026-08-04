@@ -11,6 +11,7 @@ import { runWithSystemRls } from './_lib/user-rls.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
 import { presignGet } from './_lib/r2.js'
 import { isR2MomentoKey } from './_lib/momentos-media-mime.js'
+import { IMMUTABLE_PRIVATE_MEDIA_CACHE } from './_lib/media-cache.js'
 
 /**
  * GET /api/momentos-file/:key
@@ -29,9 +30,9 @@ import { isR2MomentoKey } from './_lib/momentos-media-mime.js'
  *   - Keys legacy (sin "/" — solo hash.ext) pertenecen al usuario legacy:
  *     se sirven solo si el usuario autenticado resuelve a `legacy-single-user`.
  *
- * Cache-Control: private + no-store. Aunque la key incluya userId + random
- * hash, estos bytes son contenido privado de un usuario. No deben quedar en
- * caches compartidas ni sobrevivir como respuestas publicas de CDN.
+ * Cache-Control: `private, max-age, immutable` para los blobs (la key es
+ * aleatoria e inmutable: caché del navegador sí, caches compartidas no — ver
+ * _lib/media-cache.ts) y `no-store` para los 302 a R2 (la firma vence).
  */
 type MediaReferenceRow = {
   referenced: boolean
@@ -86,6 +87,7 @@ async function isMediaReferencedByReadableMomento(
             -- (404) aunque sí pueda reproducir el video.
             WHERE item->>'storageKey' = ${storageKey}
                OR item->>'posterStorageKey' = ${storageKey}
+               OR item->>'thumbStorageKey' = ${storageKey}
           )
           OR EXISTS (
             SELECT 1
@@ -153,6 +155,8 @@ export default withObservability(
         status: 302,
         headers: {
           Location: signedUrl,
+          // El redirect NO se cachea: la URL firmada vence en ~15 min y un
+          // redirect cacheado serviría un enlace muerto.
           'Cache-Control': 'private, no-store',
         },
       })
@@ -169,7 +173,9 @@ export default withObservability(
     return new Response(blob.data, {
       headers: {
         'Content-Type': mime,
-        'Cache-Control': 'private, no-store',
+        // Key aleatoria e inmutable → cacheable para siempre en el navegador
+        // (privado). Ver _lib/media-cache.ts.
+        'Cache-Control': IMMUTABLE_PRIVATE_MEDIA_CACHE,
         Vary: 'Authorization',
       },
     })

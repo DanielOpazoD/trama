@@ -12,6 +12,8 @@ export type ExistingPhotoEditItem = {
   type?: 'image' | 'video'
   /** Póster del clip; la tile lo monta como <img> en vez de bajar el video. */
   posterStorageKey?: string
+  /** Miniatura derivada de una foto; ídem, la tile no baja el original. */
+  thumbStorageKey?: string
 }
 
 export type NewPhotoEditItem = {
@@ -69,7 +71,7 @@ export function FotoPhotoTile({
           </>
         ) : (
           <AuthenticatedMomentoImage
-            storageKey={item.storageKey}
+            storageKey={item.thumbStorageKey ?? item.storageKey}
             alt={`foto ${idx + 1}`}
             className="w-full h-full object-cover"
             loading="lazy"

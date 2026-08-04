@@ -7,6 +7,7 @@ import { logOperationalEvent } from './_lib/operational-events.js'
 import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
 import { presignGet } from './_lib/r2.js'
+import { IMMUTABLE_PRIVATE_MEDIA_CACHE } from './_lib/media-cache.js'
 
 /**
  * GET /api/library-uploads-file/:userId/:key
@@ -28,7 +29,7 @@ import { presignGet } from './_lib/r2.js'
  *     firmada y vigente). Cache-Control private + no-store en el redirect para
  *     que la URL firmada no quede cacheada.
  *
- * Cache-Control: private + no-store + Vary Authorization — contenido privado,
+ * Cache-Control: immutable privado para blobs, no-store para el 302 (firma),
  * no debe quedar en caches compartidas.
  */
 const STORE = 'library-uploads'
@@ -119,7 +120,9 @@ export default withObservability(
     return new Response(blob.data, {
       headers: {
         'Content-Type': mime,
-        'Cache-Control': 'private, no-store',
+        // Key aleatoria e inmutable → cacheable para siempre en el navegador
+        // (privado). El 302 de arriba sí queda no-store: la firma vence.
+        'Cache-Control': IMMUTABLE_PRIVATE_MEDIA_CACHE,
         Vary: 'Authorization',
       },
     })

@@ -45,9 +45,10 @@ function buildInitialItems(momento: Momento): PhotoEditItem[] {
     // Preservar el marcador de video: sin esto, re-guardar el momento (aunque
     // solo se cambie el caption) degradaría el clip a una foto rota.
     type: it.type,
-    // Ídem el póster: perderlo aquí haría que cada edición devuelva las
-    // miniaturas del clip a bajar el video entero.
+    // Ídem el póster y la miniatura: perderlos aquí haría que cada edición
+    // devuelva las tiles a bajar el original entero.
     posterStorageKey: it.posterStorageKey,
+    thumbStorageKey: it.thumbStorageKey,
   }))
 }
 
@@ -241,6 +242,7 @@ export function FotoEditModal({
         height?: number
         type?: 'image' | 'video'
         posterStorageKey?: string
+        thumbStorageKey?: string
       }
       const finalItems: FinalItem[] = items.flatMap((it) => {
         if (it.kind === 'existing') {
@@ -252,6 +254,7 @@ export function FotoEditModal({
           if (it.type !== undefined) out.type = it.type
           if (it.posterStorageKey !== undefined)
             out.posterStorageKey = it.posterStorageKey
+          if (it.thumbStorageKey !== undefined) out.thumbStorageKey = it.thumbStorageKey
           return [out]
         }
         const data = uploadedKeys.get(it.file)

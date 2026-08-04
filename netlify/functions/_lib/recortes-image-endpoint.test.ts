@@ -234,7 +234,8 @@ describe('recortes-image (servir)', () => {
     )
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toBe('image/webp')
-    expect(res.headers.get('Cache-Control')).toBe('private, no-store')
+    // Key inmutable → cacheable para siempre en el navegador (privado).
+    expect(res.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable')
   })
 
   it('404 si el blob no existe aunque el prefijo sea válido', async () => {

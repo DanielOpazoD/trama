@@ -5,6 +5,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
 import { logOperationalEvent } from './_lib/operational-events.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { IMMUTABLE_PRIVATE_MEDIA_CACHE } from './_lib/media-cache.js'
 
 /**
  * GET /api/recortes-image/:key
@@ -78,7 +79,9 @@ export default withObservability(
     return new Response(blob.data, {
       headers: {
         'Content-Type': mime,
-        'Cache-Control': 'private, no-store',
+        // Key aleatoria e inmutable → cacheable para siempre en el navegador
+        // (privado). Ver _lib/media-cache.ts.
+        'Cache-Control': IMMUTABLE_PRIVATE_MEDIA_CACHE,
         Vary: 'Authorization',
       },
     })

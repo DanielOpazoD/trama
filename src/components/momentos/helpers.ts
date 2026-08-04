@@ -9,6 +9,17 @@ export type MomentoPhotoItem = {
   /** Póster del clip (JPEG chico). Con él, las miniaturas montan un `<img>`
    *  en vez de resolver el video ENTERO por la capa autenticada. */
   posterStorageKey?: string
+  /** Miniatura derivada de una foto (~480px), gemela del póster. */
+  thumbStorageKey?: string
+}
+
+/** La storageKey que una GRILLA debe montar para este item: la miniatura
+ *  derivada si existe, el original si no. El visor/lightbox principal usa
+ *  siempre el original — esto es solo para tiles. */
+export function momentoItemThumbKey(
+  item: Pick<MomentoPhotoItem, 'storageKey' | 'thumbStorageKey'>,
+): string {
+  return item.thumbStorageKey ?? item.storageKey
 }
 
 /** True si el item es un clip de video (no una foto). Los items legacy no
@@ -94,6 +105,7 @@ function normalizePhotoItems(
     height?: number
     type?: 'image' | 'video'
     posterStorageKey?: string
+    thumbStorageKey?: string
   }>,
 ): MomentoPhotoItem[] {
   return items
@@ -102,9 +114,10 @@ function normalizePhotoItems(
       width: item.width,
       height: item.height,
       type: item.type,
-      // Sin arrastrarlo acá, todo render "olvidaría" el póster y cada
-      // miniatura volvería a bajar el video entero.
+      // Sin arrastrarlos acá, todo render "olvidaría" el póster/miniatura y
+      // cada tile volvería a bajar el original entero.
       posterStorageKey: item.posterStorageKey,
+      thumbStorageKey: item.thumbStorageKey,
     }))
     .filter((item) => item.storageKey.length > 0)
 }

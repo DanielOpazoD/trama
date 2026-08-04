@@ -190,7 +190,11 @@ describe('momentos-orphaned-blobs endpoint', () => {
       // cuenta como referenciado, se ofrecería para "rescatar" y adoptarlo lo
       // duplicaría como foto suelta del episodio.
       list.mockResolvedValue({
-        blobs: [{ key: `${USER}/poster-del-clip.jpg` }, { key: `${USER}/suelta.jpg` }],
+        blobs: [
+          { key: `${USER}/poster-del-clip.jpg` },
+          { key: `${USER}/mini-de-foto.jpg` },
+          { key: `${USER}/suelta.jpg` },
+        ],
       })
       mockSqlResponses.push([
         {
@@ -200,6 +204,10 @@ describe('momentos-orphaned-blobs endpoint', () => {
                 storageKey: `${USER}/r2-clip.mp4`,
                 type: 'video',
                 posterStorageKey: `${USER}/poster-del-clip.jpg`,
+              },
+              {
+                storageKey: `${USER}/una-foto.jpg`,
+                thumbStorageKey: `${USER}/mini-de-foto.jpg`,
               },
             ],
           },
@@ -214,6 +222,7 @@ describe('momentos-orphaned-blobs endpoint', () => {
       const body = await res.json()
       expect(body.orphans).toEqual([`${USER}/suelta.jpg`])
       expect(body.orphans).not.toContain(`${USER}/poster-del-clip.jpg`)
+      expect(body.orphans).not.toContain(`${USER}/mini-de-foto.jpg`)
     })
 
     it('GET informa r2:null cuando R2 no está configurado (no miré ≠ no había)', async () => {

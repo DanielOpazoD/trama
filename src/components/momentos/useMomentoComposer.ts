@@ -11,6 +11,7 @@ import {
   readVideoDimensions,
 } from './helpers'
 import { captureVideoPoster } from './captureVideoPoster'
+import { createImageThumbnail } from '../../lib/imageThumbnail'
 import { extractPhotoCapturedAtFromFile, pickOldestCapturedAt } from '../../lib/photoExif'
 
 /**
@@ -442,10 +443,24 @@ export function useMomentoComposer({
           //    el File original.
           const compressed = await compressImage(draft.file)
           // 2. Leer dimensiones del archivo comprimido (porque puede
-          //    haber sido reescalado).
-          const dims = await readImageDimensions(compressed)
-          // 3. Upload.
+          //    haber sido reescalado) y derivar la miniatura de grilla
+          //    (~480px) — gemela del póster de video.
+          const [dims, thumb] = await Promise.all([
+            readImageDimensions(compressed),
+            createImageThumbnail(compressed),
+          ])
+          // 3. Upload. La miniatura es best-effort de punta a punta: si la
+          //    derivación dio null o su subida falla, la foto entra igual y
+          //    las grillas caen al original.
           const uploaded = await api.momentoUpload(compressed)
+          let thumbStorageKey: string | undefined
+          if (thumb) {
+            try {
+              thumbStorageKey = (await api.momentoUpload(thumb)).storageKey
+            } catch {
+              thumbStorageKey = undefined
+            }
+          }
           setPhotoUploadProgress((prev) =>
             prev ? { done: prev.done + 1, total: prev.total } : prev,
           )
@@ -453,6 +468,7 @@ export function useMomentoComposer({
             storageKey: uploaded.storageKey,
             width: dims.width || undefined,
             height: dims.height || undefined,
+            thumbStorageKey,
           }
         }),
       )
