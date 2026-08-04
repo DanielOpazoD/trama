@@ -20,6 +20,12 @@ import { reclassifyRecorteToMomento } from './reclassify-media.js'
  *  fusionar envíos intencionalmente separados. */
 export const ALBUM_APPEND_WINDOW_SECONDS = 20
 
+/** Tope de fotos por álbum fusionado. La ventana es DESLIZANTE (cada anexado
+ *  la extiende), así que sin tope un goteo de fotos fusionaría sin fin. Al
+ *  llegar acá se deja de extender la ventana y el lote siguiente arranca
+ *  captura nueva por el flujo de pendientes. */
+export const MAX_ALBUM_PHOTOS = 30
+
 export type RecentMediaCapture = { kind: 'momento' | 'recorte'; id: string }
 
 /**
