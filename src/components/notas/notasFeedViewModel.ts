@@ -90,6 +90,16 @@ export function selectedRecortesFromItems(
     .map((item) => (item as Extract<CaptureItem, { type: 'recorte' }>).recorte)
 }
 
+/** Selección mixta (notas + capturas) EN ORDEN DEL FEED. El orden importa:
+ *  Imprenta agrupa imágenes consecutivas en hojas, así que el PDF resultante
+ *  respeta cómo se ven los items en pantalla, no el orden de los clics. */
+export function selectedCaptureItemsFromItems(
+  items: CaptureItem[],
+  selectedIds: ReadonlySet<string>,
+): CaptureItem[] {
+  return items.filter((item) => selectedIds.has(item.id))
+}
+
 export function buildNotasFeedVirtualItemMeta({
   item,
   index,

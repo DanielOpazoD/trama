@@ -1,6 +1,7 @@
 import type { RefObject } from 'react'
 import {
   CaptureStatusBar,
+  NotesSelectionToggle,
   FeedCalendarPanel,
   FeedSearchPanel,
   FeedSegmentTabs,
@@ -121,7 +122,7 @@ export function NotasFeedControls({
         />
       )}
 
-      {segment === 'capturas' && (
+      {segment === 'capturas' ? (
         <CaptureStatusBar
           accent={accent}
           capturaStatus={capturaStatus}
@@ -129,6 +130,14 @@ export function NotasFeedControls({
           galleryMode={galleryMode}
           selectionMode={selectionMode}
           onCapturaStatusChange={onCapturaStatusChange}
+          onToggleSelection={onToggleSelection}
+        />
+      ) : (
+        <NotesSelectionToggle
+          accent={accent}
+          itemCount={itemCount}
+          galleryMode={galleryMode}
+          selectionMode={selectionMode}
           onToggleSelection={onToggleSelection}
         />
       )}

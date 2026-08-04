@@ -9,11 +9,11 @@ import {
   useDeleteRecorte,
   useToast,
 } from '../../state'
-import type { Recorte, RecorteTarget } from '../../api'
+import type { CaptureItem, Note, Recorte, RecorteTarget } from '../../api'
 import { useRecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useRecorteFeedView } from '../../hooks/useRecorteFeedView'
 import { ViewHeader } from '../ViewHeader'
-import { RecorteSelectionBar } from '../recortes/RecorteSelectionBar'
+import { NotasFeedSelectionBars } from './NotasFeedSelectionBars'
 import { CapturasGalleryGrid } from '../recortes/CapturasGalleryGrid'
 import { PromoteModal, type PromoteSeed } from '../recortes/PromoteModal'
 import { FavoritosPanel } from '../recortes/FavoritosPanel'
@@ -65,8 +65,12 @@ const ACCENT = 'var(--accent-sage)'
  */
 export function NotasFeedView({
   onSendImagesToPdf,
+  onSendNoteToImprenta,
+  onSendItemsToImprenta,
 }: {
   onSendImagesToPdf?: (selected: Recorte[]) => void
+  onSendNoteToImprenta?: (note: Note) => void
+  onSendItemsToImprenta?: (items: CaptureItem[]) => Promise<void>
 }) {
   const toast = useToast()
   const reducedMotion = usePrefersReducedMotion()
@@ -115,6 +119,7 @@ export function NotasFeedView({
     exitSelection,
     galleryMode,
     selectedIds,
+    selectedItems,
     selectedRecortes,
     selectionMode,
     toggleSelect,
@@ -368,7 +373,8 @@ export function NotasFeedView({
                   }),
               })
             }
-            onToggleRecorteSelect={toggleSelect}
+            onToggleItemSelect={toggleSelect}
+            onSendNoteToImprenta={onSendNoteToImprenta}
             onPromoteRecorte={(recorte, target, seed) =>
               setPromoting({ recorte, target, seed })
             }
@@ -394,14 +400,15 @@ export function NotasFeedView({
         />
       )}
 
-      {segment === 'capturas' && selectionMode && (
-        <RecorteSelectionBar
-          selected={selectedRecortes}
-          onClear={exitSelection}
-          onDone={exitSelection}
-          onSendImagesToPdf={onSendImagesToPdf}
-        />
-      )}
+      <NotasFeedSelectionBars
+        segment={segment}
+        selectionMode={selectionMode}
+        selectedRecortes={selectedRecortes}
+        selectedItems={selectedItems}
+        onClear={exitSelection}
+        onSendImagesToPdf={onSendImagesToPdf}
+        onSendItemsToImprenta={onSendItemsToImprenta}
+      />
 
       {/* Escritura enfocada del composer: edita el MISMO borrador (draft/title). */}
       {composer.focusMode && (

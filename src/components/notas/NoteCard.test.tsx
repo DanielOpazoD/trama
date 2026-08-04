@@ -63,6 +63,20 @@ describe('<NoteCard />', () => {
     ).toBeInTheDocument()
   })
 
+  it('"Fotos a Imprenta" solo aparece con handler Y nota con imágenes', () => {
+    const onSendToImprenta = vi.fn()
+    const { unmount } = renderCard({ ...BASE, hasImages: true }, { onSendToImprenta })
+    openMenu()
+    fireEvent.click(screen.getByRole('menuitem', { name: /fotos a imprenta/i }))
+    expect(onSendToImprenta).toHaveBeenCalledTimes(1)
+    unmount()
+
+    // Sin imágenes (flag del servidor), la acción prometería en falso: no está.
+    renderCard({ ...BASE, hasImages: false }, { onSendToImprenta })
+    openMenu()
+    expect(screen.queryByRole('menuitem', { name: /fotos a imprenta/i })).toBeNull()
+  })
+
   it('promueve a Momento desde el menú cuando no fue promovida', () => {
     const onPromote = vi.fn()
     renderCard(BASE, { onPromote })

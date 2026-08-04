@@ -207,6 +207,39 @@ export function FeedCalendarPanel({
   )
 }
 
+/** Toggle de selección para los segmentos de NOTAS (escritas/todo), donde no
+ *  existe la barra de estado de capturas. Mismo gesto y mismo lenguaje que en
+ *  capturas, para que "seleccionar" viva SIEMPRE en la misma esquina. */
+export function NotesSelectionToggle({
+  accent,
+  itemCount,
+  galleryMode,
+  selectionMode,
+  onToggleSelection,
+}: {
+  accent: string
+  itemCount: number
+  galleryMode: boolean
+  selectionMode: boolean
+  onToggleSelection: () => void
+}) {
+  if (itemCount === 0 || galleryMode) return null
+  return (
+    <div className="mb-4 flex items-center pl-0.5 text-caption text-ink-300">
+      <button
+        type="button"
+        onClick={onToggleSelection}
+        aria-pressed={selectionMode}
+        className="ml-auto inline-flex items-center gap-1.5 transition-colors hover:text-ink-700"
+        style={selectionMode ? { color: accent } : undefined}
+      >
+        <CheckSquareIcon size={13} />
+        {selectionMode ? 'salir selección' : 'seleccionar'}
+      </button>
+    </div>
+  )
+}
+
 export function CaptureStatusBar({
   accent,
   capturaStatus,

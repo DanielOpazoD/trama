@@ -9,6 +9,7 @@ import {
   MomentosIcon,
   PencilIcon,
   PinIcon,
+  PrinterIcon,
   TrashIcon,
 } from '../Icons'
 import { IconButton } from '../IconButton'
@@ -20,6 +21,7 @@ import { AttachmentAudio } from './AttachmentAudio'
 import { useAutosizeTextarea } from '../../hooks/useAutosizeTextarea'
 import { useToast, useUploadNotasAttachment } from '../../state'
 import { compressImage } from '../../lib/imageCompression'
+import { canSendNoteToImprenta } from '../../lib/pdfStudio/import/notesToPdfFiles'
 import { ComposerFooter, composerTitleClass, editingFrameStyle } from './composerChrome'
 
 // Lazy: la superficie de escritura enfocada (overlay fullscreen + serif) solo
@@ -64,6 +66,7 @@ export function NoteCard({
   onDelete,
   onPromote,
   onEdit,
+  onSendToImprenta,
   busy = false,
   promoting = false,
 }: {
@@ -72,6 +75,9 @@ export function NoteCard({
   onDelete: () => void
   onPromote: () => void
   onEdit: (patch: { content: string; title: string | null }) => void
+  /** Envía las fotos anexas de ESTA nota a Imprenta. Solo se ofrece si la
+   *  nota tiene imágenes (flag `hasImages`, calculado por el servidor). */
+  onSendToImprenta?: () => void
   busy?: boolean
   promoting?: boolean
 }) {
@@ -342,6 +348,17 @@ export function NoteCard({
                 >
                   <CameraIcon size={13} /> Agregar foto
                 </OverflowMenuItem>
+                {onSendToImprenta && canSendNoteToImprenta(note) && (
+                  <OverflowMenuItem
+                    onClick={() => {
+                      onSendToImprenta()
+                      close()
+                    }}
+                    disabled={busy}
+                  >
+                    <PrinterIcon size={13} /> Fotos a Imprenta
+                  </OverflowMenuItem>
+                )}
                 <OverflowMenuItem
                   onClick={() => {
                     onTogglePin()
