@@ -33,7 +33,7 @@ import { buildPhotoPrompt, validatePhotoExtraction } from './vision.js'
 import type { PhotoMode } from './vision.js'
 import { transcriptionToIntent } from './transcribe.js'
 import { storeMedia } from './media-store.js'
-import { appendSplitAlbum, readRecentMediaCapture } from './album.js'
+import { appendSplitAlbum, MAX_ALBUM_PHOTOS, readRecentMediaCapture } from './album.js'
 import { setAwaitingDescription } from './description.js'
 import { persistWhatsAppEvent } from './events.js'
 import { captureDeepLink } from './deep-link.js'
@@ -343,30 +343,31 @@ export async function handleInboundMedia(
     }
   }
 
-  const pendingPrompt = await maybeStorePendingMediaPrompt(sql, userId, phone, {
-    route,
-    body: mediaDirectives.body,
-    grouping: mediaDirectives.grouping,
-    recorteImages: recorteKeys,
-    momentoImageCount: momentoKeys.length,
-  })
-  if (pendingPrompt) {
-    return {
-      message: pendingPrompt,
-      saved: 0,
-      offerDestino: false,
-      offerDescription: false,
-    }
-  }
-
   // Álbum partido: ¿estas fotos nuevas se anexan a la captura de media reciente?
   // La decisión + las 4 ramas cross-store (con rollback) viven en album.ts; acá
   // solo orquestamos. `appendSplitAlbum` vacía las keys cuando confirma.
+  //
+  // Dos maneras de entrar:
+  //   - `juntar`/`agregar…` (grouping 'append'): intención explícita, como
+  //     siempre.
+  //   - AUTO-CONTINUACIÓN: una foto SIN caption que llega dentro de la ventana
+  //     tras una captura de media es la firma de un álbum que WhatsApp/Twilio
+  //     partió en mensajes (solo el primero trae el caption). Antes quedaba
+  //     pendiente y preguntaba destino foto por foto; ahora se suma sola al
+  //     recorte-evento/episodio reciente. Los escapes (`nuevo`, `separado`,
+  //     `no juntar`, un caption cualquiera o `Fecha:`) siguen creando captura
+  //     aparte, y pasada la ventana el flujo de pendientes es el mismo de antes.
   let appendedTotal: number | null = null
   const newImageCount = momentoKeys.length + recorteKeys.length
   const isRawMediaRoute = route === 'momento' || route === 'recorte'
-  const canAppendToRecent = mediaDirectives.grouping === 'append'
-  if (newImageCount > 0 && isRawMediaRoute && canAppendToRecent) {
+  const wantsExplicitAppend = mediaDirectives.grouping === 'append'
+  const autoAlbumContinuation =
+    mediaDirectives.grouping === 'auto' && mediaDirectives.body.trim() === ''
+  if (
+    newImageCount > 0 &&
+    isRawMediaRoute &&
+    (wantsExplicitAppend || autoAlbumContinuation)
+  ) {
     const recent = await readRecentMediaCapture(sql, userId, phone)
     if (recent) {
       const appended = await appendSplitAlbum(sql, userId, recent, {
@@ -383,6 +384,26 @@ export async function handleInboundMedia(
         lastKind = appended.lastKind
         saved += newImageCount
       }
+    }
+  }
+
+  // El flujo de media pendiente de siempre (fotos sueltas sin caption y sin
+  // captura reciente → preguntar). Si el álbum consumió las fotos no hace
+  // falta guardia: `appendSplitAlbum` vació `recorteKeys` y el prompt exige
+  // keys no vacías, así que corta solo.
+  const pendingPrompt = await maybeStorePendingMediaPrompt(sql, userId, phone, {
+    route,
+    body: mediaDirectives.body,
+    grouping: mediaDirectives.grouping,
+    recorteImages: recorteKeys,
+    momentoImageCount: momentoKeys.length,
+  })
+  if (pendingPrompt) {
+    return {
+      message: pendingPrompt,
+      saved: 0,
+      offerDestino: false,
+      offerDescription: false,
     }
   }
 
@@ -424,7 +445,14 @@ export async function handleInboundMedia(
   }
 
   if (saved > 0 && lastId) {
-    await recordLastCapture(sql, phone, userId, lastKind, lastId)
+    // El puntero de "última captura" extiende la ventana de álbum en cada
+    // anexado. Con tope: un goteo de fotos podría fusionar sin fin (ventana
+    // deslizante); al llegar al máximo dejamos de extenderla y la siguiente
+    // foto sin caption vuelve al flujo de pendientes.
+    const albumFull = appendedTotal !== null && appendedTotal >= MAX_ALBUM_PHOTOS
+    if (!albumFull) {
+      await recordLastCapture(sql, phone, userId, lastKind, lastId)
+    }
     logEvent({ event: 'whatsapp_capture', kind: lastKind, media: true, count: saved })
   }
 

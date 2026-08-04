@@ -835,6 +835,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMpendingFoto' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin captura reciente
     mockSqlResponses.push([]) // cleanupExpiredPendingMedia
     mockSqlResponses.push([{ n: 1 }]) // storePendingMedia
     mockSqlResponses.push([]) // persistWhatsAppEvent
@@ -900,6 +901,7 @@ describe('whatsapp-webhook', () => {
     mockSqlResponses.push([]) // ensureUserRow
     mockSqlResponses.push([{ message_sid: 'SMpendingFotoGrupo' }]) // claim
     mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([]) // readRecentMediaCapture: sin captura reciente
     mockSqlResponses.push([]) // cleanupExpiredPendingMedia
     mockSqlResponses.push([{ n: 1 }, { n: 1 }]) // storePendingMedia
     mockSqlResponses.push([]) // persistWhatsAppEvent
@@ -1505,6 +1507,125 @@ describe('whatsapp-webhook', () => {
     expect(body.get('ContentSid')).toBe('HXacts') // ← la lista, NO los 3 botones
     // {{1}} de la plantilla = la confirmación de la captura.
     expect(body.get('ContentVariables')).toContain('Recortes')
+  })
+
+  it('álbum partido AUTO: foto SIN caption tras un recorte reciente se anexa sola', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMauto1',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/auto',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMauto1' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // readRecentMediaCapture
+    mockSqlResponses.push([{ found: true, existing_n: 0, had_cover: true }]) // appendImagesToRecorteEvent
+    mockSqlResponses.push([]) // recordLastCapture
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    const xml = await res.text()
+    // Se anexó al evento reciente: NI quedó pendiente NI preguntó destino.
+    expect(xml).toContain('+1 foto')
+    expect(xml).toContain('ahora tiene 2')
+    expect(xml).not.toContain('¿Dónde la guardo?')
+    expect(
+      mockSqlResponses.calls.some((c) =>
+        /INSERT INTO whatsapp_pending_media/i.test(c.template),
+      ),
+    ).toBe(false)
+    expect(
+      mockSqlResponses.calls.some((c) => /INSERT INTO recorte_images/i.test(c.template)),
+    ).toBe(true)
+    // Bajo el tope, la ventana SÍ se extiende (el par diferencial del test
+    // del tope: sin esto, aquel podría pasar por trivialidad).
+    expect(
+      mockSqlResponses.calls.some((c) => /SET[\s\S]*last_capture_kind/i.test(c.template)),
+    ).toBe(true)
+  })
+
+  it('álbum partido AUTO: al llegar al tope de fotos la ventana deja de extenderse', async () => {
+    vi.stubEnv('TWILIO_AUTH_TOKEN', 'secret')
+    vi.stubEnv('TWILIO_ACCOUNT_SID', 'AC123')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    )
+    const fields = {
+      MessageSid: 'SMauto2',
+      From: 'whatsapp:+56912345678',
+      Body: '',
+      NumMedia: '1',
+      MediaUrl0: 'https://api.twilio.com/Media/auto-tope',
+      MediaContentType0: 'image/jpeg',
+    }
+    const sig = expectedTwilioSignature(
+      'secret',
+      'http://localhost/api/whatsapp-webhook',
+      fields,
+    )
+    mockSqlResponses.push([{ user_id: 'u1' }]) // resolveUserByPhone
+    mockSqlResponses.push([]) // ensureUserRow
+    mockSqlResponses.push([{ message_sid: 'SMauto2' }]) // claim
+    mockSqlResponses.push([]) // UPDATE last_message_at
+    mockSqlResponses.push([{ kind: 'recorte', id: 'r1' }]) // readRecentMediaCapture
+    // El evento ya tiene 29: con esta foto llega a 30 (el tope).
+    mockSqlResponses.push([{ found: true, existing_n: 29, had_cover: true }]) // append
+
+    const res = await webhookHandler(
+      new Request('http://localhost/api/whatsapp-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'x-twilio-signature': sig,
+        },
+        body: new URLSearchParams(fields).toString(),
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(200)
+    expect(await res.text()).toContain('ahora tiene 30')
+    // Álbum lleno: NO se re-extiende la ventana (sin UPDATE de last_capture —
+    // el SELECT de readRecentMediaCapture sí menciona la columna), así el
+    // próximo lote arranca captura nueva por el flujo de pendientes.
+    expect(
+      mockSqlResponses.calls.some((c) => /SET[\s\S]*last_capture_kind/i.test(c.template)),
+    ).toBe(false)
   })
 
   it('álbum partido: foto con "juntar" tras un recorte reciente → se ANEXA al evento', async () => {

@@ -106,10 +106,17 @@ texto. Hoy: **imágenes**.
 
 **Álbum partido (fotos en mensajes separados).** WhatsApp/Twilio a veces parte un
 envío de varias fotos en **mensajes separados** (un webhook por foto, y solo el
-primero con caption). Para evitar uniones accidentales, una foto nueva sin
-caption ya no se anexa automáticamente: queda pendiente y pregunta destino. El
-anexado reactivo (`_lib/whatsapp/album.ts`) queda reservado para intención
-explícita dentro de la ventana corta (`ALBUM_APPEND_WINDOW_SECONDS`, 20 s):
+primero con caption). Una foto **sin caption** que llega dentro de la ventana
+corta (`ALBUM_APPEND_WINDOW_SECONDS`, 20 s, deslizante: cada anexado la extiende)
+tras una captura de media del mismo número **se anexa sola** a esa captura — es
+la firma de un álbum, y así el envío entero termina en UNA entrada (recorte-
+evento o episodio de Momentos). Tope `MAX_ALBUM_PHOTOS` (30): al llegar, la
+ventana deja de extenderse y el siguiente lote arranca captura nueva. Ojo:
+`deshacer` tras un anexado borra la captura ENTERA (el álbum fusionado), no solo
+la última foto. Escapes para no juntar: cualquier caption crea captura nueva, y
+también `nuevo`, `no juntar`, `separado`, `otra escena` o un caption con
+`Fecha:`. Sin captura reciente en ventana, la foto sin caption queda pendiente y
+pregunta destino, como siempre. El anexado también puede pedirse explícito:
 
 - Caption `juntar`, `agregar al anterior` o `sumar al anterior` tras un recorte
   reciente → se suma al **recorte-evento** (un recorte de 1 imagen se promueve a
