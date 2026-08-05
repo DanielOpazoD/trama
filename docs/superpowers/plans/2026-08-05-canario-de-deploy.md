@@ -57,6 +57,8 @@ bloquearía todo) y CodeRabbit (verdes vacíos por rate-limit).
 - Detecta _staleness_ del front servido; no valida migraciones ni functions
   por separado (van en el mismo deploy atómico de Netlify).
 - El primer run tras el merge puede alarmar si Netlify tarda más de 45 min en
-  publicar — falso positivo benigno que se cierra solo en el run siguiente.
+  publicar — falso positivo benigno: el siguiente run en `ok` **cierra el
+  issue automáticamente** (paso de éxito del workflow; sin ese cierre, un
+  issue viejo abierto suprimiría por dedup el aviso de un incidente futuro).
 - La protección de rama exige branch al día: PRs viejos piden "Update branch"
   antes de mergear (costo aceptado a cambio de no repetir el desync de #388).

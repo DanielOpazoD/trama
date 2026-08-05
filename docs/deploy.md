@@ -53,8 +53,11 @@ netlify api unlockDeploy --data '{"deploy_id":"<id-del-deploy>"}'
 netlify api createSiteBuild --data '{"site_id":"6023f353-1a4f-45fd-9cb0-fa1a7edd2a45"}'
 ```
 
-Verificar el arreglo con `node scripts/deploy-canary.mjs` desde el repo (debe
-decir `ok`) y cerrar el issue.
+Ojo: `createSiteBuild` solo **encola** el build (puede esperar capacidad).
+Esperar a que el deploy figure `Published` en la página de deploys y recién
+entonces verificar con `node scripts/deploy-canary.mjs` desde el repo (debe
+decir `ok`). El issue no hay que cerrarlo a mano: el próximo run del canario
+en verde lo cierra solo.
 
 ## Protección de la rama main
 

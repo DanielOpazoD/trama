@@ -16,6 +16,12 @@ on:
     - cron: '23 */6 * * *'
   workflow_dispatch:
 
+# Dos runs solapados (cron + manual) podrían ver ambos "cero issues
+# abiertos" y abrir dos: serializar mantiene el contrato de issue único.
+concurrency:
+  group: deploy-canary
+  cancel-in-progress: false
+
 permissions:
   contents: read
   issues: write
@@ -37,6 +43,19 @@ jobs:
       # Sin npm ci: la sonda es node puro (fetch global + git).
       - name: Producción vs origin/main
         run: node scripts/deploy-canary.mjs
+
+      # Ciclo de vida completo: la alarma abre el issue y la recuperación lo
+      # cierra. Sin esto, un issue viejo abierto suprimiría (por el dedup de
+      # abajo) el aviso de un incidente futuro.
+      - name: Cerrar issue si el canario volvió a ok
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue list --label deploy-canary --state open --json number --jq '.[].number' |
+            while read -r n; do
+              gh issue close "$n" --comment "El canario volvió a ok: producción sirve origin/main."
+            done
 
       - name: Abrir issue si hay alarma
         if: failure()
