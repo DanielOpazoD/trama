@@ -1,0 +1,3415 @@
+<!doctype html>
+<html lang="es" data-theme="auto">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trama · Mapa de arquitectura</title>
+    <style>
+      :root {
+        --bg: #f7f5f1;
+        --bg-panel: #fffefb;
+        --bg-sunken: #efece5;
+        --ink: #1e1c19;
+        --ink-soft: #5c574f;
+        --ink-faint: #8d867c;
+        --line: #ddd7cc;
+        --line-soft: #e9e4da;
+        --accent: #3d7fb5;
+        --node-bg: #fffefb;
+        --node-stroke: #d8d2c6;
+        --node-ink: #2a2723;
+        --edge: #b6ada0;
+        --shadow: 0 1px 2px rgba(30, 28, 25, 0.06), 0 4px 14px rgba(30, 28, 25, 0.05);
+        --shadow-lg: 0 8px 30px rgba(30, 28, 25, 0.14);
+        --radius: 10px;
+        --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root[data-theme='auto'] {
+          --bg: #16181c;
+          --bg-panel: #1d2025;
+          --bg-sunken: #14161a;
+          --ink: #e8e6e1;
+          --ink-soft: #a8a49c;
+          --ink-faint: #7b776f;
+          --line: #2e323a;
+          --line-soft: #262a31;
+          --accent: #6aa9dd;
+          --node-bg: #23272e;
+          --node-stroke: #363b44;
+          --node-ink: #e4e2dd;
+          --edge: #4a505b;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+          --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #16181c;
+        --bg-panel: #1d2025;
+        --bg-sunken: #14161a;
+        --ink: #e8e6e1;
+        --ink-soft: #a8a49c;
+        --ink-faint: #7b776f;
+        --line: #2e323a;
+        --line-soft: #262a31;
+        --accent: #6aa9dd;
+        --node-bg: #23272e;
+        --node-stroke: #363b44;
+        --node-ink: #e4e2dd;
+        --edge: #4a505b;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+      /* ---------- Cabecera ---------- */
+      header.top {
+        display: flex; align-items: center; gap: 18px;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg-panel);
+        flex-wrap: wrap;
+      }
+      .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+      .brand h1 { font-size: 16px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+      .brand .sub { font-size: 12.5px; color: var(--ink-faint); }
+      .stats { display: flex; gap: 16px; flex-wrap: wrap; }
+      .stat { display: flex; flex-direction: column; line-height: 1.15; }
+      .stat b { font-size: 14px; font-weight: 640; font-variant-numeric: tabular-nums; }
+      .stat span { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+      .icon-btn {
+        border: 1px solid var(--line); background: var(--bg-panel); color: var(--ink-soft);
+        width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 14px;
+        display: inline-flex; align-items: center; justify-content: center; padding: 0;
+      }
+      .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+      /* ---------- Cuerpo ---------- */
+      main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 372px; min-height: 0; }
+
+      .stage { position: relative; min-width: 0; min-height: 0; background: var(--bg-sunken); overflow: hidden; }
+      svg#diagram { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+      svg#diagram.dragging { cursor: grabbing; }
+
+      .toolbar {
+        position: absolute; top: 12px; left: 12px; right: 12px;
+        display: flex; gap: 8px; align-items: center; flex-wrap: wrap; pointer-events: none;
+      }
+      .toolbar > * { pointer-events: auto; }
+      .tool-group {
+        display: flex; background: var(--bg-panel); border: 1px solid var(--line);
+        border-radius: 8px; box-shadow: var(--shadow); overflow: hidden;
+      }
+      .tool-group button {
+        border: 0; background: transparent; color: var(--ink-soft); cursor: pointer;
+        padding: 7px 11px; font-size: 12.5px; font-family: inherit; border-right: 1px solid var(--line-soft);
+      }
+      .tool-group button:last-child { border-right: 0; }
+      .tool-group button:hover { background: var(--bg-sunken); color: var(--ink); }
+      .search-wrap { position: relative; }
+      #search {
+        width: 210px; max-width: 42vw; padding: 7px 11px 7px 30px; font-size: 12.5px; font-family: inherit;
+        border: 1px solid var(--line); border-radius: 8px; background: var(--bg-panel); color: var(--ink);
+        box-shadow: var(--shadow);
+      }
+      #search:focus { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 1px; }
+      .search-wrap::before {
+        content: '⌕'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+        color: var(--ink-faint); font-size: 14px; pointer-events: none;
+      }
+      #clear-btn { display: none; }
+      #clear-btn.on { display: inline-block; }
+
+      /* Leyenda y pista comparten una barra: nunca se pisan al angostar. */
+      .bottom-bar {
+        position: absolute; left: 12px; right: 12px; bottom: 12px;
+        display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+        pointer-events: none;
+      }
+      .bottom-bar > * { pointer-events: auto; }
+      .legend {
+        display: flex; gap: 5px; flex-wrap: wrap; min-width: 0;
+        background: color-mix(in srgb, var(--bg-panel) 92%, transparent);
+        border: 1px solid var(--line); border-radius: 8px; padding: 6px; box-shadow: var(--shadow);
+        backdrop-filter: blur(6px);
+      }
+      .legend button {
+        display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-family: inherit;
+        border: 1px solid transparent; background: transparent; color: var(--ink-soft);
+        border-radius: 6px; padding: 3px 7px; cursor: pointer;
+      }
+      .legend button:hover { background: var(--bg-sunken); }
+      .legend button.off { opacity: 0.4; }
+      .legend .swatch { width: 9px; height: 9px; border-radius: 2.5px; }
+
+      .hint {
+        font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; flex: none;
+        background: color-mix(in srgb, var(--bg-panel) 92%, transparent);
+        border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px;
+        backdrop-filter: blur(6px);
+      }
+      @media (max-width: 1400px) { .hint { display: none; } }
+
+      /* ---------- Nodos y aristas ---------- */
+      .node rect.body {
+        fill: var(--node-bg); stroke: var(--node-stroke); stroke-width: 1;
+        rx: 8; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));
+      }
+      .node { cursor: pointer; }
+      .node text { fill: var(--node-ink); font-size: 12px; font-family: var(--font); pointer-events: none; }
+      .node:hover rect.body { stroke: var(--accent); stroke-width: 1.6; }
+      .node.dim { opacity: 0.16; }
+      .node.hit { opacity: 1; }
+      .node.selected rect.body { stroke: var(--accent); stroke-width: 2.2; }
+      .node.in-flow rect.body { stroke-width: 2.2; }
+
+      path.edge { fill: none; stroke: var(--edge); stroke-width: 1.1; opacity: 0.5; }
+      path.edge.k-nav { stroke-dasharray: 3 4; opacity: 0.22; }
+      path.edge.k-auth { stroke: #8265b8; opacity: 0.5; }
+      path.edge.k-storage { stroke: #96793f; opacity: 0.5; }
+      path.edge.k-externo { stroke: #c07a3e; opacity: 0.55; }
+      path.edge.k-ci { stroke: #6b7a8f; opacity: 0.5; }
+      path.edge.dim { opacity: 0.06; }
+      path.edge.lit { opacity: 0.95; stroke-width: 2; }
+      path.edge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
+
+      path.flow-path {
+        fill: none; stroke-width: 2.6; stroke-linecap: round;
+        stroke-dasharray: 9 6; animation: march 1.1s linear infinite;
+      }
+      @keyframes march { to { stroke-dashoffset: -15; } }
+      @media (prefers-reduced-motion: reduce) {
+        path.flow-path { animation: none; stroke-dasharray: none; }
+      }
+      .step-badge circle { stroke: var(--bg-panel); stroke-width: 2; }
+      .step-badge text { font-size: 10.5px; font-weight: 700; fill: #fff; text-anchor: middle; font-family: var(--font); }
+
+      .band rect { fill: var(--ink); opacity: 0.022; }
+      .band text {
+        fill: var(--ink-faint); font-size: 10.5px; letter-spacing: 0.13em;
+        text-transform: uppercase; font-family: var(--font); font-weight: 600;
+      }
+
+      /* ---------- Tooltip ---------- */
+      #tip {
+        position: fixed; z-index: 40; max-width: min(330px, calc(100vw - 24px)); pointer-events: none; opacity: 0;
+        transition: opacity 0.12s ease; background: var(--bg-panel); color: var(--ink);
+        border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; box-shadow: var(--shadow-lg);
+      }
+      #tip.on { opacity: 1; }
+      #tip .t-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+      #tip .t-dot { width: 8px; height: 8px; border-radius: 2.5px; flex: none; }
+      #tip .t-title { font-weight: 640; font-size: 13px; }
+      #tip .t-layer { font-size: 10.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+      #tip .t-body { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
+      #tip .t-files { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line-soft); }
+      #tip .t-files code { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+      /* ---------- Panel ---------- */
+      aside.panel {
+        border-left: 1px solid var(--line); background: var(--bg-panel);
+        display: flex; flex-direction: column; min-height: 0;
+      }
+      .tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
+      .tabs button {
+        flex: 1; border: 0; background: transparent; font-family: inherit; font-size: 13px;
+        padding: 11px 8px; cursor: pointer; color: var(--ink-faint); border-bottom: 2px solid transparent;
+      }
+      .tabs button[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+      .panel-body { overflow-y: auto; padding: 12px; flex: 1; min-height: 0; }
+      .panel-body::-webkit-scrollbar { width: 9px; }
+      .panel-body::-webkit-scrollbar-thumb { background: var(--line); border-radius: 5px; }
+
+      .flow-card {
+        border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 8px;
+        overflow: hidden; background: var(--bg-panel);
+      }
+      .flow-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+      .flow-head {
+        display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left;
+        border: 0; background: transparent; font-family: inherit; cursor: pointer; padding: 11px 12px; color: inherit;
+      }
+      .flow-head:hover { background: var(--bg-sunken); }
+      .flow-num {
+        flex: none; width: 22px; height: 22px; border-radius: 6px; background: var(--bg-sunken);
+        color: var(--ink-faint); font-size: 11px; font-weight: 700; display: grid; place-items: center;
+        font-variant-numeric: tabular-nums;
+      }
+      .flow-card.active .flow-num { background: var(--accent); color: #fff; }
+      .flow-title { font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; }
+      .flow-sum { font-size: 12px; color: var(--ink-soft); margin-top: 3px; line-height: 1.45; }
+      .flow-meta { font-size: 11px; color: var(--ink-faint); margin-top: 5px; }
+      .steps { padding: 0 12px 12px 12px; display: none; }
+      .flow-card.active .steps { display: block; }
+      .step {
+        display: grid; grid-template-columns: 22px 1fr; gap: 9px; align-items: start;
+        padding: 7px 0; border-top: 1px solid var(--line-soft); width: 100%; text-align: left;
+        background: transparent; border-left: 0; border-right: 0; border-bottom: 0; font-family: inherit;
+        cursor: pointer; color: inherit;
+      }
+      .step:hover .step-label { color: var(--accent); }
+      .step-i {
+        width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+        font-size: 10.5px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; margin-top: 1px;
+      }
+      .step-label { font-size: 12.5px; line-height: 1.4; }
+      .step-node { font-size: 11px; color: var(--ink-faint); }
+      .step-file { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); word-break: break-all; }
+
+      .detail-title { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+      .detail-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+      .detail-title h2 { margin: 0; font-size: 15px; font-weight: 650; }
+      .detail-layer { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+      .detail-purpose { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 14px; }
+      .detail-h {
+        font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint);
+        margin: 14px 0 7px; font-weight: 650;
+      }
+      .file-list code {
+        display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+        background: var(--bg-sunken); border: 1px solid var(--line-soft); border-radius: 6px;
+        padding: 5px 8px; margin-bottom: 4px; word-break: break-all;
+      }
+      .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+      .chip {
+        font-size: 11.5px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+        background: var(--bg-panel); cursor: pointer; font-family: inherit; color: var(--ink-soft);
+      }
+      .chip:hover { border-color: var(--accent); color: var(--accent); }
+      .chip .arrow { color: var(--ink-faint); margin-right: 3px; }
+      .empty { color: var(--ink-faint); font-size: 12.5px; padding: 24px 6px; text-align: center; line-height: 1.6; }
+      .kbd {
+        font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line);
+        border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; color: var(--ink-soft);
+      }
+
+      /* En táctil el tooltip taparía media pantalla y el toque ya abre la ficha. */
+      @media (hover: none) {
+        #tip { display: none; }
+      }
+
+      @media (max-width: 1080px) {
+        main { grid-template-columns: 1fr; grid-template-rows: 58vh minmax(0, 1fr); }
+        aside.panel { border-left: 0; border-top: 1px solid var(--line); }
+        .hint { display: none; }
+        .stats { gap: 12px; }
+      }
+      @media (max-width: 640px) {
+        .stats .stat:nth-child(n + 4) { display: none; }
+        #search { width: 140px; }
+        .legend { max-width: calc(100% - 24px); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="brand">
+          <h1>Trama · Arquitectura</h1>
+          <span class="sub" id="sub"></span>
+        </div>
+        <div class="stats" id="stats"></div>
+        <button class="icon-btn" id="theme-btn" title="Cambiar tema" aria-label="Cambiar tema">◐</button>
+      </header>
+
+      <main>
+        <section class="stage">
+          <div class="toolbar">
+            <div class="tool-group">
+              <button id="zoom-out" title="Alejar" aria-label="Alejar">−</button>
+              <button id="zoom-fit" title="Ajustar a la pantalla">Ajustar</button>
+              <button id="zoom-in" title="Acercar" aria-label="Acercar">+</button>
+            </div>
+            <div class="search-wrap">
+              <input id="search" type="search" placeholder="Buscar componente…" autocomplete="off" />
+            </div>
+            <div class="tool-group" id="clear-btn"><button id="clear">Limpiar selección</button></div>
+          </div>
+
+          <svg id="diagram" role="img" aria-label="Diagrama de arquitectura de Trama">
+            <defs></defs>
+            <g id="viewport">
+              <g id="bands"></g>
+              <g id="edges"></g>
+              <g id="edge-hits"></g>
+              <g id="flowlayer"></g>
+              <g id="nodes"></g>
+              <g id="badges"></g>
+            </g>
+          </svg>
+
+          <div class="bottom-bar">
+            <div class="legend" id="legend"></div>
+            <div class="hint">Arrastra para mover · rueda para acercar · clic en un nodo para ver su ficha</div>
+          </div>
+        </section>
+
+        <aside class="panel">
+          <div class="tabs" role="tablist">
+            <button role="tab" id="tab-flows" aria-selected="true" aria-controls="pane-flows">Flujos</button>
+            <button role="tab" id="tab-node" aria-selected="false" aria-controls="pane-node">Componente</button>
+          </div>
+          <div class="panel-body" id="pane-flows" role="tabpanel"></div>
+          <div class="panel-body" id="pane-node" role="tabpanel" hidden></div>
+        </aside>
+      </main>
+    </div>
+
+    <div id="tip" role="tooltip"></div>
+
+    <script>
+      /* mapa:inicio */
+      const DATA = {
+  "meta": {
+    "project": "Trama",
+    "description": "Mapa cognitivo personal: dos mundos (Trama y Notas) sobre React + Vite en el cliente y Netlify Functions + Neon Postgres en el servidor, con media en Netlify Blobs y Cloudflare R2, auth Clerk, captura por WhatsApp y varios proveedores de LLM.",
+    "generatedAt": "2026-08-05",
+    "commit": "a93be05e",
+    "stats": {
+      "endpoints": 103,
+      "migraciones": 96,
+      "archivosDeTest": 778,
+      "specsE2E": 30,
+      "scriptsOperacionales": 68,
+      "lineasSrc": 163211,
+      "lineasFunctions": 74233
+    },
+    "layers": [
+      {
+        "id": "entrada",
+        "label": "Entradas",
+        "color": "#c07a3e",
+        "description": "Canales por los que entra actividad al sistema."
+      },
+      {
+        "id": "frontend",
+        "label": "Vistas",
+        "color": "#3d7fb5",
+        "description": "Shell de navegación y vistas de los dos mundos."
+      },
+      {
+        "id": "cliente",
+        "label": "Cliente",
+        "color": "#3f9aa0",
+        "description": "Estado, cliente HTTP y librerías que corren en el navegador."
+      },
+      {
+        "id": "borde",
+        "label": "Borde backend",
+        "color": "#8265b8",
+        "description": "Routing, autenticación, aislamiento y contratos de request."
+      },
+      {
+        "id": "endpoint",
+        "label": "Endpoints",
+        "color": "#3f9268",
+        "description": "Los ~103 endpoints agrupados por dominio."
+      },
+      {
+        "id": "servicio",
+        "label": "Servicios",
+        "color": "#b5657f",
+        "description": "Lógica compartida en netlify/functions/_lib."
+      },
+      {
+        "id": "dato",
+        "label": "Datos y externos",
+        "color": "#96793f",
+        "description": "Persistencia y servicios de terceros."
+      },
+      {
+        "id": "ci",
+        "label": "Entrega",
+        "color": "#6b7a8f",
+        "description": "CI, build, publicación y vigilancia del deploy."
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "navegador",
+      "label": "Navegador / PWA",
+      "layer": "entrada",
+      "x": 60,
+      "y": 44,
+      "w": 168,
+      "h": 56,
+      "purpose": "El usuario entra por la web app instalable. Sirve los dos mundos y persiste el mundo activo en localStorage.",
+      "files": [
+        "index.html",
+        "src/main.tsx",
+        "public/manifest.json"
+      ]
+    },
+    {
+      "id": "whatsapp-in",
+      "label": "WhatsApp (Twilio)",
+      "layer": "entrada",
+      "x": 1010,
+      "y": 44,
+      "w": 168,
+      "h": 56,
+      "purpose": "Captura móvil sin abrir la app: fotos, audios y texto llegan como mensajes y se convierten en momentos, notas, citas o recortes.",
+      "files": [
+        "netlify/functions/whatsapp-webhook.mts",
+        "docs/whatsapp.md"
+      ]
+    },
+    {
+      "id": "extension",
+      "label": "Extensión Chrome",
+      "layer": "entrada",
+      "x": 1390,
+      "y": 44,
+      "w": 168,
+      "h": 56,
+      "purpose": "Guarda recortes y favoritos desde cualquier página usando un token personal (trama_pat_*), sin sesión de Clerk.",
+      "files": [
+        "extension/background.js",
+        "extension/lib/capture.js",
+        "extension/lib/favorito.js"
+      ]
+    },
+    {
+      "id": "shell",
+      "label": "Shell · ViewRouter · ⌘K",
+      "layer": "frontend",
+      "x": 60,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Monta un mundo u otro a pantalla completa, enruta las vistas (cada una en su propio ErrorBoundary) y aloja la paleta de comandos, que es hoy el buscador global.",
+      "files": [
+        "src/App.tsx",
+        "src/components/ViewRouter.tsx",
+        "src/components/CommandPalette.tsx",
+        "src/lib/navigation.ts"
+      ]
+    },
+    {
+      "id": "v-home",
+      "label": "Inicio",
+      "layer": "frontend",
+      "x": 250,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Home del mundo Trama: saludo por hora, efemérides, hilos sueltos y crónicas. Única vista no diferida, por ser el primer pintado.",
+      "files": [
+        "src/components/HomeView.tsx",
+        "src/components/home/"
+      ]
+    },
+    {
+      "id": "v-grafo",
+      "label": "Grafo",
+      "layer": "frontend",
+      "x": 440,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Mapa cognitivo interactivo de entidades y relaciones, renderizado con sigma sobre graphology en canvas full-bleed.",
+      "files": [
+        "src/components/GraphView.tsx",
+        "src/components/graph/GraphCanvasSigma.tsx",
+        "src/components/graph/graphViewModel.ts"
+      ]
+    },
+    {
+      "id": "v-entidades",
+      "label": "Entidades",
+      "layer": "frontend",
+      "x": 630,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Catálogo de personas, obras y conceptos con formulario, filtros y vista de vínculos.",
+      "files": [
+        "src/components/EntitiesWorkbench.tsx",
+        "src/components/entities/EntityForm.tsx"
+      ]
+    },
+    {
+      "id": "v-citas",
+      "label": "Citas",
+      "layer": "frontend",
+      "x": 820,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Colección de citas ancladas a entidades, con exportación a Lámina (PNG) y Libro (PDF), más Careo y Espejo.",
+      "files": [
+        "src/components/QuotesView.tsx",
+        "src/components/quotes/LaminaModal.tsx",
+        "src/components/quotes/LibroModal.tsx"
+      ]
+    },
+    {
+      "id": "v-momentos",
+      "label": "Momentos",
+      "layer": "frontend",
+      "x": 1010,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Diario multimedia: composer de fotos, video y audio, álbum en grilla, edición, papelera y compartir por invitación.",
+      "files": [
+        "src/components/MomentosView.tsx",
+        "src/components/momentos/useMomentoComposer.ts",
+        "src/components/momentos/AlbumGrid.tsx"
+      ]
+    },
+    {
+      "id": "v-chat",
+      "label": "Chat · Ask",
+      "layer": "frontend",
+      "x": 1200,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Diálogo con IA sobre el corpus propio; devuelve respuesta y propuestas de extracción aplicables al grafo.",
+      "files": [
+        "src/components/ChatView.tsx",
+        "src/components/AskBar.tsx",
+        "src/components/chat/InlineProposal.tsx"
+      ]
+    },
+    {
+      "id": "v-lentes",
+      "label": "Cronología · Atlas · Sugerencias",
+      "layer": "frontend",
+      "x": 1390,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Lentes sobre el mismo corpus: línea de tiempo, agrupación espacial y sugerencias proactivas generadas por IA.",
+      "files": [
+        "src/components/CronologiaView.tsx",
+        "src/components/AtlasView.tsx",
+        "src/components/ProactiveView.tsx"
+      ]
+    },
+    {
+      "id": "v-notas",
+      "label": "Notas · feed",
+      "layer": "frontend",
+      "x": 250,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Feed unificado de notas y recortes, paginado en servidor y virtualizado, con selección múltiple que alimenta a Imprenta.",
+      "files": [
+        "src/components/notas/NotasFeedView.tsx",
+        "src/components/notas/NotasFeedVirtualList.tsx",
+        "src/components/notas/NotasImprentaSelectionBar.tsx"
+      ]
+    },
+    {
+      "id": "v-tareas",
+      "label": "Tareas · Prompts · Claves",
+      "layer": "frontend",
+      "x": 440,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Tareas por semana, biblioteca versionada de prompts y vault de claves cifrado en el cliente.",
+      "files": [
+        "src/components/notas/TareasView.tsx",
+        "src/components/notas/PromptsView.tsx",
+        "src/components/notas/ClavesView.tsx",
+        "src/lib/vaultCrypto.ts"
+      ]
+    },
+    {
+      "id": "v-imprenta",
+      "label": "Imprenta / Planillas",
+      "layer": "frontend",
+      "x": 630,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Editor de PDF completo (anotar, formularios, OCR, ensamblar, exportar). Planillas es el mismo componente con studioMode distinto.",
+      "files": [
+        "src/components/notas/pdfStudio/PdfStudioView.tsx",
+        "src/components/notas/NotasWorld.tsx"
+      ]
+    },
+    {
+      "id": "v-biblioteca",
+      "label": "Biblioteca",
+      "layer": "frontend",
+      "x": 820,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Gestor de archivos con miniaturas autenticadas, visor de Office (mammoth) y de planillas (xlsx), enlaces y etiquetas.",
+      "files": [
+        "src/components/BibliotecaView.tsx",
+        "src/components/biblioteca/Thumbnail.tsx",
+        "src/components/biblioteca/BibliotecaOfficeViewer.tsx"
+      ]
+    },
+    {
+      "id": "v-recortes",
+      "label": "Recortes / capturas",
+      "layer": "frontend",
+      "x": 1010,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Capturas rápidas de imagen y texto, con galería propia y sugerencia de destino asistida por IA.",
+      "files": [
+        "src/components/recortes/CapturasGalleryGrid.tsx",
+        "netlify/functions/_lib/recortes-suggest.ts"
+      ]
+    },
+    {
+      "id": "state",
+      "label": "Estado · TanStack Query",
+      "layer": "cliente",
+      "x": 250,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Un hook por dominio con queries y mutaciones optimistas; registro central de queryKeys e invalidación agrupada por superficie.",
+      "files": [
+        "src/state/queryClient.ts",
+        "src/state/cacheOptimistic.ts",
+        "src/state/cacheInvalidation.ts",
+        "src/state/useMomentos.ts"
+      ]
+    },
+    {
+      "id": "api-client",
+      "label": "Cliente HTTP · request()",
+      "layer": "cliente",
+      "x": 440,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Único punto de salida HTTP: adjunta el Bearer de Clerk, entiende el shape canónico de error del servidor y cruza snake_case a camelCase.",
+      "files": [
+        "src/api/request.ts",
+        "src/api/transform.ts",
+        "src/api/momentos.ts"
+      ]
+    },
+    {
+      "id": "auth-bridge",
+      "label": "ApiAuthBridge · token",
+      "layer": "cliente",
+      "x": 630,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Conecta el getToken() de Clerk React con el cliente HTTP, de modo que cualquier request (incluida la media) viaje autenticada.",
+      "files": [
+        "src/components/ApiAuthBridge.tsx",
+        "src/api/request.ts"
+      ]
+    },
+    {
+      "id": "authed-media",
+      "label": "Media autenticada",
+      "layer": "cliente",
+      "x": 820,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Resuelve imágenes y video privados a object-URL con estados de carga, placeholder del color dominante y fundido de entrada.",
+      "files": [
+        "src/components/momentos/AuthenticatedMedia.tsx",
+        "src/hooks/useMediaReveal.ts"
+      ]
+    },
+    {
+      "id": "lib-media",
+      "label": "Imagen: compresión · miniatura · color",
+      "layer": "cliente",
+      "x": 1010,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Todo lo que se deriva en el navegador antes de subir: compresión, miniatura de grilla, color dominante, póster de video y EXIF.",
+      "files": [
+        "src/lib/compressImage.ts",
+        "src/lib/imageThumbnail.ts",
+        "src/lib/imageColor.ts",
+        "src/lib/photoExif.ts"
+      ]
+    },
+    {
+      "id": "lib-pdf",
+      "label": "Motor PDF + OCR",
+      "layer": "cliente",
+      "x": 1200,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Modelo con historial, ensamblado, formularios rellenables, exportación en worker y OCR con tesseract; todo cargado en diferido.",
+      "files": [
+        "src/lib/pdfStudio/model/",
+        "src/lib/pdfStudio/assemble/assembleImages.ts",
+        "src/lib/pdfStudio/ocr/pdfOcr.ts"
+      ]
+    },
+    {
+      "id": "lib-graph",
+      "label": "Grafo · Lámina · Libro",
+      "layer": "cliente",
+      "x": 1390,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Render del grafo con sigma/graphology y exportación editorial: lámina PNG tipografiada y libro PDF con fuentes propias.",
+      "files": [
+        "src/components/graph/graphViewModel.ts",
+        "src/lib/lamina.ts",
+        "src/lib/libro/buildLibro.ts"
+      ]
+    },
+    {
+      "id": "demo-mode",
+      "label": "Modo prueba (localStorage)",
+      "layer": "cliente",
+      "x": 250,
+      "y": 424,
+      "w": 168,
+      "h": 56,
+      "purpose": "Backend completo en el navegador que intercepta request(): permite recorrer y editar toda la app sin cuenta ni base de datos.",
+      "files": [
+        "src/lib/demo.ts",
+        "src/lib/demoStore.ts",
+        "src/lib/demoSeed.ts"
+      ]
+    },
+    {
+      "id": "pdf-import",
+      "label": "Adaptadores → Imprenta",
+      "layer": "cliente",
+      "x": 1200,
+      "y": 424,
+      "w": 168,
+      "h": 56,
+      "purpose": "Normalizan orígenes distintos (notas, recortes, selección del feed, biblioteca) al contrato File[] que consume el editor de PDF.",
+      "files": [
+        "src/lib/pdfStudio/import/notesToPdfFiles.ts",
+        "src/lib/pdfStudio/import/captureItemsToPdfFiles.ts",
+        "src/lib/pdfStudio/import/libraryItemsToPdfFiles.ts"
+      ]
+    },
+    {
+      "id": "netlify-fn",
+      "label": "Netlify Functions · /api/*",
+      "layer": "borde",
+      "x": 250,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Los 103 wrappers .mts solo declaran config.path y reexportan el handler real de _lib; un gate verifica que la ruta sea comprobable antes del deploy.",
+      "files": [
+        "netlify/functions/momentos.mts",
+        "scripts/runtime-api-routes.mjs"
+      ]
+    },
+    {
+      "id": "handler-wrap",
+      "label": "withObservability",
+      "layer": "borde",
+      "x": 440,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Envuelve cada handler: genera el requestId, captura excepciones, registra respuestas no-2xx y persiste el error sin bloquear la respuesta.",
+      "files": [
+        "netlify/functions/_lib/handler-wrap.ts",
+        "netlify/functions/_lib/observability.ts"
+      ]
+    },
+    {
+      "id": "auth-lib",
+      "label": "Auth: Clerk · PAT · legacy",
+      "layer": "borde",
+      "x": 630,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Resuelve el usuario desde el Bearer de Clerk, un token personal (guardado solo como sha256) o el modo single-user heredado.",
+      "files": [
+        "netlify/functions/_lib/auth.ts",
+        "netlify/functions/_lib/personal-tokens.ts",
+        "netlify/functions/_lib/legacy-identity.ts"
+      ]
+    },
+    {
+      "id": "rls",
+      "label": "Contexto RLS",
+      "layer": "borde",
+      "x": 820,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Guarda el usuario en AsyncLocalStorage e inyecta set_config('app.current_user_id') en la misma transacción: el aislamiento no depende de recordar un WHERE.",
+      "files": [
+        "netlify/functions/_lib/user-rls.ts",
+        "netlify/functions/_lib/db.ts"
+      ]
+    },
+    {
+      "id": "zod-contracts",
+      "label": "Contratos Zod",
+      "layer": "borde",
+      "x": 1010,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Valida body, query y multipart antes de tocar SQL o LLM, y valida en runtime las filas que devuelve Postgres.",
+      "files": [
+        "netlify/functions/_lib/zod-body.ts",
+        "netlify/functions/_lib/request-contracts.ts",
+        "netlify/functions/_lib/row-parse.ts"
+      ]
+    },
+    {
+      "id": "api-error",
+      "label": "ApiErrors · shape canónico",
+      "layer": "borde",
+      "x": 1200,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Todo error sale como {error:{code,message,requestId}}; un gate prohíbe respuestas 4xx/5xx escritas a mano.",
+      "files": [
+        "netlify/functions/_lib/api-error.ts",
+        "scripts/check-api-error-shape.mjs"
+      ]
+    },
+    {
+      "id": "ep-entidades",
+      "label": "Entidades y relaciones",
+      "layer": "endpoint",
+      "x": 60,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "CRUD del grafo con detección de duplicados por embedding, fusión, tipos y sugerencia de relaciones.",
+      "files": [
+        "netlify/functions/entities.mts",
+        "netlify/functions/_lib/entities-endpoint.ts",
+        "netlify/functions/entities-merge.mts"
+      ]
+    },
+    {
+      "id": "ep-citas",
+      "label": "Citas",
+      "layer": "endpoint",
+      "x": 250,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Citas ancladas a entidades, más reflexión y ecos generados por IA.",
+      "files": [
+        "netlify/functions/quotes.mts",
+        "netlify/functions/quote-reflect.mts",
+        "netlify/functions/quote-echoes.mts"
+      ]
+    },
+    {
+      "id": "ep-momentos",
+      "label": "Momentos",
+      "layer": "endpoint",
+      "x": 440,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Entradas de diario con media: creación, fusión, papelera, compartir por invitación y barrido de blobs huérfanos.",
+      "files": [
+        "netlify/functions/momentos.mts",
+        "netlify/functions/_lib/momentos/handlers.ts",
+        "netlify/functions/momentos-share-invitations.mts"
+      ]
+    },
+    {
+      "id": "ep-notas",
+      "label": "Notas y anexos",
+      "layer": "endpoint",
+      "x": 630,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Notas con etiquetas y anexos, feed cronológico paginado y notas por mes.",
+      "files": [
+        "netlify/functions/notes.mts",
+        "netlify/functions/notas-attachments.mts",
+        "netlify/functions/notas-feed.mts"
+      ]
+    },
+    {
+      "id": "ep-biblioteca",
+      "label": "Biblioteca",
+      "layer": "endpoint",
+      "x": 820,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Catálogo de material de lectura con enlaces, overrides y tablas configurables.",
+      "files": [
+        "netlify/functions/biblioteca.mts",
+        "netlify/functions/biblioteca-links.mts",
+        "netlify/functions/reading-tables.mts"
+      ]
+    },
+    {
+      "id": "ep-recortes",
+      "label": "Recortes",
+      "layer": "endpoint",
+      "x": 1010,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Capturas de imagen y texto con miniatura cacheada y sugerencia de destino por IA.",
+      "files": [
+        "netlify/functions/recortes.mts",
+        "netlify/functions/recortes-image-upload.mts",
+        "netlify/functions/_lib/recortes-suggest.ts"
+      ]
+    },
+    {
+      "id": "ep-chat",
+      "label": "Chat · Ask · Atlas",
+      "layer": "endpoint",
+      "x": 1200,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Hilos persistentes, preguntas puntuales con RAG y sugerencias proactivas.",
+      "files": [
+        "netlify/functions/ask.mts",
+        "netlify/functions/chat-messages.mts",
+        "netlify/functions/proactive-suggestions.mts"
+      ]
+    },
+    {
+      "id": "ep-search",
+      "label": "Búsqueda y queries",
+      "layer": "endpoint",
+      "x": 1390,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Búsqueda híbrida (léxica + vectorial fusionadas por RRF) y un mini-lenguaje de consultas con traducción desde lenguaje natural.",
+      "files": [
+        "netlify/functions/search.mts",
+        "netlify/functions/_lib/search-endpoint.ts",
+        "netlify/functions/query-nl.mts"
+      ]
+    },
+    {
+      "id": "ep-uploads",
+      "label": "Media: presign · complete · file",
+      "layer": "endpoint",
+      "x": 60,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Sube y sirve binarios privados: multipart para lo chico, URL firmada para lo grande, y lectura con verificación de propiedad.",
+      "files": [
+        "netlify/functions/momentos-file.mts",
+        "netlify/functions/momentos-uploads-presign.mts",
+        "netlify/functions/library-uploads-complete.mts"
+      ]
+    },
+    {
+      "id": "ep-whatsapp",
+      "label": "WhatsApp",
+      "layer": "endpoint",
+      "x": 250,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Webhook firmado, vinculación de número y métricas de la captura móvil.",
+      "files": [
+        "netlify/functions/whatsapp-webhook.mts",
+        "netlify/functions/whatsapp-link.mts"
+      ]
+    },
+    {
+      "id": "ep-extraccion",
+      "label": "Extracción · import/export",
+      "layer": "endpoint",
+      "x": 440,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Extrae estructura desde texto o imagen con LLM, exporta e importa la base y reindexa embeddings.",
+      "files": [
+        "netlify/functions/extract.mts",
+        "netlify/functions/extract-from-image.mts",
+        "netlify/functions/export.mts"
+      ]
+    },
+    {
+      "id": "ep-pdf",
+      "label": "PDF Studio: plantillas y sellos",
+      "layer": "endpoint",
+      "x": 630,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Persistencia del editor: plantillas versionadas, sellos y PDFs guardados.",
+      "files": [
+        "netlify/functions/pdf-studio-templates.mts",
+        "netlify/functions/pdf-stamp-assets.mts"
+      ]
+    },
+    {
+      "id": "ep-integraciones",
+      "label": "Spotify · X · Wikipedia",
+      "layer": "endpoint",
+      "x": 820,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "OAuth y sincronización de escuchas, bookmarks y enriquecimiento de entidades desde Wikipedia.",
+      "files": [
+        "netlify/functions/spotify-sync.mts",
+        "netlify/functions/x-bookmarks.mts",
+        "netlify/functions/wikipedia-search.mts"
+      ]
+    },
+    {
+      "id": "ep-admin",
+      "label": "Salud · errores · costos",
+      "layer": "endpoint",
+      "x": 1010,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Health con alertas, log central de errores, web vitals, contadores del home y aviso diario de presupuesto de IA.",
+      "files": [
+        "netlify/functions/health.mts",
+        "netlify/functions/error-log.mts",
+        "netlify/functions/cost-alert-check.mts"
+      ]
+    },
+    {
+      "id": "ep-prefs",
+      "label": "Tareas · favoritos · prefs",
+      "layer": "endpoint",
+      "x": 1200,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Tareas con papelera, favoritos sobre cualquier objeto, preferencias de usuario y prompts versionados.",
+      "files": [
+        "netlify/functions/tasks.mts",
+        "netlify/functions/favoritos.mts",
+        "netlify/functions/user-prefs.mts"
+      ]
+    },
+    {
+      "id": "ep-ai",
+      "label": "IA settings · tokens · claves",
+      "layer": "endpoint",
+      "x": 1390,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Modo IA por usuario y tarea, tokens personales para la extensión y vault de secretos cifrados.",
+      "files": [
+        "netlify/functions/ai-settings.mts",
+        "netlify/functions/api-tokens.mts",
+        "netlify/functions/secrets.mts"
+      ]
+    },
+    {
+      "id": "svc-domain",
+      "label": "Servicios de dominio",
+      "layer": "servicio",
+      "x": 60,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Lógica pura sin I/O (drafts, dedupe, paginación por cursor, clamps) separada del handler para poder testearla sin base de datos; hay un gate que lo exige.",
+      "files": [
+        "netlify/functions/_lib/entities-service.ts",
+        "netlify/functions/_lib/momentos-service.ts",
+        "scripts/backend-domain-services.mjs"
+      ]
+    },
+    {
+      "id": "llm",
+      "label": "Subsistema LLM",
+      "layer": "servicio",
+      "x": 250,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Despacha a cuatro proveedores con cadena de respaldo ante fallas transitorias, caché, streaming, visión y transcripción.",
+      "files": [
+        "netlify/functions/_lib/llm/dispatch.ts",
+        "netlify/functions/_lib/llm/provider-chain.ts"
+      ]
+    },
+    {
+      "id": "cost-cap",
+      "label": "Tope de gasto mensual",
+      "layer": "servicio",
+      "x": 440,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Compara el gasto acumulado del mes contra el tope del usuario y corta con 429; si no hay base de datos, falla abierto.",
+      "files": [
+        "netlify/functions/_lib/cost-cap.ts"
+      ]
+    },
+    {
+      "id": "embeddings",
+      "label": "Embeddings (pgvector)",
+      "layer": "servicio",
+      "x": 630,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Vectores de 1536 dimensiones sobre entidades y citas para búsqueda semántica y detección de duplicados, con caché de queries.",
+      "files": [
+        "netlify/functions/_lib/embeddings.ts",
+        "netlify/functions/reindex-embeddings.mts"
+      ]
+    },
+    {
+      "id": "rag",
+      "label": "RAG · RRF · rerank",
+      "layer": "servicio",
+      "x": 820,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Arma el contexto del chat mezclando cercanía semántica y recencia, fusiona ramas por Reciprocal Rank Fusion y reordena con LLM.",
+      "files": [
+        "netlify/functions/_lib/rag-context.ts",
+        "netlify/functions/_lib/rrf.ts",
+        "netlify/functions/_lib/llm-rerank.ts"
+      ]
+    },
+    {
+      "id": "storage-adapter",
+      "label": "Adapter Netlify Blobs",
+      "layer": "servicio",
+      "x": 1010,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Único módulo autorizado a importar @netlify/blobs; un gate bloquea cualquier otro import para dejar abierta una migración futura.",
+      "files": [
+        "netlify/functions/_lib/storage-adapter.ts",
+        "scripts/storage-boundaries.mjs"
+      ]
+    },
+    {
+      "id": "r2-lib",
+      "label": "R2 presignado (aws4fetch)",
+      "layer": "servicio",
+      "x": 1200,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Firma PUT y GET contra el bucket para esquivar el tope de ~6 MB de las funciones, confirma con HEAD y lista para detectar huérfanos.",
+      "files": [
+        "netlify/functions/_lib/r2.ts",
+        "netlify/functions/momentos-orphaned-blobs.mts"
+      ]
+    },
+    {
+      "id": "wa-pipeline",
+      "label": "Pipeline WhatsApp",
+      "layer": "servicio",
+      "x": 1390,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "El subsistema más grande de _lib (~25 módulos): firma, idempotencia por MessageSid, álbumes partidos que se reagrupan, intención por LLM y edición de la última captura.",
+      "files": [
+        "netlify/functions/_lib/whatsapp/webhook-endpoint.ts",
+        "netlify/functions/_lib/whatsapp/album.ts",
+        "netlify/functions/_lib/whatsapp/media-pipeline.ts"
+      ]
+    },
+    {
+      "id": "observability",
+      "label": "Observabilidad",
+      "layer": "servicio",
+      "x": 60,
+      "y": 920,
+      "w": 168,
+      "h": 56,
+      "purpose": "Log estructurado con redacción de datos sensibles y persistencia de errores en tabla, sin bloquear la respuesta.",
+      "files": [
+        "netlify/functions/_lib/observability.ts",
+        "netlify/functions/_lib/operational-events.ts"
+      ]
+    },
+    {
+      "id": "storage-assets",
+      "label": "Manifest storage_assets",
+      "layer": "servicio",
+      "x": 1010,
+      "y": 920,
+      "w": 168,
+      "h": 56,
+      "purpose": "Registro en Postgres de qué archivo vive en qué proveedor, con checksum, dominio y dueño: la fuente de verdad para servir y para limpiar.",
+      "files": [
+        "netlify/functions/_lib/storage-assets.ts",
+        "netlify/functions/_lib/storage-orphans.ts"
+      ]
+    },
+    {
+      "id": "media-cache",
+      "label": "Cache-Control de media",
+      "layer": "servicio",
+      "x": 1200,
+      "y": 920,
+      "w": 168,
+      "h": 56,
+      "purpose": "Como las storageKeys son aleatorias e inmutables, la media privada se sirve cacheable pero privada; las redirecciones firmadas siguen sin caché porque expiran.",
+      "files": [
+        "netlify/functions/_lib/media-cache.ts"
+      ]
+    },
+    {
+      "id": "postgres",
+      "label": "Neon Postgres · RLS · FTS · pgvector",
+      "layer": "dato",
+      "x": 60,
+      "y": 1020,
+      "w": 358,
+      "h": 56,
+      "purpose": "96 migraciones inmutables. Aislamiento en dos capas (WHERE explícito y políticas RLS), borrado suave con deleted_at, búsqueda de texto y vectorial en la misma base.",
+      "files": [
+        "netlify/database/migrations/",
+        "netlify/functions/_lib/db.ts",
+        "docs/migraciones.md"
+      ]
+    },
+    {
+      "id": "blobs",
+      "label": "Netlify Blobs",
+      "layer": "dato",
+      "x": 440,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Archivos chicos y medianos servidos por la función: fotos, audio, anexos y PDFs.",
+      "files": [
+        "netlify/functions/_lib/storage-adapter.ts"
+      ]
+    },
+    {
+      "id": "r2",
+      "label": "Cloudflare R2",
+      "layer": "dato",
+      "x": 630,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Archivos grandes con subida directa del cliente al bucket mediante URL firmada, sin pasar por la función.",
+      "files": [
+        "netlify/functions/_lib/r2.ts",
+        "docs/storage-orphans.md"
+      ]
+    },
+    {
+      "id": "clerk",
+      "label": "Clerk",
+      "layer": "dato",
+      "x": 820,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Identidad y sesión. Sin su clave, la app opera en modo single-user heredado; el cutover es progresivo y está cubierto por gates.",
+      "files": [
+        "netlify/functions/_lib/auth.ts",
+        "scripts/check-legacy-fallback-prod.mjs"
+      ]
+    },
+    {
+      "id": "llm-providers",
+      "label": "OpenAI · Anthropic · Gemini · DeepSeek",
+      "layer": "dato",
+      "x": 1010,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Proveedores intercambiables para texto, JSON, visión, transcripción y embeddings.",
+      "files": [
+        "netlify/functions/_lib/llm/providers/"
+      ]
+    },
+    {
+      "id": "twilio",
+      "label": "Twilio",
+      "layer": "dato",
+      "x": 1200,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Transporte de WhatsApp: webhook entrante firmado, descarga de adjuntos y respuesta por TwiML.",
+      "files": [
+        "netlify/functions/_lib/whatsapp/twilio-signature.ts",
+        "netlify/functions/_lib/whatsapp/send.ts"
+      ]
+    },
+    {
+      "id": "apis-3p",
+      "label": "Spotify · X · Wikipedia",
+      "layer": "dato",
+      "x": 1390,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Fuentes externas que alimentan escuchas, bookmarks y datos de entidades.",
+      "files": [
+        "netlify/functions/_lib/spotify/client.ts",
+        "netlify/functions/_lib/x/client.ts",
+        "netlify/functions/_lib/wikipedia.ts"
+      ]
+    },
+    {
+      "id": "branch-protection",
+      "label": "Protección de main",
+      "layer": "ci",
+      "x": 60,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Solo se llega a main por PR con los cinco checks en verde, con la rama al día, sin force-push y sin excepción para administradores.",
+      "files": [
+        "docs/deploy.md"
+      ]
+    },
+    {
+      "id": "github-ci",
+      "label": "GitHub Actions · test.yml",
+      "layer": "ci",
+      "x": 250,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Cinco trabajos en paralelo: lint, unit, e2e, secretos y migraciones sobre un Postgres real con pruebas de integración.",
+      "files": [
+        ".github/workflows/test.yml",
+        ".github/workflows/pdf-visual.yml"
+      ]
+    },
+    {
+      "id": "gates",
+      "label": "~45 gates de calidad",
+      "layer": "ci",
+      "x": 440,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Contratos ejecutables sobre arquitectura, auth, API, frontend, bundle, PDF y storage: la convención se verifica, no se recuerda.",
+      "files": [
+        "scripts/script-registry.mjs",
+        "scripts/check-architecture-boundaries.mjs",
+        "scripts/auth-rls-contracts.mjs"
+      ]
+    },
+    {
+      "id": "netlify-build",
+      "label": "Build Netlify + migraciones",
+      "layer": "ci",
+      "x": 630,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Corre el guard de producción, compila, aplica las migraciones nuevas y publica el sitio con las functions.",
+      "files": [
+        "netlify.toml",
+        "scripts/apply-migrations.sh"
+      ]
+    },
+    {
+      "id": "version-json",
+      "label": "/version.json",
+      "layer": "ci",
+      "x": 820,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "El artefacto declara desde adentro qué commit se publicó; se sirve sin caché para que la sonda no lea una versión vieja.",
+      "files": [
+        "scripts/write-version.mjs",
+        "netlify.toml"
+      ]
+    },
+    {
+      "id": "prod",
+      "label": "Producción · tramahub.app",
+      "layer": "ci",
+      "x": 1010,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "El sitio servido por el CDN, con cabeceras de seguridad estrictas definidas a nivel de plataforma.",
+      "files": [
+        "netlify.toml"
+      ]
+    },
+    {
+      "id": "canary",
+      "label": "Canario de deploy (6 h)",
+      "layer": "ci",
+      "x": 1200,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Compara lo servido contra origin/main y abre un issue si producción quedó atrás; nació porque un bloqueo silencioso mantuvo el sitio un mes clavado con todo en verde.",
+      "files": [
+        "scripts/deploy-canary.mjs",
+        ".github/workflows/deploy-canary.yml"
+      ]
+    },
+    {
+      "id": "mapa-vivo",
+      "label": "Mapa vivo + gate",
+      "layer": "ci",
+      "x": 1390,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Este mismo mapa. El gate check:architecture-map corre en CI y falla si alguna ruta citada dejó de existir, si el grafo pierde integridad o si el HTML se desincroniza del JSON.",
+      "files": [
+        "docs/arquitectura/mapa.json",
+        "docs/arquitectura/mapa.html",
+        "scripts/architecture-map.mjs"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "navegador",
+      "to": "shell",
+      "kind": "nav",
+      "label": "abre la app"
+    },
+    {
+      "from": "prod",
+      "to": "navegador",
+      "kind": "ci",
+      "label": "sirve el bundle"
+    },
+    {
+      "from": "whatsapp-in",
+      "to": "ep-whatsapp",
+      "kind": "externo",
+      "label": "webhook firmado"
+    },
+    {
+      "from": "extension",
+      "to": "netlify-fn",
+      "kind": "auth",
+      "label": "Bearer trama_pat_*"
+    },
+    {
+      "from": "shell",
+      "to": "v-home",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-grafo",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-entidades",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-citas",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-momentos",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-chat",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-lentes",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-notas",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-tareas",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-imprenta",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-biblioteca",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-recortes",
+      "kind": "nav"
+    },
+    {
+      "from": "v-home",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-grafo",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-entidades",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-citas",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-momentos",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-chat",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-lentes",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-notas",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-tareas",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-biblioteca",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-recortes",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "shell",
+      "to": "state",
+      "kind": "data",
+      "label": "⌘K busca"
+    },
+    {
+      "from": "v-grafo",
+      "to": "lib-graph",
+      "kind": "data"
+    },
+    {
+      "from": "v-citas",
+      "to": "lib-graph",
+      "kind": "data",
+      "label": "lámina y libro"
+    },
+    {
+      "from": "v-momentos",
+      "to": "lib-media",
+      "kind": "data",
+      "label": "deriva al subir"
+    },
+    {
+      "from": "v-momentos",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-biblioteca",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-recortes",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-notas",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-imprenta",
+      "to": "lib-pdf",
+      "kind": "data"
+    },
+    {
+      "from": "v-imprenta",
+      "to": "pdf-import",
+      "kind": "data"
+    },
+    {
+      "from": "v-notas",
+      "to": "pdf-import",
+      "kind": "data",
+      "label": "fotos a Imprenta"
+    },
+    {
+      "from": "v-recortes",
+      "to": "pdf-import",
+      "kind": "data"
+    },
+    {
+      "from": "v-biblioteca",
+      "to": "pdf-import",
+      "kind": "data"
+    },
+    {
+      "from": "state",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "auth-bridge",
+      "to": "api-client",
+      "kind": "auth",
+      "label": "inyecta token"
+    },
+    {
+      "from": "auth-bridge",
+      "to": "clerk",
+      "kind": "auth"
+    },
+    {
+      "from": "authed-media",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "lib-media",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "pdf-import",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "api-client",
+      "to": "demo-mode",
+      "kind": "data",
+      "label": "si modo prueba"
+    },
+    {
+      "from": "api-client",
+      "to": "netlify-fn",
+      "kind": "data",
+      "label": "HTTPS"
+    },
+    {
+      "from": "netlify-fn",
+      "to": "handler-wrap",
+      "kind": "data"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "auth-lib",
+      "kind": "auth"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "observability",
+      "kind": "data"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "api-error",
+      "kind": "data"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "zod-contracts",
+      "kind": "data"
+    },
+    {
+      "from": "auth-lib",
+      "to": "clerk",
+      "kind": "auth"
+    },
+    {
+      "from": "auth-lib",
+      "to": "rls",
+      "kind": "auth"
+    },
+    {
+      "from": "rls",
+      "to": "postgres",
+      "kind": "auth",
+      "label": "set_config en la misma transacción"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-entidades",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-citas",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-momentos",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-notas",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-biblioteca",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-recortes",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-chat",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-search",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-uploads",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-whatsapp",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-extraccion",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-pdf",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-integraciones",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-admin",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-prefs",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-ai",
+      "kind": "nav"
+    },
+    {
+      "from": "ep-entidades",
+      "to": "svc-domain",
+      "kind": "data"
+    },
+    {
+      "from": "ep-entidades",
+      "to": "embeddings",
+      "kind": "data",
+      "label": "duplicados"
+    },
+    {
+      "from": "ep-entidades",
+      "to": "postgres",
+      "kind": "data",
+      "label": "CTE en cascada"
+    },
+    {
+      "from": "ep-citas",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-citas",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "ep-citas",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-momentos",
+      "to": "svc-domain",
+      "kind": "data"
+    },
+    {
+      "from": "ep-momentos",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-momentos",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-notas",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-notas",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-biblioteca",
+      "to": "r2-lib",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-biblioteca",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-biblioteca",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-recortes",
+      "to": "svc-domain",
+      "kind": "data"
+    },
+    {
+      "from": "ep-recortes",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-recortes",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-chat",
+      "to": "rag",
+      "kind": "data"
+    },
+    {
+      "from": "ep-chat",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-chat",
+      "to": "cost-cap",
+      "kind": "data",
+      "label": "corta con 429"
+    },
+    {
+      "from": "ep-chat",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-search",
+      "to": "rag",
+      "kind": "data"
+    },
+    {
+      "from": "ep-search",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "ep-search",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "r2-lib",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "media-cache",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-whatsapp",
+      "to": "wa-pipeline",
+      "kind": "data"
+    },
+    {
+      "from": "ep-extraccion",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-extraccion",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "ep-extraccion",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-pdf",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-pdf",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-integraciones",
+      "to": "apis-3p",
+      "kind": "externo"
+    },
+    {
+      "from": "ep-integraciones",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-admin",
+      "to": "observability",
+      "kind": "data"
+    },
+    {
+      "from": "ep-admin",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-prefs",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-ai",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-ai",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "svc-domain",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "llm",
+      "to": "llm-providers",
+      "kind": "externo",
+      "label": "con cadena de respaldo"
+    },
+    {
+      "from": "llm",
+      "to": "cost-cap",
+      "kind": "data"
+    },
+    {
+      "from": "cost-cap",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "embeddings",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "embeddings",
+      "to": "llm-providers",
+      "kind": "externo"
+    },
+    {
+      "from": "rag",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "rag",
+      "to": "llm",
+      "kind": "data",
+      "label": "rerank"
+    },
+    {
+      "from": "rag",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "storage-adapter",
+      "to": "blobs",
+      "kind": "storage"
+    },
+    {
+      "from": "storage-adapter",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "r2-lib",
+      "to": "r2",
+      "kind": "storage"
+    },
+    {
+      "from": "r2-lib",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "storage-assets",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "twilio",
+      "kind": "externo"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "llm",
+      "kind": "data",
+      "label": "intención del texto"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "observability",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "branch-protection",
+      "to": "github-ci",
+      "kind": "ci",
+      "label": "exige verde"
+    },
+    {
+      "from": "github-ci",
+      "to": "gates",
+      "kind": "ci"
+    },
+    {
+      "from": "gates",
+      "to": "netlify-build",
+      "kind": "ci",
+      "label": "merge a main"
+    },
+    {
+      "from": "netlify-build",
+      "to": "postgres",
+      "kind": "ci",
+      "label": "migraciones nuevas"
+    },
+    {
+      "from": "netlify-build",
+      "to": "version-json",
+      "kind": "ci"
+    },
+    {
+      "from": "netlify-build",
+      "to": "prod",
+      "kind": "ci"
+    },
+    {
+      "from": "version-json",
+      "to": "prod",
+      "kind": "ci"
+    },
+    {
+      "from": "canary",
+      "to": "prod",
+      "kind": "ci",
+      "label": "sonda cada 6 h"
+    },
+    {
+      "from": "canary",
+      "to": "version-json",
+      "kind": "ci",
+      "label": "compara con origin/main"
+    },
+    {
+      "from": "gates",
+      "to": "mapa-vivo",
+      "kind": "ci",
+      "label": "valida el mapa"
+    }
+  ],
+  "flows": [
+    {
+      "id": "subir-foto-momento",
+      "label": "Subir una foto a un Momento",
+      "summary": "Del composer al álbum: el navegador comprime y deriva miniatura y color antes de subir, y la entrada queda en Postgres con su media referenciada.",
+      "steps": [
+        {
+          "node": "v-momentos",
+          "label": "El usuario elige o suelta fotos en el composer",
+          "file": "src/components/momentos/useMomentoComposer.ts"
+        },
+        {
+          "node": "lib-media",
+          "label": "Compresión, miniatura de grilla y color dominante en paralelo",
+          "file": "src/lib/compressImage.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "Ruta chica (multipart) o grande (URL firmada) según el tamaño",
+          "file": "src/api/momentos.ts"
+        },
+        {
+          "node": "netlify-fn",
+          "label": "La request entra por /api/*",
+          "file": "netlify/functions/momentos-upload.mts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Recibe el binario y lo guarda",
+          "file": "netlify/functions/momentos-upload.mts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Escribe el blob privado del usuario",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "storage-assets",
+          "label": "Registra proveedor, key y checksum",
+          "file": "netlify/functions/_lib/storage-assets.ts"
+        },
+        {
+          "node": "ep-momentos",
+          "label": "POST /api/momentos con los items ya subidos",
+          "file": "netlify/functions/_lib/momentos-endpoint.ts"
+        },
+        {
+          "node": "svc-domain",
+          "label": "Valida por kind, arma el borrador y calcula embedding",
+          "file": "netlify/functions/_lib/momentos/handlers.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "INSERT del momento y vínculo a entidades en un CTE",
+          "file": "netlify/functions/_lib/momentos/data.ts"
+        },
+        {
+          "node": "state",
+          "label": "Invalida el feed y el álbum se refresca",
+          "file": "src/state/useMomentos.ts"
+        },
+        {
+          "node": "authed-media",
+          "label": "La grilla pinta la miniatura sobre el color dominante",
+          "file": "src/components/momentos/AuthenticatedMedia.tsx"
+        }
+      ]
+    },
+    {
+      "id": "ver-media-privada",
+      "label": "Ver una foto privada",
+      "summary": "Ninguna media es pública: cada imagen se pide con el token del usuario, el servidor verifica propiedad y el cliente la sostiene como object-URL.",
+      "steps": [
+        {
+          "node": "authed-media",
+          "label": "El componente resuelve la storageKey a una URL de API",
+          "file": "src/components/momentos/AuthenticatedMedia.tsx"
+        },
+        {
+          "node": "auth-bridge",
+          "label": "Toma el token vigente de Clerk",
+          "file": "src/components/ApiAuthBridge.tsx"
+        },
+        {
+          "node": "api-client",
+          "label": "requestBlob agrega Authorization: Bearer",
+          "file": "src/api/request.ts"
+        },
+        {
+          "node": "netlify-fn",
+          "label": "GET /api/momentos-file/:userId/:key",
+          "file": "netlify/functions/momentos-file.mts"
+        },
+        {
+          "node": "auth-lib",
+          "label": "Resuelve el usuario del token",
+          "file": "netlify/functions/_lib/auth.ts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Verifica propiedad: la key es del usuario o está referenciada en un momento legible",
+          "file": "netlify/functions/momentos-file.mts"
+        },
+        {
+          "node": "postgres",
+          "label": "Consulta de pertenencia bajo RLS",
+          "file": "netlify/functions/_lib/db.ts"
+        },
+        {
+          "node": "r2-lib",
+          "label": "Si es un archivo grande, redirige con una URL firmada de corta vida",
+          "file": "netlify/functions/_lib/r2.ts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Si es chico, lee el blob y responde los bytes",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "media-cache",
+          "label": "Cachea como privado e inmutable porque la key nunca se reescribe",
+          "file": "netlify/functions/_lib/media-cache.ts"
+        },
+        {
+          "node": "authed-media",
+          "label": "Crea el object-URL, funde la imagen y lo revoca al desmontar",
+          "file": "src/hooks/useMediaReveal.ts"
+        }
+      ]
+    },
+    {
+      "id": "whatsapp-captura",
+      "label": "Capturar por WhatsApp",
+      "summary": "Mandar fotos por WhatsApp crea un momento: la firma se verifica, los adjuntos se descargan y un álbum partido por el operador se vuelve a juntar en una sola entrada.",
+      "steps": [
+        {
+          "node": "whatsapp-in",
+          "label": "El usuario manda fotos al número de Trama",
+          "file": "docs/whatsapp.md"
+        },
+        {
+          "node": "ep-whatsapp",
+          "label": "Twilio hace POST al webhook",
+          "file": "netlify/functions/whatsapp-webhook.mts"
+        },
+        {
+          "node": "wa-pipeline",
+          "label": "Verifica la firma, resuelve al usuario por teléfono y descarta duplicados por MessageSid",
+          "file": "netlify/functions/_lib/whatsapp/webhook-endpoint.ts"
+        },
+        {
+          "node": "twilio",
+          "label": "Descarga los adjuntos del mensaje",
+          "file": "netlify/functions/_lib/whatsapp/media.ts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Sube cada foto al almacén de media",
+          "file": "netlify/functions/_lib/whatsapp/media-store.ts"
+        },
+        {
+          "node": "wa-pipeline",
+          "label": "Ventana de agrupación: las fotos del mismo envío caen en un solo episodio",
+          "file": "netlify/functions/_lib/whatsapp/album.ts"
+        },
+        {
+          "node": "llm",
+          "label": "Si viene texto libre, interpreta la intención de la captura",
+          "file": "netlify/functions/_lib/whatsapp/text-intelligence.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Inserta el momento con origen whatsapp y registra el evento",
+          "file": "netlify/functions/_lib/whatsapp/persist-media.ts"
+        },
+        {
+          "node": "twilio",
+          "label": "Responde por TwiML confirmando lo guardado",
+          "file": "netlify/functions/_lib/whatsapp/twiml.ts"
+        }
+      ]
+    },
+    {
+      "id": "chat-rag",
+      "label": "Preguntar al chat (RAG)",
+      "summary": "La pregunta se responde con el corpus propio: contexto por cercanía semántica y recencia, con tope de gasto antes de llamar al modelo.",
+      "steps": [
+        {
+          "node": "v-chat",
+          "label": "El usuario escribe en la barra de pregunta",
+          "file": "src/components/AskBar.tsx"
+        },
+        {
+          "node": "api-client",
+          "label": "POST /api/ask con el hilo activo",
+          "file": "src/api/chat.ts"
+        },
+        {
+          "node": "ep-chat",
+          "label": "Valida el cuerpo y carga el historial del hilo",
+          "file": "netlify/functions/ask.mts"
+        },
+        {
+          "node": "cost-cap",
+          "label": "Verifica el presupuesto mensual antes de gastar",
+          "file": "netlify/functions/_lib/cost-cap.ts"
+        },
+        {
+          "node": "rag",
+          "label": "Arma el contexto: top-K semántico más entradas recientes",
+          "file": "netlify/functions/_lib/rag-context.ts"
+        },
+        {
+          "node": "embeddings",
+          "label": "Vectoriza la pregunta",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Búsqueda por distancia coseno sobre entidades y citas",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "llm",
+          "label": "Pide respuesta y propuesta de extracción en JSON",
+          "file": "netlify/functions/_lib/llm/dispatch.ts"
+        },
+        {
+          "node": "llm-providers",
+          "label": "El proveedor resuelto responde; si falla de forma transitoria, entra el respaldo",
+          "file": "netlify/functions/_lib/llm/provider-chain.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Persiste el mensaje y el costo de la extracción",
+          "file": "netlify/functions/_lib/observability.ts"
+        },
+        {
+          "node": "v-chat",
+          "label": "La respuesta aparece con su propuesta aplicable al grafo",
+          "file": "src/components/chat/InlineProposal.tsx"
+        }
+      ]
+    },
+    {
+      "id": "entidad-cascada",
+      "label": "Crear entidad y borrarla en cascada",
+      "summary": "Al borrar una entidad, un único CTE marca deleted_at en ella y en todo lo que cuelga: relaciones, citas y vínculos a momentos. Reversible desde el toast.",
+      "steps": [
+        {
+          "node": "v-entidades",
+          "label": "Alta o edición desde el formulario de entidad",
+          "file": "src/components/entities/EntityForm.tsx"
+        },
+        {
+          "node": "state",
+          "label": "Mutación optimista con snapshot para poder revertir",
+          "file": "src/state/useEntities.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "POST/PATCH/DELETE /api/entities",
+          "file": "src/api/entities.ts"
+        },
+        {
+          "node": "ep-entidades",
+          "label": "El router despacha por método",
+          "file": "netlify/functions/_lib/entities-endpoint.ts"
+        },
+        {
+          "node": "embeddings",
+          "label": "Al crear, busca duplicados por vector cercano",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "svc-domain",
+          "label": "Arma el borrador válido sin tocar I/O",
+          "file": "netlify/functions/_lib/entities-service.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Borrado suave atómico con un deleted_at compartido en todas las tablas afectadas",
+          "file": "netlify/functions/_lib/entities-endpoint.ts"
+        },
+        {
+          "node": "state",
+          "label": "Toast con deshacer: el restore usa el mismo timestamp",
+          "file": "src/state/useEntities.ts"
+        }
+      ]
+    },
+    {
+      "id": "notas-imprenta",
+      "label": "Notas → Imprenta",
+      "summary": "Las fotos anexas de una o varias notas se convierten en páginas del editor de PDF, listas para anotar, exportar o imprimir.",
+      "steps": [
+        {
+          "node": "v-notas",
+          "label": "Acción desde la tarjeta o desde la barra de selección múltiple",
+          "file": "src/components/notas/NotasImprentaSelectionBar.tsx"
+        },
+        {
+          "node": "pdf-import",
+          "label": "Lista los anexos de tipo imagen de cada nota",
+          "file": "src/lib/pdfStudio/import/notesToPdfFiles.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "Descarga cada blob autenticado",
+          "file": "src/api/notas-attachments.ts"
+        },
+        {
+          "node": "ep-notas",
+          "label": "Sirve el anexo verificando propiedad",
+          "file": "netlify/functions/notas-attachments-file.mts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Lee el binario del almacén",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "v-imprenta",
+          "label": "El editor recibe los archivos y preserva el documento en curso",
+          "file": "src/components/notas/NotasWorld.tsx"
+        },
+        {
+          "node": "lib-pdf",
+          "label": "Ensambla las imágenes en hojas y las agrega al modelo con historial",
+          "file": "src/lib/pdfStudio/assemble/assembleImages.ts"
+        },
+        {
+          "node": "lib-pdf",
+          "label": "Exporta el PDF o lo imprime desde un iframe oculto",
+          "file": "src/components/notas/pdfStudio/shell/usePdfStudioExport.ts"
+        }
+      ]
+    },
+    {
+      "id": "biblioteca-upload-grande",
+      "label": "Subida grande a Biblioteca",
+      "summary": "Los archivos que no caben en el cuerpo de una función suben directo del navegador al bucket con una URL firmada; el servidor solo firma y confirma.",
+      "steps": [
+        {
+          "node": "v-biblioteca",
+          "label": "El usuario agrega un archivo grande",
+          "file": "src/components/BibliotecaView.tsx"
+        },
+        {
+          "node": "api-client",
+          "label": "Elige la ruta grande por tamaño",
+          "file": "src/api/biblioteca.ts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Genera la key y pide la firma",
+          "file": "netlify/functions/library-uploads-presign.mts"
+        },
+        {
+          "node": "r2-lib",
+          "label": "Firma un PUT de vida corta contra el bucket",
+          "file": "netlify/functions/_lib/r2.ts"
+        },
+        {
+          "node": "r2",
+          "label": "El navegador sube el archivo directo al bucket, sin pasar por Trama",
+          "file": "src/api/biblioteca.ts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Confirma la subida con un HEAD al objeto",
+          "file": "netlify/functions/library-uploads-complete.mts"
+        },
+        {
+          "node": "storage-assets",
+          "label": "Registra el asset con proveedor r2",
+          "file": "netlify/functions/_lib/storage-assets.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Persiste el item de biblioteca",
+          "file": "netlify/functions/biblioteca.mts"
+        },
+        {
+          "node": "state",
+          "label": "El listado se refresca",
+          "file": "src/state/useBiblioteca.ts"
+        }
+      ]
+    },
+    {
+      "id": "busqueda-hibrida",
+      "label": "Buscar desde ⌘K",
+      "summary": "La paleta mezcla lo que ya está en caché con búsqueda en servidor; el backend sabe fusionar rama léxica y semántica por rango recíproco.",
+      "steps": [
+        {
+          "node": "shell",
+          "label": "Se abre la paleta y se escribe la consulta",
+          "file": "src/components/CommandPalette.tsx"
+        },
+        {
+          "node": "state",
+          "label": "Combina candidatos locales ya cargados con los del servidor",
+          "file": "src/hooks/useCommandSearch.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "GET /api/search con debounce",
+          "file": "src/api/search.ts"
+        },
+        {
+          "node": "ep-search",
+          "label": "Resuelve el modo y arma el plan de consulta",
+          "file": "netlify/functions/_lib/search-endpoint.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Rama léxica con tsquery y rango sobre índices GIN",
+          "file": "netlify/functions/_lib/search-endpoint-queries.ts"
+        },
+        {
+          "node": "embeddings",
+          "label": "Rama semántica: vector de la consulta",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "rag",
+          "label": "Fusiona ambas ramas por Reciprocal Rank Fusion",
+          "file": "netlify/functions/_lib/rrf.ts"
+        },
+        {
+          "node": "llm",
+          "label": "Reordenado opcional con modelo sobre los candidatos",
+          "file": "netlify/functions/_lib/llm-rerank.ts"
+        },
+        {
+          "node": "shell",
+          "label": "Resultados navegables en la paleta",
+          "file": "src/components/CommandPaletteResults.tsx"
+        }
+      ]
+    },
+    {
+      "id": "extension-pat",
+      "label": "Recortar desde la extensión",
+      "summary": "La extensión de Chrome guarda recortes y favoritos con un token personal, sin sesión de Clerk: el token se guarda solo como hash y nunca cae al modo heredado.",
+      "steps": [
+        {
+          "node": "extension",
+          "label": "El usuario captura una página o la marca como favorita",
+          "file": "extension/lib/capture.js"
+        },
+        {
+          "node": "netlify-fn",
+          "label": "POST /api/recortes con Bearer trama_pat_*",
+          "file": "extension/lib/capture.js"
+        },
+        {
+          "node": "auth-lib",
+          "label": "Resuelve el token personal por sha256 antes de mirar Clerk",
+          "file": "netlify/functions/_lib/personal-tokens.ts"
+        },
+        {
+          "node": "ep-recortes",
+          "label": "Crea el recorte y sube la imagen si viene",
+          "file": "netlify/functions/recortes-image-upload.mts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Guarda la captura",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Persiste bajo el usuario dueño del token",
+          "file": "netlify/functions/_lib/recortes-crud.ts"
+        },
+        {
+          "node": "v-recortes",
+          "label": "Aparece en el feed de notas la próxima vez que se abre",
+          "file": "src/components/notas/NotasFeedView.tsx"
+        }
+      ]
+    },
+    {
+      "id": "modo-prueba",
+      "label": "Modo prueba sin backend",
+      "summary": "Con el modo prueba activo, el cliente HTTP se desvía a un backend en localStorage: la app entera se recorre y se edita sin cuenta ni base de datos.",
+      "steps": [
+        {
+          "node": "navegador",
+          "label": "Se entra con el modo prueba activado",
+          "file": "src/lib/demoRouter.ts"
+        },
+        {
+          "node": "shell",
+          "label": "La app monta igual, con los mismos componentes",
+          "file": "src/App.tsx"
+        },
+        {
+          "node": "state",
+          "label": "Los hooks de dominio no cambian",
+          "file": "src/state/queryClient.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "request() detecta el modo y no sale a la red",
+          "file": "src/api/request.ts"
+        },
+        {
+          "node": "demo-mode",
+          "label": "Un backend en localStorage responde con las mismas formas de servidor",
+          "file": "src/lib/demoStore.ts"
+        }
+      ]
+    },
+    {
+      "id": "deploy-canario",
+      "label": "Deploy vigilado por el canario",
+      "summary": "Del PR a producción, con una sonda que comprueba que lo servido es de verdad origin/main: nació de un mes de producción congelada con todo en verde.",
+      "steps": [
+        {
+          "node": "branch-protection",
+          "label": "Main solo acepta PR con los cinco checks y la rama al día",
+          "file": "docs/deploy.md"
+        },
+        {
+          "node": "github-ci",
+          "label": "lint, unit, e2e, secretos y migraciones en paralelo",
+          "file": ".github/workflows/test.yml"
+        },
+        {
+          "node": "gates",
+          "label": "Los contratos ejecutables bloquean el merge si algo se sale de la convención",
+          "file": "scripts/script-registry.mjs"
+        },
+        {
+          "node": "netlify-build",
+          "label": "Guard de producción, compilación y migraciones nuevas",
+          "file": "netlify.toml"
+        },
+        {
+          "node": "postgres",
+          "label": "Las migraciones pendientes se aplican en el deploy",
+          "file": "docs/migraciones.md"
+        },
+        {
+          "node": "version-json",
+          "label": "El artefacto declara el commit publicado",
+          "file": "scripts/write-version.mjs"
+        },
+        {
+          "node": "prod",
+          "label": "El CDN sirve el sitio nuevo",
+          "file": "netlify.toml"
+        },
+        {
+          "node": "canary",
+          "label": "Cada 6 h compara lo servido con origin/main y abre un issue si quedó atrás",
+          "file": "scripts/deploy-canary.mjs"
+        }
+      ]
+    }
+  ]
+};
+      /* mapa:fin */
+
+      /* =====================================================================
+         Índices y utilidades
+      ===================================================================== */
+      const byId = new Map(DATA.nodes.map((n) => [n.id, n]));
+      const layerById = new Map(DATA.meta.layers.map((l) => [l.id, l]));
+      const colorOf = (id) => layerById.get(byId.get(id).layer).color;
+      const esc = (s) =>
+        String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+      const NS = 'http://www.w3.org/2000/svg';
+      const el = (tag, attrs = {}) => {
+        const n = document.createElementNS(NS, tag);
+        for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+        return n;
+      };
+
+      const svg = document.getElementById('diagram');
+      const gViewport = document.getElementById('viewport');
+      const gBands = document.getElementById('bands');
+      const gEdges = document.getElementById('edges');
+      const gEdgeHits = document.getElementById('edge-hits');
+      const gFlow = document.getElementById('flowlayer');
+      const gNodes = document.getElementById('nodes');
+      const gBadges = document.getElementById('badges');
+      const tip = document.getElementById('tip');
+
+      const EXTENT = DATA.nodes.reduce(
+        (a, n) => ({ w: Math.max(a.w, n.x + n.w), h: Math.max(a.h, n.y + n.h) }),
+        { w: 0, h: 0 },
+      );
+      const PAD = 56;
+      const WORLD = { w: EXTENT.w + PAD, h: EXTENT.h + PAD };
+
+      /* =====================================================================
+         Cabecera
+      ===================================================================== */
+      document.getElementById('sub').textContent =
+        DATA.meta.commit + ' · ' + DATA.meta.generatedAt;
+      const statDefs = [
+        ['Nodos', DATA.nodes.length],
+        ['Flujos', DATA.flows.length],
+        ['Endpoints', DATA.meta.stats.endpoints],
+        ['Migraciones', DATA.meta.stats.migraciones],
+        ['Tests', DATA.meta.stats.archivosDeTest],
+        ['Gates', DATA.meta.stats.scriptsOperacionales],
+      ];
+      document.getElementById('stats').innerHTML = statDefs
+        .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`)
+        .join('');
+
+      /* =====================================================================
+         Marcadores de flecha
+      ===================================================================== */
+      const defs = svg.querySelector('defs');
+      const markerColors = {
+        edge: 'var(--edge)', auth: '#8265b8', storage: '#96793f', externo: '#c07a3e', ci: '#6b7a8f',
+      };
+      for (const [name, color] of Object.entries(markerColors)) {
+        const m = el('marker', {
+          id: 'arrow-' + name, viewBox: '0 0 10 10', refX: '9', refY: '5',
+          markerWidth: '6', markerHeight: '6', orient: 'auto-start-reverse',
+        });
+        m.appendChild(el('path', { d: 'M 0 1 L 9 5 L 0 9 z', fill: color }));
+        defs.appendChild(m);
+      }
+      DATA.meta.layers.forEach((l) => {
+        const m = el('marker', {
+          id: 'arrow-flow-' + l.id, viewBox: '0 0 10 10', refX: '8', refY: '5',
+          markerWidth: '5.5', markerHeight: '5.5', orient: 'auto-start-reverse',
+        });
+        m.appendChild(el('path', { d: 'M 0 1 L 9 5 L 0 9 z', fill: l.color }));
+        defs.appendChild(m);
+      });
+
+      /* =====================================================================
+         Bandas por capa
+      ===================================================================== */
+      DATA.meta.layers.forEach((layer) => {
+        const ns = DATA.nodes.filter((n) => n.layer === layer.id);
+        if (!ns.length) return;
+        const top = Math.min(...ns.map((n) => n.y)) - 14;
+        const bottom = Math.max(...ns.map((n) => n.y + n.h)) + 14;
+        const g = el('g', { class: 'band' });
+        g.appendChild(el('rect', { x: 8, y: top, width: WORLD.w - 16, height: bottom - top, rx: 12 }));
+        const t = el('text', {
+          x: 30, y: (top + bottom) / 2, 'text-anchor': 'middle',
+          transform: `rotate(-90 30 ${(top + bottom) / 2})`,
+        });
+        t.textContent = layer.label;
+        g.appendChild(t);
+        gBands.appendChild(g);
+      });
+
+      /* =====================================================================
+         Ruteo de aristas: anclas repartidas para abrir los abanicos
+      ===================================================================== */
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+      function anchors(a, b) {
+        const acx = a.x + a.w / 2, acy = a.y + a.h / 2;
+        const bcx = b.x + b.w / 2, bcy = b.y + b.h / 2;
+        const inset = 14;
+        if (b.y > a.y + a.h - 4) {
+          return {
+            x1: clamp(bcx, a.x + inset, a.x + a.w - inset), y1: a.y + a.h,
+            x2: clamp(acx, b.x + inset, b.x + b.w - inset), y2: b.y,
+            vertical: true,
+          };
+        }
+        if (b.y + b.h < a.y + 4) {
+          return {
+            x1: clamp(bcx, a.x + inset, a.x + a.w - inset), y1: a.y,
+            x2: clamp(acx, b.x + inset, b.x + b.w - inset), y2: b.y + b.h,
+            vertical: true,
+          };
+        }
+        const leftToRight = bcx >= acx;
+        return {
+          x1: leftToRight ? a.x + a.w : a.x, y1: acy,
+          x2: leftToRight ? b.x : b.x + b.w, y2: bcy,
+          vertical: false,
+        };
+      }
+
+      function pathFor(a, b) {
+        const p = anchors(a, b);
+        if (p.vertical) {
+          const d = Math.abs(p.y2 - p.y1);
+          const off = Math.max(26, Math.min(70, d * 0.45));
+          const dir = p.y2 > p.y1 ? 1 : -1;
+          return `M ${p.x1} ${p.y1} C ${p.x1} ${p.y1 + off * dir}, ${p.x2} ${p.y2 - off * dir}, ${p.x2} ${p.y2}`;
+        }
+        const d = Math.abs(p.x2 - p.x1);
+        const off = Math.max(24, Math.min(70, d * 0.45));
+        const dir = p.x2 > p.x1 ? 1 : -1;
+        return `M ${p.x1} ${p.y1} C ${p.x1 + off * dir} ${p.y1}, ${p.x2 - off * dir} ${p.y2}, ${p.x2} ${p.y2}`;
+      }
+
+      const edgeEls = [];
+      DATA.edges.forEach((e, i) => {
+        const a = byId.get(e.from), b = byId.get(e.to);
+        const d = pathFor(a, b);
+        const kind = e.kind === 'data' || e.kind === 'nav' ? 'edge' : e.kind;
+        const p = el('path', { d, class: 'edge k-' + e.kind, 'marker-end': `url(#arrow-${kind})` });
+        gEdges.appendChild(p);
+        const hit = el('path', { d, class: 'edge-hit' });
+        hit.addEventListener('mouseenter', (ev) => showEdgeTip(ev, e));
+        hit.addEventListener('mousemove', moveTip);
+        hit.addEventListener('mouseleave', hideTip);
+        gEdgeHits.appendChild(hit);
+        edgeEls.push({ e, p, i });
+      });
+
+      /* =====================================================================
+         Nodos
+      ===================================================================== */
+      function wrap(text, max) {
+        const words = String(text).split(/\s+/);
+        const lines = [];
+        let line = '';
+        for (const w of words) {
+          const candidate = line ? line + ' ' + w : w;
+          if (candidate.length > max && line) { lines.push(line); line = w; } else { line = candidate; }
+        }
+        if (line) lines.push(line);
+        return lines.slice(0, 3);
+      }
+
+      const nodeEls = new Map();
+      DATA.nodes.forEach((n) => {
+        const color = layerById.get(n.layer).color;
+        const g = el('g', { class: 'node', 'data-id': n.id, tabindex: '0', role: 'button' });
+        g.appendChild(el('rect', { class: 'body', x: n.x, y: n.y, width: n.w, height: n.h }));
+        g.appendChild(el('rect', { x: n.x + 1, y: n.y + 1, width: 4, height: n.h - 2, rx: 2, fill: color }));
+
+        const lines = wrap(n.label, 22);
+        const lh = 14.5;
+        const startY = n.y + n.h / 2 - ((lines.length - 1) * lh) / 2 + 4.5;
+        const t = el('text', { x: n.x + n.w / 2 + 3, y: startY, 'text-anchor': 'middle' });
+        lines.forEach((ln, i) => {
+          const ts = el('tspan', { x: n.x + n.w / 2 + 3, dy: i === 0 ? 0 : lh });
+          ts.textContent = ln;
+          t.appendChild(ts);
+        });
+        g.appendChild(t);
+
+        g.addEventListener('mouseenter', (ev) => showNodeTip(ev, n));
+        g.addEventListener('mousemove', moveTip);
+        g.addEventListener('mouseleave', hideTip);
+        g.addEventListener('click', (ev) => { ev.stopPropagation(); selectNode(n.id); });
+        g.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); selectNode(n.id); }
+        });
+        gNodes.appendChild(g);
+        nodeEls.set(n.id, g);
+      });
+
+      /* =====================================================================
+         Tooltip
+      ===================================================================== */
+      function showNodeTip(ev, n) {
+        const layer = layerById.get(n.layer);
+        tip.innerHTML =
+          `<div class="t-head"><span class="t-dot" style="background:${layer.color}"></span>` +
+          `<span class="t-title">${esc(n.label)}</span></div>` +
+          `<div class="t-layer">${esc(layer.label)}</div>` +
+          `<div class="t-body">${esc(n.purpose)}</div>` +
+          (n.files && n.files.length
+            ? `<div class="t-files">${n.files.slice(0, 3).map((f) => `<code>${esc(f)}</code>`).join('')}</div>`
+            : '');
+        tip.classList.add('on');
+        moveTip(ev);
+      }
+      function showEdgeTip(ev, e) {
+        const a = byId.get(e.from), b = byId.get(e.to);
+        tip.innerHTML =
+          `<div class="t-head"><span class="t-title">${esc(a.label)} → ${esc(b.label)}</span></div>` +
+          `<div class="t-body">${esc(e.label || 'relación de tipo ' + e.kind)}</div>`;
+        tip.classList.add('on');
+        moveTip(ev);
+      }
+      function moveTip(ev) {
+        const pad = 14, r = tip.getBoundingClientRect();
+        let x = ev.clientX + pad, y = ev.clientY + pad;
+        if (x + r.width > window.innerWidth - 8) x = ev.clientX - r.width - pad;
+        if (y + r.height > window.innerHeight - 8) y = ev.clientY - r.height - pad;
+        tip.style.left = Math.max(8, x) + 'px';
+        tip.style.top = Math.max(8, y) + 'px';
+      }
+      function hideTip() { tip.classList.remove('on'); }
+
+      /* =====================================================================
+         Zoom y desplazamiento
+      ===================================================================== */
+      const view = { k: 1, x: 0, y: 0 };
+      function applyView() {
+        gViewport.setAttribute('transform', `translate(${view.x} ${view.y}) scale(${view.k})`);
+      }
+      function fit() {
+        const r = svg.getBoundingClientRect();
+        const k = Math.min(r.width / WORLD.w, r.height / WORLD.h) * 0.97;
+        view.k = k;
+        view.x = (r.width - WORLD.w * k) / 2;
+        view.y = (r.height - WORLD.h * k) / 2;
+        applyView();
+      }
+      function zoomAt(cx, cy, factor) {
+        const k = clamp(view.k * factor, 0.18, 4);
+        const f = k / view.k;
+        view.x = cx - (cx - view.x) * f;
+        view.y = cy - (cy - view.y) * f;
+        view.k = k;
+        applyView();
+      }
+      svg.addEventListener('wheel', (ev) => {
+        ev.preventDefault();
+        const r = svg.getBoundingClientRect();
+        zoomAt(ev.clientX - r.left, ev.clientY - r.top, ev.deltaY < 0 ? 1.12 : 1 / 1.12);
+      }, { passive: false });
+
+      let drag = null;
+      svg.addEventListener('pointerdown', (ev) => {
+        if (ev.target.closest('.node')) return;
+        drag = { x: ev.clientX, y: ev.clientY, vx: view.x, vy: view.y, id: ev.pointerId };
+        svg.setPointerCapture(ev.pointerId);
+        svg.classList.add('dragging');
+      });
+      svg.addEventListener('pointermove', (ev) => {
+        if (!drag || ev.pointerId !== drag.id) return;
+        view.x = drag.vx + (ev.clientX - drag.x);
+        view.y = drag.vy + (ev.clientY - drag.y);
+        applyView();
+      });
+      const endDrag = (ev) => {
+        if (drag && ev.pointerId === drag.id) { drag = null; svg.classList.remove('dragging'); }
+      };
+      svg.addEventListener('pointerup', endDrag);
+      svg.addEventListener('pointercancel', endDrag);
+      svg.addEventListener('click', (ev) => { if (!ev.target.closest('.node')) clearAll(); });
+
+      document.getElementById('zoom-in').onclick = () => {
+        const r = svg.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.25);
+      };
+      document.getElementById('zoom-out').onclick = () => {
+        const r = svg.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / 1.25);
+      };
+      document.getElementById('zoom-fit').onclick = fit;
+      window.addEventListener('resize', () => { if (!drag) fit(); });
+
+      function focusNode(id) {
+        const n = byId.get(id);
+        const r = svg.getBoundingClientRect();
+        const k = Math.max(view.k, 0.75);
+        view.k = k;
+        view.x = r.width / 2 - (n.x + n.w / 2) * k;
+        view.y = r.height / 2 - (n.y + n.h / 2) * k;
+        applyView();
+      }
+
+      /* =====================================================================
+         Estado de resaltado
+      ===================================================================== */
+      let activeFlow = null;
+      let selectedNode = null;
+      const hiddenLayers = new Set();
+
+      function resetClasses() {
+        nodeEls.forEach((g) => g.classList.remove('dim', 'hit', 'selected', 'in-flow'));
+        edgeEls.forEach(({ p }) => p.classList.remove('dim', 'lit'));
+        gFlow.replaceChildren();
+        gBadges.replaceChildren();
+      }
+
+      function applyLayerFilter() {
+        nodeEls.forEach((g, id) => {
+          if (hiddenLayers.has(byId.get(id).layer)) g.classList.add('dim');
+        });
+      }
+
+      function clearAll() {
+        activeFlow = null;
+        selectedNode = null;
+        resetClasses();
+        applyLayerFilter();
+        renderFlows();
+        renderNodePane();
+        setTab('flows');
+        document.getElementById('clear-btn').classList.remove('on');
+        document.getElementById('search').value = '';
+      }
+
+      /** Encuadra la vista sobre un conjunto de nodos: al elegir un flujo, la
+       *  ruta se lee sin que el usuario tenga que buscarla por el diagrama. */
+      function fitNodes(ids) {
+        const ns = [...new Set(ids)].map((id) => byId.get(id));
+        if (!ns.length) return;
+        const box = {
+          x1: Math.min(...ns.map((n) => n.x)) - 60,
+          y1: Math.min(...ns.map((n) => n.y)) - 50,
+          x2: Math.max(...ns.map((n) => n.x + n.w)) + 60,
+          y2: Math.max(...ns.map((n) => n.y + n.h)) + 50,
+        };
+        const r = svg.getBoundingClientRect();
+        const k = clamp(Math.min(r.width / (box.x2 - box.x1), r.height / (box.y2 - box.y1)), 0.2, 1.1);
+        view.k = k;
+        view.x = r.width / 2 - ((box.x1 + box.x2) / 2) * k;
+        view.y = r.height / 2 - ((box.y1 + box.y2) / 2) * k;
+        applyView();
+      }
+
+      function selectFlow(id) {
+        if (activeFlow === id) { clearAll(); return; }
+        activeFlow = id;
+        selectedNode = null;
+        resetClasses();
+
+        const flow = DATA.flows.find((f) => f.id === id);
+        const seq = flow.steps.map((s) => s.node);
+        const inPath = new Set(seq);
+
+        nodeEls.forEach((g, nid) => {
+          if (inPath.has(nid)) { g.classList.add('hit', 'in-flow'); } else { g.classList.add('dim'); }
+        });
+        edgeEls.forEach(({ p }) => p.classList.add('dim'));
+
+        for (let i = 0; i < seq.length - 1; i++) {
+          const a = byId.get(seq[i]), b = byId.get(seq[i + 1]);
+          if (a.id === b.id) continue;
+          const color = layerById.get(b.layer).color;
+          gFlow.appendChild(
+            el('path', {
+              d: pathFor(a, b), class: 'flow-path', stroke: color,
+              'marker-end': `url(#arrow-flow-${b.layer})`,
+              style: `animation-delay:${i * 0.07}s`,
+            }),
+          );
+        }
+
+        const stepsByNode = new Map();
+        seq.forEach((nid, i) => {
+          if (!stepsByNode.has(nid)) stepsByNode.set(nid, []);
+          stepsByNode.get(nid).push(i + 1);
+        });
+        stepsByNode.forEach((idxs, nid) => {
+          const n = byId.get(nid);
+          const label = idxs.join('·');
+          const rw = 15 + (label.length - 1) * 5;
+          const g = el('g', { class: 'step-badge' });
+          if (label.length > 1) {
+            g.appendChild(el('rect', {
+              x: n.x - rw / 2 + 4, y: n.y - 9, width: rw, height: 18, rx: 9,
+              fill: layerById.get(n.layer).color, stroke: 'var(--bg-panel)', 'stroke-width': 2,
+            }));
+          } else {
+            g.appendChild(el('circle', { cx: n.x + 4, cy: n.y, r: 9, fill: layerById.get(n.layer).color }));
+          }
+          const t = el('text', { x: n.x + 4, y: n.y + 3.5 });
+          t.textContent = label;
+          g.appendChild(t);
+          gBadges.appendChild(g);
+        });
+
+        fitNodes(seq);
+        renderFlows();
+        setTab('flows');
+        document.getElementById('clear-btn').classList.add('on');
+      }
+
+      function selectNode(id) {
+        selectedNode = id;
+        activeFlow = null;
+        resetClasses();
+
+        const neighbors = new Set([id]);
+        DATA.edges.forEach((e) => {
+          if (e.from === id) neighbors.add(e.to);
+          if (e.to === id) neighbors.add(e.from);
+        });
+        nodeEls.forEach((g, nid) => {
+          if (neighbors.has(nid)) g.classList.add('hit'); else g.classList.add('dim');
+        });
+        nodeEls.get(id).classList.add('selected');
+        edgeEls.forEach(({ e, p }) => {
+          if (e.from === id || e.to === id) p.classList.add('lit'); else p.classList.add('dim');
+        });
+
+        renderFlows();
+        renderNodePane();
+        setTab('node');
+        document.getElementById('clear-btn').classList.add('on');
+      }
+
+      /* =====================================================================
+         Panel
+      ===================================================================== */
+      const paneFlows = document.getElementById('pane-flows');
+      const paneNode = document.getElementById('pane-node');
+
+      function renderFlows() {
+        paneFlows.innerHTML = DATA.flows
+          .map((f, i) => {
+            const active = f.id === activeFlow;
+            const steps = f.steps
+              .map((s, j) => {
+                const n = byId.get(s.node);
+                const color = layerById.get(n.layer).color;
+                return (
+                  `<button class="step" data-node="${esc(s.node)}">` +
+                  `<span class="step-i" style="background:${color}">${j + 1}</span>` +
+                  `<span><span class="step-label">${esc(s.label)}</span><br>` +
+                  `<span class="step-node">${esc(n.label)}</span><br>` +
+                  `<span class="step-file">${esc(s.file)}</span></span></button>`
+                );
+              })
+              .join('');
+            return (
+              `<div class="flow-card${active ? ' active' : ''}" data-flow="${esc(f.id)}">` +
+              `<button class="flow-head"><span class="flow-num">${i + 1}</span><span>` +
+              `<span class="flow-title">${esc(f.label)}</span>` +
+              `<div class="flow-sum">${esc(f.summary)}</div>` +
+              `<div class="flow-meta">${f.steps.length} pasos · ${
+                new Set(f.steps.map((s) => byId.get(s.node).layer)).size
+              } capas</div>` +
+              `</span></button><div class="steps">${steps}</div></div>`
+            );
+          })
+          .join('');
+
+        paneFlows.querySelectorAll('.flow-head').forEach((b) => {
+          b.onclick = () => selectFlow(b.closest('.flow-card').dataset.flow);
+        });
+        paneFlows.querySelectorAll('.step').forEach((b) => {
+          b.onclick = () => focusNode(b.dataset.node);
+        });
+        const card = paneFlows.querySelector('.flow-card.active');
+        if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+
+      function renderNodePane() {
+        if (!selectedNode) {
+          paneNode.innerHTML =
+            '<div class="empty">Elige un componente del diagrama para ver qué hace, ' +
+            'con qué archivos y con quién habla.</div>';
+          return;
+        }
+        const n = byId.get(selectedNode);
+        const layer = layerById.get(n.layer);
+        const out = DATA.edges.filter((e) => e.from === n.id);
+        const inc = DATA.edges.filter((e) => e.to === n.id);
+        const flows = DATA.flows.filter((f) => f.steps.some((s) => s.node === n.id));
+
+        const chips = (list, dir) =>
+          list.length
+            ? `<div class="chips">${list
+                .map((e) => {
+                  const other = dir === 'out' ? e.to : e.from;
+                  return `<button class="chip" data-node="${esc(other)}"><span class="arrow">${
+                    dir === 'out' ? '→' : '←'
+                  }</span>${esc(byId.get(other).label)}</button>`;
+                })
+                .join('')}</div>`
+            : '<div class="empty" style="padding:6px 0;text-align:left">—</div>';
+
+        paneNode.innerHTML =
+          `<div class="detail-title"><span class="detail-dot" style="background:${layer.color}"></span>` +
+          `<h2>${esc(n.label)}</h2></div>` +
+          `<div class="detail-layer">${esc(layer.label)}</div>` +
+          `<div class="detail-purpose">${esc(n.purpose)}</div>` +
+          (n.files && n.files.length
+            ? `<div class="detail-h">Archivos clave</div><div class="file-list">${n.files
+                .map((f) => `<code>${esc(f)}</code>`)
+                .join('')}</div>`
+            : '') +
+          `<div class="detail-h">Envía a (${out.length})</div>${chips(out, 'out')}` +
+          `<div class="detail-h">Recibe de (${inc.length})</div>${chips(inc, 'in')}` +
+          (flows.length
+            ? `<div class="detail-h">Participa en ${flows.length} flujo${flows.length > 1 ? 's' : ''}</div>` +
+              `<div class="chips">${flows
+                .map((f) => `<button class="chip" data-flow="${esc(f.id)}">${esc(f.label)}</button>`)
+                .join('')}</div>`
+            : '');
+
+        paneNode.querySelectorAll('.chip[data-node]').forEach((b) => {
+          b.onclick = () => { selectNode(b.dataset.node); focusNode(b.dataset.node); };
+        });
+        paneNode.querySelectorAll('.chip[data-flow]').forEach((b) => {
+          b.onclick = () => selectFlow(b.dataset.flow);
+        });
+      }
+
+      function setTab(which) {
+        const tf = document.getElementById('tab-flows'), tn = document.getElementById('tab-node');
+        const isFlows = which === 'flows';
+        tf.setAttribute('aria-selected', String(isFlows));
+        tn.setAttribute('aria-selected', String(!isFlows));
+        paneFlows.hidden = !isFlows;
+        paneNode.hidden = isFlows;
+      }
+      document.getElementById('tab-flows').onclick = () => setTab('flows');
+      document.getElementById('tab-node').onclick = () => setTab('node');
+      document.getElementById('clear').onclick = clearAll;
+
+      /* =====================================================================
+         Leyenda, búsqueda, tema
+      ===================================================================== */
+      const legend = document.getElementById('legend');
+      legend.innerHTML = DATA.meta.layers
+        .map(
+          (l) =>
+            `<button data-layer="${l.id}" title="${esc(l.description)}">` +
+            `<span class="swatch" style="background:${l.color}"></span>${esc(l.label)}</button>`,
+        )
+        .join('');
+      legend.querySelectorAll('button').forEach((b) => {
+        b.onclick = () => {
+          const id = b.dataset.layer;
+          if (hiddenLayers.has(id)) { hiddenLayers.delete(id); b.classList.remove('off'); }
+          else { hiddenLayers.add(id); b.classList.add('off'); }
+          if (activeFlow) selectFlow(activeFlow === null ? null : activeFlow);
+          else if (selectedNode) selectNode(selectedNode);
+          else { resetClasses(); }
+          applyLayerFilter();
+        };
+      });
+
+      document.getElementById('search').addEventListener('input', (ev) => {
+        const q = ev.target.value.trim().toLowerCase();
+        if (!q) {
+          resetClasses(); applyLayerFilter();
+          if (activeFlow) selectFlow(activeFlow);
+          else if (selectedNode) selectNode(selectedNode);
+          return;
+        }
+        activeFlow = null; selectedNode = null;
+        resetClasses();
+        let first = null;
+        nodeEls.forEach((g, id) => {
+          const n = byId.get(id);
+          const hay = (n.label + ' ' + n.purpose + ' ' + (n.files || []).join(' ')).toLowerCase();
+          if (hay.includes(q)) { g.classList.add('hit'); if (!first) first = id; }
+          else g.classList.add('dim');
+        });
+        edgeEls.forEach(({ p }) => p.classList.add('dim'));
+        if (first) focusNode(first);
+      });
+
+      const themeBtn = document.getElementById('theme-btn');
+      themeBtn.onclick = () => {
+        const cur = document.documentElement.dataset.theme;
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const next = cur === 'auto' ? (prefersDark ? 'light' : 'dark') : cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+      };
+
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape') { clearAll(); document.activeElement.blur(); }
+        if (ev.key === '/' && document.activeElement.id !== 'search') {
+          ev.preventDefault(); document.getElementById('search').focus();
+        }
+      });
+
+      /* ===================================================================== */
+      renderFlows();
+      renderNodePane();
+      fit();
+    </script>
+  </body>
+</html>

@@ -2,6 +2,34 @@
 
 Documento vivo de decisiones. Cada bloque de mejoras lo actualiza.
 
+## Mapa interactivo (la forma actual del sistema)
+
+Este documento explica **por qué** el sistema es como es. Para ver **qué hay
+hoy** —las 73 piezas, quién habla con quién y cómo viaja un dato de punta a
+punta— abrí el mapa:
+
+- [`docs/arquitectura/mapa.html`](docs/arquitectura/mapa.html) — diagrama
+  interactivo en un solo archivo (se abre con doble clic, sin servidor). Elegí
+  un flujo del panel derecho y la ruta completa se resalta sobre el diagrama.
+- [`docs/arquitectura/mapa.json`](docs/arquitectura/mapa.json) — el mismo grafo
+  como datos (`{nodes, edges, flows}`), pensado para que lo lea un agente.
+
+**Por qué se puede confiar en él.** Cada nodo y cada paso de flujo cita
+archivos reales, y `npm run check:architecture-map` verifica en CI que esas
+~196 rutas sigan existiendo, que el grafo no tenga referencias rotas y que el
+HTML no se quede con una copia vieja del JSON. Un PR que renombre un archivo
+citado pone el mapa en rojo en vez de dejarlo mentir en silencio.
+
+Para actualizarlo: editá `mapa.json` y corré `npm run architecture-map:build`
+(reinyecta el grafo en el HTML y refresca los contadores de portada).
+
+> **Ojo con las secciones de abajo.** Describen el sistema de una época previa:
+> nombran seis vistas y un solo mundo, y no mencionan Imprenta, Biblioteca,
+> WhatsApp, R2, Clerk ni los embeddings. La prosa no tiene gate, así que
+> envejeció sin que nada avisara. Mientras no se reescriban, el mapa es la
+> fuente fiable de la forma actual; estas secciones siguen valiendo para las
+> **decisiones** y su porqué.
+
 ## Visión del producto
 
 Mapa cognitivo personal de afinidades intelectuales y estéticas. La cara visible es **un grafo**; el motor es una **IA que estructura texto desordenado** en nodos y relaciones que el usuario revisa y confirma. Una pestaña paralela de chat permite conversar con la trama y recibir sugerencias inline.
