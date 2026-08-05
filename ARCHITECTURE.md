@@ -23,297 +23,390 @@ citado pone el mapa en rojo en vez de dejarlo mentir en silencio.
 Para actualizarlo: editá `mapa.json` y corré `npm run architecture-map:build`
 (reinyecta el grafo en el HTML y refresca los contadores de portada).
 
-> **Ojo con las secciones de abajo.** Describen el sistema de una época previa:
-> nombran seis vistas y un solo mundo, y no mencionan Imprenta, Biblioteca,
-> WhatsApp, R2, Clerk ni los embeddings. La prosa no tiene gate, así que
-> envejeció sin que nada avisara. Mientras no se reescriban, el mapa es la
-> fuente fiable de la forma actual; estas secciones siguen valiendo para las
-> **decisiones** y su porqué.
+La división del trabajo entre los dos artefactos es deliberada: **el mapa
+enumera** (y su gate lo mantiene honesto); **esta prosa explica decisiones**.
+Donde este documento necesite un inventario, remite al mapa en vez de
+duplicarlo — la prosa no tiene gate, y las listas duplicadas son exactamente
+lo que envejece sin avisar.
 
 ## Visión del producto
 
-Mapa cognitivo personal de afinidades intelectuales y estéticas. La cara visible es **un grafo**; el motor es una **IA que estructura texto desordenado** en nodos y relaciones que el usuario revisa y confirma. Una pestaña paralela de chat permite conversar con la trama y recibir sugerencias inline.
+Mapa cognitivo personal de afinidades intelectuales y estéticas, que creció
+hasta ser un espacio personal con dos mundos (sección siguiente). La cara más
+visible sigue siendo **el grafo**; el motor es una **IA que estructura texto
+desordenado** en nodos y relaciones que el usuario revisa y confirma.
+Alrededor crecieron un diario multimedia (Momentos), captura desde el bolsillo
+(WhatsApp) y desde el navegador (extensión de Chrome), y un mundo utilitario
+de apuntes, tareas y PDFs.
 
 Tres pilares:
 
-1. **Visualización primero.** El producto es el grafo, no los formularios.
-2. **IA como escribano, humano como curador.** El usuario aporta texto bruto o un input ambiguo; la IA propone estructura; el usuario decide qué entra. Nunca nada automático.
-3. **Persistencia en la nube, durabilidad en décadas.** Diseñado para ser usable a lo largo de 10+ años, con respaldo exportable en cualquier momento.
+1. **Visualización primero.** El producto son las vistas, no los formularios.
+2. **IA como escribano, humano como curador.** El usuario aporta texto bruto o
+   un input ambiguo; la IA propone estructura; el usuario decide qué entra. La
+   única excepción deliberada es la captura por WhatsApp: mandar el mensaje
+   **es** la aprobación, y la curaduría fina se hace después en la app
+   ([`docs/whatsapp.md`](docs/whatsapp.md)).
+3. **Persistencia en la nube, durabilidad en décadas.** Diseñado para ser
+   usable a lo largo de 10+ años, con respaldo exportable en cualquier momento
+   (`netlify/functions/export.mts`).
+
+Desde mediados de 2026 la app es además **multi-usuario real**: identidad con
+Clerk y aislamiento por usuario en dos capas (ver decisiones abajo).
+
+## Los dos mundos
+
+`src/types/world.ts` define una unión cerrada: `'trama' | 'notas'`.
+
+- **Trama** es el mundo histórico: el mapa cognitivo — grafo, entidades,
+  citas, momentos, chat y sus lentes (hoy 11 vistas).
+- **Notas** es una app de productividad liviana: feed de notas y recortes,
+  tareas, prompts, claves cifradas en el cliente, Imprenta y Planillas (el
+  editor de PDF con dos modos) y Biblioteca (hoy 8 secciones, ocultables por
+  usuario).
+
+**Por qué dos mundos y no más vistas en el sidebar.** La decisión nació al
+sumar la app de apuntes: era un producto de otra naturaleza (utilitario,
+frecuente, mundano) que no debía mezclarse con la navegación de un producto
+contemplativo, y cada cambio suyo tenía que ser incapaz de romper el mapa
+cognitivo, que quedó intacto dentro de su propio shell. Un mundo encapsula:
+workspace propio, navegación propia, acento visual propio (salvia para Notas)
+y datos independientes, con **puentes explícitos** en lugar de acoplamiento:
+la paleta ⌘K de Trama puede saltar a un módulo de Notas, y una nota puede
+promoverse a Momento.
+
+**Qué comparten: casi todo lo estructural.** Es una sola app y un solo deploy:
+mismo `QueryClient`, mismo cliente HTTP (`src/api/request.ts`), mismos Netlify
+Functions con la misma auth, y el mismo chrome (el conmutador de mundos vive
+en el logo — `src/components/WorldSwitcher.tsx`). El mundo activo se resuelve
+con prioridad URL → `localStorage` → preferencia de servidor → Trama, y el
+mundo Notas entero es un chunk lazy con precarga por intención (hover sobre el
+conmutador). La paleta ⌘K existe solo en Trama; Notas tiene su buscador
+propio.
+
+Esta decisión no tuvo ADR en su momento; el porqué vivía en los docblocks de
+`src/types/world.ts` y en el commit que la introdujo. Esta sección lo deja
+fijado.
 
 ## Stack técnico
 
-| Capa            | Elección                                                                                          | Por qué                                                                                                                                                         |
-| --------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend        | React 18 + Vite + TypeScript + Tailwind                                                           | Vite rápido, TS para seguridad de tipos, Tailwind para iterar estética sin CSS suelto                                                                           |
-| Hosting         | Netlify                                                                                           | El usuario ya tiene cuenta Pro, despliegues automáticos en push a `main`, scheduled functions incluidas                                                         |
-| Backend         | Netlify Functions (Node 22, ESM)                                                                  | Cero servidor que mantener, escala automática, idéntico stack TS que el frontend                                                                                |
-| Base de datos   | Netlify Database (Postgres serverless via Neon)                                                   | Provisionado por Netlify, plan Pro incluye uso gratuito hasta cierto volumen                                                                                    |
-| Driver Postgres | `@netlify/database` → `getSql()`                                                                  | Resuelve la conexión vía la extensión Netlify Database. Bajo el capó usa `@neondatabase/serverless` (HTTP), tagged template literals con parametrización segura |
-| Streaming       | SSE para chat con DeepSeek/OpenAI; fallback de un chunk para Anthropic/Gemini                     | Token-by-token donde el provider lo soporta; API consumer-side uniforme                                                                                         |
-| Grafo           | SVG rico para tramas chicas + sigma.js WebGL lazy para tramas grandes                             | Mantiene fidelidad visual bajo ~1000 nodos y cambia a WebGL cuando el grafo completo cruza el umbral de escala                                                  |
-| LLM             | Abstracción multi-proveedor: DeepSeek por defecto, OpenAI/Anthropic/Gemini swappables vía env var | El modelo cambia cada 6 meses; la capa de invocación no debería                                                                                                 |
-| Spotify         | OAuth client + scheduled function de sync                                                         | Importa playlists y registra escuchas, sin escribir nada a la trama sin aprobación                                                                              |
-| Sync local      | localStorage como fallback offline (unidireccional)                                               | Temporal; migrar a CRDTs (Yjs) cuando se use en múltiples dispositivos                                                                                          |
+| Capa            | Elección                                                                               | Por qué                                                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend        | React 18 + Vite + TypeScript + Tailwind                                                | Vite rápido, TS para seguridad de tipos, Tailwind para iterar estética sin CSS suelto                                                |
+| Backend         | Netlify Functions (ESM, `.mts`)                                                        | Cero servidor que mantener; wrappers finos que solo declaran ruta y reexportan el handler real de `_lib/`                            |
+| Base de datos   | Netlify Database (Postgres serverless vía Neon) con pgvector y FTS                     | Relacional, vectorial y texto completo en la misma base — la búsqueda híbrida y el RAG no necesitan un segundo almacén               |
+| Driver Postgres | `@netlify/database` → `getSql()`                                                       | Tagged templates con parametrización segura; el wrapper propio inyecta el contexto RLS (ver decisión abajo)                          |
+| Identidad       | Clerk + tokens personales (`trama_pat_*`) + modo legacy                                | Sesión real multi-usuario; el PAT cubre a la extensión (sin sesión) y el legacy cubre desarrollo local sin llaves                    |
+| Storage binario | Netlify Blobs para lo chico + Cloudflare R2 firmado con `aws4fetch` para lo grande     | Las functions topan el body en ~6 MB; lo grande sube directo del navegador al bucket (ver decisión abajo)                            |
+| Grafo           | SVG rico para tramas chicas + sigma.js/WebGL lazy desde ~1000 entidades                | Fidelidad visual mientras el DOM aguanta; WebGL cuando la escala lo exige ([ADR 0008](./docs/adr/0008-webgl-threshold-sigma.md))     |
+| LLM             | Cuatro proveedores swappables (DeepSeek default), elegibles por usuario y por tarea    | El modelo cambia cada 6 meses; la capa de invocación no debería                                                                      |
+| Embeddings      | OpenAI `text-embedding-3-small` (1536 dims) sobre pgvector con índices HNSW            | Un solo modelo de embeddings alimenta búsqueda semántica, dedupe de entidades y RAG                                                  |
+| Streaming       | SSE en el hilo de chat; token a token en DeepSeek/OpenAI, un chunk en Anthropic/Gemini | Contrato de frames uniforme para el cliente, sin upgrade dance de WebSocket                                                          |
+| Captura móvil   | WhatsApp vía Twilio: webhook firmado, respuesta TwiML                                  | Capturar sin abrir la app; la firma HMAC autentica a Twilio y el número vinculado autentica al usuario                               |
+| Integraciones   | Spotify (OAuth + sync programado cada 3 h), X, Wikipedia                               | Fuentes externas que alimentan escuchas, bookmarks y datos de entidades — siempre como propuesta, nunca escritura directa a la trama |
+| Entrega         | GitHub Actions + branch protection + canario de deploy                                 | A `main` solo por PR en verde; el canario vigila que producción sirva de verdad `origin/main` (ver decisión abajo)                   |
 
 ## Estructura del repositorio
 
-Ver el árbol completo en [`README.md`](./README.md#layout-del-repo). Resumen:
+Ver el árbol completo en [`README.md`](./README.md#layout-del-repo) y la vista
+por capas en el mapa. Resumen:
 
-- `src/` — frontend React
-  - `App.tsx` — shell con sidebar + canvas + paneles. Coordina state global mínimo (vista activa, entidad seleccionada, propuesta pendiente)
-  - `state/` — hooks granulares por dominio sobre TanStack Query
-  - `hooks/layouts/` — funciones puras de cálculo de posiciones (organic, byType, byYear, byDegree)
-  - `components/` — vistas (GraphView, EntitiesView, QuotesView, RelationshipsView, ListeningView, ChatView) + paneles (NodeDetailPanel, ProposalPanel, ReclassifyPanel)
-- `netlify/functions/` — endpoints serverless
-  - `_lib/` — utilidades reutilizables: conexión DB, LLM, prompts, validators, observabilidad
-  - `*.mts` — handlers HTTP, uno por endpoint o grupo de paths
-- `netlify/database/migrations/` — SQL versionado aplicado por Netlify en deploy
+- `src/` — frontend React de los dos mundos
+  - `src/App.tsx` monta el shell de mundos; `src/components/ViewRouter.tsx`
+    enruta las vistas de Trama (cada una lazy y con ErrorBoundary propio) y
+    `src/components/notas/NotasWorld.tsx` las secciones de Notas
+  - `src/state/` — un hook por dominio sobre TanStack Query, con mutaciones
+    optimistas e invalidación agrupada por superficie
+  - `src/api/` — cliente HTTP único + transforms snake↔camel
+  - `src/hooks/` y `src/lib/` — layouts puros del grafo, motor PDF/OCR,
+    compresión de imagen, modo prueba
+- `extension/` — extensión de Chrome (recortes y favoritos con token personal)
+- `netlify/functions/` — endpoints serverless: wrappers `.mts` finos, lógica
+  compartida en `_lib/`
+- `netlify/database/migrations/` — SQL versionado, inmutable una vez aplicado
+- `scripts/` — gates de calidad y herramientas operacionales, con registro
+  central en `scripts/script-registry.mjs`
+- `e2e/` — specs de Playwright
 
 ## Modelo de datos
 
-Tablas centrales y sus relaciones:
-
-```
-entities (1) ─── (∞) relationships ─── (1) entities
-        │
-        └── (∞) quotes
-
-chat_threads (1) ─── (∞) chat_messages
-spotify_tokens (single row, id='default')
-spotify_plays
-entity_types, relationship_types        ← catálogos (datos, no código)
-extraction_log, error_log               ← observabilidad
-```
-
-### Convenciones de columnas
-
-Las tablas de dominio incluyen:
+El inventario real —96 migraciones, cada tabla con sus índices y políticas—
+vive en `netlify/database/migrations/`, y la vista por dominios en el mapa.
+Acá quedan las convenciones que hacen predecible cualquier tabla nueva:
 
 - `id UUID PRIMARY KEY` — generado por DB (`gen_random_uuid()`)
-- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` — inmutable
-- `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` — actualizado por trigger en cada UPDATE
-- `deleted_at TIMESTAMPTZ NULL` — soft delete (las queries filtran por `WHERE deleted_at IS NULL`)
-- `origin JSONB NOT NULL DEFAULT '{"kind": "manual"}'` — procedencia estructurada (ver abajo)
-
-Excepciones: `chat_messages` no tiene `updated_at`/`deleted_at` (es append-only y la borrada cae por CASCADE del thread). `spotify_plays` ídem.
-
-### Tabla `entities`
-
-Además de las columnas estándar:
-
-- `type TEXT NOT NULL` — slug del tipo (referencia lógica a `entity_types.slug`, no FK estricta)
-- `name TEXT NOT NULL`
-- `year INTEGER NULL` — año asociado (nacimiento, publicación, lanzamiento)
-- `description TEXT NULL` — descripción libre, una frase corta
-- `position_x DOUBLE PRECISION NULL`, `position_y DOUBLE PRECISION NULL` — coordenadas para el modo de layout orgánico
-- `spotify_url TEXT NULL` — link público de Spotify para entidades musicales (banda, musico, cancion, album, disco)
-
-Tipos de entidad seedados (24): persona, escritor, filósofo, músico, banda, director, artista, científico, libro, ensayo, poema, artículo, canción, podcast, álbum, disco, película, serie, documental, obra, concepto, idea, lugar, evento.
-
-### Tabla `relationships`
-
-- `from_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE`
-- `to_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE`
-- `type TEXT NOT NULL` — slug del tipo de relación
-- `notes TEXT NULL` — justificación o contexto
-
-Tipos seedados (8): influye_en, cita_a, responde_a, me_llego_por, suena_como, inspira, contradice, asociado_con.
-
-### Tabla `quotes`
-
-- `entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE`
-- `text TEXT NOT NULL`
-- `source TEXT NULL` — referencia bibliográfica o URL
-- `context TEXT NULL` — comentario sobre la cita
-
-Las notas rápidas que el usuario añade desde `NodeDetailPanel` son quotes sin `source`/`context`.
-
-### Tablas de chat
-
-`chat_threads`: id, title (auto-generado por LLM tras el primer mensaje), timestamps, soft delete.
-
-`chat_messages`: thread_id (FK con CASCADE), role (`'user' | 'assistant'`), content, proposal (JSONB), tokens_in/out/cost_cents (per-message), provider/model. Append-only.
-
-### Tablas Spotify
-
-`spotify_tokens`: una sola fila id='default'. Guarda access_token, refresh_token, expires_at, scope, profile.
-
-`spotify_plays`: cada reproducción con track_id, artist_ids[], album_id, played_at. Unique en (track_id, played_at) para que el sync sea idempotente.
-
-### El campo `origin`
-
-JSONB con esta forma mínima:
-
-```json
-{ "kind": "manual" }
-```
-
-O cuando viene de la IA:
-
-```json
-{
-  "kind": "ai",
-  "provider": "deepseek",
-  "model": "deepseek-chat",
-  "extractionLogId": "uuid-del-log-de-extraccion"
-}
-```
-
-O cuando viene de un import (Spotify, archivo JSON):
-
-```json
-{
-  "kind": "imported",
-  "importedFrom": "spotify"
-}
-```
-
-JSONB porque: (a) flexible para agregar campos sin migración, (b) consultable con operadores `->`, `->>`, `@>`, (c) preparado para nuevas fuentes futuras (`pdf`, `voice`, etc.).
+- `created_at` inmutable; `updated_at` mantenido por trigger
+- `deleted_at TIMESTAMPTZ NULL` — **borrado suave**: las queries filtran
+  `WHERE deleted_at IS NULL` y el DELETE es un UPDATE. Las pocas tablas
+  operacionales que pueden hard-deletear están allowlisted en
+  `scripts/check-hard-delete-allowlist.mjs`
+- `user_id` en toda tabla privada (desde el esquema multi-usuario); un gate
+  exige que cada INSERT lo incluya (ver «RLS en dos capas»)
+- `origin JSONB NOT NULL DEFAULT '{"kind": "manual"}'` — procedencia
+  estructurada: `manual`, `ai` (con provider, model y el id del log de
+  extracción) o `imported` (con la fuente)
 
 ### Eliminación en cascada
 
-Si una entidad se soft-deletea (`deleted_at` se setea), también se soft-deletean sus relaciones (entrantes y salientes), sus citas y sus links a momentos. Esto se hace en `netlify/functions/_lib/entities-endpoint.ts` con un único CTE atómico: la entidad y todo su cascade comparten un mismo `deleted_at` (la CTE `ts`), de modo que no puede quedar la entidad borrada pero el cascade no. El restore usa ese timestamp exacto para revertir solo lo que ese borrado tocó.
+Si una entidad se soft-deletea, también se soft-deletean sus relaciones, sus
+citas y sus links a momentos — en `netlify/functions/_lib/entities-endpoint.ts`
+con un único CTE atómico donde la entidad y todo su cascade comparten el mismo
+`deleted_at`. No puede quedar la entidad borrada y el cascade no, y el restore
+usa ese timestamp exacto para revertir solo lo que ese borrado tocó.
 
-## El flujo principal de la IA
+## Los caminos de la IA
 
-Hay cinco caminos donde la IA produce sugerencias estructuradas:
+La regla que los unifica no cambió desde el primer día: **la IA propone, el
+usuario aprueba item por item**, y lo aprobado se persiste con su procedencia
+en `origin`. Lo que sí creció es la cantidad de caminos: extracción desde
+texto y desde imagen, sugerencia de relaciones, reclasificación de tipos,
+propuestas inline del chat, sugerencias proactivas, sugerencia de destino de
+un recorte, reflexión y ecos sobre citas. Las rutas exactas y sus archivos
+están en el mapa (capa «Endpoints» y el flujo «Preguntar al chat»).
 
-1. **Extract** (`POST /api/extract`) — texto libre → entidades + relaciones + citas.
-2. **Suggest relationships** (`POST /api/suggest-relationships`) — recorre la trama y propone vínculos nuevos entre entidades existentes.
-3. **Reclassify** (`POST /api/reclassify-entities`) — revisa los tipos actuales y propone cambios cuando hay uno mejor en el catálogo.
-4. **Chat** (`POST /api/chat/threads/:id/messages`, SSE) — diálogo persistido con la trama completa como contexto. La respuesta puede traer un bloque JSON entre marcadores `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>` que el cliente parsea en propuestas inline.
-5. **Import playlist Spotify** (`POST /api/spotify/import-playlist`) — la "IA" aquí es determinística (no LLM): parsea el ID de la URL, llama Spotify API, agrupa por artista único y devuelve una propuesta.
+Dos excepciones deliberadas: la captura por WhatsApp (mandar el mensaje es la
+aprobación) y la transcripción de notas de voz (Whisper convierte, no
+propone).
 
-Todos los caminos terminan en el mismo flujo: la UI muestra una propuesta y el usuario aprueba/rechaza por item. Las que aprueba se persisten con `origin.kind = 'ai'` (o `'imported'` para playlist).
+### `_lib/llm/`
 
-### `_lib/llm.ts`
+El punto único de acceso a los modelos es el directorio
+`netlify/functions/_lib/llm/` (`_lib/llm.ts` sobrevive solo como barrel de
+compatibilidad). Superficie pública: `askLLMForJson`, `askLLMForText`,
+`askLLMForTextStreaming`, `askLLMForVision` y `askLLMForTranscription`.
 
-Punto único de entrada al LLM. Tres funciones:
-
-- `askLLMForJson(messages)` — fuerza `response_format: json_object`. Para extract/suggest/reclassify.
-- `askLLMForText(messages)` — texto plano. Para chat (no-streaming) y para auto-título de threads.
-- `askLLMForTextStreaming(messages)` — async generator de `{chunk|done|error}` frames. SSE en DeepSeek/OpenAI; fallback de un solo chunk en Anthropic/Gemini.
-
-Cada función:
-
-- Lee provider y key de env vars
-- Cachea por hash del input (TTL configurable, default 600s)
-- Hace retry con backoff en 5xx/429, no en 4xx
-- Devuelve `{ content, usage, fromCache }` — usage incluye costo estimado y tokens
+- **Elección de proveedor en tres niveles**: el header `X-AI-Mode` (apagar la
+  IA por completo, o forzar proveedor/modelo puntual), la tabla
+  `ai_task_providers` — por usuario **y por tarea**: extract, chat, voz, etc. —
+  y el default por env var.
+- **Cadena de respaldo opt-in** (`netlify/functions/_lib/llm/provider-chain.ts`):
+  solo ante fallo transitorio (5xx, 429, red) se pasa al siguiente proveedor,
+  y solo si ese proveedor tiene key dedicada; el resto de 4xx corta la cadena
+  ([ADR 0017](./docs/adr/0017-fallback-solo-ante-fallo-transitorio.md)).
+- **Caché en dos niveles** por hash del input: memoria del proceso y la tabla
+  `llm_cache` en Postgres (TTL default 600 s), best-effort — un fallo de caché
+  nunca rompe la llamada.
+- **Costos medidos siempre**: cada respuesta trae `usage` con tokens y costo
+  estimado, todo gasto queda en `extraction_log`, y un tope mensual por
+  usuario (`netlify/functions/_lib/cost-cap.ts`) corta con 429 **antes** de
+  llamar al modelo. Sin base de datos el tope falla abierto: es contención de
+  gasto, no seguridad.
 
 ## Decisiones clave y por qué
 
 ### Por qué `origin` es JSONB y no enum
 
-Hoy distingue manual / ai / imported. Mañana queremos saber qué prompt, qué fuente original, qué thread de chat dio origen. El enum forzaría una migración SQL cada vez. JSONB no.
+Hoy distingue manual / ai / imported. Mañana queremos saber qué prompt, qué
+fuente original, qué thread de chat dio origen. El enum forzaría una migración
+SQL cada vez. JSONB no, y es consultable con `->`, `->>`, `@>`.
 
 ### Por qué `EntityType` y `RelationshipType` son `string` y no unions cerradas
 
-La fuente de verdad real son las tablas `entity_types` y `relationship_types`. Las antiguas unions literales forzaban un cast cada vez que aparecía un tipo nuevo en la DB. Las constantes `ENTITY_TYPES` (en `src/types/entity.ts`) y `RELATIONSHIP_TYPES` (en `src/types/relationship.ts`) siguen siendo útiles para los selects manuales — son un fallback en sync con la migración seed, no la verdad.
+La fuente de verdad real son las tablas `entity_types` y `relationship_types`.
+Las antiguas unions literales forzaban un cast cada vez que aparecía un tipo
+nuevo en la DB. Las constantes en `src/types/entity.ts` y
+`src/types/relationship.ts` siguen siendo útiles para selects manuales — son
+un fallback en sync con la migración seed, no la autoridad.
 
 ### Por qué los layouts del grafo son funciones puras separadas
 
-`useGraphLayout(mode, nodes, edges)` despacha a una de cuatro funciones puras en `src/hooks/layouts/`. Cada una recibe `LayoutNode[]` + `LayoutEdge[]` y devuelve `Map<id, {x,y}>`. Esto:
-
-- hace cada modo testeable sin React,
-- permite agregar un modo nuevo (radial, jerárquico, por color, etc.) sin tocar el resto,
-- evita persistir posiciones cuando el modo no es orgánico (las otras vistas se recalculan determinísticamente).
+`useGraphLayout` despacha a una de cuatro funciones puras en
+`src/hooks/layouts/` (organic, byType, byYear, byDegree). Cada una recibe
+nodos y aristas y devuelve `Map<id, {x,y}>`. Esto hace cada modo testeable sin
+React, permite agregar modos sin tocar el resto, y evita persistir posiciones
+cuando el modo no es orgánico (las otras vistas se recalculan
+determinísticamente). Como el contrato es puro, el cálculo pudo moverse a un
+worker (`src/hooks/layouts/layout.worker.ts`) sin cambiar ningún modo.
 
 ### Por qué snake_case en SQL y camelCase en JS
 
-Convención dominante de cada ecosistema. En vez de quotear identificadores en SQL o nombrar variables raras en JS, se hace transformación explícita en `src/api/transform.ts` (cliente) y en cada `*.mts` (servidor). La frontera está marcada.
+Convención dominante de cada ecosistema. En vez de quotear identificadores en
+SQL o nombrar variables raras en JS, se hace transformación explícita en
+`src/api/transform.ts` (cliente) y en cada `*.mts` (servidor). La frontera
+está marcada.
 
 ### Por qué SVG + sigma.js en vez de un solo renderer
 
 El grafo tiene dos necesidades distintas. Para tramas chicas, `GraphSvgCanvas`
-mantiene la identidad visual: serif en nodos, sombras, halos, labels y
-animaciones sutiles. Para el grafo completo grande, `GraphCanvasSigma` usa
-sigma.js/WebGL y se carga lazy desde `GraphView` cuando `entities.length >=
-1000`; así el bundle inicial no paga graphology/sigma para usuarios que no lo
-necesitan.
+mantiene la identidad visual: serif en nodos, sombras, halos y animaciones
+sutiles. Para el grafo completo grande, `GraphCanvasSigma` usa sigma.js/WebGL
+y se carga lazy desde `GraphView` cuando las entidades llegan a 1000; así el
+bundle inicial no paga graphology/sigma para quien no lo necesita. Los dos
+renderers consumen el mismo `Map<id, {x,y}>` de los layouts puros, así que
+ajustar un layout no obliga a reescribir la capa visual.
 
-Los layouts siguen siendo funciones puras (`useGraphLayout` y
-`src/hooks/layouts/*`). Los dos renderers consumen el mismo `Map<id, {x,y}>`, así
-que ajustar un layout no obliga a reescribir la capa visual.
+### Por qué el PDF Studio es lazy
+
+El editor de PDF (Imprenta/Planillas) arrastra las dependencias más pesadas
+del cliente: pdf-lib, pdfjs y el OCR con tesseract. Nada de eso debe pagarlo
+quien abre la app a leer una cita: el mundo Notas entero es un chunk lazy con
+precarga por intención, `PdfStudioView` es lazy dentro de ese chunk, y el
+motor (`src/lib/pdfStudio/`) se carga en diferido con la exportación en un
+worker. Dos gates convierten la costumbre en contrato:
+`scripts/pdf-lazy-entrypoints.mjs` verifica que ningún chunk del PDF se cuele
+en la carga inicial, y el presupuesto de bundle
+(`scripts/check-bundle-size.mjs`) corre en CI después del build. Cuando un
+chunk excede su presupuesto, el arreglo es hacer lazy la pieza pesada — no
+subir el presupuesto.
+
+### Por qué R2 además de Netlify Blobs
+
+Las Netlify Functions topan el body en ~6 MB, y con Blobs cada byte pasa por
+la función al subir y al servir. Para fotos comprimidas y anexos chicos eso
+está bien; para un video o un PDF de 80 MB no hay función que alcance. La
+salida: el cliente corta en 4 MB (en `src/api/momentos.ts` y
+`src/api/biblioteca.ts`, después de comprimir) — lo chico va por multipart a
+Blobs; lo grande pide una URL firmada (`netlify/functions/_lib/r2.ts`, con
+`aws4fetch`) y sube **directo del navegador al bucket**; el servidor solo
+firma, confirma con un HEAD y registra. Al servir, lo chico responde bytes
+desde la función y lo grande redirige a un GET firmado de vida corta.
+
+El manifiesto `storage_assets` registra qué archivo vive en qué proveedor
+(dominio, dueño, checksum): la fuente de verdad para autorizar, servir y
+detectar huérfanos (`docs/storage-orphans.md`). Y la frontera está gateada:
+`scripts/storage-boundaries.mjs` mantiene `@netlify/blobs` importable solo
+desde el adapter (más un script operacional allowlisted), para que una
+migración futura de proveedor sea un swap y no una cirugía
+([ADR 0013](./docs/adr/0013-storage-provider-migration-sequencing.md)).
+
+Como las storage keys nacen aleatorias y nunca se reescriben, la media privada
+se sirve `private, max-age=31536000, immutable`
+(`netlify/functions/_lib/media-cache.ts`); los redirects firmados van
+`no-store` porque expiran.
+
+### Por qué RLS en dos capas
+
+El aislamiento entre usuarios no depende de que alguien recuerde un `WHERE`.
+Capa uno, aplicación: todo INSERT a tabla privada debe incluir `user_id` — lo
+exige el gate `scripts/user-id-write-contracts.mjs` — y las lecturas filtran
+explícito. Capa dos, base de datos: las tablas privadas tienen
+`FORCE ROW LEVEL SECURITY` con políticas sobre `app.current_user_id`, que
+`netlify/functions/_lib/user-rls.ts` inyecta vía `set_config(..., true)` **en
+la misma transacción** que la query protegida — obligatorio porque el driver
+HTTP de Neon no conserva sesión entre queries. El contexto del usuario viaja
+por AsyncLocalStorage desde la auth hasta el SQL, así que ningún call site
+tiene que acordarse de pasarlo.
+
+La redundancia es el punto: el filtro de aplicación protege contra bugs
+obvios, pero no contra la query nueva que olvida el filtro; con RLS esa query
+devuelve vacío en vez de datos ajenos
+([ADR 0010](./docs/adr/0010-rls-privacy-boundary.md)). La capa dos también
+está gateada: `scripts/auth-rls-contracts.mjs` exige ENABLE + FORCE + política
+real por cada tabla que la requiere (una `USING (true)` no cuenta). El límite
+está declarado en el ADR: esto no es cifrado de extremo a extremo ni protege
+del operador de la infraestructura.
+
+### Por qué la auth resuelve en tres niveles
+
+`netlify/functions/_lib/auth.ts` intenta primero el **token personal**
+(`trama_pat_*`, guardado solo como sha256): es lo que usa la extensión de
+Chrome, que no tiene sesión de navegador — y un PAT inválido corta con 401 en
+vez de caer a otro modo, porque eso sería escalar a otra cuenta. Con Clerk
+configurado se valida el JWT de **Clerk** (la identidad real). Sin Clerk
+configurado, la app opera en modo **legacy single-user** — así el repo corre
+local sin llaves —, y en producción ese modo solo revive como opt-in explícito
+(`ALLOW_LEGACY_FALLBACK`). El cutover progresivo de single-user a Clerk
+estricto, con sus invariantes, está contado en
+[ADR 0011](./docs/adr/0011-legacy-identity-cutover.md).
 
 ### Por qué localStorage como fallback en vez de error duro
 
-Permite trabajar local sin desplegar el backend. Es un fallback de un solo sentido (no sube a la nube cuando recuperas conexión) — temporal hasta migrar a un modelo local-first real con CRDTs.
+Permite trabajar local sin desplegar el backend. Es un fallback de un solo
+sentido (no sube a la nube cuando vuelve la conexión) — temporal hasta migrar
+a un modelo local-first real con CRDTs. No confundir con el **modo prueba**
+([ADR 0015](./docs/adr/0015-modo-prueba-backend-en-el-navegador.md)), que es
+otra cosa: un backend completo en el navegador para recorrer la app sin
+cuenta.
 
-### Por qué `getSql()` y no leer `NETLIFY_DATABASE_URL` directo
+### Por qué `getSql()` y no leer la connection string directo
 
-La extensión heredada `@netlify/neon` fue retirada por Netlify y la env var `NETLIFY_DATABASE_URL` dejó de inyectarse. La integración nueva (`@netlify/database`) expone `getDatabase()` que resuelve la conexión vía `NETLIFY_DB_URL` internamente. `_lib/db.ts` envuelve esto en un `getSql()` que devuelve el `httpClient` de Neon — el mismo tagged-template literal de antes, ningún cambio en los call sites.
+La integración `@netlify/database` resuelve la conexión internamente
+(`NETLIFY_DB_URL`); `netlify/functions/_lib/db.ts` la envuelve en un
+`getSql()` que devuelve el cliente HTTP de Neon **ya consciente del contexto
+RLS**. Un solo punto de entrada a la base significa que el aislamiento por
+usuario no se puede esquivar por accidente en un call site nuevo.
 
 ### Por qué SSE en vez de WebSocket para el chat
 
-SSE es one-way (servidor → cliente) y soporta proxies/CDN sin configuración. El cliente lee chunks con `fetch().body.getReader()`. WebSocket añadiría un upgrade dance que no necesitamos: el usuario manda un mensaje vía POST normal, el servidor responde con el stream.
+El único endpoint que streamea es el del hilo de chat: un POST normal cuya
+respuesta es `text/event-stream`, que el cliente lee con
+`fetch().body.getReader()`. SSE es one-way (servidor → cliente) y atraviesa
+proxies/CDN sin configuración; WebSocket añadiría un upgrade dance que no
+hace falta, porque el mensaje del usuario ya viaja en el POST. El streaming
+token a token existe en DeepSeek/OpenAI; Anthropic y Gemini responden hoy en
+un único chunk con el mismo contrato de frames, así el consumidor no distingue
+proveedores.
 
 ### Por qué Netlify Database (Neon) y no Supabase, Turso, etc.
 
-Provisionada automáticamente con la extensión. Plan Pro de Netlify incluye uso gratuito hasta cierto volumen. El driver es estándar (Neon HTTP) — migrar a otro Postgres es swap del wrapper en `_lib/db.ts` y de la env var.
+Provisionada automáticamente con la extensión. Plan Pro de Netlify incluye uso
+gratuito hasta cierto volumen. El driver es estándar (Neon HTTP) — migrar a
+otro Postgres es swap del wrapper en `netlify/functions/_lib/db.ts` y de la
+env var. Que pgvector y FTS vivan en la misma base evitó un almacén vectorial
+aparte.
+
+### Por qué existe el canario de deploy
+
+En julio de 2026 producción quedó **un mes** clavada en un commit viejo con
+todo en verde: CI pasaba, Netlify construía cada merge, el deploy figuraba
+`ready` — y un `locked: true` silencioso impedía publicar. Ningún check miraba
+lo único que importa: qué commit está de verdad en línea. Desde entonces el
+build publica un `version.json` con su sha dentro del artefacto (servido sin
+caché) y una sonda cada 6 horas (`scripts/deploy-canary.mjs`) lo compara
+contra `origin/main`; si producción quedó atrás, el workflow falla y abre un
+issue. Mide conducta observable —lo que el CDN sirve—, sin secretos ni API de
+Netlify, porque esa fue la única señal que el incidente validó como fiable.
 
 ## Cómo desplegar
 
-1. Push a `main` en GitHub.
-2. Si el sitio Netlify está conectado al repo, deploy automático.
-3. En primer deploy: Netlify detecta migraciones nuevas y las aplica antes de servir.
-4. Variables de entorno requeridas en Netlify (ver [`README.md`](./README.md#variables-de-entorno-en-netlify-dashboard)).
+1. PR contra `main`. La branch protection exige los cinco checks de CI en
+   verde y la rama al día; no hay push directo ni excepción para admins
+   ([`docs/deploy.md`](docs/deploy.md)).
+2. Al mergear, Netlify construye: guard de producción
+   (`scripts/check-legacy-fallback-prod.mjs`), build, sello de versión
+   (`scripts/write-version.mjs`) y las migraciones nuevas antes de publicar.
+3. El canario (`.github/workflows/deploy-canary.yml`) vigila cada 6 horas que
+   lo servido sea de verdad `origin/main`.
+4. Variables de entorno requeridas: ver
+   [`README.md`](./README.md#variables-de-entorno-en-netlify-dashboard).
 
 ## Cómo aplicar una migración
 
 1. Crear directorio: `netlify/database/migrations/<unix_timestamp>_<slug>/migration.sql`
-2. Escribir SQL (idempotente cuando sea posible: `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+2. Escribir SQL (idempotente cuando sea posible: `CREATE TABLE IF NOT EXISTS`,
+   `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 3. Push a `main`. Netlify aplica antes del próximo build.
-4. **Las migraciones aplicadas son inmutables** — no editar, siempre agregar nuevas. Netlify rechaza el deploy si una migración previamente registrada cambió de hash.
+4. **Las migraciones aplicadas son inmutables** — no editar, siempre agregar
+   nuevas. Netlify rechaza el deploy si una migración previamente registrada
+   cambió de hash.
 
 ## Testing
 
-Vitest corre tests con `npm test`. Configuración en `vitest.config.ts`.
-
-### Convenciones
-
-- Tests **colocados** con su código: `foo.ts` → `foo.test.ts` en la misma carpeta.
-- Patrones incluidos: `src/**/*.test.ts` y `netlify/**/*.test.ts`.
-- Sin globals (`globals: false`): cada test importa `describe, it, expect, vi` de `vitest`.
-- Mocks de `fetch`/`Netlify.env` con `vi.stubGlobal`, limpieza en `afterEach`.
-
-### Qué se testea
-
-| Archivo                                                   | Qué cubre                                                                                                                                                       |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `netlify/functions/_lib/llm.ts`                           | Dispatch correcto por proveedor (DeepSeek/OpenAI/Anthropic/Gemini), headers y body shape por API, parsing de respuestas, manejo de errores y env vars faltantes |
-| `netlify/functions/_lib/extract-validate.ts`              | Validación de tipo, dedup case-insensitive contra existentes, rechazo de self-loops, input malformado                                                           |
-| `netlify/functions/_lib/reclassify-prompt.ts`             | El prompt menciona todos los tipos, todas las entidades, exige catálogo y conservadurismo                                                                       |
-| `netlify/functions/_lib/reclassify-validate.ts`           | Drop de items sin entity match, type no válido, no-op (mismo tipo), reason opcional                                                                             |
-| `netlify/functions/_lib/suggest-relationships-prompt.ts`  | Prompt lista entidades + citas + relaciones existentes; demanda justificación                                                                                   |
-| `netlify/functions/_lib/chat-validate.ts`                 | Parse del marker `<<<TRAMA-PROPOSAL ... TRAMA-PROPOSAL>>>`, tolerancia a JSON malformado, detección de propuestas vacías                                        |
-| `src/api/transform.ts`                                    | Transforms snake↔camel, normalización de `origin` legacy                                                                                                        |
-| `src/storage.ts`                                          | LocalStorage round-trip, tolerancia a JSON corrupto                                                                                                             |
-| `src/hooks/layouts/byType.ts`, `byYear.ts`, `byDegree.ts` | Cada layout: nodos posicionados, clustering correcto, edge cases                                                                                                |
-
-Componentes React de momento se prueban end-to-end con `npm run dev`.
+Vitest, con `npm test` (el runner del repo es `scripts/run-vitest.mjs`).
+Convenciones que no cambiaron: tests **colocados** con su código (`foo.ts` →
+`foo.test.ts`), sin globals, mocks con `vi.stubGlobal` y limpieza en
+`afterEach`. Lo que sí cambió desde la primera versión de este documento: los
+componentes React se testean con Testing Library sobre happy-dom (cientos de
+archivos colocados en `src/`), hay tests de integración de backend contra
+Postgres real, y specs e2e de Playwright en `e2e/`. El qué-se-testea ya no
+cabe en una tabla — los números vivos están en la portada del mapa.
 
 ### CI
 
-`.github/workflows/test.yml` corre en cada push y PR a `main`:
-
-1. `npm ci`
-2. `npm run typecheck` (tsc -b)
-3. `npm test`
-4. `npm run build`
-
-Una falla en cualquier paso aparece como check rojo. No hay branch protection forzando passing en este momento.
+`.github/workflows/test.yml` corre cinco jobs en paralelo sobre cada push y
+PR: `lint` (eslint + los gates propios), `unit` (suite + cobertura + build +
+presupuesto de bundle), `e2e`, `secrets` y `migrations` (con un Postgres real
+y tests de integración). `pdf-visual` corre aparte, filtrado por paths, y por
+eso no es check requerido. A `main` solo se llega por PR con los cinco checks
+en verde: hay branch protection sin excepción para admins.
 
 ## Cosas conscientemente aplazadas
 
-- **Local-first sync con CRDTs (Yjs/Automerge).** Vale la pena cuando se use en 2+ dispositivos en simultáneo. Hoy localStorage es solo fallback unidireccional.
-- **Auth real (Netlify Identity).** Hoy se protege con site password. Si el alcance crece más allá de personal, considerar.
-- **Interacciones avanzadas del grafo.** Sigma ya cubre el modo WebGL de escala. Si más adelante hacen falta conexiones manuales, edición directa de aristas o nodos tipo canvas, evaluar `xyflow` como una capa distinta, no como reemplazo automático del renderer actual.
-- **UI de gestión de tipos de entidad y relación.** Las tablas y endpoints existen; falta el formulario.
-- **UI del extraction log.** El endpoint `/api/extraction-log` existe. Falta la vista de costos / historial.
-- **Tests de componentes UI con React Testing Library.** El scaffold de Vitest está; agregar `@testing-library/react` cuando se quiera cubrir UI.
-- **Búsqueda dentro del chat.** Los hilos están en DB; falta vista de búsqueda.
-- **Streaming en Anthropic/Gemini.** Por ahora fallback de un chunk. Cuando se use uno de esos providers en producción, agregar el SSE específico.
+La lista canónica —documentada para no re-litigar— vive en
+[`docs/conventions/roadmap.md`](docs/conventions/roadmap.md). Una muestra del
+espíritu: CRDTs recién cuando haya dos dispositivos editando en simultáneo,
+xyflow solo si algún día se quiere un grafo editable a mano, streaming nativo
+de Anthropic/Gemini cuando alguno sea proveedor de producción.
 
 ## La forma del sistema, de un vistazo
 
@@ -386,7 +479,7 @@ proveedor que devuelva 400 ante una sobrecarga temporal no tendrá reserva, y un
 ```mermaid
 flowchart LR
     C["commit"] --> L["<b>lint</b><br/>38 gates propios"]
-    C --> U["<b>unit</b><br/>~5.200 tests<br/>+ cobertura + build<br/>+ budget de bundle"]
+    C --> U["<b>unit</b><br/>~5.300 tests<br/>+ cobertura + build<br/>+ budget de bundle"]
     C --> E["<b>e2e</b><br/>Playwright"]
     C --> S["<b>secrets</b>"]
     C --> M["<b>migrations</b>"]
@@ -404,4 +497,4 @@ Este documento describe **cómo está montado**. El **porqué** de cada decisió
 costosa de revertir vive en [`docs/adr/`](./docs/adr/), con su contexto, sus
 alternativas descartadas y sus consecuencias negativas declaradas.
 
-Última revisión: 2026-05-21
+Última revisión: 2026-08-05
