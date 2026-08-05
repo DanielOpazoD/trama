@@ -20,10 +20,53 @@
 1. Haces `git push` a `main` desde tu Mac.
 2. GitHub Actions corre **typecheck + tests + build** (~2 min).
    - Si CI falla, Netlify NO deploya. El último deploy bueno sigue sirviendo.
-3. Netlify ve el push, ejecuta el build declarado en `netlify.toml` (`npm run check:legacy-fallback && npm run build`), corre **migraciones nuevas** (las que están en `netlify/database/migrations/` y aún no se aplicaron) y deploya las functions + el front estático.
+3. Netlify ve el push, ejecuta el build declarado en `netlify.toml` (`npm run check:legacy-fallback && npm run build && node scripts/write-version.mjs`), corre **migraciones nuevas** (las que están en `netlify/database/migrations/` y aún no se aplicaron) y deploya las functions + el front estático.
 4. ~3-5 min después de push, la nueva versión está viva.
 
 **Nada se hace solo en producción que no esté en git.** Las migraciones, el código de las functions, el front, todo viene del repo.
+
+## Canario de deploy (¿producción sirve main?)
+
+En julio 2026 producción quedó **un mes** clavada en un commit viejo: un
+`locked: true` silencioso en Netlify dejaba construir pero no publicar, con
+CI en verde y el deploy en `ready`. Desde entonces hay un canario:
+
+- El build publica `/version.json` con el sha construido
+  (`scripts/write-version.mjs`, servido con `Cache-Control: no-store`).
+- El workflow `deploy-canary` (cada 6 h, o a mano desde Actions →
+  deploy-canary → Run workflow) baja ese archivo de `tramahub.app` y lo
+  compara con `origin/main` (`scripts/deploy-canary.mjs`). Da 45 min de
+  gracia a un deploy en vuelo.
+- Si producción no corresponde a main, el workflow **falla y abre un issue**
+  etiquetado `deploy-canary` (uno solo; no duplica).
+
+**Si el canario alarma:** ir a https://app.netlify.com/sites/trama/deploys y
+mirar si el último deploy dice `Published`. Si Netlify construye pero no
+publica (el síntoma del incidente), desbloquear y republicar sin pasar por la
+UI:
+
+```bash
+netlify api unlockDeploy --data '{"deploy_id":"<id-del-deploy>"}'
+```
+
+```bash
+netlify api createSiteBuild --data '{"site_id":"6023f353-1a4f-45fd-9cb0-fa1a7edd2a45"}'
+```
+
+Verificar el arreglo con `node scripts/deploy-canary.mjs` desde el repo (debe
+decir `ok`) y cerrar el issue.
+
+## Protección de la rama main
+
+`main` tiene branch protection: solo se llega por PR con los checks de
+`test.yml` en verde (`unit`, `lint`, `e2e`, `secrets`, `migrations`), la rama
+debe estar al día con main al mergear, sin force-push ni borrado, y aplica
+también para admins. `pdf-visual` NO es requerido (es path-filtered: en un PR
+que no toca PDF nunca reporta y bloquearía el merge); CodeRabbit tampoco (sus
+verdes por rate-limit no prueban nada). Si una emergencia real exige saltarse
+la protección, se desactiva temporalmente en
+https://github.com/DanielOpazoD/trama/settings/branches — y se reactiva al
+terminar.
 
 ## Rollback (algo se rompió tras un push)
 

@@ -1,5 +1,8 @@
 [build]
-  command = "npm run check:legacy-fallback && npm run build"
+  # write-version publica dist/version.json con el COMMIT_REF construido: es
+  # la señal que el canario de deploy (scripts/deploy-canary.mjs) compara
+  # contra origin/main para detectar producción clavada (incidente jul-2026).
+  command = "npm run check:legacy-fallback && npm run build && node scripts/write-version.mjs"
   publish = "dist"
 
 [build.environment]
@@ -54,3 +57,10 @@
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+
+# El canario de deploy compara /version.json contra origin/main: si el CDN
+# lo sirviera cacheado, la sonda "vería" un deploy que ya no es el actual.
+[[headers]]
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-store"
