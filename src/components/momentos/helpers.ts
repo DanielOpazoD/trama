@@ -11,6 +11,8 @@ export type MomentoPhotoItem = {
   posterStorageKey?: string
   /** Miniatura derivada de una foto (~480px), gemela del póster. */
   thumbStorageKey?: string
+  /** Color dominante (#rrggbb) para el placeholder del tile. */
+  dominantColor?: string
 }
 
 /** La storageKey que una GRILLA debe montar para este item: la miniatura
@@ -106,6 +108,7 @@ function normalizePhotoItems(
     type?: 'image' | 'video'
     posterStorageKey?: string
     thumbStorageKey?: string
+    dominantColor?: string
   }>,
 ): MomentoPhotoItem[] {
   return items
@@ -118,6 +121,7 @@ function normalizePhotoItems(
       // cada tile volvería a bajar el original entero.
       posterStorageKey: item.posterStorageKey,
       thumbStorageKey: item.thumbStorageKey,
+      dominantColor: item.dominantColor,
     }))
     .filter((item) => item.storageKey.length > 0)
 }

@@ -6,6 +6,7 @@ import {
   type VideoHTMLAttributes,
 } from 'react'
 import { requestBlob } from '../../api/request'
+import { useMediaReveal } from '../../hooks/useMediaReveal'
 import { momentoMediaUrl } from './helpers'
 import {
   shouldFetchWithApiClient,
@@ -103,25 +104,38 @@ export function AuthenticatedMomentoImage({
   alt,
   className = '',
   style,
+  placeholderColor,
   ...props
 }: Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt'> & {
   storageKey: string
   alt: string
+  /** Color dominante de la foto (si el item lo trae): el placeholder se pinta
+   *  de ese tono en vez del gris papel — el tile anticipa la foto que viene. */
+  placeholderColor?: string
 }) {
   const { src, status } = useAuthenticatedMediaState(momentoMediaUrl(storageKey))
   const ready = status === 'ready' && !!src
+  const { revealClass, showPlaceholder } = useMediaReveal(ready)
 
   // El <img> SIEMPRE está montado (accesible + estable). Mientras el blob
-  // viaja mostramos un pixel transparente sobre un fondo papel que late, así
-  // nunca aparece el icono de imagen rota del navegador. En error queda el
-  // fondo papel sin latido (caja vacía sutil, no un glyph roto).
+  // viaja mostramos un pixel transparente sobre un fondo que late (color
+  // dominante de la foto si existe; papel si no) y, al resolver, la imagen
+  // FUNDE sobre ese placeholder (~300ms) en vez de aparecer de golpe. En
+  // error queda la caja sin latido (sutil, no un glyph roto).
   return (
     <img
       {...props}
-      className={`${className} ${status === 'loading' ? 'animate-pulse-subtle' : ''}`.trim()}
+      className={`${className} ${status === 'loading' ? 'animate-pulse-subtle' : ''} ${revealClass}`.trim()}
       alt={alt}
       src={ready ? src : TRANSPARENT_PX}
-      style={ready ? style : { ...style, backgroundColor: 'rgb(var(--paper-100) / 0.6)' }}
+      style={
+        showPlaceholder
+          ? {
+              ...style,
+              backgroundColor: placeholderColor ?? 'rgb(var(--paper-100) / 0.6)',
+            }
+          : style
+      }
     />
   )
 }
@@ -159,12 +173,14 @@ export function MomentoVideoThumb({
   alt,
   className = '',
   style,
+  placeholderColor,
 }: {
   storageKey: string
   posterStorageKey?: string
   alt: string
   className?: string
   style?: CSSProperties
+  placeholderColor?: string
 }) {
   if (posterStorageKey) {
     return (
@@ -175,6 +191,7 @@ export function MomentoVideoThumb({
         draggable={false}
         className={className}
         style={style}
+        placeholderColor={placeholderColor}
       />
     )
   }
@@ -225,7 +242,9 @@ export function AuthenticatedMomentoVideo({
       autoPlay={autoPlay}
       muted={muted ?? autoPlay}
       src={src}
-      className={className}
+      // El video monta recién con el blob resuelto: fundido de entrada para
+      // no aparecer de golpe (mismo revelado que las imágenes).
+      className={`${className} animate-fade-up motion-reduce:animate-none`.trim()}
       style={style}
     />
   )

@@ -72,6 +72,12 @@ const FotoItemSchema = z.object({
   // Miniatura derivada de una foto (~480px). Opcional siempre: fotos viejas,
   // chicas o con derivación fallida no la traen y el render cae al original.
   thumbStorageKey: z.string().trim().min(1).optional(),
+  // Color dominante del tile (#rrggbb). Solo hex estricto: es un valor que
+  // termina en un style inline, no acepta formas creativas.
+  dominantColor: z
+    .string()
+    .regex(/^#[0-9a-f]{6}$/i)
+    .optional(),
 })
 
 /** Foto: array `items[]` (nuevo, υ-multi) o `storageKey` legacy.

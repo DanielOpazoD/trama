@@ -49,6 +49,7 @@ function buildInitialItems(momento: Momento): PhotoEditItem[] {
     // devuelva las tiles a bajar el original entero.
     posterStorageKey: it.posterStorageKey,
     thumbStorageKey: it.thumbStorageKey,
+    dominantColor: it.dominantColor,
   }))
 }
 
@@ -243,6 +244,7 @@ export function FotoEditModal({
         type?: 'image' | 'video'
         posterStorageKey?: string
         thumbStorageKey?: string
+        dominantColor?: string
       }
       const finalItems: FinalItem[] = items.flatMap((it) => {
         if (it.kind === 'existing') {
@@ -255,6 +257,7 @@ export function FotoEditModal({
           if (it.posterStorageKey !== undefined)
             out.posterStorageKey = it.posterStorageKey
           if (it.thumbStorageKey !== undefined) out.thumbStorageKey = it.thumbStorageKey
+          if (it.dominantColor !== undefined) out.dominantColor = it.dominantColor
           return [out]
         }
         const data = uploadedKeys.get(it.file)

@@ -246,6 +246,7 @@ function AlbumTile({
                 posterStorageKey={cover.posterStorageKey}
                 alt={caption ?? 'momento'}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                placeholderColor={cover.dominantColor}
               />
               <VideoPlayBadge />
             </>
@@ -257,6 +258,7 @@ function AlbumTile({
               alt={caption ?? 'momento'}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              placeholderColor={cover.dominantColor}
             />
           )}
         </button>

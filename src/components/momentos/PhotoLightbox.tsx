@@ -225,6 +225,7 @@ export function PhotoLightbox({
                       loading="lazy"
                       draggable={false}
                       className="w-full h-full object-cover"
+                      placeholderColor={p.dominantColor}
                     />
                   )}
                 </button>

@@ -50,6 +50,9 @@ export type MomentoPayload = {
      *  grillas la montan en vez del original (3–8 MB por tile). Ausente en
      *  fotos viejas, chicas o si la derivación falló → cae al original. */
     thumbStorageKey?: string
+    /** Color dominante (#rrggbb) extraído al subir: el placeholder del tile
+     *  se pinta de este tono mientras el blob viaja. Ausente → gris papel. */
+    dominantColor?: string
   }>
   /** Formato legado usado por algunas fotos ya persistidas antes de
    *  unificar en `items[]`. La UI lo sigue leyendo para no ocultar

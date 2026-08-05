@@ -85,9 +85,18 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.55' },
         },
+        // Revelado de media: la imagen FUNDE sobre su placeholder al resolver
+        // el blob. Keyframe (no transition) a propósito: varios tiles ya traen
+        // `transition-transform` para el hover-zoom, y dos utilidades de
+        // transition compiten por transition-property — la animación no.
+        'media-reveal': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
       },
       animation: {
         'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
+        'media-reveal': 'media-reveal 300ms ease-out',
       },
       transitionTimingFunction: {
         // Curva "expo-out" estilo Apple — empieza rápido, decelera suave.

@@ -11,6 +11,7 @@ import { editImage } from '../../lib/imageEditor'
 import { downloadAllImages, exportImagesToPdf } from '../../lib/photoExport'
 import { requestBlob } from '../../api/request'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
+import { useMediaReveal } from '../../hooks/useMediaReveal'
 import { CameraIcon, TrashIcon, DownloadIcon, FilePdfIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { AttachmentLightbox } from './AttachmentLightbox'
@@ -333,6 +334,7 @@ function PhotoThumb({
 }) {
   const { src, status } = useAuthenticatedMediaState(photo.url)
   const ready = status === 'ready' && !!src
+  const { revealClass } = useMediaReveal(ready)
 
   return (
     <span className="group/photo relative">
@@ -347,7 +349,7 @@ function PhotoThumb({
           <img
             src={src}
             alt={photo.fileName}
-            className="size-14 rounded-md object-cover border border-ink-100/70"
+            className={`size-14 rounded-md object-cover border border-ink-100/70 ${revealClass}`}
           />
         ) : (
           <span

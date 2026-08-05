@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CaptureItem } from '../../api'
 import { recorteImageUrl } from '../../api/recortes'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
+import { useMediaReveal } from '../../hooks/useMediaReveal'
 import type { RecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
 import { EmptyMessage } from '../EmptyMessage'
@@ -114,6 +115,9 @@ function GalleryCell({ cell }: { cell: GalleryImage }) {
   const failed = authedSrc ? status === 'error' : extError
   const shown = authedSrc ? (src ?? TRANSPARENT_PX) : (cell.imageUrl ?? TRANSPARENT_PX)
   const loading = authedSrc ? status === 'loading' : false
+  // Externas cargan nativo (sin estado de blob): el revelado solo gobierna a
+  // las autenticadas, que son la regla en la galería.
+  const { revealClass } = useMediaReveal(authedSrc ? status === 'ready' && !!src : true)
   return (
     <div className="relative aspect-square overflow-hidden rounded-md bg-paper-100/60">
       {loading && (
@@ -137,7 +141,7 @@ function GalleryCell({ cell }: { cell: GalleryImage }) {
           alt={cell.alt}
           loading="lazy"
           onError={() => setExtError(true)}
-          className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+          className={`h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04] ${revealClass}`}
         />
       )}
     </div>
