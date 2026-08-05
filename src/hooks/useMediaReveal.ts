@@ -33,22 +33,25 @@ export function useMediaReveal(ready: boolean): {
   /** true mientras el placeholder de fondo debe seguir pintado. */
   showPlaceholder: boolean
 } {
-  const [phase, setPhase] = useState<'waiting' | 'fading' | 'done'>('waiting')
+  // La clase de fundido se deriva DEL RENDER de `ready`, no de un efecto: un
+  // useEffect corre tras el commit y regalaría un frame con la imagen a
+  // opacidad plena antes de arrancar la animación (pop + reinicio). El estado
+  // solo gobierna la limpieza del placeholder, que sí puede llegar tarde.
+  const [settled, setSettled] = useState(false)
 
   useEffect(() => {
     if (!ready) {
-      setPhase('waiting')
+      setSettled(false)
       return
     }
-    setPhase('fading')
-    const timer = setTimeout(() => setPhase('done'), REVEAL_MS + 80)
+    const timer = setTimeout(() => setSettled(true), REVEAL_MS + 80)
     return () => clearTimeout(timer)
   }, [ready])
 
-  const revealClass =
-    phase === 'waiting'
-      ? 'opacity-100'
-      : 'opacity-100 animate-media-reveal motion-reduce:animate-none'
-
-  return { revealClass, showPlaceholder: phase !== 'done' }
+  return {
+    revealClass: ready
+      ? 'opacity-100 animate-media-reveal motion-reduce:animate-none'
+      : 'opacity-100',
+    showPlaceholder: !ready || !settled,
+  }
 }

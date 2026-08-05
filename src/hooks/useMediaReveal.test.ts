@@ -19,10 +19,9 @@ describe('useMediaReveal', () => {
 
     // Fundido por KEYFRAME (no transition: los tiles con hover-zoom ya usan
     // transition-transform y la pelea por transition-property mataría el
-    // fundido). El placeholder sigue pintado: la imagen funde sobre él.
-    await waitFor(() => {
-      expect(result.current.revealClass).toContain('animate-media-reveal')
-    })
+    // fundido) y SÍNCRONO con el render de ready — un efecto llegaría un
+    // frame tarde y la imagen aparecería pelada antes de fundir.
+    expect(result.current.revealClass).toContain('animate-media-reveal')
     expect(result.current.revealClass).toContain('opacity-100')
     expect(result.current.revealClass).toContain('motion-reduce:animate-none')
     expect(result.current.showPlaceholder).toBe(true)

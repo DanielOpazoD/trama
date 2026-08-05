@@ -68,6 +68,7 @@ export function FotoPhotoTile({
               posterStorageKey={item.posterStorageKey}
               alt={`video ${idx + 1}`}
               className="w-full h-full object-cover"
+              placeholderColor={item.dominantColor}
             />
             <VideoPlayBadge size="sm" />
           </>

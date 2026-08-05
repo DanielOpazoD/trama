@@ -215,6 +215,7 @@ export function PhotoLightbox({
                         posterStorageKey={p.posterStorageKey}
                         alt=""
                         className="w-full h-full object-cover"
+                        placeholderColor={p.dominantColor}
                       />
                       <VideoPlayBadge size="sm" />
                     </>

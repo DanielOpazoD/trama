@@ -115,9 +115,10 @@ function GalleryCell({ cell }: { cell: GalleryImage }) {
   const failed = authedSrc ? status === 'error' : extError
   const shown = authedSrc ? (src ?? TRANSPARENT_PX) : (cell.imageUrl ?? TRANSPARENT_PX)
   const loading = authedSrc ? status === 'loading' : false
-  // Externas cargan nativo (sin estado de blob): el revelado solo gobierna a
-  // las autenticadas, que son la regla en la galería.
-  const { revealClass } = useMediaReveal(authedSrc ? status === 'ready' && !!src : true)
+  // Externas cargan nativo (sin estado de blob) y quedan FUERA del revelado:
+  // animarlas al montar fundiría antes de que la imagen llegue y la lenta
+  // aparecería de golpe igual. Solo gobierna a las autenticadas.
+  const { revealClass } = useMediaReveal(authedSrc ? status === 'ready' && !!src : false)
   return (
     <div className="relative aspect-square overflow-hidden rounded-md bg-paper-100/60">
       {loading && (

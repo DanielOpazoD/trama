@@ -12,6 +12,8 @@ import {
   readImageDimensions,
   toDateTimeLocalInput,
 } from '../helpers'
+import { createImageThumbnail } from '../../../lib/imageThumbnail'
+import { extractDominantColor } from '../../../lib/imageColor'
 import { CapturedAtField, ModalFooter, ModalShell } from './shell'
 import { AudioPicker } from '../AudioPicker'
 import { FotoPhotoTile, type PhotoEditItem, type NewPhotoEditItem } from './FotoPhotoTile'
@@ -220,17 +222,40 @@ export function FotoEditModal({
     try {
       const uploadedKeys = new Map<
         File,
-        { storageKey: string; width?: number; height?: number }
+        {
+          storageKey: string
+          width?: number
+          height?: number
+          thumbStorageKey?: string
+          dominantColor?: string
+        }
       >()
       await Promise.all(
         newItems.map(async (it) => {
           const compressed = await compressImage(it.file)
-          const dims = await readImageDimensions(compressed)
+          // Misma derivación que el composer: sin ella, editar una foto (que
+          // pasa por 'new') la dejaba sin miniatura y sin color dominante.
+          const [dims, thumb, dominantColor] = await Promise.all([
+            readImageDimensions(compressed),
+            createImageThumbnail(compressed),
+            extractDominantColor(compressed),
+          ])
           const uploaded = await api.momentoUpload(compressed)
+          let thumbStorageKey: string | undefined
+          if (thumb) {
+            try {
+              thumbStorageKey = (await api.momentoUpload(thumb)).storageKey
+            } catch {
+              // La miniatura es mejora, no requisito: sin ella la tile baja
+              // el original, como siempre.
+            }
+          }
           uploadedKeys.set(it.file, {
             storageKey: uploaded.storageKey,
             width: dims.width || undefined,
             height: dims.height || undefined,
+            thumbStorageKey,
+            dominantColor: dominantColor ?? undefined,
           })
           setProgress((prev) =>
             prev ? { done: prev.done + 1, total: prev.total } : prev,
@@ -265,6 +290,8 @@ export function FotoEditModal({
         const out: FinalItem = { storageKey: data.storageKey }
         if (data.width !== undefined) out.width = data.width
         if (data.height !== undefined) out.height = data.height
+        if (data.thumbStorageKey !== undefined) out.thumbStorageKey = data.thumbStorageKey
+        if (data.dominantColor !== undefined) out.dominantColor = data.dominantColor
         return [out]
       })
 
