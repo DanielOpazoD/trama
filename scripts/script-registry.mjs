@@ -409,6 +409,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Snapshot lógico del grafo de chunks PDF usado por tests de payload.',
   },
   {
+    file: 'scripts/architecture-map.mjs',
+    domain: 'docs',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:architecture-map', 'architecture-map:build'],
+    summary:
+      'Valida el mapa de arquitectura contra el repo: rutas citadas que existan, grafo íntegro y HTML sincronizado con el JSON.',
+  },
+  {
     file: 'scripts/deploy-canary.mjs',
     domain: 'ci',
     kind: 'check',
@@ -684,6 +693,14 @@ export const QUALITY_GATES = [
     phase: 'docs',
     required: true,
     summary: 'Drift documental bloqueante.',
+  },
+  {
+    command: 'npm run check:architecture-map',
+    job: 'lint',
+    phase: 'docs',
+    required: true,
+    summary:
+      'El mapa de arquitectura sigue describiendo el repo (rutas vivas, grafo íntegro, HTML sincronizado).',
   },
   {
     command: 'npm run check:cte-regression',

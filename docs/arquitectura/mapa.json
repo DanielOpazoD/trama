@@ -1,0 +1,2376 @@
+{
+  "meta": {
+    "project": "Trama",
+    "description": "Mapa cognitivo personal: dos mundos (Trama y Notas) sobre React + Vite en el cliente y Netlify Functions + Neon Postgres en el servidor, con media en Netlify Blobs y Cloudflare R2, auth Clerk, captura por WhatsApp y varios proveedores de LLM.",
+    "generatedAt": "2026-08-05",
+    "commit": "5f87d117",
+    "stats": {
+      "endpoints": 103,
+      "migraciones": 96,
+      "archivosDeTest": 778,
+      "specsE2E": 30,
+      "scriptsOperacionales": 68,
+      "lineasSrc": 163211,
+      "lineasFunctions": 74233
+    },
+    "layers": [
+      {
+        "id": "entrada",
+        "label": "Entradas",
+        "color": "#c07a3e",
+        "description": "Canales por los que entra actividad al sistema."
+      },
+      {
+        "id": "frontend",
+        "label": "Vistas",
+        "color": "#3d7fb5",
+        "description": "Shell de navegación y vistas de los dos mundos."
+      },
+      {
+        "id": "cliente",
+        "label": "Cliente",
+        "color": "#3f9aa0",
+        "description": "Estado, cliente HTTP y librerías que corren en el navegador."
+      },
+      {
+        "id": "borde",
+        "label": "Borde backend",
+        "color": "#8265b8",
+        "description": "Routing, autenticación, aislamiento y contratos de request."
+      },
+      {
+        "id": "endpoint",
+        "label": "Endpoints",
+        "color": "#3f9268",
+        "description": "Los ~103 endpoints agrupados por dominio."
+      },
+      {
+        "id": "servicio",
+        "label": "Servicios",
+        "color": "#b5657f",
+        "description": "Lógica compartida en netlify/functions/_lib."
+      },
+      {
+        "id": "dato",
+        "label": "Datos y externos",
+        "color": "#96793f",
+        "description": "Persistencia y servicios de terceros."
+      },
+      {
+        "id": "ci",
+        "label": "Entrega",
+        "color": "#6b7a8f",
+        "description": "CI, build, publicación y vigilancia del deploy."
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "navegador",
+      "label": "Navegador / PWA",
+      "layer": "entrada",
+      "x": 60,
+      "y": 44,
+      "w": 168,
+      "h": 56,
+      "purpose": "El usuario entra por la web app instalable. Sirve los dos mundos y persiste el mundo activo en localStorage.",
+      "files": ["index.html", "src/main.tsx", "public/manifest.json"]
+    },
+    {
+      "id": "whatsapp-in",
+      "label": "WhatsApp (Twilio)",
+      "layer": "entrada",
+      "x": 1010,
+      "y": 44,
+      "w": 168,
+      "h": 56,
+      "purpose": "Captura móvil sin abrir la app: fotos, audios y texto llegan como mensajes y se convierten en momentos, notas, citas o recortes.",
+      "files": ["netlify/functions/whatsapp-webhook.mts", "docs/whatsapp.md"]
+    },
+    {
+      "id": "extension",
+      "label": "Extensión Chrome",
+      "layer": "entrada",
+      "x": 1390,
+      "y": 44,
+      "w": 168,
+      "h": 56,
+      "purpose": "Guarda recortes y favoritos desde cualquier página usando un token personal (trama_pat_*), sin sesión de Clerk.",
+      "files": [
+        "extension/background.js",
+        "extension/lib/capture.js",
+        "extension/lib/favorito.js"
+      ]
+    },
+    {
+      "id": "shell",
+      "label": "Shell · ViewRouter · ⌘K",
+      "layer": "frontend",
+      "x": 60,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Monta un mundo u otro a pantalla completa, enruta las vistas (cada una en su propio ErrorBoundary) y aloja la paleta de comandos, que es hoy el buscador global.",
+      "files": [
+        "src/App.tsx",
+        "src/components/ViewRouter.tsx",
+        "src/components/CommandPalette.tsx",
+        "src/lib/navigation.ts"
+      ]
+    },
+    {
+      "id": "v-home",
+      "label": "Inicio",
+      "layer": "frontend",
+      "x": 250,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Home del mundo Trama: saludo por hora, efemérides, hilos sueltos y crónicas. Única vista no diferida, por ser el primer pintado.",
+      "files": ["src/components/HomeView.tsx", "src/components/home/"]
+    },
+    {
+      "id": "v-grafo",
+      "label": "Grafo",
+      "layer": "frontend",
+      "x": 440,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Mapa cognitivo interactivo de entidades y relaciones, renderizado con sigma sobre graphology en canvas full-bleed.",
+      "files": [
+        "src/components/GraphView.tsx",
+        "src/components/graph/GraphCanvasSigma.tsx",
+        "src/components/graph/graphViewModel.ts"
+      ]
+    },
+    {
+      "id": "v-entidades",
+      "label": "Entidades",
+      "layer": "frontend",
+      "x": 630,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Catálogo de personas, obras y conceptos con formulario, filtros y vista de vínculos.",
+      "files": [
+        "src/components/EntitiesWorkbench.tsx",
+        "src/components/entities/EntityForm.tsx"
+      ]
+    },
+    {
+      "id": "v-citas",
+      "label": "Citas",
+      "layer": "frontend",
+      "x": 820,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Colección de citas ancladas a entidades, con exportación a Lámina (PNG) y Libro (PDF), más Careo y Espejo.",
+      "files": [
+        "src/components/QuotesView.tsx",
+        "src/components/quotes/LaminaModal.tsx",
+        "src/components/quotes/LibroModal.tsx"
+      ]
+    },
+    {
+      "id": "v-momentos",
+      "label": "Momentos",
+      "layer": "frontend",
+      "x": 1010,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Diario multimedia: composer de fotos, video y audio, álbum en grilla, edición, papelera y compartir por invitación.",
+      "files": [
+        "src/components/MomentosView.tsx",
+        "src/components/momentos/useMomentoComposer.ts",
+        "src/components/momentos/AlbumGrid.tsx"
+      ]
+    },
+    {
+      "id": "v-chat",
+      "label": "Chat · Ask",
+      "layer": "frontend",
+      "x": 1200,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Diálogo con IA sobre el corpus propio; devuelve respuesta y propuestas de extracción aplicables al grafo.",
+      "files": [
+        "src/components/ChatView.tsx",
+        "src/components/AskBar.tsx",
+        "src/components/chat/InlineProposal.tsx"
+      ]
+    },
+    {
+      "id": "v-lentes",
+      "label": "Cronología · Atlas · Sugerencias",
+      "layer": "frontend",
+      "x": 1390,
+      "y": 160,
+      "w": 168,
+      "h": 56,
+      "purpose": "Lentes sobre el mismo corpus: línea de tiempo, agrupación espacial y sugerencias proactivas generadas por IA.",
+      "files": [
+        "src/components/CronologiaView.tsx",
+        "src/components/AtlasView.tsx",
+        "src/components/ProactiveView.tsx"
+      ]
+    },
+    {
+      "id": "v-notas",
+      "label": "Notas · feed",
+      "layer": "frontend",
+      "x": 250,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Feed unificado de notas y recortes, paginado en servidor y virtualizado, con selección múltiple que alimenta a Imprenta.",
+      "files": [
+        "src/components/notas/NotasFeedView.tsx",
+        "src/components/notas/NotasFeedVirtualList.tsx",
+        "src/components/notas/NotasImprentaSelectionBar.tsx"
+      ]
+    },
+    {
+      "id": "v-tareas",
+      "label": "Tareas · Prompts · Claves",
+      "layer": "frontend",
+      "x": 440,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Tareas por semana, biblioteca versionada de prompts y vault de claves cifrado en el cliente.",
+      "files": [
+        "src/components/notas/TareasView.tsx",
+        "src/components/notas/PromptsView.tsx",
+        "src/components/notas/ClavesView.tsx",
+        "src/lib/vaultCrypto.ts"
+      ]
+    },
+    {
+      "id": "v-imprenta",
+      "label": "Imprenta / Planillas",
+      "layer": "frontend",
+      "x": 630,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Editor de PDF completo (anotar, formularios, OCR, ensamblar, exportar). Planillas es el mismo componente con studioMode distinto.",
+      "files": [
+        "src/components/notas/pdfStudio/PdfStudioView.tsx",
+        "src/components/notas/NotasWorld.tsx"
+      ]
+    },
+    {
+      "id": "v-biblioteca",
+      "label": "Biblioteca",
+      "layer": "frontend",
+      "x": 820,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Gestor de archivos con miniaturas autenticadas, visor de Office (mammoth) y de planillas (xlsx), enlaces y etiquetas.",
+      "files": [
+        "src/components/BibliotecaView.tsx",
+        "src/components/biblioteca/Thumbnail.tsx",
+        "src/components/biblioteca/BibliotecaOfficeViewer.tsx"
+      ]
+    },
+    {
+      "id": "v-recortes",
+      "label": "Recortes / capturas",
+      "layer": "frontend",
+      "x": 1010,
+      "y": 232,
+      "w": 168,
+      "h": 56,
+      "purpose": "Capturas rápidas de imagen y texto, con galería propia y sugerencia de destino asistida por IA.",
+      "files": [
+        "src/components/recortes/CapturasGalleryGrid.tsx",
+        "netlify/functions/_lib/recortes-suggest.ts"
+      ]
+    },
+    {
+      "id": "state",
+      "label": "Estado · TanStack Query",
+      "layer": "cliente",
+      "x": 250,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Un hook por dominio con queries y mutaciones optimistas; registro central de queryKeys e invalidación agrupada por superficie.",
+      "files": [
+        "src/state/queryClient.ts",
+        "src/state/cacheOptimistic.ts",
+        "src/state/cacheInvalidation.ts",
+        "src/state/useMomentos.ts"
+      ]
+    },
+    {
+      "id": "api-client",
+      "label": "Cliente HTTP · request()",
+      "layer": "cliente",
+      "x": 440,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Único punto de salida HTTP: adjunta el Bearer de Clerk, entiende el shape canónico de error del servidor y cruza snake_case a camelCase.",
+      "files": ["src/api/request.ts", "src/api/transform.ts", "src/api/momentos.ts"]
+    },
+    {
+      "id": "auth-bridge",
+      "label": "ApiAuthBridge · token",
+      "layer": "cliente",
+      "x": 630,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Conecta el getToken() de Clerk React con el cliente HTTP, de modo que cualquier request (incluida la media) viaje autenticada.",
+      "files": ["src/components/ApiAuthBridge.tsx", "src/api/request.ts"]
+    },
+    {
+      "id": "authed-media",
+      "label": "Media autenticada",
+      "layer": "cliente",
+      "x": 820,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Resuelve imágenes y video privados a object-URL con estados de carga, placeholder del color dominante y fundido de entrada.",
+      "files": [
+        "src/components/momentos/AuthenticatedMedia.tsx",
+        "src/hooks/useMediaReveal.ts"
+      ]
+    },
+    {
+      "id": "lib-media",
+      "label": "Imagen: compresión · miniatura · color",
+      "layer": "cliente",
+      "x": 1010,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Todo lo que se deriva en el navegador antes de subir: compresión, miniatura de grilla, color dominante, póster de video y EXIF.",
+      "files": [
+        "src/lib/compressImage.ts",
+        "src/lib/imageThumbnail.ts",
+        "src/lib/imageColor.ts",
+        "src/lib/photoExif.ts"
+      ]
+    },
+    {
+      "id": "lib-pdf",
+      "label": "Motor PDF + OCR",
+      "layer": "cliente",
+      "x": 1200,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Modelo con historial, ensamblado, formularios rellenables, exportación en worker y OCR con tesseract; todo cargado en diferido.",
+      "files": [
+        "src/lib/pdfStudio/model/",
+        "src/lib/pdfStudio/assemble/assembleImages.ts",
+        "src/lib/pdfStudio/ocr/pdfOcr.ts"
+      ]
+    },
+    {
+      "id": "lib-graph",
+      "label": "Grafo · Lámina · Libro",
+      "layer": "cliente",
+      "x": 1390,
+      "y": 352,
+      "w": 168,
+      "h": 56,
+      "purpose": "Render del grafo con sigma/graphology y exportación editorial: lámina PNG tipografiada y libro PDF con fuentes propias.",
+      "files": [
+        "src/components/graph/graphViewModel.ts",
+        "src/lib/lamina.ts",
+        "src/lib/libro/buildLibro.ts"
+      ]
+    },
+    {
+      "id": "demo-mode",
+      "label": "Modo prueba (localStorage)",
+      "layer": "cliente",
+      "x": 250,
+      "y": 424,
+      "w": 168,
+      "h": 56,
+      "purpose": "Backend completo en el navegador que intercepta request(): permite recorrer y editar toda la app sin cuenta ni base de datos.",
+      "files": ["src/lib/demo.ts", "src/lib/demoStore.ts", "src/lib/demoSeed.ts"]
+    },
+    {
+      "id": "pdf-import",
+      "label": "Adaptadores → Imprenta",
+      "layer": "cliente",
+      "x": 1200,
+      "y": 424,
+      "w": 168,
+      "h": 56,
+      "purpose": "Normalizan orígenes distintos (notas, recortes, selección del feed, biblioteca) al contrato File[] que consume el editor de PDF.",
+      "files": [
+        "src/lib/pdfStudio/import/notesToPdfFiles.ts",
+        "src/lib/pdfStudio/import/captureItemsToPdfFiles.ts",
+        "src/lib/pdfStudio/import/libraryItemsToPdfFiles.ts"
+      ]
+    },
+    {
+      "id": "netlify-fn",
+      "label": "Netlify Functions · /api/*",
+      "layer": "borde",
+      "x": 250,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Los 103 wrappers .mts solo declaran config.path y reexportan el handler real de _lib; un gate verifica que la ruta sea comprobable antes del deploy.",
+      "files": ["netlify/functions/momentos.mts", "scripts/runtime-api-routes.mjs"]
+    },
+    {
+      "id": "handler-wrap",
+      "label": "withObservability",
+      "layer": "borde",
+      "x": 440,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Envuelve cada handler: genera el requestId, captura excepciones, registra respuestas no-2xx y persiste el error sin bloquear la respuesta.",
+      "files": [
+        "netlify/functions/_lib/handler-wrap.ts",
+        "netlify/functions/_lib/observability.ts"
+      ]
+    },
+    {
+      "id": "auth-lib",
+      "label": "Auth: Clerk · PAT · legacy",
+      "layer": "borde",
+      "x": 630,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Resuelve el usuario desde el Bearer de Clerk, un token personal (guardado solo como sha256) o el modo single-user heredado.",
+      "files": [
+        "netlify/functions/_lib/auth.ts",
+        "netlify/functions/_lib/personal-tokens.ts",
+        "netlify/functions/_lib/legacy-identity.ts"
+      ]
+    },
+    {
+      "id": "rls",
+      "label": "Contexto RLS",
+      "layer": "borde",
+      "x": 820,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Guarda el usuario en AsyncLocalStorage e inyecta set_config('app.current_user_id') en la misma transacción: el aislamiento no depende de recordar un WHERE.",
+      "files": ["netlify/functions/_lib/user-rls.ts", "netlify/functions/_lib/db.ts"]
+    },
+    {
+      "id": "zod-contracts",
+      "label": "Contratos Zod",
+      "layer": "borde",
+      "x": 1010,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Valida body, query y multipart antes de tocar SQL o LLM, y valida en runtime las filas que devuelve Postgres.",
+      "files": [
+        "netlify/functions/_lib/zod-body.ts",
+        "netlify/functions/_lib/request-contracts.ts",
+        "netlify/functions/_lib/row-parse.ts"
+      ]
+    },
+    {
+      "id": "api-error",
+      "label": "ApiErrors · shape canónico",
+      "layer": "borde",
+      "x": 1200,
+      "y": 540,
+      "w": 168,
+      "h": 56,
+      "purpose": "Todo error sale como {error:{code,message,requestId}}; un gate prohíbe respuestas 4xx/5xx escritas a mano.",
+      "files": [
+        "netlify/functions/_lib/api-error.ts",
+        "scripts/check-api-error-shape.mjs"
+      ]
+    },
+    {
+      "id": "ep-entidades",
+      "label": "Entidades y relaciones",
+      "layer": "endpoint",
+      "x": 60,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "CRUD del grafo con detección de duplicados por embedding, fusión, tipos y sugerencia de relaciones.",
+      "files": [
+        "netlify/functions/entities.mts",
+        "netlify/functions/_lib/entities-endpoint.ts",
+        "netlify/functions/entities-merge.mts"
+      ]
+    },
+    {
+      "id": "ep-citas",
+      "label": "Citas",
+      "layer": "endpoint",
+      "x": 250,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Citas ancladas a entidades, más reflexión y ecos generados por IA.",
+      "files": [
+        "netlify/functions/quotes.mts",
+        "netlify/functions/quote-reflect.mts",
+        "netlify/functions/quote-echoes.mts"
+      ]
+    },
+    {
+      "id": "ep-momentos",
+      "label": "Momentos",
+      "layer": "endpoint",
+      "x": 440,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Entradas de diario con media: creación, fusión, papelera, compartir por invitación y barrido de blobs huérfanos.",
+      "files": [
+        "netlify/functions/momentos.mts",
+        "netlify/functions/_lib/momentos/handlers.ts",
+        "netlify/functions/momentos-share-invitations.mts"
+      ]
+    },
+    {
+      "id": "ep-notas",
+      "label": "Notas y anexos",
+      "layer": "endpoint",
+      "x": 630,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Notas con etiquetas y anexos, feed cronológico paginado y notas por mes.",
+      "files": [
+        "netlify/functions/notes.mts",
+        "netlify/functions/notas-attachments.mts",
+        "netlify/functions/notas-feed.mts"
+      ]
+    },
+    {
+      "id": "ep-biblioteca",
+      "label": "Biblioteca",
+      "layer": "endpoint",
+      "x": 820,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Catálogo de material de lectura con enlaces, overrides y tablas configurables.",
+      "files": [
+        "netlify/functions/biblioteca.mts",
+        "netlify/functions/biblioteca-links.mts",
+        "netlify/functions/reading-tables.mts"
+      ]
+    },
+    {
+      "id": "ep-recortes",
+      "label": "Recortes",
+      "layer": "endpoint",
+      "x": 1010,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Capturas de imagen y texto con miniatura cacheada y sugerencia de destino por IA.",
+      "files": [
+        "netlify/functions/recortes.mts",
+        "netlify/functions/recortes-image-upload.mts",
+        "netlify/functions/_lib/recortes-suggest.ts"
+      ]
+    },
+    {
+      "id": "ep-chat",
+      "label": "Chat · Ask · Atlas",
+      "layer": "endpoint",
+      "x": 1200,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Hilos persistentes, preguntas puntuales con RAG y sugerencias proactivas.",
+      "files": [
+        "netlify/functions/ask.mts",
+        "netlify/functions/chat-messages.mts",
+        "netlify/functions/proactive-suggestions.mts"
+      ]
+    },
+    {
+      "id": "ep-search",
+      "label": "Búsqueda y queries",
+      "layer": "endpoint",
+      "x": 1390,
+      "y": 656,
+      "w": 168,
+      "h": 56,
+      "purpose": "Búsqueda híbrida (léxica + vectorial fusionadas por RRF) y un mini-lenguaje de consultas con traducción desde lenguaje natural.",
+      "files": [
+        "netlify/functions/search.mts",
+        "netlify/functions/_lib/search-endpoint.ts",
+        "netlify/functions/query-nl.mts"
+      ]
+    },
+    {
+      "id": "ep-uploads",
+      "label": "Media: presign · complete · file",
+      "layer": "endpoint",
+      "x": 60,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Sube y sirve binarios privados: multipart para lo chico, URL firmada para lo grande, y lectura con verificación de propiedad.",
+      "files": [
+        "netlify/functions/momentos-file.mts",
+        "netlify/functions/momentos-uploads-presign.mts",
+        "netlify/functions/library-uploads-complete.mts"
+      ]
+    },
+    {
+      "id": "ep-whatsapp",
+      "label": "WhatsApp",
+      "layer": "endpoint",
+      "x": 250,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Webhook firmado, vinculación de número y métricas de la captura móvil.",
+      "files": [
+        "netlify/functions/whatsapp-webhook.mts",
+        "netlify/functions/whatsapp-link.mts"
+      ]
+    },
+    {
+      "id": "ep-extraccion",
+      "label": "Extracción · import/export",
+      "layer": "endpoint",
+      "x": 440,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Extrae estructura desde texto o imagen con LLM, exporta e importa la base y reindexa embeddings.",
+      "files": [
+        "netlify/functions/extract.mts",
+        "netlify/functions/extract-from-image.mts",
+        "netlify/functions/export.mts"
+      ]
+    },
+    {
+      "id": "ep-pdf",
+      "label": "PDF Studio: plantillas y sellos",
+      "layer": "endpoint",
+      "x": 630,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Persistencia del editor: plantillas versionadas, sellos y PDFs guardados.",
+      "files": [
+        "netlify/functions/pdf-studio-templates.mts",
+        "netlify/functions/pdf-stamp-assets.mts"
+      ]
+    },
+    {
+      "id": "ep-integraciones",
+      "label": "Spotify · X · Wikipedia",
+      "layer": "endpoint",
+      "x": 820,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "OAuth y sincronización de escuchas, bookmarks y enriquecimiento de entidades desde Wikipedia.",
+      "files": [
+        "netlify/functions/spotify-sync.mts",
+        "netlify/functions/x-bookmarks.mts",
+        "netlify/functions/wikipedia-search.mts"
+      ]
+    },
+    {
+      "id": "ep-admin",
+      "label": "Salud · errores · costos",
+      "layer": "endpoint",
+      "x": 1010,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Health con alertas, log central de errores, web vitals, contadores del home y aviso diario de presupuesto de IA.",
+      "files": [
+        "netlify/functions/health.mts",
+        "netlify/functions/error-log.mts",
+        "netlify/functions/cost-alert-check.mts"
+      ]
+    },
+    {
+      "id": "ep-prefs",
+      "label": "Tareas · favoritos · prefs",
+      "layer": "endpoint",
+      "x": 1200,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Tareas con papelera, favoritos sobre cualquier objeto, preferencias de usuario y prompts versionados.",
+      "files": [
+        "netlify/functions/tasks.mts",
+        "netlify/functions/favoritos.mts",
+        "netlify/functions/user-prefs.mts"
+      ]
+    },
+    {
+      "id": "ep-ai",
+      "label": "IA settings · tokens · claves",
+      "layer": "endpoint",
+      "x": 1390,
+      "y": 728,
+      "w": 168,
+      "h": 56,
+      "purpose": "Modo IA por usuario y tarea, tokens personales para la extensión y vault de secretos cifrados.",
+      "files": [
+        "netlify/functions/ai-settings.mts",
+        "netlify/functions/api-tokens.mts",
+        "netlify/functions/secrets.mts"
+      ]
+    },
+    {
+      "id": "svc-domain",
+      "label": "Servicios de dominio",
+      "layer": "servicio",
+      "x": 60,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Lógica pura sin I/O (drafts, dedupe, paginación por cursor, clamps) separada del handler para poder testearla sin base de datos; hay un gate que lo exige.",
+      "files": [
+        "netlify/functions/_lib/entities-service.ts",
+        "netlify/functions/_lib/momentos-service.ts",
+        "scripts/backend-domain-services.mjs"
+      ]
+    },
+    {
+      "id": "llm",
+      "label": "Subsistema LLM",
+      "layer": "servicio",
+      "x": 250,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Despacha a cuatro proveedores con cadena de respaldo ante fallas transitorias, caché, streaming, visión y transcripción.",
+      "files": [
+        "netlify/functions/_lib/llm/dispatch.ts",
+        "netlify/functions/_lib/llm/provider-chain.ts"
+      ]
+    },
+    {
+      "id": "cost-cap",
+      "label": "Tope de gasto mensual",
+      "layer": "servicio",
+      "x": 440,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Compara el gasto acumulado del mes contra el tope del usuario y corta con 429; si no hay base de datos, falla abierto.",
+      "files": ["netlify/functions/_lib/cost-cap.ts"]
+    },
+    {
+      "id": "embeddings",
+      "label": "Embeddings (pgvector)",
+      "layer": "servicio",
+      "x": 630,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Vectores de 1536 dimensiones sobre entidades y citas para búsqueda semántica y detección de duplicados, con caché de queries.",
+      "files": [
+        "netlify/functions/_lib/embeddings.ts",
+        "netlify/functions/reindex-embeddings.mts"
+      ]
+    },
+    {
+      "id": "rag",
+      "label": "RAG · RRF · rerank",
+      "layer": "servicio",
+      "x": 820,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Arma el contexto del chat mezclando cercanía semántica y recencia, fusiona ramas por Reciprocal Rank Fusion y reordena con LLM.",
+      "files": [
+        "netlify/functions/_lib/rag-context.ts",
+        "netlify/functions/_lib/rrf.ts",
+        "netlify/functions/_lib/llm-rerank.ts"
+      ]
+    },
+    {
+      "id": "storage-adapter",
+      "label": "Adapter Netlify Blobs",
+      "layer": "servicio",
+      "x": 1010,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Único módulo autorizado a importar @netlify/blobs; un gate bloquea cualquier otro import para dejar abierta una migración futura.",
+      "files": [
+        "netlify/functions/_lib/storage-adapter.ts",
+        "scripts/storage-boundaries.mjs"
+      ]
+    },
+    {
+      "id": "r2-lib",
+      "label": "R2 presignado (aws4fetch)",
+      "layer": "servicio",
+      "x": 1200,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "Firma PUT y GET contra el bucket para esquivar el tope de ~6 MB de las funciones, confirma con HEAD y lista para detectar huérfanos.",
+      "files": [
+        "netlify/functions/_lib/r2.ts",
+        "netlify/functions/momentos-orphaned-blobs.mts"
+      ]
+    },
+    {
+      "id": "wa-pipeline",
+      "label": "Pipeline WhatsApp",
+      "layer": "servicio",
+      "x": 1390,
+      "y": 848,
+      "w": 168,
+      "h": 56,
+      "purpose": "El subsistema más grande de _lib (~25 módulos): firma, idempotencia por MessageSid, álbumes partidos que se reagrupan, intención por LLM y edición de la última captura.",
+      "files": [
+        "netlify/functions/_lib/whatsapp/webhook-endpoint.ts",
+        "netlify/functions/_lib/whatsapp/album.ts",
+        "netlify/functions/_lib/whatsapp/media-pipeline.ts"
+      ]
+    },
+    {
+      "id": "observability",
+      "label": "Observabilidad",
+      "layer": "servicio",
+      "x": 60,
+      "y": 920,
+      "w": 168,
+      "h": 56,
+      "purpose": "Log estructurado con redacción de datos sensibles y persistencia de errores en tabla, sin bloquear la respuesta.",
+      "files": [
+        "netlify/functions/_lib/observability.ts",
+        "netlify/functions/_lib/operational-events.ts"
+      ]
+    },
+    {
+      "id": "storage-assets",
+      "label": "Manifest storage_assets",
+      "layer": "servicio",
+      "x": 1010,
+      "y": 920,
+      "w": 168,
+      "h": 56,
+      "purpose": "Registro en Postgres de qué archivo vive en qué proveedor, con checksum, dominio y dueño: la fuente de verdad para servir y para limpiar.",
+      "files": [
+        "netlify/functions/_lib/storage-assets.ts",
+        "netlify/functions/_lib/storage-orphans.ts"
+      ]
+    },
+    {
+      "id": "media-cache",
+      "label": "Cache-Control de media",
+      "layer": "servicio",
+      "x": 1200,
+      "y": 920,
+      "w": 168,
+      "h": 56,
+      "purpose": "Como las storageKeys son aleatorias e inmutables, la media privada se sirve cacheable pero privada; las redirecciones firmadas siguen sin caché porque expiran.",
+      "files": ["netlify/functions/_lib/media-cache.ts"]
+    },
+    {
+      "id": "postgres",
+      "label": "Neon Postgres · RLS · FTS · pgvector",
+      "layer": "dato",
+      "x": 60,
+      "y": 1020,
+      "w": 358,
+      "h": 56,
+      "purpose": "96 migraciones inmutables. Aislamiento en dos capas (WHERE explícito y políticas RLS), borrado suave con deleted_at, búsqueda de texto y vectorial en la misma base.",
+      "files": [
+        "netlify/database/migrations/",
+        "netlify/functions/_lib/db.ts",
+        "docs/migraciones.md"
+      ]
+    },
+    {
+      "id": "blobs",
+      "label": "Netlify Blobs",
+      "layer": "dato",
+      "x": 440,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Archivos chicos y medianos servidos por la función: fotos, audio, anexos y PDFs.",
+      "files": ["netlify/functions/_lib/storage-adapter.ts"]
+    },
+    {
+      "id": "r2",
+      "label": "Cloudflare R2",
+      "layer": "dato",
+      "x": 630,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Archivos grandes con subida directa del cliente al bucket mediante URL firmada, sin pasar por la función.",
+      "files": ["netlify/functions/_lib/r2.ts", "docs/storage-orphans.md"]
+    },
+    {
+      "id": "clerk",
+      "label": "Clerk",
+      "layer": "dato",
+      "x": 820,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Identidad y sesión. Sin su clave, la app opera en modo single-user heredado; el cutover es progresivo y está cubierto por gates.",
+      "files": [
+        "netlify/functions/_lib/auth.ts",
+        "scripts/check-legacy-fallback-prod.mjs"
+      ]
+    },
+    {
+      "id": "llm-providers",
+      "label": "OpenAI · Anthropic · Gemini · DeepSeek",
+      "layer": "dato",
+      "x": 1010,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Proveedores intercambiables para texto, JSON, visión, transcripción y embeddings.",
+      "files": ["netlify/functions/_lib/llm/providers/"]
+    },
+    {
+      "id": "twilio",
+      "label": "Twilio",
+      "layer": "dato",
+      "x": 1200,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Transporte de WhatsApp: webhook entrante firmado, descarga de adjuntos y respuesta por TwiML.",
+      "files": [
+        "netlify/functions/_lib/whatsapp/twilio-signature.ts",
+        "netlify/functions/_lib/whatsapp/send.ts"
+      ]
+    },
+    {
+      "id": "apis-3p",
+      "label": "Spotify · X · Wikipedia",
+      "layer": "dato",
+      "x": 1390,
+      "y": 1020,
+      "w": 168,
+      "h": 56,
+      "purpose": "Fuentes externas que alimentan escuchas, bookmarks y datos de entidades.",
+      "files": [
+        "netlify/functions/_lib/spotify/client.ts",
+        "netlify/functions/_lib/x/client.ts",
+        "netlify/functions/_lib/wikipedia.ts"
+      ]
+    },
+    {
+      "id": "branch-protection",
+      "label": "Protección de main",
+      "layer": "ci",
+      "x": 60,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Solo se llega a main por PR con los cinco checks en verde, con la rama al día, sin force-push y sin excepción para administradores.",
+      "files": ["docs/deploy.md"]
+    },
+    {
+      "id": "github-ci",
+      "label": "GitHub Actions · test.yml",
+      "layer": "ci",
+      "x": 250,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Cinco trabajos en paralelo: lint, unit, e2e, secretos y migraciones sobre un Postgres real con pruebas de integración.",
+      "files": [".github/workflows/test.yml", ".github/workflows/pdf-visual.yml"]
+    },
+    {
+      "id": "gates",
+      "label": "~45 gates de calidad",
+      "layer": "ci",
+      "x": 440,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Contratos ejecutables sobre arquitectura, auth, API, frontend, bundle, PDF y storage: la convención se verifica, no se recuerda.",
+      "files": [
+        "scripts/script-registry.mjs",
+        "scripts/check-architecture-boundaries.mjs",
+        "scripts/auth-rls-contracts.mjs"
+      ]
+    },
+    {
+      "id": "netlify-build",
+      "label": "Build Netlify + migraciones",
+      "layer": "ci",
+      "x": 630,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Corre el guard de producción, compila, aplica las migraciones nuevas y publica el sitio con las functions.",
+      "files": ["netlify.toml", "scripts/apply-migrations.sh"]
+    },
+    {
+      "id": "version-json",
+      "label": "/version.json",
+      "layer": "ci",
+      "x": 820,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "El artefacto declara desde adentro qué commit se publicó; se sirve sin caché para que la sonda no lea una versión vieja.",
+      "files": ["scripts/write-version.mjs", "netlify.toml"]
+    },
+    {
+      "id": "prod",
+      "label": "Producción · tramahub.app",
+      "layer": "ci",
+      "x": 1010,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "El sitio servido por el CDN, con cabeceras de seguridad estrictas definidas a nivel de plataforma.",
+      "files": ["netlify.toml"]
+    },
+    {
+      "id": "canary",
+      "label": "Canario de deploy (6 h)",
+      "layer": "ci",
+      "x": 1200,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Compara lo servido contra origin/main y abre un issue si producción quedó atrás; nació porque un bloqueo silencioso mantuvo el sitio un mes clavado con todo en verde.",
+      "files": ["scripts/deploy-canary.mjs", ".github/workflows/deploy-canary.yml"]
+    },
+    {
+      "id": "mapa-vivo",
+      "label": "Mapa vivo + gate",
+      "layer": "ci",
+      "x": 1390,
+      "y": 1140,
+      "w": 168,
+      "h": 56,
+      "purpose": "Este mismo mapa. El gate check:architecture-map corre en CI y falla si alguna ruta citada dejó de existir, si el grafo pierde integridad o si el HTML se desincroniza del JSON.",
+      "files": [
+        "docs/arquitectura/mapa.json",
+        "docs/arquitectura/mapa.html",
+        "scripts/architecture-map.mjs"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "navegador",
+      "to": "shell",
+      "kind": "nav",
+      "label": "abre la app"
+    },
+    {
+      "from": "prod",
+      "to": "navegador",
+      "kind": "ci",
+      "label": "sirve el bundle"
+    },
+    {
+      "from": "whatsapp-in",
+      "to": "ep-whatsapp",
+      "kind": "externo",
+      "label": "webhook firmado"
+    },
+    {
+      "from": "extension",
+      "to": "netlify-fn",
+      "kind": "auth",
+      "label": "Bearer trama_pat_*"
+    },
+    {
+      "from": "shell",
+      "to": "v-home",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-grafo",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-entidades",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-citas",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-momentos",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-chat",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-lentes",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-notas",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-tareas",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-imprenta",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-biblioteca",
+      "kind": "nav"
+    },
+    {
+      "from": "shell",
+      "to": "v-recortes",
+      "kind": "nav"
+    },
+    {
+      "from": "v-home",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-grafo",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-entidades",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-citas",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-momentos",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-chat",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-lentes",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-notas",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-tareas",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-biblioteca",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "v-recortes",
+      "to": "state",
+      "kind": "data"
+    },
+    {
+      "from": "shell",
+      "to": "state",
+      "kind": "data",
+      "label": "⌘K busca"
+    },
+    {
+      "from": "v-grafo",
+      "to": "lib-graph",
+      "kind": "data"
+    },
+    {
+      "from": "v-citas",
+      "to": "lib-graph",
+      "kind": "data",
+      "label": "lámina y libro"
+    },
+    {
+      "from": "v-momentos",
+      "to": "lib-media",
+      "kind": "data",
+      "label": "deriva al subir"
+    },
+    {
+      "from": "v-momentos",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-biblioteca",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-recortes",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-notas",
+      "to": "authed-media",
+      "kind": "data"
+    },
+    {
+      "from": "v-imprenta",
+      "to": "lib-pdf",
+      "kind": "data"
+    },
+    {
+      "from": "v-imprenta",
+      "to": "pdf-import",
+      "kind": "data"
+    },
+    {
+      "from": "v-notas",
+      "to": "pdf-import",
+      "kind": "data",
+      "label": "fotos a Imprenta"
+    },
+    {
+      "from": "v-recortes",
+      "to": "pdf-import",
+      "kind": "data"
+    },
+    {
+      "from": "v-biblioteca",
+      "to": "pdf-import",
+      "kind": "data"
+    },
+    {
+      "from": "state",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "auth-bridge",
+      "to": "api-client",
+      "kind": "auth",
+      "label": "inyecta token"
+    },
+    {
+      "from": "auth-bridge",
+      "to": "clerk",
+      "kind": "auth"
+    },
+    {
+      "from": "authed-media",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "lib-media",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "pdf-import",
+      "to": "api-client",
+      "kind": "data"
+    },
+    {
+      "from": "api-client",
+      "to": "demo-mode",
+      "kind": "data",
+      "label": "si modo prueba"
+    },
+    {
+      "from": "api-client",
+      "to": "netlify-fn",
+      "kind": "data",
+      "label": "HTTPS"
+    },
+    {
+      "from": "netlify-fn",
+      "to": "handler-wrap",
+      "kind": "data"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "auth-lib",
+      "kind": "auth"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "observability",
+      "kind": "data"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "api-error",
+      "kind": "data"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "zod-contracts",
+      "kind": "data"
+    },
+    {
+      "from": "auth-lib",
+      "to": "clerk",
+      "kind": "auth"
+    },
+    {
+      "from": "auth-lib",
+      "to": "rls",
+      "kind": "auth"
+    },
+    {
+      "from": "rls",
+      "to": "postgres",
+      "kind": "auth",
+      "label": "set_config en la misma transacción"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-entidades",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-citas",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-momentos",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-notas",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-biblioteca",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-recortes",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-chat",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-search",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-uploads",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-whatsapp",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-extraccion",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-pdf",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-integraciones",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-admin",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-prefs",
+      "kind": "nav"
+    },
+    {
+      "from": "handler-wrap",
+      "to": "ep-ai",
+      "kind": "nav"
+    },
+    {
+      "from": "ep-entidades",
+      "to": "svc-domain",
+      "kind": "data"
+    },
+    {
+      "from": "ep-entidades",
+      "to": "embeddings",
+      "kind": "data",
+      "label": "duplicados"
+    },
+    {
+      "from": "ep-entidades",
+      "to": "postgres",
+      "kind": "data",
+      "label": "CTE en cascada"
+    },
+    {
+      "from": "ep-citas",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-citas",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "ep-citas",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-momentos",
+      "to": "svc-domain",
+      "kind": "data"
+    },
+    {
+      "from": "ep-momentos",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-momentos",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-notas",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-notas",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-biblioteca",
+      "to": "r2-lib",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-biblioteca",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-biblioteca",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-recortes",
+      "to": "svc-domain",
+      "kind": "data"
+    },
+    {
+      "from": "ep-recortes",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-recortes",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-chat",
+      "to": "rag",
+      "kind": "data"
+    },
+    {
+      "from": "ep-chat",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-chat",
+      "to": "cost-cap",
+      "kind": "data",
+      "label": "corta con 429"
+    },
+    {
+      "from": "ep-chat",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-search",
+      "to": "rag",
+      "kind": "data"
+    },
+    {
+      "from": "ep-search",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "ep-search",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "r2-lib",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-uploads",
+      "to": "media-cache",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-whatsapp",
+      "to": "wa-pipeline",
+      "kind": "data"
+    },
+    {
+      "from": "ep-extraccion",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-extraccion",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "ep-extraccion",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-pdf",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "ep-pdf",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-integraciones",
+      "to": "apis-3p",
+      "kind": "externo"
+    },
+    {
+      "from": "ep-integraciones",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-admin",
+      "to": "observability",
+      "kind": "data"
+    },
+    {
+      "from": "ep-admin",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-prefs",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "ep-ai",
+      "to": "llm",
+      "kind": "data"
+    },
+    {
+      "from": "ep-ai",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "svc-domain",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "llm",
+      "to": "llm-providers",
+      "kind": "externo",
+      "label": "con cadena de respaldo"
+    },
+    {
+      "from": "llm",
+      "to": "cost-cap",
+      "kind": "data"
+    },
+    {
+      "from": "cost-cap",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "embeddings",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "embeddings",
+      "to": "llm-providers",
+      "kind": "externo"
+    },
+    {
+      "from": "rag",
+      "to": "embeddings",
+      "kind": "data"
+    },
+    {
+      "from": "rag",
+      "to": "llm",
+      "kind": "data",
+      "label": "rerank"
+    },
+    {
+      "from": "rag",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "storage-adapter",
+      "to": "blobs",
+      "kind": "storage"
+    },
+    {
+      "from": "storage-adapter",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "r2-lib",
+      "to": "r2",
+      "kind": "storage"
+    },
+    {
+      "from": "r2-lib",
+      "to": "storage-assets",
+      "kind": "storage"
+    },
+    {
+      "from": "storage-assets",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "twilio",
+      "kind": "externo"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "storage-adapter",
+      "kind": "storage"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "llm",
+      "kind": "data",
+      "label": "intención del texto"
+    },
+    {
+      "from": "wa-pipeline",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "observability",
+      "to": "postgres",
+      "kind": "data"
+    },
+    {
+      "from": "branch-protection",
+      "to": "github-ci",
+      "kind": "ci",
+      "label": "exige verde"
+    },
+    {
+      "from": "github-ci",
+      "to": "gates",
+      "kind": "ci"
+    },
+    {
+      "from": "gates",
+      "to": "netlify-build",
+      "kind": "ci",
+      "label": "merge a main"
+    },
+    {
+      "from": "netlify-build",
+      "to": "postgres",
+      "kind": "ci",
+      "label": "migraciones nuevas"
+    },
+    {
+      "from": "netlify-build",
+      "to": "version-json",
+      "kind": "ci"
+    },
+    {
+      "from": "netlify-build",
+      "to": "prod",
+      "kind": "ci"
+    },
+    {
+      "from": "version-json",
+      "to": "prod",
+      "kind": "ci"
+    },
+    {
+      "from": "canary",
+      "to": "prod",
+      "kind": "ci",
+      "label": "sonda cada 6 h"
+    },
+    {
+      "from": "canary",
+      "to": "version-json",
+      "kind": "ci",
+      "label": "compara con origin/main"
+    },
+    {
+      "from": "gates",
+      "to": "mapa-vivo",
+      "kind": "ci",
+      "label": "valida el mapa"
+    }
+  ],
+  "flows": [
+    {
+      "id": "subir-foto-momento",
+      "label": "Subir una foto a un Momento",
+      "summary": "Del composer al álbum: el navegador comprime y deriva miniatura y color antes de subir, y la entrada queda en Postgres con su media referenciada.",
+      "steps": [
+        {
+          "node": "v-momentos",
+          "label": "El usuario elige o suelta fotos en el composer",
+          "file": "src/components/momentos/useMomentoComposer.ts"
+        },
+        {
+          "node": "lib-media",
+          "label": "Compresión, miniatura de grilla y color dominante en paralelo",
+          "file": "src/lib/compressImage.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "Ruta chica (multipart) o grande (URL firmada) según el tamaño",
+          "file": "src/api/momentos.ts"
+        },
+        {
+          "node": "netlify-fn",
+          "label": "La request entra por /api/*",
+          "file": "netlify/functions/momentos-upload.mts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Recibe el binario y lo guarda",
+          "file": "netlify/functions/momentos-upload.mts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Escribe el blob privado del usuario",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "storage-assets",
+          "label": "Registra proveedor, key y checksum",
+          "file": "netlify/functions/_lib/storage-assets.ts"
+        },
+        {
+          "node": "ep-momentos",
+          "label": "POST /api/momentos con los items ya subidos",
+          "file": "netlify/functions/_lib/momentos-endpoint.ts"
+        },
+        {
+          "node": "svc-domain",
+          "label": "Arma el borrador válido del momento (lógica pura, sin I/O)",
+          "file": "netlify/functions/_lib/momentos-service.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "INSERT del momento y vínculo a entidades en un CTE",
+          "file": "netlify/functions/_lib/momentos/data.ts"
+        },
+        {
+          "node": "state",
+          "label": "Invalida el feed y el álbum se refresca",
+          "file": "src/state/useMomentos.ts"
+        },
+        {
+          "node": "authed-media",
+          "label": "La grilla pinta la miniatura sobre el color dominante",
+          "file": "src/components/momentos/AuthenticatedMedia.tsx"
+        }
+      ]
+    },
+    {
+      "id": "ver-media-privada",
+      "label": "Ver una foto privada",
+      "summary": "Ninguna media es pública: cada imagen se pide con el token del usuario, el servidor verifica propiedad y el cliente la sostiene como object-URL.",
+      "steps": [
+        {
+          "node": "authed-media",
+          "label": "El componente resuelve la storageKey a una URL de API",
+          "file": "src/components/momentos/AuthenticatedMedia.tsx"
+        },
+        {
+          "node": "auth-bridge",
+          "label": "Toma el token vigente de Clerk",
+          "file": "src/components/ApiAuthBridge.tsx"
+        },
+        {
+          "node": "api-client",
+          "label": "requestBlob agrega Authorization: Bearer",
+          "file": "src/api/request.ts"
+        },
+        {
+          "node": "netlify-fn",
+          "label": "GET /api/momentos-file/:userId/:key",
+          "file": "netlify/functions/momentos-file.mts"
+        },
+        {
+          "node": "auth-lib",
+          "label": "Resuelve el usuario del token",
+          "file": "netlify/functions/_lib/auth.ts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Verifica propiedad: la key es del usuario o está referenciada en un momento legible",
+          "file": "netlify/functions/momentos-file.mts"
+        },
+        {
+          "node": "postgres",
+          "label": "Consulta de pertenencia bajo RLS",
+          "file": "netlify/functions/_lib/db.ts"
+        },
+        {
+          "node": "r2-lib",
+          "label": "Si es un archivo grande, redirige con una URL firmada de corta vida",
+          "file": "netlify/functions/_lib/r2.ts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Si es chico, lee el blob y responde los bytes",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "media-cache",
+          "label": "Cachea como privado e inmutable porque la key nunca se reescribe",
+          "file": "netlify/functions/_lib/media-cache.ts"
+        },
+        {
+          "node": "authed-media",
+          "label": "Crea el object-URL, funde la imagen y lo revoca al desmontar",
+          "file": "src/hooks/useMediaReveal.ts"
+        }
+      ]
+    },
+    {
+      "id": "whatsapp-captura",
+      "label": "Capturar por WhatsApp",
+      "summary": "Mandar fotos por WhatsApp crea un momento: la firma se verifica, los adjuntos se descargan y un álbum partido por el operador se vuelve a juntar en una sola entrada.",
+      "steps": [
+        {
+          "node": "whatsapp-in",
+          "label": "El usuario manda fotos al número de Trama",
+          "file": "docs/whatsapp.md"
+        },
+        {
+          "node": "ep-whatsapp",
+          "label": "Twilio hace POST al webhook",
+          "file": "netlify/functions/whatsapp-webhook.mts"
+        },
+        {
+          "node": "wa-pipeline",
+          "label": "Verifica la firma, resuelve al usuario por teléfono y descarta duplicados por MessageSid",
+          "file": "netlify/functions/_lib/whatsapp/webhook-endpoint.ts"
+        },
+        {
+          "node": "twilio",
+          "label": "Descarga los adjuntos del mensaje",
+          "file": "netlify/functions/_lib/whatsapp/media.ts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Sube cada foto al almacén de media",
+          "file": "netlify/functions/_lib/whatsapp/media-store.ts"
+        },
+        {
+          "node": "wa-pipeline",
+          "label": "Ventana de agrupación: las fotos del mismo envío caen en un solo episodio",
+          "file": "netlify/functions/_lib/whatsapp/album.ts"
+        },
+        {
+          "node": "llm",
+          "label": "Si viene texto libre, interpreta la intención de la captura",
+          "file": "netlify/functions/_lib/whatsapp/text-intelligence.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Inserta el momento con origen whatsapp y registra el evento",
+          "file": "netlify/functions/_lib/whatsapp/persist-media.ts"
+        },
+        {
+          "node": "twilio",
+          "label": "Responde por TwiML confirmando lo guardado",
+          "file": "netlify/functions/_lib/whatsapp/twiml.ts"
+        }
+      ]
+    },
+    {
+      "id": "chat-rag",
+      "label": "Preguntar al chat (RAG)",
+      "summary": "La pregunta se responde con el corpus propio: contexto por cercanía semántica y recencia, con tope de gasto antes de llamar al modelo.",
+      "steps": [
+        {
+          "node": "v-chat",
+          "label": "El usuario escribe en la barra de pregunta",
+          "file": "src/components/AskBar.tsx"
+        },
+        {
+          "node": "api-client",
+          "label": "POST /api/ask con el hilo activo",
+          "file": "src/api/chat.ts"
+        },
+        {
+          "node": "ep-chat",
+          "label": "Valida el cuerpo y carga el historial del hilo",
+          "file": "netlify/functions/ask.mts"
+        },
+        {
+          "node": "cost-cap",
+          "label": "Verifica el presupuesto mensual antes de gastar",
+          "file": "netlify/functions/_lib/cost-cap.ts"
+        },
+        {
+          "node": "rag",
+          "label": "Arma el contexto: top-K semántico más entradas recientes",
+          "file": "netlify/functions/_lib/rag-context.ts"
+        },
+        {
+          "node": "embeddings",
+          "label": "Vectoriza la pregunta",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Búsqueda por distancia coseno sobre entidades y citas",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "llm",
+          "label": "Pide respuesta y propuesta de extracción en JSON",
+          "file": "netlify/functions/_lib/llm/dispatch.ts"
+        },
+        {
+          "node": "llm-providers",
+          "label": "El proveedor resuelto responde; si falla de forma transitoria, entra el respaldo",
+          "file": "netlify/functions/_lib/llm/provider-chain.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Persiste el mensaje y el costo de la extracción",
+          "file": "netlify/functions/_lib/observability.ts"
+        },
+        {
+          "node": "v-chat",
+          "label": "La respuesta aparece con su propuesta aplicable al grafo",
+          "file": "src/components/chat/InlineProposal.tsx"
+        }
+      ]
+    },
+    {
+      "id": "entidad-cascada",
+      "label": "Crear entidad y borrarla en cascada",
+      "summary": "Al borrar una entidad, un único CTE marca deleted_at en ella y en todo lo que cuelga: relaciones, citas y vínculos a momentos. Reversible desde el toast.",
+      "steps": [
+        {
+          "node": "v-entidades",
+          "label": "Alta o edición desde el formulario de entidad",
+          "file": "src/components/entities/EntityForm.tsx"
+        },
+        {
+          "node": "state",
+          "label": "Mutación optimista con snapshot para poder revertir",
+          "file": "src/state/useEntities.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "POST/PATCH/DELETE /api/entities",
+          "file": "src/api/entities.ts"
+        },
+        {
+          "node": "ep-entidades",
+          "label": "El router despacha por método",
+          "file": "netlify/functions/_lib/entities-endpoint.ts"
+        },
+        {
+          "node": "embeddings",
+          "label": "Al crear, busca duplicados por vector cercano",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "svc-domain",
+          "label": "Arma el borrador válido sin tocar I/O",
+          "file": "netlify/functions/_lib/entities-service.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Borrado suave atómico con un deleted_at compartido en todas las tablas afectadas",
+          "file": "netlify/functions/_lib/entities-endpoint.ts"
+        },
+        {
+          "node": "state",
+          "label": "Toast con deshacer: el restore usa el mismo timestamp",
+          "file": "src/state/useEntities.ts"
+        }
+      ]
+    },
+    {
+      "id": "notas-imprenta",
+      "label": "Notas → Imprenta",
+      "summary": "Las fotos anexas de una o varias notas se convierten en páginas del editor de PDF, listas para anotar, exportar o imprimir.",
+      "steps": [
+        {
+          "node": "v-notas",
+          "label": "Acción desde la tarjeta o desde la barra de selección múltiple",
+          "file": "src/components/notas/NotasImprentaSelectionBar.tsx"
+        },
+        {
+          "node": "pdf-import",
+          "label": "Lista los anexos de tipo imagen de cada nota",
+          "file": "src/lib/pdfStudio/import/notesToPdfFiles.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "Descarga cada blob autenticado",
+          "file": "src/api/notas-attachments.ts"
+        },
+        {
+          "node": "ep-notas",
+          "label": "Sirve el anexo verificando propiedad",
+          "file": "netlify/functions/notas-attachments-file.mts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Lee el binario del almacén",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "v-imprenta",
+          "label": "El editor recibe los archivos y preserva el documento en curso",
+          "file": "src/components/notas/NotasWorld.tsx"
+        },
+        {
+          "node": "lib-pdf",
+          "label": "Ensambla las imágenes en hojas y las agrega al modelo con historial",
+          "file": "src/lib/pdfStudio/assemble/assembleImages.ts"
+        },
+        {
+          "node": "lib-pdf",
+          "label": "Exporta el PDF o lo imprime desde un iframe oculto",
+          "file": "src/components/notas/pdfStudio/shell/usePdfStudioExport.ts"
+        }
+      ]
+    },
+    {
+      "id": "biblioteca-upload-grande",
+      "label": "Subida grande a Biblioteca",
+      "summary": "Los archivos que no caben en el cuerpo de una función suben directo del navegador al bucket con una URL firmada; el servidor solo firma y confirma.",
+      "steps": [
+        {
+          "node": "v-biblioteca",
+          "label": "El usuario agrega un archivo grande",
+          "file": "src/components/BibliotecaView.tsx"
+        },
+        {
+          "node": "api-client",
+          "label": "Elige la ruta grande por tamaño",
+          "file": "src/api/biblioteca.ts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Genera la key y pide la firma",
+          "file": "netlify/functions/library-uploads-presign.mts"
+        },
+        {
+          "node": "r2-lib",
+          "label": "Firma un PUT de vida corta contra el bucket",
+          "file": "netlify/functions/_lib/r2.ts"
+        },
+        {
+          "node": "r2",
+          "label": "El navegador sube el archivo directo al bucket, sin pasar por Trama",
+          "file": "src/api/biblioteca.ts"
+        },
+        {
+          "node": "ep-uploads",
+          "label": "Confirma la subida con un HEAD al objeto",
+          "file": "netlify/functions/library-uploads-complete.mts"
+        },
+        {
+          "node": "storage-assets",
+          "label": "Registra el asset con proveedor r2",
+          "file": "netlify/functions/_lib/storage-assets.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Persiste el item de biblioteca",
+          "file": "netlify/functions/biblioteca.mts"
+        },
+        {
+          "node": "state",
+          "label": "El listado se refresca",
+          "file": "src/state/useBiblioteca.ts"
+        }
+      ]
+    },
+    {
+      "id": "busqueda-hibrida",
+      "label": "Buscar desde ⌘K",
+      "summary": "La paleta mezcla lo que ya está en caché con búsqueda en servidor; el backend sabe fusionar rama léxica y semántica por rango recíproco.",
+      "steps": [
+        {
+          "node": "shell",
+          "label": "Se abre la paleta y se escribe la consulta",
+          "file": "src/components/CommandPalette.tsx"
+        },
+        {
+          "node": "state",
+          "label": "Combina candidatos locales ya cargados con los del servidor",
+          "file": "src/hooks/useCommandSearch.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "GET /api/search con debounce",
+          "file": "src/api/search.ts"
+        },
+        {
+          "node": "ep-search",
+          "label": "Resuelve el modo y arma el plan de consulta",
+          "file": "netlify/functions/_lib/search-endpoint.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Rama léxica con tsquery y rango sobre índices GIN",
+          "file": "netlify/functions/_lib/search-endpoint-queries.ts"
+        },
+        {
+          "node": "embeddings",
+          "label": "Rama semántica: vector de la consulta",
+          "file": "netlify/functions/_lib/embeddings.ts"
+        },
+        {
+          "node": "rag",
+          "label": "Fusiona ambas ramas por Reciprocal Rank Fusion",
+          "file": "netlify/functions/_lib/rrf.ts"
+        },
+        {
+          "node": "llm",
+          "label": "Reordenado opcional con modelo sobre los candidatos",
+          "file": "netlify/functions/_lib/llm-rerank.ts"
+        },
+        {
+          "node": "shell",
+          "label": "Resultados navegables en la paleta",
+          "file": "src/components/CommandPaletteResults.tsx"
+        }
+      ]
+    },
+    {
+      "id": "extension-pat",
+      "label": "Recortar desde la extensión",
+      "summary": "La extensión de Chrome guarda recortes y favoritos con un token personal, sin sesión de Clerk: el token se guarda solo como hash y nunca cae al modo heredado.",
+      "steps": [
+        {
+          "node": "extension",
+          "label": "El usuario captura una página o la marca como favorita",
+          "file": "extension/lib/capture.js"
+        },
+        {
+          "node": "netlify-fn",
+          "label": "POST /api/recortes con Bearer trama_pat_*",
+          "file": "extension/lib/capture.js"
+        },
+        {
+          "node": "auth-lib",
+          "label": "Resuelve el token personal por sha256 antes de mirar Clerk",
+          "file": "netlify/functions/_lib/personal-tokens.ts"
+        },
+        {
+          "node": "ep-recortes",
+          "label": "Crea el recorte y sube la imagen si viene",
+          "file": "netlify/functions/recortes-image-upload.mts"
+        },
+        {
+          "node": "storage-adapter",
+          "label": "Guarda la captura",
+          "file": "netlify/functions/_lib/storage-adapter.ts"
+        },
+        {
+          "node": "postgres",
+          "label": "Persiste bajo el usuario dueño del token",
+          "file": "netlify/functions/_lib/recortes-crud.ts"
+        },
+        {
+          "node": "v-recortes",
+          "label": "Aparece en el feed de notas la próxima vez que se abre",
+          "file": "src/components/notas/NotasFeedView.tsx"
+        }
+      ]
+    },
+    {
+      "id": "modo-prueba",
+      "label": "Modo prueba sin backend",
+      "summary": "Con el modo prueba activo, el cliente HTTP se desvía a un backend en localStorage: la app entera se recorre y se edita sin cuenta ni base de datos.",
+      "steps": [
+        {
+          "node": "navegador",
+          "label": "Se entra con el modo prueba activado",
+          "file": "src/lib/demoRouter.ts"
+        },
+        {
+          "node": "shell",
+          "label": "La app monta igual, con los mismos componentes",
+          "file": "src/App.tsx"
+        },
+        {
+          "node": "state",
+          "label": "Los hooks de dominio no cambian",
+          "file": "src/state/queryClient.ts"
+        },
+        {
+          "node": "api-client",
+          "label": "request() detecta el modo y no sale a la red",
+          "file": "src/api/request.ts"
+        },
+        {
+          "node": "demo-mode",
+          "label": "Un backend en localStorage responde con las mismas formas de servidor",
+          "file": "src/lib/demoStore.ts"
+        }
+      ]
+    },
+    {
+      "id": "deploy-canario",
+      "label": "Deploy vigilado por el canario",
+      "summary": "Del PR a producción, con una sonda que comprueba que lo servido es de verdad origin/main: nació de un mes de producción congelada con todo en verde.",
+      "steps": [
+        {
+          "node": "branch-protection",
+          "label": "Main solo acepta PR con los cinco checks y la rama al día",
+          "file": "docs/deploy.md"
+        },
+        {
+          "node": "github-ci",
+          "label": "lint, unit, e2e, secretos y migraciones en paralelo",
+          "file": ".github/workflows/test.yml"
+        },
+        {
+          "node": "gates",
+          "label": "Los contratos ejecutables bloquean el merge si algo se sale de la convención",
+          "file": "scripts/script-registry.mjs"
+        },
+        {
+          "node": "netlify-build",
+          "label": "Guard de producción, compilación y migraciones nuevas",
+          "file": "netlify.toml"
+        },
+        {
+          "node": "postgres",
+          "label": "Las migraciones pendientes se aplican en el deploy",
+          "file": "docs/migraciones.md"
+        },
+        {
+          "node": "version-json",
+          "label": "El artefacto declara el commit publicado",
+          "file": "scripts/write-version.mjs"
+        },
+        {
+          "node": "prod",
+          "label": "El CDN sirve el sitio nuevo",
+          "file": "netlify.toml"
+        },
+        {
+          "node": "canary",
+          "label": "Cada 6 h compara lo servido con origin/main y abre un issue si quedó atrás",
+          "file": "scripts/deploy-canary.mjs"
+        }
+      ]
+    }
+  ]
+}
