@@ -1,0 +1,74 @@
+name: deploy-canary
+
+# ¿Producción sirve lo que hay en origin/main? El incidente de julio 2026
+# (deploy `locked` en Netlify: un mes de producción clavada con CI en verde)
+# demostró que ningún check existente mira lo único que importa: el commit
+# realmente servido. Esta sonda baja /version.json de tramahub.app y lo
+# compara con origin/main — la lógica y los verdicts viven en
+# scripts/deploy-canary.mjs.
+#
+# Sin secretos: mide conducta observable del CDN. En alarma, el job falla y
+# abre un issue etiquetado `deploy-canary` (si no hay ya uno abierto).
+on:
+  schedule:
+    # Cada 6 horas: el desfase que cazamos se mide en días, no en minutos,
+    # y la gracia de 45 min del script absorbe los deploys en vuelo.
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+# Dos runs solapados (cron + manual) podrían ver ambos "cero issues
+# abiertos" y abrir dos: serializar mantiene el contrato de issue único.
+concurrency:
+  group: deploy-canary
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 — la sonda necesita la historia completa de main para
+      # decidir si el sha servido pertenece a main (merge-base --is-ancestor).
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      # Sin npm ci: la sonda es node puro (fetch global + git).
+      - name: Producción vs origin/main
+        run: node scripts/deploy-canary.mjs
+
+      # Ciclo de vida completo: la alarma abre el issue y la recuperación lo
+      # cierra. Sin esto, un issue viejo abierto suprimiría (por el dedup de
+      # abajo) el aviso de un incidente futuro.
+      - name: Cerrar issue si el canario volvió a ok
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue list --label deploy-canary --state open --json number --jq '.[].number' |
+            while read -r n; do
+              gh issue close "$n" --comment "El canario volvió a ok: producción sirve origin/main."
+            done
+
+      - name: Abrir issue si hay alarma
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create deploy-canary --color D93F0B \
+            --description "Producción no sirve origin/main" --force
+          abiertos=$(gh issue list --label deploy-canary --state open --json number --jq 'length')
+          if [ "$abiertos" = "0" ]; then
+            gh issue create --label deploy-canary \
+              --title "Canario de deploy: producción no sirve origin/main" \
+              --body "El workflow deploy-canary encontró que https://tramahub.app/version.json no corresponde a origin/main. Ver el run fallido para el verdict exacto (desfase / sin-version / desconocido) y docs/deploy.md para el runbook (desbloquear deploy en Netlify)."
+          else
+            echo "Ya hay un issue deploy-canary abierto; no se duplica."
+          fi

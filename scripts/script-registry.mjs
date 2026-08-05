@@ -409,6 +409,24 @@ const SCRIPT_ENTRIES = [
     summary: 'Snapshot lógico del grafo de chunks PDF usado por tests de payload.',
   },
   {
+    file: 'scripts/deploy-canary.mjs',
+    domain: 'ci',
+    kind: 'check',
+    critical: false,
+    packageScripts: [],
+    summary:
+      'Canario de deploy: compara el version.json servido en producción contra origin/main (workflow deploy-canary).',
+  },
+  {
+    file: 'scripts/write-version.mjs',
+    domain: 'ci',
+    kind: 'support',
+    critical: false,
+    packageScripts: [],
+    summary:
+      'Emite dist/version.json con el COMMIT_REF del build de Netlify — la señal que lee el canario de deploy.',
+  },
+  {
     file: 'scripts/gen-whatsapp-cheatsheet.mjs',
     domain: 'whatsapp',
     kind: 'tool',
@@ -638,6 +656,14 @@ const SCRIPT_ENTRIES = [
 ]
 
 export const QUALITY_GATES = [
+  {
+    command: 'node scripts/deploy-canary.mjs',
+    job: 'canary',
+    phase: 'operations',
+    required: false,
+    summary:
+      'Sonda programada: producción debe servir origin/main (workflow deploy-canary, no bloquea merges).',
+  },
   {
     command: 'npm run lint',
     job: 'lint',
