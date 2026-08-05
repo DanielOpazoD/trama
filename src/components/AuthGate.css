@@ -9,7 +9,11 @@
   min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(20rem, 30%) 1fr;
-  background: linear-gradient(180deg, rgb(var(--paper-50)) 0%, rgb(var(--paper-100)) 100%);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--paper-50)) 0%,
+    rgb(var(--paper-100)) 100%
+  );
 }
 
 /* ── Panel del telar (tinta) ─────────────────────────────────────────── */
@@ -21,9 +25,17 @@
   display: flex;
   color: rgb(var(--paper-50));
   background:
-    radial-gradient(ellipse 120% 60% at 15% 0%, rgb(var(--trama-loom-ink)) 0%, transparent 70%),
+    radial-gradient(
+      ellipse 120% 60% at 15% 0%,
+      rgb(var(--trama-loom-ink)) 0%,
+      transparent 70%
+    ),
     radial-gradient(ellipse 90% 70% at 85% 100%, rgb(42 44 38) 0%, transparent 65%),
-    linear-gradient(165deg, rgb(var(--trama-loom-ink)) 0%, rgb(var(--trama-loom-ink-deep)) 100%);
+    linear-gradient(
+      165deg,
+      rgb(var(--trama-loom-ink)) 0%,
+      rgb(var(--trama-loom-ink-deep)) 100%
+    );
 }
 
 .trama-login-loom::after {

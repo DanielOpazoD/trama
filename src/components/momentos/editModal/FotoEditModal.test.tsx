@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -19,6 +19,40 @@ import type { Momento } from '../../../types'
 const updateMocks = vi.hoisted(() => ({
   mutateAsync: vi.fn(),
   toastShow: vi.fn(),
+}))
+
+const derivMocks = vi.hoisted(() => ({
+  momentoUpload: vi.fn(),
+  compressImage: vi.fn(async (f: File) => f),
+  readImageDimensions: vi.fn(async () => ({ width: 100, height: 80 })),
+  createImageThumbnail: vi.fn(async (): Promise<File | null> => null),
+  extractDominantColor: vi.fn(async (): Promise<string | null> => null),
+}))
+
+vi.mock('../../../api', async () => {
+  const actual = await vi.importActual<typeof import('../../../api')>('../../../api')
+  return {
+    ...actual,
+    api: { ...actual.api, momentoUpload: derivMocks.momentoUpload },
+  }
+})
+
+// Parcial: solo lo que toca canvas/red — el resto de helpers sigue real.
+vi.mock('../helpers', async () => {
+  const actual = await vi.importActual<typeof import('../helpers')>('../helpers')
+  return {
+    ...actual,
+    compressImage: derivMocks.compressImage,
+    readImageDimensions: derivMocks.readImageDimensions,
+  }
+})
+
+vi.mock('../../../lib/imageThumbnail', () => ({
+  createImageThumbnail: derivMocks.createImageThumbnail,
+}))
+
+vi.mock('../../../lib/imageColor', () => ({
+  extractDominantColor: derivMocks.extractDominantColor,
 }))
 
 // Solo se interceptan los hooks que el modal usa para GUARDAR; el resto del
@@ -155,7 +189,11 @@ describe('<FotoEditModal />', () => {
             width: 1920,
             height: 1080,
           },
-          { storageKey: 'u1/foto.jpg', thumbStorageKey: 'u1/foto-mini.jpg' },
+          {
+            storageKey: 'u1/foto.jpg',
+            thumbStorageKey: 'u1/foto-mini.jpg',
+            dominantColor: '#334455',
+          },
         ],
         caption: 'clip',
       },
@@ -180,8 +218,50 @@ describe('<FotoEditModal />', () => {
         height: 1080,
       },
       // La miniatura derivada también sobrevive al re-guardado.
-      { storageKey: 'u1/foto.jpg', thumbStorageKey: 'u1/foto-mini.jpg' },
+      {
+        storageKey: 'u1/foto.jpg',
+        thumbStorageKey: 'u1/foto-mini.jpg',
+        dominantColor: '#334455',
+      },
     ])
+  })
+
+  it('una foto NUEVA subida desde el modal deriva miniatura y color (como el composer)', async () => {
+    // El hallazgo de CodeRabbit: editar también pasa por acá (editItem
+    // convierte la foto a 'new'), así que sin esta derivación una foto
+    // editada PERDÍA su miniatura y su color.
+    updateMocks.mutateAsync.mockResolvedValue({})
+    derivMocks.createImageThumbnail.mockResolvedValue(
+      new File(['t'], 'thumb.jpg', { type: 'image/jpeg' }),
+    )
+    derivMocks.extractDominantColor.mockResolvedValue('#123456')
+    derivMocks.momentoUpload
+      .mockResolvedValueOnce({ storageKey: 'u1/nueva.jpg' })
+      .mockResolvedValueOnce({ storageKey: 'u1/nueva-mini.jpg' })
+    const user = userEvent.setup()
+    const qc = makeQueryClient()
+    render(<FotoEditModal momento={FOTO_MOMENTO} onClose={() => {}} />, {
+      wrapper: wrap(qc),
+    })
+
+    await user.upload(
+      screen.getByLabelText(/arrastra más imágenes o click para elegir/i),
+      new File(['foto'], 'nueva.png', { type: 'image/png' }),
+    )
+    await user.click(screen.getByRole('button', { name: /guardar/i }))
+
+    // El guardado encadena subidas async antes del mutateAsync: esperarlo.
+    await waitFor(() => expect(updateMocks.mutateAsync).toHaveBeenCalled())
+    // `lastCall`: los vi.fn de los factories acumulan llamadas entre tests de
+    // este archivo (restoreAllMocks no los alcanza); la última es la nuestra.
+    const { patch } = updateMocks.mutateAsync.mock.lastCall![0]
+    const nueva = patch.payload.items.find(
+      (i: { storageKey: string }) => i.storageKey === 'u1/nueva.jpg',
+    )
+    expect(nueva).toMatchObject({
+      thumbStorageKey: 'u1/nueva-mini.jpg',
+      dominantColor: '#123456',
+    })
   })
 
   it('si el momento no tiene photos, igual renderiza la shell del modal', () => {

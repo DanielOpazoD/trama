@@ -12,6 +12,7 @@ import {
 } from './helpers'
 import { captureVideoPoster } from './captureVideoPoster'
 import { createImageThumbnail } from '../../lib/imageThumbnail'
+import { extractDominantColor } from '../../lib/imageColor'
 import { extractPhotoCapturedAtFromFile, pickOldestCapturedAt } from '../../lib/photoExif'
 
 /**
@@ -420,12 +421,16 @@ export function useMomentoComposer({
             // null o su subida falla, el clip entra igual y el render cae al
             // <video>. Nunca abortar un episodio por la miniatura.
             let posterStorageKey: string | undefined
+            let dominantColor: string | undefined
             if (poster) {
               try {
                 posterStorageKey = (await api.momentoUpload(poster)).storageKey
               } catch {
                 posterStorageKey = undefined
               }
+              // El color del clip sale de su póster (mismo frame que verá el
+              // usuario como miniatura). Best-effort, como todo lo derivado.
+              dominantColor = (await extractDominantColor(poster)) ?? undefined
             }
             setPhotoUploadProgress((prev) =>
               prev ? { done: prev.done + 1, total: prev.total } : prev,
@@ -436,6 +441,7 @@ export function useMomentoComposer({
               height: dims.height || undefined,
               type: 'video' as const,
               posterStorageKey,
+              dominantColor,
             }
           }
           // 1. Comprimir client-side (resize a max 2400px + JPEG q0.85).
@@ -445,9 +451,10 @@ export function useMomentoComposer({
           // 2. Leer dimensiones del archivo comprimido (porque puede
           //    haber sido reescalado) y derivar la miniatura de grilla
           //    (~480px) — gemela del póster de video.
-          const [dims, thumb] = await Promise.all([
+          const [dims, thumb, dominantColor] = await Promise.all([
             readImageDimensions(compressed),
             createImageThumbnail(compressed),
+            extractDominantColor(compressed),
           ])
           // 3. Upload. La miniatura es best-effort de punta a punta: si la
           //    derivación dio null o su subida falla, la foto entra igual y
@@ -469,6 +476,7 @@ export function useMomentoComposer({
             width: dims.width || undefined,
             height: dims.height || undefined,
             thumbStorageKey,
+            dominantColor: dominantColor ?? undefined,
           }
         }),
       )

@@ -14,6 +14,8 @@ export type ExistingPhotoEditItem = {
   posterStorageKey?: string
   /** Miniatura derivada de una foto; ídem, la tile no baja el original. */
   thumbStorageKey?: string
+  /** Color dominante para el placeholder del tile. */
+  dominantColor?: string
 }
 
 export type NewPhotoEditItem = {
@@ -66,6 +68,7 @@ export function FotoPhotoTile({
               posterStorageKey={item.posterStorageKey}
               alt={`video ${idx + 1}`}
               className="w-full h-full object-cover"
+              placeholderColor={item.dominantColor}
             />
             <VideoPlayBadge size="sm" />
           </>
@@ -75,6 +78,7 @@ export function FotoPhotoTile({
             alt={`foto ${idx + 1}`}
             className="w-full h-full object-cover"
             loading="lazy"
+            placeholderColor={item.dominantColor}
           />
         )
       ) : (

@@ -227,11 +227,16 @@ describe('getMomentoPhotoItems', () => {
   it('arrastra thumbStorageKey y momentoItemThumbKey cae al original sin él', () => {
     const items = getMomentoPhotoItems({
       items: [
-        { storageKey: 'u1/foto.jpg', thumbStorageKey: 'u1/foto-thumb.jpg' },
+        {
+          storageKey: 'u1/foto.jpg',
+          thumbStorageKey: 'u1/foto-thumb.jpg',
+          dominantColor: '#a1b2c3',
+        },
         { storageKey: 'u1/vieja.jpg' },
       ],
     })
     expect(items[0]?.thumbStorageKey).toBe('u1/foto-thumb.jpg')
+    expect(items[0]?.dominantColor).toBe('#a1b2c3')
     // Las grillas montan la miniatura; sin ella, el original (fotos viejas).
     expect(momentoItemThumbKey(items[0]!)).toBe('u1/foto-thumb.jpg')
     expect(momentoItemThumbKey(items[1]!)).toBe('u1/vieja.jpg')

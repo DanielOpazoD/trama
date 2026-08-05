@@ -269,6 +269,43 @@ describe('<AlbumGrid />', () => {
     expect(urls.some((u) => u.includes('original.jpg'))).toBe(false)
   })
 
+  it('mientras el blob viaja, el tile se pinta del color dominante y luego FUNDE', async () => {
+    const conColor = {
+      ...photoMomento,
+      id: 'foto-color',
+      payload: {
+        caption: 'Vitral',
+        items: [
+          {
+            storageKey: 'u1/foto.jpg',
+            thumbStorageKey: 'u1/mini.jpg',
+            dominantColor: '#4b7355',
+          },
+        ],
+      },
+    } as unknown as Momento
+    // fetch que NUNCA resuelve: congela el estado "cargando" para mirar el
+    // placeholder sin carreras.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => {})),
+    )
+    render(
+      <AlbumGrid
+        items={[conColor]}
+        entitiesById={new Map()}
+        onDelete={() => {}}
+        size="medium"
+      />,
+    )
+
+    const img = screen.getByAltText('Vitral')
+    // El placeholder anticipa la foto: fondo del color dominante, no gris papel.
+    expect(img).toHaveStyle({ backgroundColor: '#4b7355' })
+    // Y el elemento participa del revelado (fundido al resolver).
+    expect(img.className).toContain('opacity-100')
+  })
+
   it('renderiza fotos persistidas con payload photos legado', async () => {
     render(
       <AlbumGrid

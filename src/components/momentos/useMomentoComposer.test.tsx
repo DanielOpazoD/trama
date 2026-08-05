@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   readVideoDimensions: vi.fn(),
   captureVideoPoster: vi.fn(),
   createImageThumbnail: vi.fn(),
+  extractDominantColor: vi.fn(),
   extractPhotoCapturedAtFromFile: vi.fn(),
 }))
 
@@ -55,6 +56,10 @@ vi.mock('./captureVideoPoster', () => ({
 // jsdom tampoco decodifica imágenes: mismo trato que el póster.
 vi.mock('../../lib/imageThumbnail', () => ({
   createImageThumbnail: mocks.createImageThumbnail,
+}))
+
+vi.mock('../../lib/imageColor', () => ({
+  extractDominantColor: mocks.extractDominantColor,
 }))
 
 vi.mock('../../lib/photoExif', async () => {
@@ -420,6 +425,7 @@ describe('useMomentoComposer', () => {
       mocks.createImageThumbnail.mockResolvedValue(
         new File(['thumb'], 'thumb.jpg', { type: 'image/jpeg' }),
       )
+      mocks.extractDominantColor.mockResolvedValue('#4b7355')
       mocks.momentoUpload
         .mockResolvedValueOnce({ storageKey: 'u1/original.jpg' })
         .mockResolvedValueOnce({ storageKey: 'u1/thumb.jpg' })
@@ -440,6 +446,9 @@ describe('useMomentoComposer', () => {
               expect.objectContaining({
                 storageKey: 'u1/original.jpg',
                 thumbStorageKey: 'u1/thumb.jpg',
+                // El color dominante viaja con el item: es lo que pinta el
+                // placeholder del tile mientras el blob llega.
+                dominantColor: '#4b7355',
               }),
             ],
           }),
@@ -476,10 +485,12 @@ describe('useMomentoComposer', () => {
       mocks.addMomento.mutateAsync.mockResolvedValue(momento({ kind: 'foto' }))
     })
 
-    it('captura el póster, lo sube y lo guarda en el item del clip', async () => {
+    it('captura el póster, lo sube, y el clip hereda color y póster', async () => {
       mocks.captureVideoPoster.mockResolvedValue(
         new File(['poster'], 'poster.jpg', { type: 'image/jpeg' }),
       )
+      // El color del clip sale de su PÓSTER (el frame que verá el usuario).
+      mocks.extractDominantColor.mockResolvedValue('#223344')
       // Primera subida: el clip. Segunda: el póster.
       mocks.momentoUpload
         .mockResolvedValueOnce({ storageKey: 'u1/r2-clip.mp4' })
@@ -504,6 +515,7 @@ describe('useMomentoComposer', () => {
                 height: 1080,
                 type: 'video',
                 posterStorageKey: 'u1/poster.jpg',
+                dominantColor: '#223344',
               },
             ],
           }),
@@ -513,6 +525,7 @@ describe('useMomentoComposer', () => {
 
     it('si la captura devuelve null, el clip entra sin póster y sin subida extra', async () => {
       mocks.captureVideoPoster.mockResolvedValue(null)
+      mocks.extractDominantColor.mockResolvedValue('#999999')
       mocks.momentoUpload.mockResolvedValueOnce({ storageKey: 'u1/r2-clip.mp4' })
       const { result } = renderHook(() => useMomentoComposer({ initialKind: 'foto' }))
 
@@ -527,6 +540,8 @@ describe('useMomentoComposer', () => {
       const item = mocks.addMomento.mutateAsync.mock.calls[0]![0].payload.items[0]
       expect(item.storageKey).toBe('u1/r2-clip.mp4')
       expect(item.posterStorageKey).toBeUndefined()
+      // Sin póster no hay frame del que extraer: tampoco color.
+      expect(item.dominantColor).toBeUndefined()
     })
 
     it('si la SUBIDA del póster falla, el episodio se crea igual (best-effort)', async () => {

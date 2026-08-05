@@ -65,7 +65,7 @@ export function RecorteMediaPreview({
             controls
             preload="metadata"
             aria-label="Video del recorte"
-            className="block aspect-video w-full bg-ink-950 object-contain"
+            className="block aspect-video w-full bg-ink-950 object-contain animate-fade-up motion-reduce:animate-none"
           />
         ) : (
           <div className="flex aspect-video items-center justify-center text-caption text-paper-50/70">

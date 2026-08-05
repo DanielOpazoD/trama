@@ -1,5 +1,6 @@
 import { libraryItemServeUrl } from '../../api/biblioteca'
 import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
+import { useMediaReveal } from '../../hooks/useMediaReveal'
 import type { LibraryItem } from '../../types/biblioteca'
 import { FileTypeIcon } from './FileTypeIcon'
 
@@ -28,6 +29,9 @@ export function Thumbnail({
 }) {
   const serveUrl = item.fileType === 'image' ? libraryItemServeUrl(item) : null
   const { src, status } = useAuthenticatedMediaState(serveUrl)
+  // OJO: el hook del revelado va ANTES de cualquier return temprano (regla de
+  // hooks): el fallback de error también pasa por acá.
+  const { revealClass } = useMediaReveal(status === 'ready' && !!src)
 
   // El recuadro: en lista es un cuadradito fijo; en cuadrícula se estira para
   // llenar la zona de media de la card (alto controlado por el padre).
@@ -59,7 +63,7 @@ export function Thumbnail({
       decoding="async"
       draggable={false}
       src={ready ? src : TRANSPARENT_PX}
-      className={`${box} object-cover ${status === 'loading' ? 'animate-pulse-subtle' : ''}`.trim()}
+      className={`${box} object-cover ${status === 'loading' ? 'animate-pulse-subtle' : ''} ${revealClass}`.trim()}
     />
   )
 }

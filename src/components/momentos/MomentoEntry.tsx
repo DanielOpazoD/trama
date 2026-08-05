@@ -287,6 +287,7 @@ function FotoBody({ momento }: { momento: Momento }) {
                 posterStorageKey={cover.posterStorageKey}
                 alt={caption ?? 'video'}
                 className="h-full w-full object-contain"
+                placeholderColor={cover.dominantColor}
               />
               <VideoPlayBadge />
             </button>
@@ -327,6 +328,7 @@ function FotoBody({ momento }: { momento: Momento }) {
               loading="lazy"
               className="block w-full h-auto"
               style={aspectRatio ? { aspectRatio } : undefined}
+              placeholderColor={cover.dominantColor}
             />
           </button>
         )}
