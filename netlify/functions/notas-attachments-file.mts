@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { logOperationalEvent } from './_lib/operational-events.js'
 import { storageKeyBelongsToUser } from './_lib/legacy-identity.js'
 import { createNetlifyBlobStorageAdapter } from './_lib/storage-adapter.js'
+import { IMMUTABLE_PRIVATE_MEDIA_CACHE } from './_lib/media-cache.js'
 
 const STORE = 'notas-attachments'
 
@@ -71,7 +72,9 @@ export default withObservability(
       headers: {
         'Content-Type': ref.mime_type,
         'Content-Disposition': `attachment; filename="${ref.file_name.replace(/"/g, '')}"`,
-        'Cache-Control': 'private, no-store',
+        // Key aleatoria e inmutable → cacheable para siempre en el navegador
+        // (privado). Ver _lib/media-cache.ts.
+        'Cache-Control': IMMUTABLE_PRIVATE_MEDIA_CACHE,
         Vary: 'Authorization',
       },
     })

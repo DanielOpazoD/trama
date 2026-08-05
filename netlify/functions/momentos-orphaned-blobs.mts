@@ -54,7 +54,12 @@ import { isR2MomentoKey, isVideoMomentoKey } from './_lib/momentos-media-mime.js
 
 type FotoPayload = {
   storageKey?: string
-  items?: Array<{ storageKey: string; type?: 'video'; posterStorageKey?: string }>
+  items?: Array<{
+    storageKey: string
+    type?: 'video'
+    posterStorageKey?: string
+    thumbStorageKey?: string
+  }>
   photos?: Array<{ storageKey: string }>
   audioKey?: string
 }
@@ -97,10 +102,11 @@ async function collectReferencedKeys(
     if (Array.isArray(payload.items)) {
       for (const item of payload.items) {
         addStorageKey(set, item?.storageKey)
-        // El póster del clip es un blob propio: si no cuenta como referenciado,
-        // este mismo barrido lo ofrecería para "rescatar" y adoptarlo lo
-        // duplicaría como foto suelta.
+        // Póster y miniatura son blobs propios: si no cuentan como
+        // referenciados, este mismo barrido los ofrecería para "rescatar" y
+        // adoptarlos los duplicaría como fotos sueltas.
         addStorageKey(set, item?.posterStorageKey)
+        addStorageKey(set, item?.thumbStorageKey)
       }
     }
     if (Array.isArray(payload.photos)) {

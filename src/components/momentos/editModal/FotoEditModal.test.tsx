@@ -155,6 +155,7 @@ describe('<FotoEditModal />', () => {
             width: 1920,
             height: 1080,
           },
+          { storageKey: 'u1/foto.jpg', thumbStorageKey: 'u1/foto-mini.jpg' },
         ],
         caption: 'clip',
       },
@@ -178,6 +179,8 @@ describe('<FotoEditModal />', () => {
         width: 1920,
         height: 1080,
       },
+      // La miniatura derivada también sobrevive al re-guardado.
+      { storageKey: 'u1/foto.jpg', thumbStorageKey: 'u1/foto-mini.jpg' },
     ])
   })
 

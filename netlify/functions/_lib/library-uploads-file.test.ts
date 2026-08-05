@@ -53,6 +53,8 @@ describe('library-uploads-file — serve por provider', () => {
     const res = await getFile(`${USER}/chico.pdf`)
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toBe('application/pdf')
+    // Blob de key inmutable → cacheable; el 302 de arriba sigue no-store.
+    expect(res.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable')
     expect(getWithMetadataMock).toHaveBeenCalled()
     expect(presignGetMock).not.toHaveBeenCalled()
   })

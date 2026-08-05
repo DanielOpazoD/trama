@@ -46,6 +46,10 @@ export type MomentoPayload = {
      *  (la capa autenticada baja el blob COMPLETO antes de pintar un frame).
      *  Ausente en clips viejos o si la captura falló → cae al `<video>`. */
     posterStorageKey?: string
+    /** Miniatura derivada de una FOTO (~480px), gemela del póster: las
+     *  grillas la montan en vez del original (3–8 MB por tile). Ausente en
+     *  fotos viejas, chicas o si la derivación falló → cae al original. */
+    thumbStorageKey?: string
   }>
   /** Formato legado usado por algunas fotos ya persistidas antes de
    *  unificar en `items[]`. La UI lo sigue leyendo para no ocultar

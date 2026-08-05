@@ -8,6 +8,7 @@ import {
   getMomentoPhotoItems,
   groupByMonth,
   isVideoItem,
+  momentoItemThumbKey,
 } from './helpers'
 import { MomentoEditModal } from './MomentoEditModal'
 import { MomentoFeedback } from './MomentoFeedback'
@@ -250,7 +251,9 @@ function AlbumTile({
             </>
           ) : (
             <AuthenticatedMomentoImage
-              storageKey={cover.storageKey}
+              // La tile monta la miniatura derivada (~480px) si existe; el
+              // original queda para el visor. Ver momentoItemThumbKey.
+              storageKey={momentoItemThumbKey(cover)}
               alt={caption ?? 'momento'}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

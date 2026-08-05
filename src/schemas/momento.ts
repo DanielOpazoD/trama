@@ -69,6 +69,9 @@ const FotoItemSchema = z.object({
   // Póster del clip (JPEG chico capturado al subir). Opcional siempre:
   // clips viejos y capturas fallidas no lo traen y el render cae al <video>.
   posterStorageKey: z.string().trim().min(1).optional(),
+  // Miniatura derivada de una foto (~480px). Opcional siempre: fotos viejas,
+  // chicas o con derivación fallida no la traen y el render cae al original.
+  thumbStorageKey: z.string().trim().min(1).optional(),
 })
 
 /** Foto: array `items[]` (nuevo, υ-multi) o `storageKey` legacy.

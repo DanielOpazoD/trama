@@ -22,6 +22,11 @@ vi.mock('@netlify/blobs', () => ({
   getStore: () => ({ getWithMetadata }),
 }))
 
+const presignGetMock = vi.hoisted(() =>
+  vi.fn(async (key: string) => `https://r2.example/${key}?sig=read`),
+)
+vi.mock('./r2.js', () => ({ presignGet: (key: string) => presignGetMock(key) }))
+
 import handler from '../momentos-file'
 
 describe('momentos-file endpoint', () => {
@@ -56,9 +61,25 @@ describe('momentos-file endpoint', () => {
 
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Type')).toBe('image/jpeg')
-    expect(res.headers.get('Cache-Control')).toBe('private, no-store')
+    // Blob de key inmutable: cacheable para siempre en el navegador (privado).
+    // El contrapunto es el 302 a R2, que SÍ queda no-store (ver test aparte).
+    expect(res.headers.get('Cache-Control')).toBe('private, max-age=31536000, immutable')
     expect(res.headers.get('Vary')).toContain('Authorization')
     expect(getWithMetadata).toHaveBeenCalledWith('foto.jpg', { type: 'arrayBuffer' })
+  })
+
+  it('key de R2 → 302 con no-store: la URL firmada vence, cachearla serviría un enlace muerto', async () => {
+    const res = await handler(
+      new Request(
+        'http://localhost/api/momentos-file/legacy-single-user/r2-video-de-prueba.mp4',
+      ),
+      mockContext({ userId: 'legacy-single-user', key: 'r2-video-de-prueba.mp4' }),
+    )
+
+    expect(res.status).toBe(302)
+    expect(res.headers.get('Location')).toContain('r2-video-de-prueba.mp4')
+    expect(res.headers.get('Cache-Control')).toBe('private, no-store')
+    expect(getWithMetadata).not.toHaveBeenCalled()
   })
 
   it('decodifica keys namespaced que llegan percent-encoded desde el cliente', async () => {
@@ -140,5 +161,7 @@ describe('momentos-file endpoint', () => {
     // en el SQL, el miembro de un espacio compartido vería la miniatura en 404
     // aunque pueda reproducir el video.
     expect(referenceLookup?.template).toMatch(/OR item->>'posterStorageKey' = /)
+    // Ídem la miniatura derivada de una foto compartida.
+    expect(referenceLookup?.template).toMatch(/OR item->>'thumbStorageKey' = /)
   })
 })

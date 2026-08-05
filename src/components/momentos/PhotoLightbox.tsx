@@ -9,7 +9,7 @@ import {
   AuthenticatedMomentoVideo,
   MomentoVideoThumb,
 } from './AuthenticatedMedia'
-import { isVideoItem, type MomentoPhotoItem } from './helpers'
+import { isVideoItem, momentoItemThumbKey, type MomentoPhotoItem } from './helpers'
 import { VideoPlayBadge } from './VideoPlayBadge'
 
 /**
@@ -220,7 +220,7 @@ export function PhotoLightbox({
                     </>
                   ) : (
                     <AuthenticatedMomentoImage
-                      storageKey={p.storageKey}
+                      storageKey={momentoItemThumbKey(p)}
                       alt=""
                       loading="lazy"
                       draggable={false}
