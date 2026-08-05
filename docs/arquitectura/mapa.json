@@ -3,7 +3,7 @@
     "project": "Trama",
     "description": "Mapa cognitivo personal: dos mundos (Trama y Notas) sobre React + Vite en el cliente y Netlify Functions + Neon Postgres en el servidor, con media en Netlify Blobs y Cloudflare R2, auth Clerk, captura por WhatsApp y varios proveedores de LLM.",
     "generatedAt": "2026-08-05",
-    "commit": "a93be05e",
+    "commit": "5f87d117",
     "stats": {
       "endpoints": 103,
       "migraciones": 96,
@@ -1857,8 +1857,8 @@
         },
         {
           "node": "svc-domain",
-          "label": "Valida por kind, arma el borrador y calcula embedding",
-          "file": "netlify/functions/_lib/momentos/handlers.ts"
+          "label": "Arma el borrador válido del momento (lógica pura, sin I/O)",
+          "file": "netlify/functions/_lib/momentos-service.ts"
         },
         {
           "node": "postgres",

@@ -23,6 +23,11 @@
  *   `node scripts/architecture-map.mjs`           valida (esto corre en CI)
  *   `node scripts/architecture-map.mjs --build`   reinyecta el JSON en el HTML
  *                                                 y refresca las estadísticas
+ *
+ * `--build` escribe el JSON con el formato de `JSON.stringify`; prettier lo
+ * normaliza en el pre-commit, igual que a cualquier otro archivo. No hay
+ * conflicto: la comprobación de sincronía compara los grafos ya parseados, no
+ * el texto.
  */
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
@@ -170,7 +175,22 @@ export function findMapIssues({ map, embedded, exists, measured }) {
     }
   }
 
-  // 3. El diagrama tiene que seguir siendo legible.
+  // 3. El diagrama tiene que seguir siendo legible. La geometría se valida
+  // ANTES: con un x/w ausente o NaN toda comparación da false y el chequeo de
+  // solapamiento pasaría en verde sobre un diagrama roto.
+  for (const n of map.nodes) {
+    const malas = ['x', 'y', 'w', 'h'].filter((k) => !Number.isFinite(n[k]))
+    if (malas.length > 0) {
+      add(
+        'geometria-invalida',
+        `El nodo "${n.id}" no declara ${malas.join(', ')} como número.`,
+      )
+    }
+    if (Number.isFinite(n.w) && n.w <= 0)
+      add('geometria-invalida', `El nodo "${n.id}" tiene ancho ${n.w}.`)
+    if (Number.isFinite(n.h) && n.h <= 0)
+      add('geometria-invalida', `El nodo "${n.id}" tiene alto ${n.h}.`)
+  }
   for (let i = 0; i < map.nodes.length; i++) {
     for (let j = i + 1; j < map.nodes.length; j++) {
       const a = map.nodes[i]
@@ -260,17 +280,23 @@ function currentCommit(root) {
 function build(root) {
   const { jsonPath, htmlPath, map, html } = readArtifacts(root)
 
-  Object.assign(map.meta.stats, measureRepo(root))
-  const commit = currentCommit(root)
-  if (commit) map.meta.commit = commit
-  writeFileSync(jsonPath, JSON.stringify(map, null, 2) + '\n')
-
+  // Validar ANTES de escribir nada: si abortáramos a mitad, dejaríamos el JSON
+  // ya reescrito y el HTML con la versión vieja — justo la desincronización
+  // que este gate existe para evitar.
   const i = html.indexOf(BEGIN)
   const j = html.indexOf(END)
-  if (i === -1 || j === -1) {
+  if (i === -1 || j === -1 || j < i) {
     console.error(`No encontré los marcadores ${BEGIN} / ${END} en ${MAP_HTML}.`)
     process.exit(1)
   }
+
+  // `--build` es lo que el gate manda correr cuando faltan las estadísticas,
+  // así que tiene que poder reparar un mapa que no las trae todavía.
+  map.meta ??= {}
+  map.meta.stats = { ...(map.meta.stats ?? {}), ...measureRepo(root) }
+  const commit = currentCommit(root)
+  if (commit) map.meta.commit = commit
+  writeFileSync(jsonPath, JSON.stringify(map, null, 2) + '\n')
   // `</` dentro de una cadena JSON cerraría el <script> que lo contiene.
   const payload = JSON.stringify(map, null, 2).replaceAll('</', '<\\/')
   const next =

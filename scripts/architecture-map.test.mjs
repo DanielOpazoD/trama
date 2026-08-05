@@ -133,6 +133,22 @@ describe('findMapIssues', () => {
     expect(codigos(correr(map))).toContain('nodo-suelto')
   })
 
+  it('caza geometría inválida ANTES de comparar cajas', () => {
+    // Sin este chequeo, un x ausente hace que toda comparación de solapamiento
+    // dé false y el diagrama roto pasaría en verde.
+    const map = mapaBase()
+    delete map.nodes[1].x
+    const issues = correr(map)
+    expect(codigos(issues)).toContain('geometria-invalida')
+    expect(issues.find((i) => i.code === 'geometria-invalida').message).toContain('"b"')
+  })
+
+  it('caza una caja de ancho o alto no positivo', () => {
+    const map = mapaBase()
+    map.nodes[1].w = 0
+    expect(codigos(correr(map))).toContain('geometria-invalida')
+  })
+
   it('caza dos cajas dibujadas una encima de la otra', () => {
     const map = mapaBase()
     map.nodes[1].x = 50 // se mete dentro de la caja de "a"

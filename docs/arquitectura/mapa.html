@@ -378,7 +378,7 @@
     "project": "Trama",
     "description": "Mapa cognitivo personal: dos mundos (Trama y Notas) sobre React + Vite en el cliente y Netlify Functions + Neon Postgres en el servidor, con media en Netlify Blobs y Cloudflare R2, auth Clerk, captura por WhatsApp y varios proveedores de LLM.",
     "generatedAt": "2026-08-05",
-    "commit": "a93be05e",
+    "commit": "5f87d117",
     "stats": {
       "endpoints": 103,
       "migraciones": 96,
@@ -2286,8 +2286,8 @@
         },
         {
           "node": "svc-domain",
-          "label": "Valida por kind, arma el borrador y calcula embedding",
-          "file": "netlify/functions/_lib/momentos/handlers.ts"
+          "label": "Arma el borrador válido del momento (lógica pura, sin I/O)",
+          "file": "netlify/functions/_lib/momentos-service.ts"
         },
         {
           "node": "postgres",
@@ -2849,7 +2849,8 @@
         ['Endpoints', DATA.meta.stats.endpoints],
         ['Migraciones', DATA.meta.stats.migraciones],
         ['Tests', DATA.meta.stats.archivosDeTest],
-        ['Gates', DATA.meta.stats.scriptsOperacionales],
+        // Es el total de scripts operacionales de scripts/, no solo los gates.
+        ['Scripts', DATA.meta.stats.scriptsOperacionales],
       ];
       document.getElementById('stats').innerHTML = statDefs
         .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`)
@@ -3155,8 +3156,11 @@
         applyView();
       }
 
-      function selectFlow(id) {
-        if (activeFlow === id) { clearAll(); return; }
+      /** `toggle:false` re-pinta el flujo activo sin apagarlo — lo necesitan la
+       *  leyenda y la búsqueda, que solo quieren refrescar el resaltado.
+       *  `refit:false` evita reencuadrar la vista en cada uno de esos refrescos. */
+      function selectFlow(id, { toggle = true, refit = true } = {}) {
+        if (toggle && activeFlow === id) { clearAll(); return; }
         activeFlow = id;
         selectedNode = null;
         resetClasses();
@@ -3207,7 +3211,7 @@
           gBadges.appendChild(g);
         });
 
-        fitNodes(seq);
+        if (refit) fitNodes(seq);
         renderFlows();
         setTab('flows');
         document.getElementById('clear-btn').classList.add('on');
@@ -3363,7 +3367,7 @@
           const id = b.dataset.layer;
           if (hiddenLayers.has(id)) { hiddenLayers.delete(id); b.classList.remove('off'); }
           else { hiddenLayers.add(id); b.classList.add('off'); }
-          if (activeFlow) selectFlow(activeFlow === null ? null : activeFlow);
+          if (activeFlow) selectFlow(activeFlow, { toggle: false, refit: false });
           else if (selectedNode) selectNode(selectedNode);
           else { resetClasses(); }
           applyLayerFilter();
@@ -3374,11 +3378,16 @@
         const q = ev.target.value.trim().toLowerCase();
         if (!q) {
           resetClasses(); applyLayerFilter();
-          if (activeFlow) selectFlow(activeFlow);
+          if (activeFlow) selectFlow(activeFlow, { toggle: false, refit: false });
           else if (selectedNode) selectNode(selectedNode);
           return;
         }
+        // Buscar descarta la selección previa. El panel tiene que enterarse:
+        // si no, la tarjeta del flujo sigue pintada como activa mientras el
+        // diagrama ya no resalta nada.
+        const habiaSeleccion = activeFlow || selectedNode;
         activeFlow = null; selectedNode = null;
+        if (habiaSeleccion) { renderFlows(); renderNodePane(); }
         resetClasses();
         let first = null;
         nodeEls.forEach((g, id) => {
