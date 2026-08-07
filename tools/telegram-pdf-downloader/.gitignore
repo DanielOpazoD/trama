@@ -1,5 +1,6 @@
 .env
 config.yaml
+.venv/
 *.session
 *.session-journal
 estado.db
