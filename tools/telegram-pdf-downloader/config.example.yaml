@@ -1,0 +1,46 @@
+# Copia este archivo a config.yaml y edítalo a tu gusto.
+
+telegram:
+  # Grupos o canales a revisar: @usuario, enlace t.me/... o ID numérico.
+  # Tienes que ser miembro de cada uno con tu cuenta.
+  grupos:
+    - "@ejemplo_grupo_medicina"
+    # - "https://t.me/otro_grupo"
+
+  # En la PRIMERA pasada por un grupo, cuántos documentos recientes bajar
+  # como máximo (0 = todo el historial; ojo con los FloodWait de Telegram).
+  limite_historial: 500
+
+descargas:
+  # Carpeta final de los artículos. Para sincronizar con Google Drive,
+  # apunta a una carpeta dentro de Google Drive para escritorio, p. ej.:
+  #   ~/Library/CloudStorage/GoogleDrive-tu-correo@gmail.com/My Drive/Articulos Medicina
+  carpeta_destino: "~/Articulos Medicina"
+
+  # Datos internos (sesión de Telegram, base de datos, temporales).
+  carpeta_datos: "~/.trama-telegram-pdf"
+
+clasificacion:
+  # Modelo de Claude para extraer metadatos y clasificar.
+  # claude-haiku-4-5 es el más barato; claude-opus-5 clasifica mejor.
+  modelo: "claude-haiku-4-5"
+
+  # Carpetas temáticas. Edita, agrega o quita a gusto: el clasificador
+  # elige exactamente una de esta lista.
+  categorias:
+    - "Cardiología"
+    - "Respiratorio"
+    - "Infectología"
+    - "Nefrología"
+    - "Gastroenterología"
+    - "Endocrinología y Diabetes"
+    - "Hematología"
+    - "Oncología"
+    - "Neurología"
+    - "Reumatología"
+    - "Medicina Intensiva"
+    - "Medicina Interna General"
+    - "Farmacología y Terapéutica"
+
+  # Adónde va lo que no calza en ninguna categoría (o si no hay API key).
+  categoria_sin_clasificar: "Sin clasificar"

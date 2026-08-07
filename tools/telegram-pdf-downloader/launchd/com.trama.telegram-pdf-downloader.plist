@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Ejecución automática cada 6 horas en macOS.
+
+  1. Edita las DOS rutas de abajo (RUTA/A/…) con la ubicación real del proyecto.
+  2. Copia este archivo a ~/Library/LaunchAgents/
+  3. Actívalo:  launchctl load ~/Library/LaunchAgents/com.trama.telegram-pdf-downloader.plist
+  4. Log en:    /tmp/telegram-pdf-downloader.log
+
+  Importante: corre primero `python3 main.py login` a mano; launchd no puede
+  responder el código de verificación de Telegram.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.trama.telegram-pdf-downloader</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/RUTA/A/trama/tools/telegram-pdf-downloader/main.py</string>
+        <string>run</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/RUTA/A/trama/tools/telegram-pdf-downloader</string>
+    <key>StartInterval</key>
+    <integer>21600</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/telegram-pdf-downloader.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/telegram-pdf-downloader.log</string>
+</dict>
+</plist>

@@ -1,0 +1,7 @@
+.env
+config.yaml
+*.session
+*.session-journal
+estado.db
+__pycache__/
+*.pyc
