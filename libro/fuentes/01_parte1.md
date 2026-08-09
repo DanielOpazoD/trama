@@ -46,9 +46,19 @@ La práctica mejora cuando el médico puede responder, para cada afirmación rel
 
 ### Grados de facticidad
 
-No todos los hechos clínicos poseen la misma solidez. Puede distinguirse un gradiente: dato directamente medido y verificable; observación profesional reproducible; relato consistente del paciente o tercero; dato heredado de una nota anterior; y ausencia inferida porque algo no fue registrado. Esta jerarquía no pretende desacreditar el relato. Busca que la procedencia viaje junto con la afirmación. "Paciente niega fiebre", "afebril durante observación" y "sin fiebre" no son equivalentes.
+No todos los hechos clínicos ofrecen la misma verificabilidad externa. Puede distinguirse un ordenamiento: dato directamente medido y verificable; observación profesional reproducible; relato consistente del paciente o tercero; dato heredado de una nota anterior; y ausencia inferida porque algo no fue registrado. Este ordenamiento no jerarquiza el valor de las fuentes ni desacredita el relato — para el dolor, el cambio respecto del basal y las preferencias del paciente, el testimonio es la fuente primaria y la más pertinente (el capítulo 14 vuelve sobre esto). Busca que la procedencia viaje junto con la afirmación. "Paciente niega fiebre", "afebril durante observación" y "sin fiebre" no son equivalentes.
 
-[FIGURA: fig02_facticidad.png | Figura 2. Gradiente de facticidad: la solidez de un "hecho" clínico depende de su procedencia. Ninguna categoría es despreciable, pero cada una exige un lenguaje distinto.]
+[FIGURA: fig02_facticidad.png | Figura 2. Fuentes del hecho clínico: el eje ordena por verificabilidad externa directa, no por valor. Ninguna categoría es despreciable; cada una ofrece un acceso privilegiado distinto y exige un lenguaje distinto.]
+
+Cada fuente conviene leerla por lo que sólo ella ofrece y por dónde suele fallar:
+
+| Fuente | Acceso privilegiado | Vulnerabilidad principal | Escritura recomendada |
+|---|---|---|---|
+| Medición instrumental | Cuantificación y tendencias | Error analítico, calibración, oportunidad | Método, fecha, unidad y tendencia |
+| Observación profesional | Signos y patrones en contexto | Variabilidad interobservador | Quién observó, cuándo y en qué condiciones |
+| Testimonio del paciente o del cuidador | Experiencia corporal, síntomas, basal | Memoria, lenguaje, interpretación | Conservar la fuente y, cuando importa, la expresión textual |
+| Registro heredado | Trayectoria longitudinal | Pérdida de procedencia y copia | Autor, fecha y grado de verificación |
+| Silencio documental | Ningún acceso positivo | Confundir «no consignado» con «ausente» | «No consignado» o «no evaluado» |
 
 Los hallazgos negativos exigen especial cautela. "Sin peritonismo" puede significar examen dirigido negativo; "sin evidencia de isquemia en TAC" limita la conclusión al rendimiento de una técnica y a un momento; "no refiere dolor" depende de capacidad comunicativa, neuroanatomía y contexto. El lenguaje debe impedir que ausencia de evidencia se transforme automáticamente en evidencia de ausencia.
 
@@ -229,6 +239,19 @@ La representación del problema es una operación de compresión. Su calidad pue
 
 Las dos presentaciones de Carmen que abren este capítulo son el ejemplo. La segunda distingue hechos, inferencia etiológica, evidencia negativa, evolución y efecto sobre la decisión. También conserva incertidumbre: no afirma estrangulación ni perforación si no fueron demostradas. La primera no es falsa; es hueca. Comprimió hasta perder la estructura.
 
+La densidad epistémica puede auditarse. Seis dimensiones concentran lo que una frase clínica pierde con más frecuencia:
+
+| Dimensión | Pregunta de auditoría | Pérdida frecuente |
+|---|---|---|
+| Procedencia | ¿De dónde proviene el dato? | Información heredada presentada como observada |
+| Temporalidad | ¿Cuándo ocurrió y cómo cambió? | «Estable», «resuelto» o «recurrente» sin referente |
+| Transparencia inferencial | ¿Dónde comienza la interpretación? | Diagnóstico o mecanismo escrito como hecho |
+| Calibración modal | ¿La fuerza verbal corresponde al respaldo? | «Demostrado», «descartado», «secundario a» |
+| Relevancia decisional | ¿Por qué importa ahora? | Inventario correcto sin consecuencia práctica |
+| Revisabilidad | ¿Qué haría cambiar la formulación o la conducta? | Plan sin plazo, responsable ni criterio de reapertura |
+
+La lista funciona como pauta de lectura, no como puntaje: la densidad epistémica es un ideal regulativo de escritura y razonamiento, no una escala validada ni una propiedad cuantificada de manera reproducible. Las doce preguntas del Apéndice B son su versión aplicada al caso en curso.
+
 ### Modalidad epistémica
 
 El lenguaje científico dispone de recursos para calibrar afirmaciones. La investigación sobre hedging en textos médicos mostró que expresiones de cautela no son meros adornos defensivos; cumplen funciones retóricas y epistémicas al limitar el alcance de una conclusión (Salager-Meyer, 1994; Hyland, 1998). En clínica, el problema no es usar "probable", sino usarlo sin criterio o reemplazar con él una explicación ausente.
@@ -243,6 +266,12 @@ Puede distinguirse una escala práctica:
 - **Sin evidencia de**: el método empleado no mostró el fenómeno; la fuerza depende de su sensibilidad y oportunidad.
 
 "Se descarta" debería reservarse para situaciones en que el método y el contexto realmente permiten excluir. Con frecuencia es más exacto escribir "sin evidencia actual de" o "probabilidad suficientemente baja para no justificar". El Apéndice B desarrolla este léxico completo, con ejemplos de uso correcto e incorrecto de cada término.
+
+#### Caja de herramientas. Dos filósofos para la frase clínica
+
+Dos aportes del siglo XX describen con precisión lo que este capítulo pide. El primero es de J. L. Austin: hay enunciados que no describen el mundo sino que hacen cosas en él — prometer, sentenciar, declarar (Austin, 1962). Buena parte del lenguaje clínico es performativo en ese sentido exacto: "se decide alta", "se descarta abdomen agudo" o "paciente no reanimable" no informan un estado de cosas; dan de alta, suspenden una vigilancia, fijan un límite de tratamiento. Por eso la exigencia de este capítulo no es estilística: una frase que hace cosas debe responder por lo que hace, no sólo por lo que dice. La pregunta de Austin, trasladada a la ficha: ¿qué acaba de hacer esta oración — y con qué derecho?
+
+El segundo es de Stephen Toulmin, que propuso la anatomía mínima de toda afirmación práctica: un dato, una conclusión, la garantía que autoriza pasar del uno a la otra, el respaldo de esa garantía, un calificador modal que gradúa la fuerza ("probablemente", "salvo que…") y las condiciones de refutación (Toulmin, 1958). La frase medular de este libro es, sin habérselo propuesto, un argumento de Toulmin comprimido: hechos (dato), inferencia graduada (conclusión con calificador), incertidumbre crítica (refutación posible) y decisión (lo que la garantía autoriza a hacer). Escribir "bacteriemia por gramnegativos en contexto de obstrucción: foco abdominal altamente probable, salvo hallazgo alternativo en imagen" es exhibir la anatomía completa; escribir "sepsis abdominal" es esconderla. Toulmin, que décadas después defendió junto a Jonsen la casuística clínica como forma legítima de razonamiento moral (Jonsen & Toulmin, 1988), habría reconocido en la ficha bien escrita a su silogismo práctico favorito.
 
 ### Verbos que ocultan
 

@@ -42,15 +42,15 @@ def guardar(fig, nombre):
 
 
 # ---------------------------------------------------------------- fig01 capas
-fig, ax = plt.subplots(figsize=(7.2, 3.4))
-ax.set_xlim(0, 10); ax.set_ylim(0, 4.6); ax.axis("off")
+fig, ax = plt.subplots(figsize=(7.2, 3.9))
+ax.set_xlim(0, 10); ax.set_ylim(0, 5.2); ax.axis("off")
 capas = [
     ("HECHOS", "observación,\nmedición,\nprocedencia"),
     ("INFERENCIAS", "hipótesis y\nexplicaciones\ngraduadas"),
     ("INCERTIDUMBRE", "lo que puede\ncambiar el modelo\no la conducta"),
     ("DECISIÓN", "umbrales y\nconsecuencias,\nno certeza"),
 ]
-w, h, gap, x0, y0 = 2.05, 1.9, 0.42, 0.25, 1.5
+w, h, gap, x0, y0 = 2.05, 1.9, 0.42, 0.25, 2.15
 for i, (t, s) in enumerate(capas):
     x = x0 + i * (w + gap)
     caja(ax, x, y0, w, h, "", fc="white", ec=INK, lw=1.4)
@@ -59,13 +59,21 @@ for i, (t, s) in enumerate(capas):
     ax.text(x + w / 2, y0 + h / 2 - 0.28, s, ha="center", va="center", fontsize=8.6, color=INK)
     if i < 3:
         flecha(ax, x + w + 0.04, y0 + h / 2, x + w + gap - 0.04, y0 + h / 2)
-# bucle de reevaluación (arco por debajo de las cajas)
-flecha(ax, x0 + 3 * (w + gap) + w / 2, y0 - 0.10, x0 + w / 2, y0 - 0.10, color=ACENTO,
-       lw=1.8, rad=-0.20)
-ax.text(5.0, 0.18, "REEVALUACIÓN — toda formulación es temporal", ha="center",
-        fontsize=9.5, style="italic", color=ACENTO)
-ax.text(5.0, 4.35, "Cada capa se apoya en la anterior; ninguna se deduce automáticamente de ella",
-        ha="center", fontsize=9, color=GRIS, style="italic")
+# franja transversal: la incertidumbre no es sólo una etapa
+caja(ax, 0.25, 1.28, 9.44, 0.5, "", fc=ACENTO, ec="none")
+ax.patches[-1].set_alpha(0.14)
+ax.text(5.0, 1.53, "LA INCERTIDUMBRE ATRAVIESA TODAS LAS CAPAS — no espera su turno",
+        ha="center", va="center", fontsize=8.8, style="italic", color=ACENTO)
+for i in range(4):
+    xc = x0 + i * (w + gap) + w / 2
+    ax.plot([xc, xc], [1.78, y0], color=ACENTO, lw=1.0, ls=":", alpha=0.65)
+# bucle de reevaluación (vuelve a la pregunta y a los hechos)
+flecha(ax, x0 + 3 * (w + gap) + w / 2, 1.05, x0 + w / 2, 1.05, color=ACENTO,
+       lw=1.8, rad=-0.16)
+ax.text(5.0, 0.16, "REEVALUACIÓN — vuelve a la pregunta y a los hechos; toda formulación es temporal",
+        ha="center", fontsize=9.2, style="italic", color=ACENTO)
+ax.text(5.0, 4.92, "Cada capa se apoya en la anterior; la separación es funcional y gradual — no son compartimentos ontológicos puros",
+        ha="center", fontsize=8.4, color=GRIS, style="italic")
 guardar(fig, "fig01_capas.png")
 
 # ------------------------------------------------------------ fig02 facticidad
@@ -88,9 +96,9 @@ for i, (t, ej, alpha) in enumerate(niveles):
     ax.text(7.15, y + 0.39, ej, ha="left", va="center", fontsize=8.4, color=GRIS, style="italic")
     y -= 0.98
 flecha(ax, 0.12, 1.0, 0.12, 5.8, color=GRIS, lw=1.4)
-ax.text(-0.06, 3.4, "mayor solidez", rotation=90, ha="center", va="center", fontsize=8.6, color=GRIS)
-ax.text(5.0, 0.25, "Ninguna categoría es despreciable; cada una exige un lenguaje distinto",
-        ha="center", fontsize=9, color=GRIS, style="italic")
+ax.text(-0.06, 3.4, "mayor verificabilidad externa directa", rotation=90, ha="center", va="center", fontsize=7.6, color=GRIS)
+ax.text(5.0, 0.25, "Ordena verificabilidad, no valor: cada fuente ofrece un acceso privilegiado distinto y exige un lenguaje distinto",
+        ha="center", fontsize=8.6, color=GRIS, style="italic")
 guardar(fig, "fig02_facticidad.png")
 
 # --------------------------------------------------------- fig03 incertidumbre

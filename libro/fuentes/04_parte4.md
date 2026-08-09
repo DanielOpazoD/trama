@@ -85,7 +85,24 @@ HII-D organiza el razonamiento en cuatro dominios: hechos, inferencias, incertid
 
 Su principio es simple: cada afirmación importante debe poder ubicarse en una capa, y cada decisión debe mostrar cómo se relaciona con las otras. El método agrega un quinto movimiento transversal: reevaluación. Toda formulación es temporal.
 
-[FIGURA: fig08_hiid.png | Figura 8. El método HII-D en una página: cinco pasos, cuatro capas y un movimiento transversal de reevaluación que devuelve al mundo la capacidad de corregirnos.]
+[FIGURA: fig08_hiid.png | Figura 9. El método HII-D en una página: cinco pasos, cuatro capas y un movimiento transversal de reevaluación que devuelve al mundo la capacidad de corregirnos.]
+
+### Qué añade frente a los modelos existentes
+
+HII-D entra a un territorio poblado, y conviene decir exactamente qué agrega. La nota SOAP y el registro orientado por problemas ordenan el documento (Weed, 1968a); la representación del problema comprime el caso (Bordage, 1994); los illness scripts organizan el conocimiento experto (Charlin et al., 2007; Custers, 2015); las teorías de doble proceso describen los modos de procesamiento (Evans & Stanovich, 2013); la reflexión deliberada estructura la comparación de hipótesis (Mamede et al., 2008); los modelos de metacognición supervisan la confianza y la estrategia (Nelson & Narens, 1990; Fleming & Lau, 2014); y el programa de seguridad diagnóstica vigila trayectorias y sistemas (National Academies of Sciences, Engineering, and Medicine, 2015).
+
+| Enfoque | Qué organiza | Aporte principal | Qué añade HII-D |
+|---|---|---|---|
+| SOAP | La nota clínica | Orden documental | Estatuto y fuerza de cada afirmación |
+| Registro orientado por problemas | La continuidad longitudinal | Vincula problema, evaluación y plan | Distingue problema, hecho, hipótesis e incertidumbre |
+| Representación del problema | El caso | Compresión con calificadores semánticos | Procedencia, límites, decisión y reapertura |
+| Illness scripts | El conocimiento experto | Condiciones, mecanismo y consecuencias | Audita su aplicación al paciente singular |
+| Doble proceso | Los modos de procesamiento | Rapidez, intuición y deliberación | No infiere el proceso sólo desde el producto |
+| Reflexión deliberada | Las hipótesis rivales | Evidencia a favor y en contra | Umbral, acción, responsabilidad y reevaluación |
+| Modelo metacognitivo | El monitoreo y la regulación | Supervisa confianza y estrategia | Examina el producto lingüístico, documental y colectivo |
+| Seguridad diagnóstica | La trayectoria y el sistema | Previene pérdidas y demoras | Gramática microclínica de la afirmación |
+
+HII-D no reemplaza a ninguno: opera como una capa de auditoría que puede usarse dentro de una nota SOAP, de una representación del problema, de una discusión diagnóstica o de una revisión de seguridad. Si un servicio ya trabaja bien con alguno de estos marcos, HII-D no le pide cambiarlo; le pide que cada afirmación importante pueda responder de dónde viene, cuánto pesa y qué la haría caer.
 
 ### Paso 1. Definir la pregunta
 
@@ -134,7 +151,7 @@ La versión completa es para casos difíciles. Para el resto —el ingreso núme
 
 1. **¿Qué vi y qué me contaron?** (un hecho decisivo, con su fuente)
 2. **¿Qué creo y cuánto derecho tengo a creerlo?** (la inferencia principal, con su grado)
-3. **¿Qué me mataría al paciente si estoy equivocado?** (la incertidumbre peligrosa, no todas)
+3. **¿Qué daño importante podría producir si estoy equivocado?** (la incertidumbre peligrosa, no todas)
 4. **¿Qué hago, y qué me haría cambiar antes del próximo control?** (decisión con criterio de reapertura)
 
 Sesenta segundos no producen una epistemología; producen algo más modesto y a veces suficiente: impiden que la frase "cuadro habitual, manejo habitual" se escriba sola. Si alguna de las cuatro respuestas incomoda —el hecho decisivo resulta heredado, la confianza no tiene fuente, la incertidumbre peligrosa no tiene vigilancia—, esa incomodidad es la indicación para la versión completa.
@@ -258,7 +275,7 @@ Urgencias, 3:10. Hombre de 54 años, dolor torácico opresivo de 40 minutos, sud
 
 *¿Qué creo y cuánto derecho tengo?* Síndrome coronario agudo: posible-probable; el patrón clínico pesa más que el ECG inespecífico. No demostrado.
 
-*¿Qué me mataría al paciente si me equivoco?* Tratarlo como "dolor inespecífico, espera troponina en sala" y que sea una oclusión en evolución. La incertidumbre peligrosa no es la etiqueta; es el tiempo.
+*¿Qué daño importante podría producir si estoy equivocado?* Tratarlo como "dolor inespecífico, espera troponina en sala" y que sea una oclusión en evolución. La incertidumbre peligrosa no es la etiqueta; es el tiempo.
 
 *¿Qué hago y qué me haría cambiar?* Monitor, acceso, antiagregación según protocolo, ECG seriado en 15 minutos, troponina acelerada; escala a activación de hemodinamia si nuevo ECG cambia o el dolor persiste. Queda escrito: "SCA no demostrado; conducta por umbral dada gravedad del error de omisión".
 
@@ -529,7 +546,7 @@ Usada con disciplina, puede ser un instrumento metacognitivo externo. Usada por 
 
 Tome un caso real ya resuelto de su servicio —debidamente anonimizado— y péguelo en un asistente de lenguaje pidiendo evaluación y plan. Imprima la respuesta y márquela con tres colores: (1) afirmaciones sustentadas en datos que el caso contenía; (2) contenido que el modelo agregó — detalles "típicos", causalidades, datos que nadie le dio; (3) incertidumbre declarada. Después, haga una segunda pregunta al modelo: "¿qué evidencia haría improbable tu diagnóstico principal?".
 
-*Solución comentada.* Tres hallazgos son casi constantes. Primero, el color 2 aparece más de lo esperado: el modelo rellena huecos con verosimilitud — una evolución "esperable", un factor de riesgo "presumible" — y esa es exactamente la definición de confabulación; contarlas cura más que leer sobre ellas. Segundo, el color 3 suele ser genérico ("se sugiere correlacionar con la clínica") y no específico del caso: incertidumbre de fórmula, no de contenido — compárela con la que exige el léxico del capítulo 4. Tercero, la respuesta a la segunda pregunta suele ser mejor que la primera: el modelo enumera con soltura los datos que refutarían su propia propuesta — pero sólo si alguien se lo pide. La herramienta contiene su propio antídoto; la pregunta que lo libera sigue siendo humana.
+*Solución comentada.* En ejercicios docentes, tres hallazgos vuelven una y otra vez. Primero, el color 2 aparece más de lo esperado: el modelo rellena huecos con verosimilitud — una evolución "esperable", un factor de riesgo "presumible" — y esa es exactamente la definición de confabulación; contarlas cura más que leer sobre ellas. Segundo, el color 3 suele ser genérico ("se sugiere correlacionar con la clínica") y no específico del caso: incertidumbre de fórmula, no de contenido — compárela con la que exige el léxico del capítulo 4. Tercero, la respuesta a la segunda pregunta suele ser mejor que la primera: el modelo enumera con soltura los datos que refutarían su propia propuesta — pero sólo si alguien se lo pide. La herramienta contiene su propio antídoto; la pregunta que lo libera sigue siendo humana.
 
 **En una frase.** La IA generativa produce exactamente aquello contra lo que este libro entrena: prosa fluida donde hechos, inferencias e incertidumbre llegan mezclados — auditarla con HII-D es el mismo ejercicio que auditar la propia escritura.
 

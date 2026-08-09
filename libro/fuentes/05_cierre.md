@@ -85,7 +85,7 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 
 1. ¿Qué vi y qué me contaron? (un hecho decisivo, con fuente)
 2. ¿Qué creo y cuánto derecho tengo a creerlo? (inferencia con grado)
-3. ¿Qué le haría daño al paciente si estoy equivocado? (la incertidumbre peligrosa)
+3. ¿Qué daño importante podría producir si estoy equivocado? (la incertidumbre peligrosa)
 4. ¿Qué hago y qué me haría cambiar antes del próximo control? (decisión con reapertura)
 
 # Apéndice B. Léxico de certeza y pausa diagnóstica
@@ -253,6 +253,7 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 Los números remiten a capítulos (Int = introducción, Interludios I–III, CC = cuaderno de casos, C = conclusión, Ap = apéndices).
 
 - Abducción — 2
+- Actos de habla en la ficha (Austin) — 4
 - Anclaje — 7, 11, CC (viñeta 8)
 - Atrofia de la pericia por asistencia de IA (deskilling) — 17
 - Ausencia de evidencia / evidencia de ausencia — 1, 4, Ap B
@@ -263,6 +264,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Carga teórica de la observación — 1
 - Cierre prematuro — 2, 7, CC (viñeta 8)
 - Cognición distribuida — 13
+- Comparación de HII-D con otros modelos (SOAP, scripts, reflexión deliberada) — 15
 - Comunicación de incertidumbre — 13, 14, CC (viñeta 7)
 - Conocimiento tácito — 6
 - Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 15, Ap A
@@ -273,7 +275,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
 - Decisión compartida — 13, 14, Interludio III
 - Deliberación moral (Gracia) — 10
-- Densidad epistémica — 4
+- Densidad epistémica — 4; seis dimensiones de auditoría — 4, Ap B
 - Desaceleración selectiva — 8, Interludio II
 - Desacuerdo clínico — 13, Interludio III
 - Doble proceso — 6
@@ -287,7 +289,8 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Fichas clínicas y plantillas — 12, 16, Ap C
 - Formación clínica en la era de la IA (deskilling, never-skilling, mis-skilling) — 17
 - Fragilidad y funcionalidad como hechos clínicos — 10, 15, Ap A
-- Frase medular — 4, 12, C, CC (todas las viñetas)
+- Fuentes del hecho clínico (matriz de procedencia) — 1
+- Frase medular — 4, 12, C, CC (todas las viñetas); como argumento de Toulmin — 4
 - Frecuencias naturales — 2, 10, 13
 - Grados de facticidad — 1
 - Hindsight bias — 8, 11, 16, CC (viñeta 8)
@@ -305,6 +308,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Meta-d′ y medición de la metacognición — 5
 - Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 17
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
+- Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
 - Nota clínica generada por IA (degradación del registro) — 17
 - Observación activa — 10, 11
 - Paradoja de la automatización — 17
@@ -331,6 +335,20 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Validación local y monitoreo de herramientas de IA — 17
 - Verbos epistémicos — 4, Ap B
 
+# Nota metodológica y estatuto de las afirmaciones
+
+**Naturaleza de la obra.** Este libro es un ensayo académico de integración científico-filosófica dirigido a profesionales clínicos. No es una revisión sistemática, ni una guía clínica, ni contiene instrumentos validados.
+
+**Estrategia bibliográfica.** Las fuentes provienen de tres cuerpos: investigación biomédica y de razonamiento clínico, filosofía de la ciencia y epistemología, y educación médica. Se privilegiaron fuentes primarias y revisiones reconocidas; el período cubierto llega hasta el cierre bibliográfico, en agosto de 2026. Durante la redacción se aplicó una regla fija: ninguna referencia entró al manuscrito sin verificación previa contra su fuente — autoría, año, revista y resultado. No se pretende exhaustividad sistemática: la selección sirve al argumento y se declara como tal.
+
+**Estatuto de las afirmaciones.** El lector encontrará seis clases de enunciados, y el texto procura que cada uno se presente como lo que es: resultados verificados de fuentes primarias, citados con autor y año; conclusiones de revisiones o consensos; argumentos filosóficos, atribuidos a sus autores; experiencia autoral, narrada en primera persona; ejemplos docentes construidos, señalados como tales («en ejercicios docentes suele observarse…»); y propuestas originales del libro — la densidad epistémica, la frase medular y el método HII-D —, que no deben leerse como hallazgos sino como hipótesis de trabajo.
+
+**Los casos.** Las escenas clínicas de este libro — Carmen, los interludios, las viñetas y los pasajes en primera persona — son composiciones docentes en el sentido declarado en la página legal: condensan experiencias reales y situaciones compuestas, sin reproducir episodios literales ni permitir identificación de personas o instituciones.
+
+**Uso de inteligencia artificial.** Este manuscrito se desarrolló a partir de ideas y formulaciones del autor, con asistencia de inteligencia artificial en búsqueda inicial, organización, comparación bibliográfica, apoyo en redacción y edición. La IA no sustituyó la verificación de fuentes, el juicio clínico, la autoría ni la responsabilidad: las tesis, las decisiones de contenido y los errores pertenecen al autor. El libro intenta aplicar a su propia escritura la disciplina que su capítulo 17 recomienda.
+
+**HII-D.** Es una heurística conceptual no validada. Sus compromisos de falsabilidad están en el capítulo 15 («Qué evidencia me haría abandonar este método»); su evaluación empírica — concordancia entre lectores, efecto sobre la reconstrucción del razonamiento y sobre conductas medibles, y costo en tiempo — es un programa pendiente, no un resultado.
+
 # Referencias
 
 Abdulnour, R.-E. E., Gin, B., & Boscardin, C. K. (2025). Educational strategies for clinical supervision of artificial intelligence use. *New England Journal of Medicine, 393*(8), 786–797.
@@ -340,6 +358,8 @@ Abdulnour, R.-E. E., et al. (2026). Crew resource management — Navigating AI's
 Alves de Lima, A. (2008). Devolución constructiva: Una estrategia para mejorar el aprendizaje. *Medicina (Buenos Aires), 68*(1), 88–92.
 
 Aristotle. (2009). *The Nicomachean Ethics* (D. Ross, Trans.; L. Brown, Rev.). Oxford University Press.
+
+Austin, J. L. (1962). *How to Do Things with Words*. Clarendon Press.
 
 Barrows, H. S., & Feltovich, P. J. (1987). The clinical reasoning process. *Medical Education, 21*(2), 86–91.
 
@@ -364,6 +384,8 @@ Canguilhem, G. (1991). *The Normal and the Pathological*. Zone Books.
 Carel, H., & Kidd, I. J. (2014). Epistemic injustice in healthcare: A philosophical analysis. *Medicine, Health Care and Philosophy, 17*(4), 529–540.
 
 Cartwright, N., & Hardie, J. (2012). *Evidence-Based Policy: A Practical Guide to Doing It Better*. Oxford University Press.
+
+Casscells, W., Schoenberger, A., & Graboys, T. B. (1978). Interpretation by physicians of clinical laboratory results. *New England Journal of Medicine, 299*(18), 999–1001.
 
 Charlin, B., Boshuizen, H. P. A., Custers, E. J. F. M., & Feltovich, P. J. (2007). Scripts and medical diagnostic knowledge: Theory and applications for clinical reasoning instruction and research. *Academic Medicine, 82*(10), 967–974.
 
@@ -470,6 +492,8 @@ Jonsen, A. R., Siegler, M., & Winslade, W. J. (2022). *Clinical Ethics: A Practi
 
 Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., et al. (2022). Language models (mostly) know what they know. *arXiv preprint*, arXiv:2207.05221.
 
+
+Jonsen, A. R., & Toulmin, S. (1988). *The Abuse of Casuistry: A History of Moral Reasoning*. University of California Press.
 
 Kahneman, D. (2011). *Thinking, Fast and Slow*. Farrar, Straus and Giroux.
 
@@ -580,6 +604,8 @@ Tajer, C. (2008). *El corazón enfermo: Puentes entre las emociones y el infarto
 Thornicroft, G. (2011). Physical health disparities and mental illness: The scandal of premature mortality. *British Journal of Psychiatry, 199*(6), 441–442.
 
 Tonelli, M. R. (1998). The philosophical limits of evidence-based medicine. *Academic Medicine, 73*(12), 1234–1240.
+
+Toulmin, S. (1958). *The Uses of Argument*. Cambridge University Press.
 
 Tversky, A., & Kahneman, D. (1974). Judgment under uncertainty: Heuristics and biases. *Science, 185*(4157), 1124–1131.
 
