@@ -186,6 +186,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Densidad epistémica.** Propiedad de una formulación clínica que conserva los ejes que cambian la interpretación (tiempo, severidad, mecanismo, evidencia contraria, consecuencia) en lugar de sólo abreviar.
 
+**Deskilling / never-skilling / mis-skilling.** Tríada de riesgos formativos de la IA clínica: perder por desuso una competencia ya adquirida; no consolidarla nunca porque la herramienta ejecutó la tarea desde el inicio de la formación; o adquirirla mal, imitando salidas no auditadas (Abdulnour et al.). El segundo es el más difícil de detectar: no deja recuerdo de lo perdido.
+
 **Doble proceso.** Familia de teorías que distingue procesamiento rápido, asociativo y automático de procesamiento lento, analítico y controlado; ambos pueden acertar o errar.
 
 **Documentación defensiva.** Escritura clínica orientada a un lector jurídico imaginario y no al siguiente clínico: omite dudas, multiplica constancias y prefiere la vaguedad. Corruptor epistémico que, además, protege menos que la trazabilidad honesta.
@@ -219,6 +221,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 **Meta-d′ / M-ratio.** Medida de sensibilidad metacognitiva basada en teoría de detección de señales: expresa cuánta de la información disponible para la decisión aprovecha el observador al evaluar sus propias respuestas; el cociente meta-d′/d′ (M-ratio) permite comparar entre personas y tareas (Maniscalco y Lau).
 
 **Modalidad epistémica.** Recursos del lenguaje que expresan el grado de certeza de una afirmación ("demostrado", "probable", "sin evidencia de").
+
+**Paradoja de la automatización.** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es exactamente cuando más se las necesita (Abdulnour et al.).
 
 **Phronesis.** Prudencia práctica aristotélica: la capacidad de deliberar bien sobre lo que conviene hacer en una situación particular.
 
@@ -255,6 +259,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Autoridad revisable — 7, 13, 14
 - Bioética y razonamiento clínico (cuatro tópicos, proporcionalidad, deliberación) — 10, 15, CC (viñeta 7), Ap A
 - Calibración — 5, 15, 16, Ap C
+- Captura cognitiva por IA (la respuesta antes que el caso) — 17
 - Carga teórica de la observación — 1
 - Cierre prematuro — 2, 7, CC (viñeta 8)
 - Cognición distribuida — 13
@@ -280,6 +285,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Feedback diagnóstico — 5, 16, Ap C
 - Ficha como dispositivo que produce lo visible (Foucault) — 12
 - Fichas clínicas y plantillas — 12, 16, Ap C
+- Formación clínica en la era de la IA (deskilling, never-skilling, mis-skilling) — 17
 - Fragilidad y funcionalidad como hechos clínicos — 10, 15, Ap A
 - Frase medular — 4, 12, C, CC (todas las viñetas)
 - Frecuencias naturales — 2, 10, 13
@@ -299,7 +305,9 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Meta-d′ y medición de la metacognición — 5
 - Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 17
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
+- Nota clínica generada por IA (degradación del registro) — 17
 - Observación activa — 10, 11
+- Paradoja de la automatización — 17
 - Pausa diagnóstica — 8, 16, Ap B, Ap C
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pericia y práctica deliberada — 6
@@ -324,6 +332,10 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Verbos epistémicos — 4, Ap B
 
 # Referencias
+
+Abdulnour, R.-E. E., Gin, B., & Boscardin, C. K. (2025). Educational strategies for clinical supervision of artificial intelligence use. *New England Journal of Medicine, 393*(8), 786–797.
+
+Abdulnour, R.-E. E., et al. (2026). Crew resource management — Navigating AI's automation paradox. *New England Journal of Medicine*. Publicado en línea el 22 de julio de 2026.
 
 Alves de Lima, A. (2008). Devolución constructiva: Una estrategia para mejorar el aprendizaje. *Medicina (Buenos Aires), 68*(1), 88–92.
 
@@ -487,6 +499,8 @@ Maniscalco, B., & Lau, H. (2012). A signal detection theoretic approach for esti
 
 Mann, K., Gordon, J., & MacLeod, A. (2009). Reflection and reflective practice in health professions education: A systematic review. *Advances in Health Sciences Education, 14*(4), 595–621.
 
+McCoy, L. G., Manrai, A. K., & Rodman, A. (2024). Large language models and the degradation of the medical record. *New England Journal of Medicine, 391*(17), 1561–1564.
+
 Meyer, A. N. D., Payne, V. L., Meeks, D. W., Rao, R., & Singh, H. (2013). Physicians' diagnostic accuracy, confidence, and resource requests: A vignette study. *JAMA Internal Medicine, 173*(21), 1952–1958.
 
 Monteiro, S., & Norman, G. (2013). Diagnostic reasoning: Where we've been, where we're going. *Teaching and Learning in Medicine, 25*(Suppl 1), S26–S32.
@@ -527,6 +541,8 @@ Pellegrino, E. D., & Thomasma, D. C. (1981). *A Philosophical Basis of Medical P
 Polanyi, M. (1966). *The Tacit Dimension*. University of Chicago Press.
 
 Popper, K. R. (1959). *The Logic of Scientific Discovery*. Hutchinson.
+
+Qazi, I. A., Ali, A., Khawaja, A. U., Akhtar, M. J., Sheikh, A. Z., & Alizai, M. H. (2026). Automation bias in large language model–assisted diagnostic reasoning among physicians trained in AI literacy: A randomized clinical trial. *NEJM AI, 3*(5), AIoa2501001.
 
 Rajkomar, A., & Blandford, A. (2012). Understanding infusion administration in the ICU through distributed cognition. *Journal of Biomedical Informatics, 45*(3), 580–590.
 
