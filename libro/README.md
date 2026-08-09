@@ -53,6 +53,10 @@ También revisar el nombre «Carmen» y los detalles del caso longitudinal.
 - `build_epub.py` — construye el EPUB para Kindle desde las mismas fuentes (preprocesa portada/legal/figuras/«En una frase» y llama a pandoc con `--split-level=2` y la portada embebida).
 - `portada_kindle.py` — genera `portada_kindle.jpg` (1600×2560, JPEG) con la identidad visual del interior.
 
+## Artículo para revista (`articulo/`)
+
+- `Articulo_RevMedChile_HIID.pdf` / `.docx` — manuscrito tipo Artículo Especial (Educación Médica) para Revista Médica de Chile: «Hechos, inferencias e incertidumbre: una heurística metacognitiva para la escritura y la decisión clínica (HII-D)». Selección del núcleo original del libro (capas del conocimiento clínico, léxico de certeza, riesgo inductivo, saga ANDROMEDA como lección de lectura, frase medular, HII-D con versión de 60 segundos y tabla comparativa, limitaciones y programa de evaluación; IA solo como nota de discusión). ~3.300 palabras, resumen bilingüe, 31 referencias Vancouver numeradas por orden de aparición, 3 tablas y 2 figuras. Fuente: `articulo_rmch.md` (con claves de cita) → `articulo_rmch_final.md` (numerado) → pandoc → docx → PDF. Pendiente del autor: afiliación institucional, y ajustar a las instrucciones vigentes de la revista antes de enviar.
+
 ## Gestiones externas (`gestiones/`)
 
 - **Prólogo invitado**: `prologo_candidatos.md` (9 candidatos en 3 niveles, con racional, canales y estrategia secuencial de abordaje — verificar vigencia y correos antes de escribir), `prologo_carta.md` (plantilla de solicitud; ya cargada como borrador en el Gmail del autor) y `prologo_dossier.pdf` (dossier de 2 páginas para adjuntar).
