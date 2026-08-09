@@ -190,6 +190,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **HII-D.** Heurística de escritura y deliberación que ordena el razonamiento en Hechos, Inferencias, Incertidumbre y Decisión, más un movimiento transversal de reevaluación. No validada como instrumento.
 
+**Humildad epistémica.** Atención y apropiación de las propias limitaciones cognitivas (Whitcomb et al.). No es timidez para afirmar: es la disposición que mantiene el caso abierto — permite seguir explorando, seguir aprendiendo y reubicar el foco y el manejo cuando la trayectoria contradice el mapa.
+
 **Illness script.** Estructura de conocimiento que integra condiciones predisponentes, mecanismo fisiopatológico y consecuencias clínicas de una enfermedad, y permite el reconocimiento rápido de patrones.
 
 **Incertidumbre aleatoria.** La que proviene de variabilidad o contingencia que persiste aun con conocimiento completo del sistema.
@@ -255,6 +257,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Grados de facticidad — 1
 - Hindsight bias — 8, 10, 16, CC (viñeta 8)
 - HII-D (método) — 11, 15, Ap A; auditoría de IA con — 13
+- Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
 - Illness scripts — 2, 6, 16
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
 - Injusticia epistémica — 14
@@ -500,6 +503,8 @@ Tversky, A., & Kahneman, D. (1974). Judgment under uncertainty: Heuristics and b
 Weed, L. L. (1968a). Medical records that guide and teach. *New England Journal of Medicine, 278*(11), 593–600.
 
 Weed, L. L. (1968b). Medical records that guide and teach. *New England Journal of Medicine, 278*(12), 652–657.
+
+Whitcomb, D., Battaly, H., Baehr, J., & Howard-Snyder, D. (2017). Intellectual humility: Owning our limitations. *Philosophy and Phenomenological Research, 94*(3), 509–539.
 
 Wittgenstein, L. (2009). *Philosophical Investigations* (G. E. M. Anscombe, P. M. S. Hacker, & J. Schulte, Trans.; 4th ed.). Wiley-Blackwell. (Obra original publicada en 1953).
 
