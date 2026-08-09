@@ -248,7 +248,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Conocimiento tácito — 6
 - Contrafactuales — 11
 - Copiado de notas (fósil narrativo) — 12, Ap C
-- Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2
+- Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2, 18
 - Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 17
 - Decisión compartida — 13, 15, Interludio III
 - Densidad epistémica — 4
@@ -282,6 +282,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 15
 - Observación activa — 10, 11
 - Pausa diagnóstica — 8, 17, Ap B, Ap C
+- Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pericia y práctica deliberada — 6
 - Phronesis — 6, 15
 - Pronóstico e incertidumbre de plazo — CC (viñeta 7)
@@ -412,6 +413,8 @@ Hernández, G., Ospina-Tascón, G. A., Kattan, E., et al., por los investigadore
 
 Hoffrage, U., & Gigerenzer, G. (1998). Using natural frequencies to improve diagnostic inferences. *Academic Medicine, 73*(5), 538–540.
 
+Huidobro, V. (1916). *El espejo de agua*. Orión.
+
 Hunter, K. M. (1991). *Doctors' Stories: The Narrative Structure of Medical Knowledge*. Princeton University Press.
 
 Hutchins, E. (1995). *Cognition in the Wild*. MIT Press.
@@ -473,6 +476,10 @@ Norman, G. (2009). Dual processing and diagnostic errors. *Advances in Health Sc
 Norman, G. R., Monteiro, S. D., Sherbino, J., Ilgen, J. S., Schmidt, H. G., & Mamede, S. (2017). The causes of errors in clinical reasoning: Cognitive biases, knowledge deficits, and dual process thinking. *Academic Medicine, 92*(1), 23–30.
 
 Novoa Jurado, A. J. (2025). Terapia epistémica del conocimiento clínico. *Revista Clínica de Medicina de Familia, 18*(3), 274–282.
+
+Parra, N. (1954). *Poemas y antipoemas*. Nascimento.
+
+Parra, N. (1969). *Obra gruesa*. Editorial Universitaria.
 
 Pauker, S. G., & Kassirer, J. P. (1980). The threshold approach to clinical decision making. *New England Journal of Medicine, 302*(20), 1109–1117.
 

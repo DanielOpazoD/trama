@@ -1,6 +1,6 @@
 # PARTE IV. Una epistemología operativa
 
-Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente al espejo nuevo de la inteligencia artificial (capítulo 14) y frente a la responsabilidad —y el miedo— que ninguna herramienta puede delegar (capítulo 15). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 16), un cuaderno de diez casos para leer metacognitivamente —incluida la resolución de la historia de Carmen—, y el problema de enseñar y organizar todo esto (capítulo 17).
+Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente al espejo nuevo de la inteligencia artificial (capítulo 14) y frente a la responsabilidad —y el miedo— que ninguna herramienta puede delegar (capítulo 15). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 16), un cuaderno de diez casos para leer metacognitivamente —incluida la resolución de la historia de Carmen—, el problema de enseñar y organizar todo esto (capítulo 17), y un último capítulo que se permite mirar el oficio desde la poesía — porque el debate sobre lo que la palabra tiene derecho a hacer también se libró en verso, y en Chile (capítulo 18).
 
 ## Capítulo 14. Inteligencia artificial como espejo del razonamiento
 
@@ -479,3 +479,54 @@ Enseñar metacognición es enseñar una relación con el conocimiento: suficient
 1. La última vez que enseñé un caso, ¿pedí el diagnóstico o pedí primero la representación del problema?
 2. ¿Qué pasó con el último paciente que derivé o di de alta con diagnóstico incierto — y cómo podría enterarme sistemáticamente?
 3. Si mañana dirigiera mi servicio, ¿cuál de las tres palancas (ronda, ficha, revisión de errores) cambiaría primero, y qué costaría?
+
+## Capítulo 18. La palabra exacta: lo que la poesía sabe del juicio clínico
+
+Hay un momento que los tratados no describen y todo clínico conoce: tres hallazgos sueltos —una taquicardia sin fiebre, un abdomen que "no convence", una frase de la hija— se ordenan de golpe bajo una sola explicación, y algo hace clic. El placer de ese instante no es administrativo. Es físico, breve y sospechosamente parecido al de un verso que cae en su lugar. Este capítulo toma ese parecido en serio: no como adorno humanista, sino como información sobre cómo funciona —y cómo falla— el juicio.
+
+### Dos oficios de la conexión
+
+El poeta trabaja buscando conexiones: entre palabras, entre una palabra y un sentido que todavía no tiene nombre, entre el sonido y aquello que el sonido vuelve visible. Su estado mental característico combina atención flotante, oído para lo que no encaja y una disposición rara: dejar que el material mande sobre el plan. El clínico que razona bien trabaja igual, con otros materiales: entre el hallazgo y el mecanismo, entre el mecanismo y la intervención que estabiliza, busca la conexión que convierta fragmentos en un caso inteligible.
+
+El parentesco es lógico antes que sentimental. Una metáfora es la hipótesis de que dos cosas lejanas comparten estructura; un diagnóstico es una metáfora que acepta ser puesta a prueba — "este cuadro es una colecistitis" apuesta a que lo que ocurre en este cuerpo comparte estructura con un patrón aprendido. Ambos movimientos son la abducción del capítulo 2, y ambos requieren el mismo estado que el capítulo 15 llamó humildad en funciones: sostener la conjetura con fuerza suficiente para trabajarla y soltura suficiente para dejarla caer. Bohm lo dijo desde la física: el acto creativo central —percibir un orden nuevo en lo que ya estaba a la vista— es el mismo en el arte y en la ciencia; cambian los materiales y el tribunal (Bohm, 1996).
+
+### Huidobro, o la palabra que crea
+
+En 1916, Vicente Huidobro escribió el manifiesto de una poesía que no quería describir el mundo sino aumentarlo: "Por qué cantáis la rosa, ¡oh Poetas! / Hacedla florecer en el poema". Y remató con la línea más citada del creacionismo: "El poeta es un pequeño Dios" (Huidobro, 1916). El poema no canta la rosa: la crea. Como programa poético es glorioso. Como descripción de lo que el lenguaje puede hacer, es exactamente el peligro contra el que este libro lleva diecisiete capítulos escribiendo.
+
+Porque la ficha clínica también hace florecer rosas. La "neumonía aspirativa" del prefacio —dos palabras limpias que crearon un antecedente que nadie observó— es creacionismo puro; el "somatiza" de la viñeta 10, también. El capítulo 12 mostró el mecanismo: la ficha produce lo visible, y sus criaturas verbales adquieren vida institucional. La diferencia con la poesía es brutal: las rosas de Huidobro viven en el poema; las nuestras reciben antibióticos, cirugías y altas. El lenguaje clínico descuidado es creacionista por defecto — y un servicio lleno de pequeños dioses es un lugar peligroso para estar enfermo.
+
+### Parra, o la deflación
+
+El antídoto también lo escribió un chileno, y no uno cualquiera: un profesor de mecánica racional que estudió cosmología en Oxford y sabía, por oficio diurno, lo que cuesta un dato. Nicanor Parra pasó su vida bajándole los humos a la palabra: primero con los antipoemas (Parra, 1954), después con un "Manifiesto" que es casi un léxico de certeza en verso: los poetas bajaron del Olimpo, la poesía debe escribirse en palabras de todos los días — y, con nombre y apellido implícitos, la condena de "la poesía de pequeño dios" (Parra, 1969). La réplica a Huidobro no es una interpretación: está en el texto.
+
+La antipoesía es un programa epistemológico completo: quitarle a la palabra los poderes que no puede sostener y devolverla al tamaño de la experiencia. Visto desde ahí, el léxico del capítulo 4 es antipoesía aplicada: "sin evidencia actual de" es un verso parriano — feo, honesto, exacto, imposible de recitar con voz engolada. La ficha lúcida se escribe más cerca de Parra que de Huidobro: lengua de todos los días, dignidad del "no sé", desconfianza instintiva de toda frase que suene demasiado bien.
+
+### La belleza como señal y como trampa
+
+El clic estético del diagnóstico existe y es información. La parsimonia, la convergencia, el encaje sin residuo son la forma sensible de aquello que el capítulo 2 llamó fuerza por convergencia: cuando una explicación ordena todos los hechos sin forzar ninguno, algo en nosotros lo registra como belleza antes de poder justificarlo. Esa señal vale: propone candidatos que el análisis no habría listado.
+
+Pero este libro ya conoció a la impostora. La historia coherente del hindsight, la narrativa atractiva que infla la confianza (capítulo 5), la prosa fluida de los modelos de lenguaje (capítulo 14): todas son bellas y ninguna es, por serlo, verdadera. La belleza no distingue entre orden hallado y orden impuesto — para eso están las pruebas severas. La regla que concilia ambas caras cabe en una línea: la elegancia selecciona hipótesis; nunca las confirma. El verso puede quedarse bello para siempre; el diagnóstico tiene que amanecer verdadero, y la evolución lo audita cada mañana.
+
+Queda la belleza final, la que menos se nombra: la de hacer lo correcto en el contexto correcto. Una estabilización bien conducida tiene forma estética — nada sobró, nada faltó, cada intervención llegó a su hora; es la phronesis del capítulo 6 vuelta percepción. Pero es una belleza que sólo puede declararse retrospectivamente, y sólo si el proceso era defendible antes de conocer el desenlace (capítulo 10). En medicina la estética es un subproducto del rigor. Cuando se la busca directamente —el diagnóstico brillante, la frase imponente—, se obtiene Huidobro en la ficha.
+
+### Leer poesía como entrenamiento clínico
+
+Si el parentesco es real, leer poesía no es un lujo cultural del médico: es gimnasio específico. Entrena la precisión léxica — el poeta agoniza entre dos palabras casi iguales, que es exactamente la distancia entre "descartado" y "sin evidencia actual de". Entrena la tolerancia a la ambigüedad sostenida — un poema no se "resuelve", se habita; como ciertas incertidumbres del capítulo 3. Entrena el oído para el relato: la anamnesis tiene ritmo, silencios y palabras elegidas, y "esta vez la hernia no se dejó acomodar" es, técnicamente, un verso — el capítulo 1 pidió conservarlo textual por razones epistémicas; este capítulo agrega la razón estética, que es la misma. Y entrena, con Parra, la resistencia a la solemnidad: nadie que haya leído antipoesía vuelve a escribir "se procede a realizar manejo multidisciplinario integral" sin sonrojarse.
+
+No es casualidad que el investigador principal de la saga del capítulo 10 —el ensayo que enseñó a medio mundo a mirar la piel antes que el número— escriba también poesía: el oído que distingue una palabra que trabaja de una palabra que decora es el mismo que distingue un blanco de reanimación que informa de uno que sólo tranquiliza.
+
+> El poeta busca la palabra que vuelva visible una conexión; el clínico, la conexión que sobreviva cuando la palabra sea puesta a prueba. Ambos fracasan de la misma manera: cuando la frase queda más bella que verdadera.
+
+#### Taller 18. La prueba de Parra
+
+Tome la frase medular de su paciente más reciente y sométala a dos preguntas. Primera: ¿hay en ella alguna palabra huidobriana — que haga florecer lo que nadie observó (un mecanismo no demostrado, una causal de contrabando, un "descartado" sin método)? Segunda: ¿puede reescribirse en palabras de todos los días sin perder un gramo de precisión — y si al traducirla se desinfla, qué la sostenía: la evidencia o la retórica?
+
+*Solución comentada.* Ejemplo: "Shock séptico de foco urinario, descartándose foco abdominal". Prueba uno: "de foco urinario" hace florecer una causal (¿demostrada o presunta?), y "descartándose" es un gerundio que promete lo que todavía no ocurrió — dos rosas creadas en nueve palabras. Prueba dos, en lengua parriana: "Shock con urocultivo positivo; foco urinario probable; abdomen aún sin imagen". La segunda versión es menos imponente y más útil: sobrevive a la visita de la mañana. Si su frase pasa las dos pruebas, tiene lo que este libro entiende por estilo: exactitud que se puede defender en voz alta.
+
+**En una frase.** La poesía y el juicio clínico comparten el arte de la conexión exacta y difieren en el tribunal — al poema lo juzga el oído, al diagnóstico lo juzga la evolución — y por eso la ficha lúcida se escribe con Parra, no con Huidobro.
+
+**Tres preguntas para la próxima visita.**
+1. ¿Qué palabra de mi última nota está "haciendo florecer" algo que nadie observó?
+2. El diagnóstico que más me satisface hoy: ¿me convence por la evidencia o por lo bien que cierra la historia?
+3. ¿Cuándo fue la última vez que leí algo —un poema, una página— sólo para afinar el oído con el que después escucho pacientes?

@@ -4,10 +4,10 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 
 ## Entregables
 
-- `Hechos_inferencias_incertidumbre_edicion_revisada.docx` — Word completo (portada, legal, TOC con páginas, 4 partes / 17 capítulos, 9 figuras, tablas, apéndices, glosario, índice analítico, referencias).
+- `Hechos_inferencias_incertidumbre_edicion_revisada.docx` — Word completo (portada, legal, TOC con páginas, 4 partes / 18 capítulos, 9 figuras, tablas, apéndices, glosario, índice analítico, referencias).
 - `Hechos_inferencias_incertidumbre_edicion_revisada.pdf` — mismo contenido, 103 páginas A4.
 
-## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~37.400)
+## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~39.000)
 
 1. **Voz del autor**: prefacio en primera persona y pasajes personales en caps. 5, 7 y 14.
 2. **Hilo narrativo**: el caso de Carmen (hernia incisional) abre la introducción, cierra cada parte con un interludio y se resuelve en el Cuaderno de casos.
@@ -24,7 +24,8 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 13. **Dimensión emocional y médico-legal**: sección «El miedo también escribe» (cap. 15) — documentación defensiva como corruptor epistémico y segunda víctima (Wu, BMJ 2000).
 14. **Alcance de escenarios**: viñetas 9 (pediátrica — el testimonio de la madre, Van den Bruel BMJ 2012) y 10 (salud mental — ensombrecimiento diagnóstico, Thornicroft BJP 2011); Cuaderno con diez casos.
 15. **Aparato didáctico**: Figura 7 nueva (línea de tiempo de la saga ANDROMEDA) y Taller 2B (creatividad: cinco hipótesis en tres minutos); 9 figuras y 14 talleres en total.
-16. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
+16. **Capítulo 18 — «La palabra exacta: lo que la poesía sabe del juicio clínico»**: Huidobro (la palabra que crea) vs. Parra (la deflación antipoética) como los dos polos del lenguaje clínico; la belleza como señal y como trampa; la prueba de Parra como taller. Referencias: Huidobro 1916, Parra 1954 y 1969.
+17. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
 
 ## PENDIENTE DEL AUTOR (importante)
 
