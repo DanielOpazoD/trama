@@ -5,7 +5,9 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 ## Entregables
 
 - `Hechos_inferencias_incertidumbre_edicion_revisada.docx` — Word completo (portada, legal, TOC con páginas, 4 partes / 18 capítulos, 9 figuras, tablas, apéndices, glosario, índice analítico, referencias).
-- `Hechos_inferencias_incertidumbre_edicion_revisada.pdf` — mismo contenido, 134 páginas A4 (130 de cuerpo).
+- `Hechos_inferencias_incertidumbre_edicion_revisada.pdf` — mismo contenido, 136 páginas A4 (132 de cuerpo).
+- `Hechos_inferencias_incertidumbre.epub` — edición digital para Kindle/KDP (EPUB 3 con portada, navegación por capítulos, figuras y tablas embebidas; Amazon acepta EPUB directamente y Send-to-Kindle lo convierte).
+- `portada_kindle.jpg` — portada 1600×2560 px (especificación KDP): título, subtítulo único, motivo HIID con franja de incertidumbre y arco de reevaluación.
 
 ## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~39.000)
 
@@ -48,6 +50,8 @@ También revisar el nombre «Carmen» y los detalles del caso longitudinal.
 - `00_preliminares.md` … `05_cierre.md` — texto fuente por partes.
 - `figuras.py` — genera las 8 figuras (matplotlib) en `../figs/`.
 - `build_docx.js` — construye el .docx (docx-js). Uso: `node build_docx.js --toc toc.json`; el PDF sale de LibreOffice (`soffice --headless --convert-to pdf`). El TOC usa dos pasadas: construir sin `--toc`, convertir a PDF, extraer páginas reales, reconstruir con `--toc`.
+- `build_epub.py` — construye el EPUB para Kindle desde las mismas fuentes (preprocesa portada/legal/figuras/«En una frase» y llama a pandoc con `--split-level=2` y la portada embebida).
+- `portada_kindle.py` — genera `portada_kindle.jpg` (1600×2560, JPEG) con la identidad visual del interior.
 
 ## Gestiones externas (`gestiones/`)
 
