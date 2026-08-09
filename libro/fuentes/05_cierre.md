@@ -174,6 +174,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Contrafactual.** Escenario comparativo implícito en toda afirmación causal: qué habría ocurrido sin la exposición o la intervención.
 
+**Creatividad clínica.** Momento generativo del juicio: conjeturar hipótesis (abducción), re-plantear el problema y crear opciones de manejo. Casi siempre es creatividad psicológica y exploratoria (Boden): nueva para el caso, no para la humanidad. Se ejerce en la generación y se corrige en la selección.
+
 **Decisión compartida.** Proceso de deliberación entre profesional y paciente sobre opciones, evidencia y preferencias, distinto de la mera entrega de información (Elwyn).
 
 **Densidad epistémica.** Propiedad de una formulación clínica que conserva los ejes que cambian la interpretación (tiempo, severidad, mecanismo, evidencia contraria, consecuencia) en lugar de sólo abreviar.
@@ -240,6 +242,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Conocimiento tácito — 6
 - Contrafactuales — 10
 - Copiado de notas (fósil narrativo) — 11, Ap C
+- Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2
 - Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
 - Decisión compartida — 12, 14, Interludio III
 - Densidad epistémica — 4
@@ -295,6 +298,12 @@ Aristotle. (2009). *The Nicomachean Ethics* (D. Ross, Trans.; L. Brown, Rev.). O
 Barrows, H. S., & Feltovich, P. J. (1987). The clinical reasoning process. *Medical Education, 21*(2), 86–91.
 
 Berner, E. S., & Graber, M. L. (2008). Overconfidence as a cause of diagnostic error in medicine. *The American Journal of Medicine, 121*(5 Suppl), S2–S23.
+
+Boden, M. A. (2004). *The Creative Mind: Myths and Mechanisms* (2.ª ed.). Routledge.
+
+Bohm, D. (1996). *On Creativity* (L. Nichol, Ed.). Routledge.
+
+Bohm, D., & Peat, F. D. (1987). *Science, Order, and Creativity*. Bantam Books.
 
 Bordage, G. (1994). Elaborated knowledge: A key to successful diagnostic thinking. *Academic Medicine, 69*(11), 883–885.
 
