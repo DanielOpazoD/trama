@@ -120,7 +120,9 @@ Además: clasificar **toda** afirmación empírica restante con la taxonomía de
    - Ahora [C]: hoja de estilo única + barrido mecánico de consistencia (comillas, rayas, cursivas en extranjerismos —*feedback*, *illness scripts*, *safety-netting*—, TC/angio-TC, decimales con coma, %, «reevaluación/reapertura/revisión», «paciente/persona/enfermo») con informe de hallazgos.
    - Al final [E]: profesional humano, **después** de F2 (no antes: la revisión externa va a cambiar texto). Viudas, huérfanas, silabación y títulos colgados pertenecen a la etapa de maqueta editorial, no al manuscrito — no gastar esfuerzo en el DOCX.
 
-**F4. Derechos de citas — asimetría que la pauta no registra.** Huidobro murió en 1948: su obra estaría en dominio público en Chile (70 años *post mortem*) — confirmar con la editorial según el país de edición. **Parra murió en 2018: derechos vigentes por décadas; todo el riesgo está concentrado ahí.** Estrategia: cita mínima indispensable, análisis mayor que reproducción, y [C] prepara la **versión parafraseada alternativa del cap. 18** para tenerla lista si la editorial la exige. La gestión formal de permisos es [E]; no se asume que una cita es utilizable por ser breve o académica.
+**F4. Derechos de citas — asimetría que la pauta no registra.** Huidobro murió en 1948: su obra estaría en dominio público en Chile (70 años *post mortem*) — confirmar con la editorial según el país de edición. **Parra murió en 2018: derechos vigentes por décadas; todo el riesgo está concentrado ahí.**
+
+*Decisión del autor (9-8-2026): las citas de Parra no se cambian.* Quedan tal como están en el cap. 18 — ya son breves y el análisis supera largamente a la reproducción, que es la posición defendible ante cualquier editorial. No se prepara versión parafraseada. La gestión formal de permisos sigue siendo [E] (editorial o profesional competente); si esa gestión algún día exigiera modificar una cita, la decisión vuelve al autor — no se anticipa.
 
 ---
 
