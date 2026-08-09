@@ -1,62 +1,8 @@
 # PARTE IV. Una epistemología operativa
 
-Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente al espejo nuevo de la inteligencia artificial (capítulo 14) y frente a la responsabilidad —y el miedo— que ninguna herramienta puede delegar (capítulo 15). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 16), un cuaderno de diez casos para leer metacognitivamente —incluida la resolución de la historia de Carmen—, el problema de enseñar y organizar todo esto (capítulo 17), y un último capítulo que se permite mirar el oficio desde la poesía — porque el debate sobre lo que la palabra tiene derecho a hacer también se libró en verso, y en Chile (capítulo 18).
+Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente a la responsabilidad —y el miedo— que ninguna herramienta puede delegar (capítulo 14). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 15), un cuaderno de diez casos para leer metacognitivamente —incluida la resolución de la historia de Carmen— y el problema de enseñar y organizar todo esto (capítulo 16). Cierran el libro dos espejos: la inteligencia artificial en el proceso diagnóstico y terapéutico —qué hace, qué arriesga, cómo se la enfrenta— (capítulo 17), y la poesía — porque el debate sobre lo que la palabra tiene derecho a hacer también se libró en verso, y en Chile (capítulo 18).
 
-## Capítulo 14. Inteligencia artificial como espejo del razonamiento
-
-Un residente pega la historia de un paciente en un asistente de lenguaje y recibe, en ocho segundos, una evaluación impecablemente redactada: diagnóstico probable, diferenciales ordenados, plan sugerido. Todo suena verosímil. La pregunta que este capítulo propone no es "¿acierta la máquina?", sino una más incómoda: ¿en qué se parece esa prosa fluida y segura a la que escribimos nosotros?
-
-### Lenguaje plausible y verdad
-
-Los grandes modelos de lenguaje generan continuaciones plausibles a partir de patrones aprendidos en enormes corpus. Su fluidez puede producir respuestas clínicamente útiles, pero también afirmaciones falsas presentadas con coherencia. La literatura denomina hallucination a contenido no sustentado o inconsistente con la fuente o el mundo (Ji et al., 2023). El término es metafórico: el modelo no tiene una experiencia perceptiva que se desorganice como en la alucinación humana.
-
-La medicina reconoce el peligro porque también trabaja con narrativas plausibles. Un clínico puede completar huecos, atribuir causalidad o recordar un dato de manera congruente con su hipótesis. La semejanza no implica identidad. El médico posee cuerpo, responsabilidad, acceso al paciente, experiencia situada y capacidad de actuar; el modelo manipula representaciones lingüísticas y depende del contexto que recibe.
-
-### Competencia sin garantía
-
-Estudios han mostrado que modelos avanzados codifican conocimiento médico y alcanzan alto rendimiento en preguntas y casos seleccionados (Singhal et al., 2023). Lee, Bubeck y Petro describieron beneficios potenciales junto con límites y riesgos de GPT-4 en medicina (Lee et al., 2023). El rendimiento promedio no garantiza confiabilidad en un caso individual, especialmente cuando faltan datos, hay ambigüedad o la tarea exige conocimiento local. Y las consecuencias no intencionadas del aprendizaje automático en medicina —desde la automatización de sesgos presentes en los datos hasta la erosión de habilidades por deferencia— han sido advertidas desde antes de los modelos generativos (Cabitza et al., 2017).
-
-La fluidez aumenta el riesgo de automatización: el usuario puede aceptar una respuesta porque está bien estructurada. El problema es metacognitivo. La confianza percibida en el lenguaje no informa necesariamente la probabilidad de corrección. La IA puede parecer mejor calibrada de lo que está.
-
-### Una diferencia central
-
-El clínico responsable puede distinguir "lo vi", "lo infiero" y "no lo sé". Un modelo suele mezclar estas capas si el prompt no exige separación y si no tiene fuentes verificables. Puede transformar ausencia de información en un detalle probable, porque su objetivo generativo favorece continuidad.
-
-La matriz HII-D permite auditar una respuesta de IA:
-
-- ¿qué hechos provienen realmente del caso?;
-- ¿qué información agregó el modelo?;
-- ¿qué inferencias formula y con qué respaldo?;
-- ¿qué incertidumbres omitió?;
-- ¿qué decisión propone y cuáles serían sus riesgos?;
-- ¿qué fuente primaria permite verificar la afirmación?
-
-El modelo puede servir como generador de alternativas, revisor de coherencia, organizador de información o segundo lector. Su valor aumenta cuando el usuario mantiene la responsabilidad de verificación y disminuye cuando se usa como autoridad final.
-
-### Metacognición artificial
-
-Algunos sistemas pueden expresar confianza, criticar una respuesta o revisar pasos. Eso no demuestra autoconocimiento en el sentido humano. Una salida metacognitiva puede ser otra generación entrenada para imitar evaluación. La pregunta práctica no es si el sistema "sabe que sabe", sino si sus señales de confianza están empíricamente calibradas y si el flujo de trabajo detecta fallas.
-
-Esa pregunta ya tiene datos. La evidencia disponible muestra que la confianza verbalizada de los grandes modelos —el "estoy bastante seguro" que escriben— tiende a la sobreconfianza sistemática y se calibra mal, aun cuando algunas señales internas del modelo discriminan mejor de lo que su prosa deja ver (Kadavath et al., 2022; Xiong et al., 2024). La implicación práctica es idéntica a la del capítulo 5, aplicada ahora a la máquina: preguntarle a un modelo cuán seguro está no sustituye la verificación, igual que la seguridad de un colega no sustituye sus razones. La calibración se demuestra con series de predicciones y desenlaces, no con tono.
-
-La OMS ha recomendado gobernanza, evaluación, transparencia y supervisión para modelos multimodales en salud, atendiendo riesgos de inexactitud, sesgo, privacidad y dependencia excesiva (World Health Organization, 2024). La supervisión humana no debe ser una firma ritual al final. Debe contar con tiempo, datos y autoridad para cuestionar.
-
-### La IA como provocación filosófica
-
-La IA revela que una frase puede conservar la forma externa del razonamiento sin tener acceso directo al evento. Esto obliga a recordar que la coherencia verbal nunca fue garantía suficiente. También muestra el valor del lenguaje como espacio de prueba: pedir alternativas, contraejemplos y explicitar incertidumbre puede mejorar la deliberación humana, aunque no vuelva verdadero al modelo.
-
-> La IA puede ampliar el espacio de hipótesis; no puede asumir por sí sola la responsabilidad de transformar una hipótesis en conducta clínica.
-
-Usada con disciplina, puede ser un instrumento metacognitivo externo. Usada por deferencia, puede reforzar el mismo error que pretendía corregir: convertir plausibilidad en certeza.
-
-**En una frase.** La IA generativa produce exactamente aquello contra lo que este libro entrena: prosa fluida donde hechos, inferencias e incertidumbre llegan mezclados — auditarla con HII-D es el mismo ejercicio que auditar la propia escritura.
-
-**Tres preguntas para la próxima visita.**
-1. Si uso IA en este caso, ¿qué dato de su respuesta verifiqué contra una fuente primaria antes de actuar?
-2. ¿Qué agregó el modelo que el caso no contenía?
-3. ¿Estoy usando la herramienta para ampliar hipótesis o para confirmar rápido la que ya tenía?
-
-## Capítulo 15. Humildad epistémica y responsabilidad clínica
+## Capítulo 14. Humildad epistémica y responsabilidad clínica
 
 Hay una frase que me costó años aprender a decir delante de una familia: "no lo sé". La primera vez que la dije completa —"no sé todavía por qué empeoró; sé qué descartamos, sé qué vamos a vigilar esta noche y sé cuándo tendremos más información"— esperaba encontrar decepción. Encontré alivio. La familia no necesitaba mi certeza; necesitaba saber que la incertidumbre estaba siendo trabajada. Este capítulo trata de esa diferencia: entre parecer seguro y ser responsable.
 
@@ -82,7 +28,7 @@ Segundo, permite seguir aprendiendo. El feedback sólo enseña a quien puede rec
 
 Tercero —y es el efecto más clínico de todos—, permite reubicar el foco y el manejo. La dirección de la atención diagnóstica no es un voto de por vida: es una asignación provisional de recursos, revisable cuando la trayectoria contradice el mapa. El humilde redirige sin vivirlo como derrota — de lo urinario a lo abdominal, de la lesión estructural al trastorno funcional, del objetivo curativo al de confort — y ajusta el tratamiento con la misma naturalidad con que lo inició. El orgulloso, en cambio, defiende su primera formulación como se defiende una propiedad, y convierte cada dato discordante en un ataque que repeler. El anclaje del capítulo 7 es, visto así, un fracaso de humildad antes que un fallo de memoria: la información nueva estaba disponible; lo que faltó fue la disposición a dejarla mandar.
 
-Por eso este libro necesita la humildad no como ornamento ético sino como pieza estructural. La reevaluación del método HII-D (capítulo 16) es humildad convertida en procedimiento: la cláusula "qué me haría cambiar", escrita antes de saber si habrá que cambiar, es la forma que toma esta virtud cuando se la obliga a dejar huella en la ficha.
+Por eso este libro necesita la humildad no como ornamento ético sino como pieza estructural. La reevaluación del método HII-D (capítulo 15) es humildad convertida en procedimiento: la cláusula "qué me haría cambiar", escrita antes de saber si habrá que cambiar, es la forma que toma esta virtud cuando se la obliga a dejar huella en la ficha.
 
 ### Credibilidad y experiencia del paciente
 
@@ -129,7 +75,7 @@ La confianza profesional más robusta no depende de parecer infalible. Se constr
 2. Mi última recomendación firme: ¿podría explicar qué hechos la sostienen, qué incertidumbres la modificarían y qué valores del paciente pesan?
 3. ¿Hay en mis fichas una etiqueta ("funcional", "no adherente", "poco colaborador") que esté distribuyendo credibilidad en lugar de información?
 
-## Capítulo 16. El método HII-D: una epistemología operativa
+## Capítulo 15. El método HII-D: una epistemología operativa
 
 Todo lo anterior cabe en una hoja. Esa es, deliberadamente, la ambición de este capítulo: condensar el libro en un método que pueda usarse en una discusión de caso, en una nota difícil, en una auditoría de IA o en los sesenta segundos previos a una decisión nocturna. La condensación tiene un precio —ningún método piensa por nadie— y una condición: saber cuándo usarlo y cuándo no.
 
@@ -227,7 +173,7 @@ HII-D no sustituye protocolos, guías, probabilidades cuantitativas ni experienc
 
 El valor del método depende de una actitud: aceptar que la claridad no consiste en eliminar la complejidad, sino en ordenar qué tipo de conocimiento representa cada afirmación.
 
-#### Taller 16. Su paciente, esta semana
+#### Taller 15. Su paciente, esta semana
 
 Elija el caso más incómodo de su lista actual —el que genera discusión en cada ronda o el que nadie discute hace días— y complete la plantilla condensada por escrito. Después compárela con la última evolución de la ficha: ¿qué contiene la plantilla que la ficha no registra?
 
@@ -382,7 +328,7 @@ Un lactante de cinco meses llega a urgencias a las 22:30. Afebril tras paracetam
 
 *Frase medular:* "Lactante afebril bajo antipiréticos y sin foco al examen, con cambio conductual significativo según su madre; el testimonio del cuidador se registra como observación del basal y gobierna la vigilancia: reevaluación seriada antes de decidir alta, con red de seguridad verificada."
 
-*Lectura metacognitiva.* La pediatría radicaliza el capítulo 1: el paciente no habla, y el "hecho" más valioso es un testimonio de tercero sobre un basal que el equipo no conoce. Descartar la preocupación materna como ansiedad es el equivalente pediátrico de la injusticia testimonial del capítulo 15 — y además, simplemente, mala medicina: pocas fuentes de información tienen mejor razón señal-ruido que quien mira a ese niño todos los días.
+*Lectura metacognitiva.* La pediatría radicaliza el capítulo 1: el paciente no habla, y el "hecho" más valioso es un testimonio de tercero sobre un basal que el equipo no conoce. Descartar la preocupación materna como ansiedad es el equivalente pediátrico de la injusticia testimonial del capítulo 14 — y además, simplemente, mala medicina: pocas fuentes de información tienen mejor razón señal-ruido que quien mira a ese niño todos los días.
 
 ### Viñeta 10. El dolor abdominal de la paciente que "somatiza"
 
@@ -398,13 +344,13 @@ Una mujer de 34 años con esquizofrenia en tratamiento consulta por dolor abdomi
 
 *Frase medular:* "Dolor abdominal y taquicardia sostenida en paciente con esquizofrenia: examen abdominal limitado —no negativo— y expresión clínica posiblemente atenuada por antipsicóticos; se estudia con el estándar completo, dejando registrado que la atribución psiquiátrica del cuadro exigiría primero excluir lo que la taquicardia sugiere."
 
-*Lectura metacognitiva.* Esta viñeta es el capítulo 15 con mortalidad: la injusticia testimonial —descontar el relato por quién lo dice— aquí no es sólo un agravio moral sino un mecanismo causal de la brecha de 15 a 20 años de vida. Nótese el movimiento epistémico central: cuando el testimonio y el examen valen menos de lo habitual, el estándar de estudio objetivo sube en compensación. El ensombrecimiento hace exactamente lo contrario — usa la dificultad como excusa para bajar el estándar — y por eso mata.
+*Lectura metacognitiva.* Esta viñeta es el capítulo 14 con mortalidad: la injusticia testimonial —descontar el relato por quién lo dice— aquí no es sólo un agravio moral sino un mecanismo causal de la brecha de 15 a 20 años de vida. Nótese el movimiento epistémico central: cuando el testimonio y el examen valen menos de lo habitual, el estándar de estudio objetivo sube en compensación. El ensombrecimiento hace exactamente lo contrario — usa la dificultad como excusa para bajar el estándar — y por eso mata.
 
 ### Lo común a las diez viñetas
 
 En cada caso, la buena formulación evita dos extremos: describir sin interpretar o interpretar como si se hubiera observado directamente. El hecho guía la hipótesis; la incertidumbre modula su fuerza; la consecuencia define la decisión; la evolución conserva el derecho a corregir. Y en todas —de la urgencia de las 3:00 al final de la vida, del lactante que no habla a la paciente a la que no se le cree— la decisión termina con la misma cláusula: qué la haría cambiar, quién lo detectará y cuándo.
 
-## Capítulo 17. Enseñar y organizar la metacognición clínica
+## Capítulo 16. Enseñar y organizar la metacognición clínica
 
 Una jefa de servicio que quiera "instalar metacognición" en su equipo no puede indicarla como se indica un antibiótico. Puede, en cambio, cambiar tres cosas que ve todas las semanas: qué se pregunta en la ronda, qué estructura tiene la ficha y qué pasa después de un error. Este capítulo trata de esas palancas.
 
@@ -424,7 +370,7 @@ El docente puede pedir al aprendiz que marque cada frase como hecho, inferencia 
 
 Este libro toma posición en una controversia real de la educación médica, y conviene declararla. De un lado, Croskerry y su tradición sostienen que conocer los sesgos y entrenar estrategias de debiasing mejora el diagnóstico (Croskerry, 2003; Croskerry et al., 2013a, 2013b). Del otro, Norman, Monteiro y colegas han acumulado evidencia incómoda: la mayoría de los errores diagnósticos se asocia a déficits de conocimiento más que a fallas puras de proceso, los cursos de "pensamiento crítico" generalizable transfieren poco, y obligar a reflexionar sistemáticamente sobre casos fáciles no mejora la precisión y consume tiempo (Norman et al., 2017; Monteiro & Norman, 2013; Monteiro et al., 2020).
 
-La posición de este libro es intermedia, pero no equidistante. Con los escépticos: no existe una habilidad general de "pensar bien" que flote por encima del conocimiento; la representación rica del problema —illness scripts, experiencia con feedback— es la condición de todo lo demás, y ningún método, HII-D incluido, compensa no saber medicina. Contra el escepticismo total: de esa evidencia no se sigue que la única intervención posible sea enseñar más contenido. Lo que este libro propone no es vigilancia interna permanente ni listas universales —las versiones que la evidencia ha desinflado—, sino artefactos externos y selectivos: un lenguaje que obliga a graduar afirmaciones, una estructura de nota que conserva las capas, pausas activadas por disparadores definidos y circuitos de feedback que conviertan experiencia en calibración. Es una apuesta con compromisos observables (véase el capítulo 16): si estas herramientas no cambian conductas medibles, deben abandonarse como cualquier hipótesis mimada. Entre tanto, la controversia se enseña mejor de lo que se oculta: un residente que conoce el debate sabrá desconfiar por igual del catálogo de sesgos como solución universal y del nihilismo pedagógico como coartada.
+La posición de este libro es intermedia, pero no equidistante. Con los escépticos: no existe una habilidad general de "pensar bien" que flote por encima del conocimiento; la representación rica del problema —illness scripts, experiencia con feedback— es la condición de todo lo demás, y ningún método, HII-D incluido, compensa no saber medicina. Contra el escepticismo total: de esa evidencia no se sigue que la única intervención posible sea enseñar más contenido. Lo que este libro propone no es vigilancia interna permanente ni listas universales —las versiones que la evidencia ha desinflado—, sino artefactos externos y selectivos: un lenguaje que obliga a graduar afirmaciones, una estructura de nota que conserva las capas, pausas activadas por disparadores definidos y circuitos de feedback que conviertan experiencia en calibración. Es una apuesta con compromisos observables (véase el capítulo 15): si estas herramientas no cambian conductas medibles, deben abandonarse como cualquier hipótesis mimada. Entre tanto, la controversia se enseña mejor de lo que se oculta: un residente que conoce el debate sabrá desconfiar por igual del catálogo de sesgos como solución universal y del nihilismo pedagógico como coartada.
 
 ### Rondas y pases de turno
 
@@ -481,6 +427,105 @@ Enseñar metacognición es enseñar una relación con el conocimiento: suficient
 2. ¿Qué pasó con el último paciente que derivé o di de alta con diagnóstico incierto — y cómo podría enterarme sistemáticamente?
 3. Si mañana dirigiera mi servicio, ¿cuál de las tres palancas (ronda, ficha, revisión de errores) cambiaría primero, y qué costaría?
 
+## Capítulo 17. La inteligencia artificial en el proceso clínico: roles, riesgos y defensas
+
+Un residente pega la historia de un paciente en un asistente de lenguaje y recibe, en ocho segundos, una evaluación impecablemente redactada: diagnóstico probable, diferenciales ordenados, plan sugerido. Todo suena verosímil. Este capítulo hace tres preguntas, en orden: qué puede hacer realmente esta tecnología en el proceso diagnóstico y terapéutico; qué riesgos trae — no en abstracto, sino con la evidencia ya disponible—; y cómo enfrentarlos sin renunciar a la herramienta ni al juicio. Y sostiene una tesis transversal: casi ninguno de estos riesgos es nuevo. Cada uno es un sesgo que este libro ya describió, ahora con amplificador.
+
+### Lenguaje plausible y verdad
+
+Los grandes modelos de lenguaje generan continuaciones plausibles a partir de patrones aprendidos en enormes corpus. Su fluidez puede producir respuestas clínicamente útiles, pero también afirmaciones falsas presentadas con coherencia. La literatura denomina hallucination a contenido no sustentado o inconsistente con la fuente o el mundo (Ji et al., 2023). El término es metafórico: el modelo no tiene una experiencia perceptiva que se desorganice como en la alucinación humana.
+
+La medicina reconoce el peligro porque también trabaja con narrativas plausibles. Un clínico puede completar huecos, atribuir causalidad o recordar un dato de manera congruente con su hipótesis. La semejanza no implica identidad. El médico posee cuerpo, responsabilidad, acceso al paciente, experiencia situada y capacidad de actuar; el modelo manipula representaciones lingüísticas y depende del contexto que recibe.
+
+### El rol en el proceso diagnóstico
+
+Los sistemas actuales hacen bien tareas delimitadas de reconocimiento: señalar pólipos durante una colonoscopía, priorizar radiografías con probable neumotórax, graduar una retinopatía diabética. En esas tareas el patrón está en la imagen y el estándar de referencia es relativamente estable. Los modelos de lenguaje agregaron otra capa: generan diferenciales, resumen historias y responden preguntas clínicas con un conocimiento médico codificado que, en exámenes y casos seleccionados, alcanza rendimiento alto (Singhal et al., 2023; Lee et al., 2023).
+
+Pero el dato más instructivo sobre el rol diagnóstico real es otro: un ensayo aleatorizado entregó a internistas un modelo de lenguaje como apoyo para resolver casos clínicos. El grupo con el modelo no diagnosticó mejor que el grupo sin él — y el modelo solo, sin médico, superó a ambos (Goh et al., 2024). La lectura fácil ("la máquina ya es mejor") pasa por alto la lección metacognitiva: el eslabón débil no fue el modelo ni el médico, sino la conversación entre ambos. Los clínicos usaron la herramienta como oráculo de confirmación — pegarle el caso y mirar si coincide con lo que ya pensaban — en vez de usarla para lo que mejor hace: ampliar el espacio de hipótesis, proponer el contraejemplo, señalar el dato que no encaja. El capítulo 2 mostró que la generación de alternativas es el momento creativo del diagnóstico; usada ahí, la IA es un multiplicador. Usada como confirmadora rápida, es un espejo del anclaje.
+
+### El rol en el proceso terapéutico
+
+En la terapéutica la IA llega antes y por caminos menos visibles: alertas de deterioro, predictores de sepsis, sugerencias de dosis, detección de interacciones, estratificaciones de riesgo que deciden quién entra a un programa de cuidados. Aquí la evidencia ya dejó una parábola completa. Un modelo propietario de predicción de sepsis, desplegado en cientos de hospitales, fue validado externamente recién después de su adopción masiva: discriminaba mal, calibraba peor y generaba una carga de alertas capaz de fatigar a cualquier equipo (Wong et al., 2021). La falla profunda no fue estadística sino epistemológica: el sistema se adoptó sin exigirle la evidencia local que este libro pide para cualquier afirmación — ¿funciona aquí, con estos pacientes, con esta prevalencia? Es la lección de la Parte III aplicada al software: una herramienta no hereda la validez de su marca, y la validación externa no es un trámite — es la diferencia entre una alerta y un ruido.
+
+Hay un segundo límite terapéutico más silencioso. Una recomendación de intervención generada por IA opera sobre lo que está escrito, y el capítulo 10 mostró que lo menos escrito de la ficha es precisamente el contexto global — funcionalidad basal, pronóstico de fondo, red de apoyo, fines del paciente. Un sistema que no ve esos hechos no puede ponderarlos: recomendará la intervención "indicada" para la enfermedad documentada, que es exactamente el error de la indicación aislada. La IA no exime del cruce con la bioética; lo vuelve más urgente, porque automatiza la mitad técnica del razonamiento y deja la otra mitad — la que juzga si la intervención es proporcionada para este enfermo — enteramente del lado humano.
+
+### Competencia sin garantía
+
+Estudios han mostrado que modelos avanzados codifican conocimiento médico y alcanzan alto rendimiento en preguntas y casos seleccionados (Singhal et al., 2023). Lee, Bubeck y Petro describieron beneficios potenciales junto con límites y riesgos de GPT-4 en medicina (Lee et al., 2023). El rendimiento promedio no garantiza confiabilidad en un caso individual, especialmente cuando faltan datos, hay ambigüedad o la tarea exige conocimiento local. Y las consecuencias no intencionadas del aprendizaje automático en medicina —desde la automatización de sesgos presentes en los datos hasta la erosión de habilidades por deferencia— han sido advertidas desde antes de los modelos generativos (Cabitza et al., 2017).
+
+La fluidez aumenta el riesgo de automatización: el usuario puede aceptar una respuesta porque está bien estructurada. El problema es metacognitivo. La confianza percibida en el lenguaje no informa necesariamente la probabilidad de corrección. La IA puede parecer mejor calibrada de lo que está.
+
+### El catálogo de riesgos
+
+Los riesgos de la IA clínica ya no son especulación; tienen literatura propia. Conviene tenerlos en catálogo, con su parentesco epistémico a la vista:
+
+- **Confabulación.** Contenido no sustentado presentado con coherencia (Ji et al., 2023). Es la certeza retórica del capítulo 4, industrializada: prosa donde los hechos, las inferencias y lo inventado llegan con la misma sintaxis.
+- **Sesgo de automatización.** La tendencia a aceptar la salida de un sistema por venir de un sistema, documentada en los apoyos a la decisión clínica desde mucho antes de los modelos generativos: los sistemas corrigen errores humanos e introducen errores nuevos — el usuario que habría acertado solo y se equivoca por deferencia (Goddard et al., 2012). Es el anclaje del capítulo 7 más la autoridad no interrogada, con interfaz.
+- **Atrofia de la pericia.** La evidencia más inquietante es reciente: endoscopistas expuestos durante meses a la detección asistida de pólipos detectaron significativamente menos adenomas al volver a trabajar sin asistencia — seis puntos absolutos menos que antes de la exposición (Budzyń et al., 2025). La pericia perceptual del capítulo 6 se mantiene con práctica; si la máquina practica por nosotros, la cuenta llega en la primera guardia sin máquina.
+- **Sesgo algorítmico.** Un algoritmo aplicado a millones de pacientes en Estados Unidos asignaba menos cuidados a pacientes negros igual de enfermos, porque fue entrenado para predecir gasto sanitario como sustituto de necesidad — y en poblaciones históricamente subatendidas se gasta menos (Obermeyer et al., 2019). El error no estaba en la matemática sino en la elección del sustituto: la carga teórica de la observación del capítulo 1, a escala poblacional. Ningún dato de entrenamiento es neutro; alguien decidió qué medir.
+- **Sobreconfianza no calibrada.** La confianza verbalizada de los modelos tiende a la sobreconfianza sistemática (Kadavath et al., 2022; Xiong et al., 2024): el "estoy bastante seguro" del modelo es tono, no calibración — la sobreconfianza del capítulo 5, sin siquiera un historial propio de errores que la eduque.
+- **Degradación silenciosa.** Los modelos se despliegan sobre poblaciones que cambian: prevalencias, prácticas, codificaciones. El rendimiento decae sin anunciarse, porque el software no siente que está fallando. Sin monitoreo activo, la validación de ayer es la superstición de mañana.
+
+La columna vertebral del catálogo es una sola observación: la IA no introdujo errores nuevos en la medicina. Automatizó los que ya teníamos y les quitó los frenos naturales — la lentitud, la duda, el cansancio que a veces obligaba a pedir ayuda.
+
+### Cómo enfrentarlos: las defensas del clínico
+
+La primera defensa ya está en este libro. El clínico responsable puede distinguir "lo vi", "lo infiero" y "no lo sé"; un modelo suele mezclar esas capas si nadie le exige separación, y puede transformar ausencia de información en un detalle probable, porque su objetivo generativo favorece la continuidad. La matriz HII-D funciona entonces como protocolo de auditoría de cualquier salida de IA:
+
+- ¿qué hechos provienen realmente del caso?;
+- ¿qué información agregó el modelo?;
+- ¿qué inferencias formula y con qué respaldo?;
+- ¿qué incertidumbres omitió?;
+- ¿qué decisión propone y cuáles serían sus riesgos?;
+- ¿qué fuente primaria permite verificar la afirmación?
+
+De esa auditoría se desprenden reglas de uso que caben en una tarjeta:
+
+1. **Verificar la afirmación decisiva contra una fuente primaria antes de actuar.** No todas: la decisiva — la que, de ser falsa, cambia la conducta.
+2. **Usar la herramienta para abrir, no para cerrar.** Pedir alternativas, contraejemplos y "qué no encaja con este diagnóstico" aprovecha exactamente lo que el ensayo de Goh mostró que desaprovechamos; pedirle confirmación de la hipótesis propia industrializa el anclaje.
+3. **Tratar su confianza como tono, no como evidencia.** La seguridad de la prosa no informa la probabilidad de corrección — igual que la seguridad de un colega no sustituye sus razones.
+4. **Nunca pegar y firmar.** Lo que entra a la ficha bajo la firma propia es afirmación propia; el capítulo 12 mostró que la ficha produce lo visible, y una confabulación copiada se convierte en hecho heredado para el siguiente lector.
+5. **Conservar práctica sin asistencia.** La lección de los endoscopistas: alternar deliberadamente el trabajo con y sin la herramienta, como se conserva cualquier destreza que puede necesitarse a las tres de la mañana, con el sistema caído.
+
+El modelo puede servir como generador de alternativas, revisor de coherencia, organizador de información o segundo lector. Su valor aumenta cuando el usuario mantiene la responsabilidad de verificación y disminuye cuando se usa como autoridad final.
+
+### Cómo enfrentarlos: las defensas de la institución
+
+Las defensas individuales no bastan, porque varios riesgos del catálogo operan a escala de sistema. Una institución que despliega IA clínica contrae obligaciones epistémicas precisas:
+
+- **Validación local antes de usar.** El desempeño publicado —o prometido— no es el desempeño aquí; la parábola del predictor de sepsis existe porque nadie hizo esta pregunta a tiempo (Wong et al., 2021).
+- **Monitoreo continuo con umbrales de retirada.** Definir antes del despliegue qué degradación obliga a recalibrar o apagar: la falsabilidad del capítulo 15, aplicada al software.
+- **Auditoría de equidad.** Desagregar el rendimiento por subgrupos y examinar los sustitutos con la pregunta de Obermeyer: ¿qué mide realmente esta variable, y para quién?
+- **Presupuesto de alertas.** Cada alarma nueva compite por la misma atención finita; una alerta de bajo valor predictivo no es inocua — es ruido que entrena a ignorar, y el equipo que aprendió a ignorar no distingue qué está ignorando.
+- **Responsabilidad trazable.** Cada recomendación automatizada necesita un dueño humano identificable, con tiempo, datos y autoridad para contradecirla. La OMS ha recomendado gobernanza, evaluación, transparencia y supervisión humana para estos sistemas, atendiendo riesgos de inexactitud, sesgo, privacidad y dependencia excesiva (World Health Organization, 2024); esa supervisión no puede ser una firma ritual al final del flujo.
+
+### Metacognición artificial
+
+Algunos sistemas pueden expresar confianza, criticar una respuesta o revisar pasos. Eso no demuestra autoconocimiento en el sentido humano. Una salida metacognitiva puede ser otra generación entrenada para imitar evaluación. La pregunta práctica no es si el sistema "sabe que sabe", sino si sus señales de confianza están empíricamente calibradas y si el flujo de trabajo detecta fallas.
+
+Esa pregunta ya tiene datos. La evidencia disponible muestra que la confianza verbalizada de los grandes modelos —el "estoy bastante seguro" que escriben— tiende a la sobreconfianza sistemática y se calibra mal, aun cuando algunas señales internas del modelo discriminan mejor de lo que su prosa deja ver (Kadavath et al., 2022; Xiong et al., 2024). La implicación práctica es idéntica a la del capítulo 5, aplicada ahora a la máquina: preguntarle a un modelo cuán seguro está no sustituye la verificación, igual que la seguridad de un colega no sustituye sus razones. La calibración se demuestra con series de predicciones y desenlaces, no con tono.
+
+### La IA como espejo y provocación filosófica
+
+La IA revela que una frase puede conservar la forma externa del razonamiento sin tener acceso directo al evento. Esto obliga a recordar que la coherencia verbal nunca fue garantía suficiente. También muestra el valor del lenguaje como espacio de prueba: pedir alternativas, contraejemplos y explicitar incertidumbre puede mejorar la deliberación humana, aunque no vuelva verdadero al modelo.
+
+> La IA puede ampliar el espacio de hipótesis; no puede asumir por sí sola la responsabilidad de transformar una hipótesis en conducta clínica.
+
+Usada con disciplina, puede ser un instrumento metacognitivo externo. Usada por deferencia, puede reforzar el mismo error que pretendía corregir: convertir plausibilidad en certeza.
+
+#### Taller 17. La autopsia de una respuesta
+
+Tome un caso real ya resuelto de su servicio —debidamente anonimizado— y péguelo en un asistente de lenguaje pidiendo evaluación y plan. Imprima la respuesta y márquela con tres colores: (1) afirmaciones sustentadas en datos que el caso contenía; (2) contenido que el modelo agregó — detalles "típicos", causalidades, datos que nadie le dio; (3) incertidumbre declarada. Después, haga una segunda pregunta al modelo: "¿qué evidencia haría improbable tu diagnóstico principal?".
+
+*Solución comentada.* Tres hallazgos son casi constantes. Primero, el color 2 aparece más de lo esperado: el modelo rellena huecos con verosimilitud — una evolución "esperable", un factor de riesgo "presumible" — y esa es exactamente la definición de confabulación; contarlas cura más que leer sobre ellas. Segundo, el color 3 suele ser genérico ("se sugiere correlacionar con la clínica") y no específico del caso: incertidumbre de fórmula, no de contenido — compárela con la que exige el léxico del capítulo 4. Tercero, la respuesta a la segunda pregunta suele ser mejor que la primera: el modelo enumera con soltura los datos que refutarían su propia propuesta — pero sólo si alguien se lo pide. La herramienta contiene su propio antídoto; la pregunta que lo libera sigue siendo humana.
+
+**En una frase.** La IA generativa produce exactamente aquello contra lo que este libro entrena: prosa fluida donde hechos, inferencias e incertidumbre llegan mezclados — auditarla con HII-D es el mismo ejercicio que auditar la propia escritura.
+
+**Tres preguntas para la próxima visita.**
+1. Si uso IA en este caso, ¿qué dato de su respuesta verifiqué contra una fuente primaria antes de actuar?
+2. ¿Qué agregó el modelo que el caso no contenía?
+3. ¿Estoy usando la herramienta para ampliar hipótesis o para confirmar rápido la que ya tenía?
+
 ## Capítulo 18. La palabra exacta: lo que la poesía sabe del juicio clínico
 
 Hay un momento que los tratados no describen y todo clínico conoce: tres hallazgos sueltos —una taquicardia sin fiebre, un abdomen que "no convence", una frase de la hija— se ordenan de golpe bajo una sola explicación, y algo hace clic. El placer de ese instante no es administrativo. Es físico, breve y sospechosamente parecido al de un verso que cae en su lugar. Este capítulo toma ese parecido en serio: no como adorno humanista, sino como información sobre cómo funciona —y cómo falla— el juicio.
@@ -489,7 +534,7 @@ Hay un momento que los tratados no describen y todo clínico conoce: tres hallaz
 
 El poeta trabaja buscando conexiones: entre palabras, entre una palabra y un sentido que todavía no tiene nombre, entre el sonido y aquello que el sonido vuelve visible. Su estado mental característico combina atención flotante, oído para lo que no encaja y una disposición rara: dejar que el material mande sobre el plan. El clínico que razona bien trabaja igual, con otros materiales: entre el hallazgo y el mecanismo, entre el mecanismo y la intervención que estabiliza, busca la conexión que convierta fragmentos en un caso inteligible.
 
-El parentesco es lógico antes que sentimental. Una metáfora es la hipótesis de que dos cosas lejanas comparten estructura; un diagnóstico es una metáfora que acepta ser puesta a prueba — "este cuadro es una colecistitis" apuesta a que lo que ocurre en este cuerpo comparte estructura con un patrón aprendido. Ambos movimientos son la abducción del capítulo 2, y ambos requieren el mismo estado que el capítulo 15 llamó humildad en funciones: sostener la conjetura con fuerza suficiente para trabajarla y soltura suficiente para dejarla caer. Bohm lo dijo desde la física: el acto creativo central —percibir un orden nuevo en lo que ya estaba a la vista— es el mismo en el arte y en la ciencia; cambian los materiales y el tribunal (Bohm, 1996).
+El parentesco es lógico antes que sentimental. Una metáfora es la hipótesis de que dos cosas lejanas comparten estructura; un diagnóstico es una metáfora que acepta ser puesta a prueba — "este cuadro es una colecistitis" apuesta a que lo que ocurre en este cuerpo comparte estructura con un patrón aprendido. Ambos movimientos son la abducción del capítulo 2, y ambos requieren el mismo estado que el capítulo 14 llamó humildad en funciones: sostener la conjetura con fuerza suficiente para trabajarla y soltura suficiente para dejarla caer. Bohm lo dijo desde la física: el acto creativo central —percibir un orden nuevo en lo que ya estaba a la vista— es el mismo en el arte y en la ciencia; cambian los materiales y el tribunal (Bohm, 1996).
 
 ### Huidobro, o la palabra que crea
 
@@ -507,7 +552,7 @@ La antipoesía es un programa epistemológico completo: quitarle a la palabra lo
 
 El clic estético del diagnóstico existe y es información. La parsimonia, la convergencia, el encaje sin residuo son la forma sensible de aquello que el capítulo 2 llamó fuerza por convergencia: cuando una explicación ordena todos los hechos sin forzar ninguno, algo en nosotros lo registra como belleza antes de poder justificarlo. Esa señal vale: propone candidatos que el análisis no habría listado.
 
-Pero este libro ya conoció a la impostora. La historia coherente del hindsight, la narrativa atractiva que infla la confianza (capítulo 5), la prosa fluida de los modelos de lenguaje (capítulo 14): todas son bellas y ninguna es, por serlo, verdadera. La belleza no distingue entre orden hallado y orden impuesto — para eso están las pruebas severas. La regla que concilia ambas caras cabe en una línea: la elegancia selecciona hipótesis; nunca las confirma. El verso puede quedarse bello para siempre; el diagnóstico tiene que amanecer verdadero, y la evolución lo audita cada mañana.
+Pero este libro ya conoció a la impostora. La historia coherente del hindsight, la narrativa atractiva que infla la confianza (capítulo 5), la prosa fluida de los modelos de lenguaje (capítulo 17): todas son bellas y ninguna es, por serlo, verdadera. La belleza no distingue entre orden hallado y orden impuesto — para eso están las pruebas severas. La regla que concilia ambas caras cabe en una línea: la elegancia selecciona hipótesis; nunca las confirma. El verso puede quedarse bello para siempre; el diagnóstico tiene que amanecer verdadero, y la evolución lo audita cada mañana.
 
 Queda la belleza final, la que menos se nombra: la de hacer lo correcto en el contexto correcto. Una estabilización bien conducida tiene forma estética — nada sobró, nada faltó, cada intervención llegó a su hora; es la phronesis del capítulo 6 vuelta percepción. Pero es una belleza que sólo puede declararse retrospectivamente, y sólo si el proceso era defendible antes de conocer el desenlace (capítulo 10). En medicina la estética es un subproducto del rigor. Cuando se la busca directamente —el diagnóstico brillante, la frase imponente—, se obtiene Huidobro en la ficha.
 

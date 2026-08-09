@@ -123,7 +123,7 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 
 # Apéndice C. Guía de implementación en un servicio clínico
 
-Esta guía condensa el capítulo 17 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 16, "Límites"); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la ronda— es también la más poderosa.
+Esta guía condensa el capítulo 16 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 15, "Límites"); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la ronda— es también la más poderosa.
 
 ### Semana 1–2: instalar el lenguaje
 
@@ -236,6 +236,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Sensibilidad metacognitiva.** Capacidad de discriminar los propios aciertos de los propios errores mediante la confianza; distinta del sesgo metacognitivo (tendencia global a confiar mucho o poco).
 
+**Sesgo de automatización.** Tendencia a aceptar la recomendación de un sistema automatizado por encima de la propia evidencia o el propio juicio; los apoyos a la decisión corrigen errores humanos e introducen errores nuevos por deferencia (Goddard et al.). Pariente del anclaje, con interfaz.
+
 **Testimonio (epistemología del).** Estudio del conocimiento obtenido mediante informes de otros. Coady defendió la confianza por defecto como condición de todo conocimiento compartido; Lackey añadió la vigilancia activa del oyente. La anamnesis es su caso clínico paradigmático.
 
 **Umbral de decisión.** Nivel de probabilidad sobre el cual una conducta (testear, tratar) supera a sus alternativas, dado el balance de daños y beneficios (Pauker y Kassirer).
@@ -248,72 +250,77 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 
 - Abducción — 2
 - Anclaje — 7, 11, CC (viñeta 8)
+- Atrofia de la pericia por asistencia de IA (deskilling) — 17
 - Ausencia de evidencia / evidencia de ausencia — 1, 4, Ap B
-- Autoridad revisable — 7, 13, 15
-- Bioética y razonamiento clínico (cuatro tópicos, proporcionalidad, deliberación) — 10, 16, CC (viñeta 7), Ap A
-- Calibración — 5, 16, 17, Ap C
+- Autoridad revisable — 7, 13, 14
+- Bioética y razonamiento clínico (cuatro tópicos, proporcionalidad, deliberación) — 10, 15, CC (viñeta 7), Ap A
+- Calibración — 5, 15, 16, Ap C
 - Carga teórica de la observación — 1
 - Cierre prematuro — 2, 7, CC (viñeta 8)
 - Cognición distribuida — 13
-- Comunicación de incertidumbre — 13, 15, CC (viñeta 7)
+- Comunicación de incertidumbre — 13, 14, CC (viñeta 7)
 - Conocimiento tácito — 6
-- Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 16, Ap A
+- Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 15, Ap A
 - Contrafactuales — 11
 - Copiado de notas (fósil narrativo) — 12, Ap C
 - Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2, 18
 - Cuatro tópicos (Jonsen, Siegler y Winslade) — 10, Ap A
-- Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 17
-- Decisión compartida — 13, 15, Interludio III
+- Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
+- Decisión compartida — 13, 14, Interludio III
 - Deliberación moral (Gracia) — 10
 - Densidad epistémica — 4
 - Desaceleración selectiva — 8, Interludio II
 - Desacuerdo clínico — 13, Interludio III
 - Doble proceso — 6
-- Documentación defensiva — 15
+- Documentación defensiva — 14
 - Ensombrecimiento diagnóstico — CC (viñeta 10)
 - Errores asimétricos — 10, CC (viñeta 5)
 - Evidencia poblacional y particularización — 9
-- Falsabilidad del método HII-D — 16
-- Feedback diagnóstico — 5, 17, Ap C
+- Falsabilidad del método HII-D — 15
+- Feedback diagnóstico — 5, 16, Ap C
 - Ficha como dispositivo que produce lo visible (Foucault) — 12
-- Fichas clínicas y plantillas — 12, 17, Ap C
-- Fragilidad y funcionalidad como hechos clínicos — 10, 16, Ap A
+- Fichas clínicas y plantillas — 12, 16, Ap C
+- Fragilidad y funcionalidad como hechos clínicos — 10, 15, Ap A
 - Frase medular — 4, 12, C, CC (todas las viñetas)
 - Frecuencias naturales — 2, 10, 13
 - Grados de facticidad — 1
-- Hindsight bias — 8, 11, 17, CC (viñeta 8)
-- HII-D (método) — 12, 16, Ap A; auditoría de IA con — 14
-- Humildad epistémica como motor (explorar, aprender, reenfocar) — 15
-- Illness scripts — 2, 6, 17
+- Hindsight bias — 8, 11, 16, CC (viñeta 8)
+- HII-D (método) — 12, 15, Ap A; auditoría de IA con — 17
+- Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
+- Illness scripts — 2, 6, 16
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
-- Injusticia epistémica — 15, CC (viñeta 10)
+- Injusticia epistémica — 14, CC (viñeta 10)
+- Inteligencia artificial: rol diagnóstico y terapéutico, catálogo de riesgos, defensas — 17
 - Intuición experta — 5, 6, Interludio II
 - Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 10
 - Léxico de certeza — 4, Ap B
 - Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 10
 - Medicina basada en evidencia — 9
 - Meta-d′ y medición de la metacognición — 5
-- Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 14
-- Miedo y decisión (documentación defensiva, sobreestudio) — 3, 15
+- Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 17
+- Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Observación activa — 10, 11
-- Pausa diagnóstica — 8, 17, Ap B, Ap C
+- Pausa diagnóstica — 8, 16, Ap B, Ap C
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pericia y práctica deliberada — 6
-- Phronesis — 6, 15
+- Phronesis — 6, 14
 - Pronóstico e incertidumbre de plazo — CC (viñeta 7)
-- Proporcionalidad terapéutica (Taboada) — 10, 16, CC (viñeta 7)
+- Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 7)
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III
-- Representación del problema — Int, 2, 8, 17
+- Representación del problema — Int, 2, 8, 16
 - Riesgo inductivo (Rudner, Douglas) — 10
 - Safety-netting — 11, CC (viñetas 5, 6 y 9)
-- Segunda víctima — 15
+- Segunda víctima — 14
+- Sesgo algorítmico (Obermeyer) — 17
+- Sesgo de automatización (Goddard) — 17
 - Sesgos cognitivos: alcance y límites del vocabulario — 7
 - Sobreconfianza — 5, 7
 - Sobreestudio e intervenciones innecesarias — 3
-- Testimonio del paciente — 1, 15; epistemología del testimonio (Coady, Lackey) — 15; testimonio de terceros y cuidadores — CC (viñeta 9)
+- Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14; testimonio de terceros y cuidadores — CC (viñeta 9)
 - Trayectoria y temporalidad — 11, Interludio I
 - Umbrales de decisión — 10, Interludio III, CC (viñeta 5)
+- Validación local y monitoreo de herramientas de IA — 17
 - Verbos epistémicos — 4, Ap B
 
 # Referencias
@@ -335,6 +342,8 @@ Bohm, D., & Peat, F. D. (1987). *Science, Order, and Creativity*. Bantam Books.
 Bordage, G. (1994). Elaborated knowledge: A key to successful diagnostic thinking. *Academic Medicine, 69*(11), 883–885.
 
 Bowen, J. L. (2006). Educational strategies to promote clinical diagnostic reasoning. *New England Journal of Medicine, 355*(21), 2217–2225.
+
+Budzyń, K., Romańczyk, M., Kitala, D., et al. (2025). Endoscopist deskilling risk after exposure to artificial intelligence in colonoscopy: A multicentre, observational study. *The Lancet Gastroenterology & Hepatology, 10*(10), 896–903.
 
 Cabitza, F., Rasoini, R., & Gensini, G. F. (2017). Unintended consequences of machine learning in medicine. *JAMA, 318*(6), 517–518.
 
@@ -405,6 +414,10 @@ Gérvas, J., & Pérez Fernández, M. (2013). *Sano y salvo (y libre de intervenc
 Gigerenzer, G., & Gaissmaier, W. (2011). Heuristic decision making. *Annual Review of Psychology, 62*, 451–482.
 
 Gigerenzer, G., Gaissmaier, W., Kurz-Milcke, E., Schwartz, L. M., & Woloshin, S. (2007). Helping doctors and patients make sense of health statistics. *Psychological Science in the Public Interest, 8*(2), 53–96.
+
+Goddard, K., Roudsari, A., & Wyatt, J. C. (2012). Automation bias: A systematic review of frequency, effect mediators, and mitigators. *Journal of the American Medical Informatics Association, 19*(1), 121–127.
+
+Goh, E., Gallo, R., Hom, J., et al. (2024). Large language model influence on diagnostic reasoning: A randomized clinical trial. *JAMA Network Open, 7*(10), e2440969.
 
 Graber, M. L., Franklin, N., & Gordon, R. (2005). Diagnostic error in internal medicine. *Archives of Internal Medicine, 165*(13), 1493–1499.
 
@@ -497,6 +510,8 @@ Norman, G. R., Monteiro, S. D., Sherbino, J., Ilgen, J. S., Schmidt, H. G., & Ma
 
 Novoa Jurado, A. J. (2025). Terapia epistémica del conocimiento clínico. *Revista Clínica de Medicina de Familia, 18*(3), 274–282.
 
+Obermeyer, Z., Powers, B., Vogeli, C., & Mullainathan, S. (2019). Dissecting racial bias in an algorithm used to manage the health of populations. *Science, 366*(6464), 447–453.
+
 Parra, N. (1954). *Poemas y antipoemas*. Nascimento.
 
 Parra, N. (1969). *Obra gruesa*. Editorial Universitaria.
@@ -563,6 +578,8 @@ Whitcomb, D., Battaly, H., Baehr, J., & Howard-Snyder, D. (2017). Intellectual h
 Wittgenstein, L. (2009). *Philosophical Investigations* (G. E. M. Anscombe, P. M. S. Hacker, & J. Schulte, Trans.; 4th ed.). Wiley-Blackwell. (Obra original publicada en 1953).
 
 World Health Organization. (2024). *Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models*. World Health Organization.
+
+Wong, A., Otles, E., Donnelly, J. P., et al. (2021). External validation of a widely implemented proprietary sepsis prediction model in hospitalized patients. *JAMA Internal Medicine, 181*(8), 1065–1070.
 
 Wu, A. W. (2000). Medical error: The second victim. The doctor who makes the mistake needs help too. *BMJ, 320*(7237), 726–727.
 
