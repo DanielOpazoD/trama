@@ -246,13 +246,15 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Umbral de decisión.** Nivel de probabilidad sobre el cual una conducta (testear, tratar) supera a sus alternativas, dado el balance de daños y beneficios (Pauker y Kassirer).
 
+**Validez del entorno.** Grado en que un ambiente de práctica ofrece regularidades estables entre señales y desenlaces, junto a oportunidad de aprenderlas con feedback oportuno; condición para que la intuición experta sea confiable (Kahneman y Klein).
+
 **Validez externa / transportabilidad.** Grado en que un resultado de investigación puede aplicarse fuera del contexto en que fue producido; no es propiedad binaria del estudio sino relación entre evidencia y uso propuesto.
 
 # Índice analítico
 
 Los números remiten a capítulos (Int = introducción, Interludios I–III, CC = cuaderno de casos, C = conclusión, Ap = apéndices).
 
-- Abducción — 2
+- Abducción — 2; vigilada por la metacognición — 5; mantenida abierta por la humildad — 14
 - Actos de habla en la ficha (Austin) — 4
 - Anclaje — 7, 11, CC (viñeta 8)
 - Atrofia de la pericia por asistencia de IA (deskilling) — 17
@@ -306,7 +308,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 10
 - Medicina basada en evidencia — 9
 - Meta-d′ y medición de la metacognición — 5
-- Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 17
+- Metacognición: definición y niveles — Int, 5; monitoreo y control — 5; social (señales del equipo y del paciente) — 5, 13; sensibilidad vs. sesgo — Int, 5; artificial — 17
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
 - Nota clínica generada por IA (degradación del registro) — 17
@@ -332,6 +334,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14; testimonio de terceros y cuidadores — CC (viñeta 9)
 - Trayectoria y temporalidad — 11, Interludio I
 - Umbrales de decisión — 10, Interludio III, CC (viñeta 5)
+- Validez del entorno e intuición (Kahneman y Klein) — 6
 - Validación local y monitoreo de herramientas de IA — 17
 - Verbos epistémicos — 4, Ap B
 
@@ -496,6 +499,8 @@ Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., et al
 Jonsen, A. R., & Toulmin, S. (1988). *The Abuse of Casuistry: A History of Moral Reasoning*. University of California Press.
 
 Kahneman, D. (2011). *Thinking, Fast and Slow*. Farrar, Straus and Giroux.
+
+Kahneman, D., & Klein, G. (2009). Conditions for intuitive expertise: A failure to disagree. *American Psychologist, 64*(6), 515–526.
 
 Kassirer, J. P. (1989). Our stubborn quest for diagnostic certainty. *New England Journal of Medicine, 320*(22), 1489–1491.
 

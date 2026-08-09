@@ -29,6 +29,7 @@ Fecha de auditoría: 9 de agosto de 2026. Método: cada afirmación empírica de
 | 23 | Anatomía del argumento: dato, garantía, respaldo, calificador, refutación (cap. 4, caja) | Toulmin, The Uses of Argument, Cambridge, 1958 | Los seis elementos confirmados | EXACTA |
 | 24 | Toulmin y Jonsen defendieron juntos la casuística clínica (cap. 4, caja) | Jonsen & Toulmin, The Abuse of Casuistry, U. California Press, 1988 | Verificado antes de incorporar (esta edición) | EXACTA |
 | 25 | Ten pitfalls de la depuración de lactato (cap. 1) | Hernández, Bellomo & Bakker, Intensive Care Med 2019;45(1):82-85 | Verificada en 4.ª ronda | EXACTA |
+| 26 | Intuición confiable sólo con entorno de validez alta + oportunidad de aprender sus regularidades (cap. 6) | Kahneman & Klein, Am Psychol 2009;64(6):515-526 | Verificada antes de incorporar (esta edición); condiciones correctamente descritas | EXACTA |
 
 ## Generalizaciones docentes intervenidas (regla de transformación de la pauta, §A4)
 
