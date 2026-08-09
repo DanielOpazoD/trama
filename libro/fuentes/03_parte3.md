@@ -1,10 +1,10 @@
 # PARTE III. Decidir en el tiempo y con otros
 
-Las dos primeras partes examinaron el conocimiento y la mente que lo maneja. Esta parte los pone en movimiento: la evidencia poblacional que debe traducirse a una persona y convertirse en decisión por umbrales (capítulo 9), el tiempo que transforma el significado de los hechos (capítulo 10), la ficha que piensa o que fosiliza (capítulo 11) y el equipo donde el conocimiento circula, se degrada o se corrige, incluida la conversación con el paciente (capítulo 12). El interludio final encuentra a Carmen frente a una decisión de verdad.
+Las dos primeras partes examinaron el conocimiento y la mente que lo maneja. Esta parte los pone en movimiento: la evidencia poblacional que debe traducirse a una persona (capítulo 9), la decisión por umbrales donde los valores entran al cálculo y los ensayos se leen con su marco a la vista (capítulo 10), el tiempo que transforma el significado de los hechos (capítulo 11), la ficha que piensa o que fosiliza (capítulo 12) y el equipo donde el conocimiento circula, se degrada o se corrige, incluida la conversación con el paciente (capítulo 13). El interludio final encuentra a Carmen frente a una decisión de verdad.
 
-## Capítulo 9. De la evidencia a la decisión: poblaciones, umbrales y consecuencias
+## Capítulo 9. La evidencia y el caso singular
 
-El ensayo clínico dice: "la reparación electiva de hernia incisional reduce la recurrencia obstructiva en pacientes comparables". La paciente de la cama 12 tiene 61 años, una recuperación reciente de un shock séptico, un EPOC moderado y una pregunta simple: "¿Y si no me opero?". Entre el ensayo y la respuesta hay una cadena de inferencias que este capítulo intenta hacer visible.
+El ensayo clínico dice: "la reparación electiva de hernia incisional reduce la recurrencia obstructiva en pacientes comparables". La paciente de la cama 7 tiene 61 años, una recuperación reciente de un shock séptico, un EPOC moderado y una pregunta simple: "¿Y si no me opero?". Entre el ensayo y la respuesta hay una cadena de inferencias que este capítulo intenta hacer visible.
 
 ### La evidencia responde a una pregunta distinta
 
@@ -27,6 +27,27 @@ La defensa del juicio clínico puede convertirse en excusa para ignorar datos in
 Una formulación responsable podría distinguir: evidencia de eficacia; evidencia de seguridad; semejanza del paciente con la población; factores que aumentan o disminuyen el efecto esperado; preferencias; y condiciones locales de implementación. Esta separación evita dos excesos simétricos: el positivismo ingenuo que cree que el estudio decide por sí solo y el particularismo romántico que presenta la intuición del médico como conocimiento inaccesible a examen.
 
 La medicina clínica utiliza además evidencia que no siempre ocupa la parte superior de una pirámide: evolución temporal, respuesta previa, patrones fisiopatológicos, datos locales, factibilidad y experiencia técnica. Su menor jerarquía para estimar causalidad poblacional no la vuelve irrelevante para una decisión individual. La pregunta correcta es qué función epistémica cumple cada fuente y qué error puede corregir o introducir.
+
+### Evidencia local y aprendizaje del caso
+
+La evidencia externa convive con conocimiento local: epidemiología, disponibilidad diagnóstica, tiempos de traslado, perfiles de resistencia, experiencia técnica y capacidad de seguimiento. Estos datos pueden modificar la decisión sin contradecir un estudio. Su legitimidad depende de que sean explícitos y actualizables, no simples tradiciones institucionales.
+
+El paciente también genera evidencia longitudinal sobre sí mismo. Respuestas previas, recurrencias, efectos adversos y preferencias estables constituyen información relevante, aunque no equivalgan a un ensayo N-of-1 formal. El desafío es evitar atribuciones causales fáciles: la mejoría posterior a una intervención no demuestra que haya sido causada por ella, especialmente cuando coexisten historia natural y tratamientos simultáneos.
+
+Una deliberación bien formulada puede declarar: qué proviene de estudios; qué se extrapola; qué aporta la historia individual; qué depende del contexto local; y qué permanece desconocido. Esa estratificación protege tanto contra la obediencia automática a la evidencia como contra su rechazo anecdótico. La competencia metacognitiva consiste en reconocer cuándo se está citando un resultado, cuándo se está extrapolando, cuándo se está suponiendo un mecanismo y cuándo una preferencia está inclinando la balanza. La pregunta final no es "¿existe evidencia?", sino "¿qué evidencia existe, para qué afirmación, con qué transportabilidad y con qué consecuencias para esta persona?".
+
+> La evidencia no desciende intacta desde la población hacia el individuo: debe ser traducida, y esa traducción es una inferencia clínica sometida a incertidumbre.
+
+**En una frase.** Un resultado de investigación es un hecho sobre una población; su aplicabilidad a esta persona es una inferencia que debe hacerse explícita — traducir no es obedecer al estudio ni improvisar contra él.
+
+**Tres preguntas para la próxima visita.**
+1. Para mi indicación más importante de hoy: ¿qué demostró exactamente el estudio que la respalda, y en qué se parece mi paciente a esa población?
+2. ¿Qué rasgo concreto de este caso modifica la inferencia poblacional — y puedo nombrarlo, o sólo lo intuyo?
+3. ¿Qué conocimiento local (resistencias, tiempos, capacidad de seguimiento) está modificando mi decisión sin estar declarado en ninguna parte?
+
+## Capítulo 10. Decidir sin certeza: umbrales, valores y lectura de la evidencia
+
+Supongamos resuelto lo anterior: la evidencia está traducida, la probabilidad estimada, el caso representado. Queda la pregunta que ninguna estimación responde sola: ¿y ahora qué hacemos? Este capítulo trata del tramo final — donde la probabilidad se encuentra con las consecuencias, los valores entran al cálculo sin pedir permiso, y hasta la lectura de un ensayo resulta ser una decisión.
 
 ### De la verdad a la acción: el enfoque de umbrales
 
@@ -52,9 +73,11 @@ Esta fundamentación tiene una consecuencia liberadora. Reconocer que hay valore
 
 ### Una década sobre un mismo dato: la saga ANDROMEDA
 
-Pocas historias recientes muestran mejor cómo se lee —y se relee— la evidencia. En 2019, un ensayo multicéntrico conducido desde una red latinoamericana de investigación en medicina intensiva comparó dos blancos para reanimar el shock séptico: normalizar el lactato o normalizar el relleno capilar. El grupo guiado por la perfusión periférica tuvo una mortalidad absoluta 8,5 puntos menor; el valor p fue 0,06 y el ensayo quedó declarado "negativo" según la convención (Hernández et al., 2019). ¿Qué debía hacer un clínico con ese resultado? El umbral de significación que lo declaró negativo no es una ley de la naturaleza: es una convención comunitaria sobre riesgo inductivo —cuánta evidencia exigimos antes de aceptar un efecto—, exactamente lo que Rudner y Douglas describieron. Un reanálisis bayesiano lo hizo explícito: bajo cualquier prior razonable, la probabilidad de que la estrategia guiada por perfusión fuera superior excedía el 90% (Zampieri et al., 2020). El mismo dato, dos marcos de lectura, dos frases distintas para la ficha.
+Pocas historias recientes muestran mejor cómo se lee —y se relee— la evidencia. En 2019, un ensayo multicéntrico conducido desde una red latinoamericana de investigación en medicina intensiva comparó dos blancos para reanimar el shock séptico: normalizar el lactato o normalizar el relleno capilar. El grupo guiado por la perfusión periférica tuvo una mortalidad absoluta 8,5 puntos menor; el valor p fue 0,06 y el ensayo quedó declarado "negativo" según la convención (Hernández et al., 2019). ¿Qué debía hacer un clínico con ese resultado? El umbral de significación que lo declaró negativo no es una ley de la naturaleza: es el riesgo inductivo de la sección anterior, institucionalizado en un número. Un reanálisis bayesiano lo hizo explícito: bajo cualquier prior razonable, la probabilidad de que la estrategia guiada por perfusión fuera superior excedía el 90% (Zampieri et al., 2020). El mismo dato, dos marcos de lectura, dos frases distintas para la ficha.
 
 La respuesta madura del propio grupo no fue proclamar victoria ni acatar el veredicto: fue refinar la hipótesis —fenotipos hemodinámicos, un algoritmo personalizado— y volver a someterla a una prueba más severa. Seis años después, el segundo ensayo, ahora en 86 centros de 19 países, mostró que la estrategia personalizada guiada por relleno capilar era superior al cuidado habitual (Hernández et al., 2025). La saga deja tres lecciones para este capítulo: un ensayo no se lee solo, porque el marco inferencial es parte de la lectura; "no significativo" no significa "sin efecto", y tratarlos como sinónimos es una decisión con costos; y la incertidumbre residual no se resuelve con retórica, sino con la siguiente pregunta bien diseñada. Hay una cuarta lección que excede la epistemología: esa ciencia de primera línea se hizo desde América Latina, coordinada desde Chile — el mismo continente clínico desde el que este libro escribe.
+
+[FIGURA: fig09_andromeda.png | Figura 7. Una década sobre un mismo dato: la saga ANDROMEDA. El mismo programa de investigación atraviesa un ensayo "negativo", su relectura bayesiana y una segunda prueba más severa — la trayectoria completa que este capítulo propone como modelo de lectura de la evidencia.]
 
 ### Tiempo y reversibilidad
 
@@ -74,30 +97,22 @@ Puede existir alta incertidumbre epistémica y fuerte compromiso práctico. "No 
 
 > La decisión clínica no exige convertir una probabilidad en certeza; exige justificar por qué, bajo esa probabilidad y esas consecuencias, actuar supera a no actuar.
 
-### Evidencia local y aprendizaje del caso
-
-La evidencia externa convive con conocimiento local: epidemiología, disponibilidad diagnóstica, tiempos de traslado, perfiles de resistencia, experiencia técnica y capacidad de seguimiento. Estos datos pueden modificar la decisión sin contradecir un estudio. Su legitimidad depende de que sean explícitos y actualizables, no simples tradiciones institucionales.
-
-El paciente también genera evidencia longitudinal sobre sí mismo. Respuestas previas, recurrencias, efectos adversos y preferencias estables constituyen información relevante, aunque no equivalgan a un ensayo N-of-1 formal. El desafío es evitar atribuciones causales fáciles: la mejoría posterior a una intervención no demuestra que haya sido causada por ella, especialmente cuando coexisten historia natural y tratamientos simultáneos.
-
-Una deliberación bien formulada puede declarar: qué proviene de estudios; qué se extrapola; qué aporta la historia individual; qué depende del contexto local; y qué permanece desconocido. Esa estratificación protege tanto contra la obediencia automática a la evidencia como contra su rechazo anecdótico. La competencia metacognitiva consiste en reconocer cuándo se está citando un resultado, cuándo se está extrapolando, cuándo se está suponiendo un mecanismo y cuándo una preferencia está inclinando la balanza. La pregunta final no es "¿existe evidencia?", sino "¿qué evidencia existe, para qué afirmación, con qué transportabilidad y con qué consecuencias para esta persona?".
-
-#### Taller 9. Frecuencias naturales al lado de la cama
+#### Taller 10. Frecuencias naturales al lado de la cama
 
 Suponga una condición con probabilidad pretest de 10%, y una prueba con sensibilidad 90% y especificidad 80%. El resultado llega positivo. Antes de calcular: ¿qué probabilidad le habría asignado intuitivamente al diagnóstico? Ahora calcule con frecuencias naturales sobre 1.000 pacientes.
 
 *Solución comentada.* De 1.000 pacientes, 100 tienen la condición; de ellos, 90 dan positivo. De los 900 sin la condición, 180 dan positivo (20% de falsos positivos). Total de positivos: 270. Probabilidad postest = 90/270 = 33%. La mayoría de los clínicos estima intuitivamente 70–90%, porque la sensibilidad y la especificidad "suenan" altas: el error clásico de ignorar la probabilidad previa (Hoffrage & Gigerenzer, 1998). La lección de umbral: con 33%, el caso probablemente queda en la zona de "seguir testeando", no en la de tratar —salvo que el daño de omitir sea catastrófico y el tratamiento, benigno. Repetir este cálculo con las probabilidades del propio hospital (¿qué proporción de los "urocultivos positivos" de su servicio son infección?) suele ser más correctivo que cualquier lectura teórica.
 
-[FIGURA: fig07_frecuencias.png | Figura 7. El cálculo del Taller 9 en frecuencias naturales: de 270 resultados positivos, sólo 90 corresponden a la enfermedad. La probabilidad postest (33%) queda lejos de la certeza que la intuición atribuye a una "prueba positiva".]
+[FIGURA: fig07_frecuencias.png | Figura 8. El cálculo del Taller 10 en frecuencias naturales: de 270 resultados positivos, sólo 90 corresponden a la enfermedad. La probabilidad postest (33%) queda lejos de la certeza que la intuición atribuye a una "prueba positiva".]
 
-**En una frase.** La evidencia no desciende intacta desde la población hacia el individuo: debe traducirse mediante inferencias explícitas, y la decisión final se toma por umbrales y consecuencias, no por certeza.
+**En una frase.** Decidir sin certeza no es un mal menor: es la forma normal del juicio clínico cuando trabaja bien — umbrales explícitos, valores declarados y ensayos leídos con su marco inferencial a la vista.
 
 **Tres preguntas para la próxima visita.**
-1. Para mi indicación más importante de hoy: ¿qué demostró exactamente el estudio que la respalda, y en qué se parece mi paciente a esa población?
-2. ¿Cuál es el umbral implícito de mi decisión: qué probabilidad de estar equivocado la haría cambiar?
-3. ¿Estoy exigiendo certeza diagnóstica donde bastaría compromiso práctico, o actuando para no tolerar una duda?
+1. ¿Cuál es el umbral implícito de mi decisión: qué probabilidad de estar equivocado la haría cambiar?
+2. ¿Estoy exigiendo certeza diagnóstica donde bastaría compromiso práctico, o actuando para no tolerar una duda?
+3. El último ensayo "negativo" que cité: ¿mostró ausencia de efecto o ausencia de significación — y traté esa diferencia como si no existiera?
 
-## Capítulo 10. Temporalidad, trayectoria y razonamiento contrafactual
+## Capítulo 11. Temporalidad, trayectoria y razonamiento contrafactual
 
 "Está mejor." La frase se dice en cada pase de visita y casi nunca se pregunta: ¿mejor que cuándo?, ¿mejor en qué variable?, ¿mejor a qué velocidad? Un lactato de 3 puede ser una buena noticia (venía de 6) o una pésima (venía de 1,5). Este capítulo trata del tiempo: la dimensión donde los hechos clínicos cambian de significado sin cambiar de valor.
 
@@ -131,7 +146,7 @@ Por ejemplo: "Cuarto episodio obstructivo en un año, esta vez asociado a bacter
 
 Una escritura temporalmente lúcida distingue fecha y secuencia, estado basal y actual, tendencia y variabilidad, intervención y respuesta, predicción y desenlace. Además, deja un horizonte prospectivo: qué se espera que ocurra, cuándo se reevaluará y qué hallazgo contará como fracaso. De este modo, la nota clínica no sólo documenta el pasado; organiza la próxima oportunidad de corregir el juicio.
 
-#### Taller 10. La observación activa, por escrito
+#### Taller 11. La observación activa, por escrito
 
 Un paciente con dolor abdominal inespecífico y laboratorio tranquilizador quedará "en observación". Redacte la indicación en no más de cuatro líneas, de modo que la observación sea una intervención diagnóstica y no una postergación.
 
@@ -144,7 +159,7 @@ Un paciente con dolor abdominal inespecífico y laboratorio tranquilizador queda
 2. ¿Qué predijo mi diagnóstico hace 48 horas, y la evolución lo confirmó o lo desmintió?
 3. Mi "observación" de hoy, ¿tiene plazo, variables y criterio de salida, o es una espera sin diseño?
 
-## Capítulo 11. La ficha clínica como instrumento de pensamiento
+## Capítulo 12. La ficha clínica como instrumento de pensamiento
 
 Abra la evolución de cualquier paciente con más de una semana de hospitalización y busque el párrafo que se repite idéntico desde el ingreso. Casi siempre existe. Alguien lo escribió el primer día, alguien lo copió el segundo, y desde entonces viaja como un polizón: "paciente con antecedente de ITU a repetición", "en estudio por baja de peso", "manejo habitual". Este capítulo trata de la ficha como tecnología cognitiva: la diferencia entre un registro que piensa y uno que fosiliza.
 
@@ -205,7 +220,7 @@ También debe registrar qué haría cambiar. "Reevaluar si fiebre o deterioro" e
 
 Escribir bien no es cosmética. Es una intervención sobre el razonamiento colectivo. La frase que mezcla capas puede perpetuar error; la que las distingue crea una oportunidad de corrección.
 
-#### Taller 11. Desfosilizar una evolución
+#### Taller 12. Desfosilizar una evolución
 
 La siguiente evolución se ha copiado casi idéntica durante cinco días: "Paciente con neumonía en tratamiento antibiótico, hemodinamia estable, afebril, se mantiene manejo". El día 5, los datos reales son: afebril, pero con requerimiento de oxígeno que subió de 2 a 4 litros, PCR estancada y un derrame pleural nuevo en la radiografía de control. Reescriba la evolución del día 5 con estructura HII-D.
 
@@ -218,7 +233,7 @@ La siguiente evolución se ha copiado casi idéntica durante cinco días: "Pacie
 2. Si yo no estuviera mañana, ¿el médico que me reemplace sabría por mi nota qué vigilar y qué reabriría el caso?
 3. ¿Mi lista de problemas distingue hechos, hipótesis, acciones pendientes e incertidumbres, o todo tiene el mismo estatus?
 
-## Capítulo 12. Pensar con otros: equipos, desacuerdo y comunicación de la incertidumbre
+## Capítulo 13. Pensar con otros: equipos, desacuerdo y comunicación de la incertidumbre
 
 A las 2:00, la enfermera de turno anota: "paciente más quejumbrosa, rechaza la cena, diuresis límite". A las 8:00, el pase de turno resume: "sin novedades". Entre esas dos frases no hay mala fe: hay una cadena de transmisión donde la información se comprimió hasta desaparecer. Este capítulo trata del conocimiento clínico como propiedad de un equipo —médicos, enfermería, paciente, familia, artefactos— y de cómo se degrada, se discute y se comunica.
 
@@ -287,7 +302,7 @@ Cada palabra de certeza distribuye responsabilidad. "Descartado" puede cerrar vi
 
 Después de un error, preguntar "¿quién se equivocó?" puede ser necesario, pero rara vez es suficiente. También debe preguntarse dónde se originó la información, en qué transformación perdió significado, qué señales estaban disponibles, quién podía contradecir la hipótesis y por qué el sistema no aprendió antes. La lucidez de un equipo se mide menos por la ausencia imposible de errores que por su capacidad de hacerlos visibles, limitarlos y convertirlos en conocimiento compartido.
 
-#### Taller 12. Traducir un desacuerdo
+#### Taller 13. Traducir un desacuerdo
 
 En la ronda, el intensivista dice: "Yo la operaría ahora; esto va a volver a pasar". La internista responde: "Me parece apresurado; acaba de salir de un shock". Traduzca el desacuerdo a proposiciones evaluables: ¿discrepan en hechos, inferencias, incertidumbre, valores o decisión?
 
@@ -306,7 +321,7 @@ El día 7, Carmen está sin sonda, comiendo, caminando por el pasillo. La evalua
 
 La cirujana no empieza por la propuesta. Empieza por el esquema de cuatro pasos: "Le voy a contar qué sabemos, qué creemos, qué no sabemos y qué opciones hay. Lo que sabemos: usted tiene una hernia que este año se ha obstruido cuatro veces, y la última vez llegó grave, con infección en la sangre y presión muy baja. Lo que creemos: que la probabilidad de que vuelva a pasar es alta, y que un próximo episodio puede ser tan grave como este o peor; no podemos ponerle fecha. Lo que no sabemos: si la cirugía va a ser sencilla —su tejido está operado de antes— ni cómo va a responder su pulmón a la anestesia; el riesgo existe y no es despreciable. Las opciones: operarnos ahora que usted está recuperada, en forma programada, con todo preparado; o esperar, sabiendo que la próxima obstrucción puede llegar de urgencia, de noche, con usted más débil".
 
-Carmen pregunta lo que casi todos preguntan: "¿Y usted qué haría?". La cirujana responde con la estructura del capítulo 14 en mente: "Yo le recomiendo operarse, y le digo por qué: prefiero un riesgo quirúrgico conocido, con usted optimizada, a un riesgo obstructivo que no controlamos ni podemos programar. Pero la que pasó el shock fue usted, y la que decide cuánto miedo le tiene a cada uno de esos riesgos también es usted".
+Carmen pregunta lo que casi todos preguntan: "¿Y usted qué haría?". La cirujana responde con la estructura del capítulo 15 en mente: "Yo le recomiendo operarse, y le digo por qué: prefiero un riesgo quirúrgico conocido, con usted optimizada, a un riesgo obstructivo que no controlamos ni podemos programar. Pero la que pasó el shock fue usted, y la que decide cuánto miedo le tiene a cada uno de esos riesgos también es usted".
 
 La hija pregunta si la cirugía "garantiza" que no habrá más obstrucciones. "No", dice la cirujana, "baja mucho la probabilidad; no la hace cero. Si le dijera otra cosa, le estaría mintiendo."
 

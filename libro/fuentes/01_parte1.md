@@ -115,6 +115,12 @@ Schön mostró, por último, dónde vive la creatividad profesional más frecuen
 
 Por eso a la generación le sigue, de inmediato, la prueba de resistencia: generar con libertad y podar con severidad no son virtudes rivales, sino las dos mitades del mismo juicio.
 
+#### Taller 2B. Cinco hipótesis en tres minutos
+
+Un paciente con EPOC conocido consulta por disnea que no ha respondido a dos rondas de broncodilatadores en urgencias. La saturación es 89%, la auscultación muestra escasas sibilancias. Tome tres minutos y un papel: (a) genere al menos cinco hipótesis sin censurar ninguna, (b) escriba una reformulación del problema que no use la palabra "EPOC", (c) recién entonces pode con las cuatro preguntas de la prueba de resistencia.
+
+*Solución comentada.* Una lista generativa razonable: tromboembolismo pulmonar (el EPOC es factor de riesgo, y las sibilancias escasas no explican la hipoxemia), neumotórax sobre bulas, insuficiencia cardiaca izquierda, neumonía en evolución, anemia, arritmia, derrame pleural, crisis de pánico superpuesta. La reformulación clave suele ser: "disnea desproporcionada a la obstrucción auscultada" — un problema distinto de "EPOC descompensado que no responde", porque abre el espacio donde viven el TEP y el neumotórax en vez de invitar a subir la dosis de lo mismo. Nótese el orden deliberado: primero volumen sin censura —la censura temprana es el mecanismo íntimo del cierre prematuro—, después poda severa. Tres minutos de generación cuestan menos que un día de anclaje.
+
 ### Explicaciones rivales y prueba de resistencia
 
 Una inferencia se fortalece cuando sobrevive a alternativas serias. Preguntar "¿qué más podría producir este conjunto?" no exige elaborar listas interminables. Exige identificar competidores capaces de modificar la conducta. La hipótesis rival debe tener derecho a explicar los mismos hechos, no ser un nombre añadido por obligación ritual.

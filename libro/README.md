@@ -4,10 +4,10 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 
 ## Entregables
 
-- `Hechos_inferencias_incertidumbre_edicion_revisada.docx` — Word completo (portada, legal, TOC con páginas, 4 partes / 16 capítulos, 8 figuras, tablas, apéndices, glosario, índice analítico, referencias).
+- `Hechos_inferencias_incertidumbre_edicion_revisada.docx` — Word completo (portada, legal, TOC con páginas, 4 partes / 17 capítulos, 9 figuras, tablas, apéndices, glosario, índice analítico, referencias).
 - `Hechos_inferencias_incertidumbre_edicion_revisada.pdf` — mismo contenido, 103 páginas A4.
 
-## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~32.400)
+## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~37.400)
 
 1. **Voz del autor**: prefacio en primera persona y pasajes personales en caps. 5, 7 y 14.
 2. **Hilo narrativo**: el caso de Carmen (hernia incisional) abre la introducción, cierra cada parte con un interludio y se resuelve en el Cuaderno de casos.
@@ -20,7 +20,11 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 9. **Posicionamiento**: párrafo en el prefacio que sitúa el libro frente a Groopman, Croskerry y Montgomery. Pendientes del autor: prólogo invitado y test A/B del título («Medicina lúcida») con ~20 lectores médicos.
 10. **Diálogo hispanohablante y clínico** (3ª ronda): ocho autores verificados citados donde hacen trabajo real — Lifshitz (introducción), Hernández/ANDROMEDA-SHOCK (cap. 1), Gérvas & Pérez Fernández (cap. 3), Tajer (cap. 5), Mamede et al. 2010 (cap. 8), Novoa (cap. 9), Alves de Lima y Riquelme et al. (cap. 16). Utili sin cita: no se halló publicación formal pertinente.
 11. **La saga ANDROMEDA como protagonista** (4ª ronda): G. Hernández con tres obras verificadas — «ten pitfalls» de la depuración de lactato (cap. 1, ICM 2019), el ensayo JAMA 2019 + reanálisis bayesiano (Zampieri, AJRCCM 2020) + ANDROMEDA-SHOCK-2 (JAMA 2025) como sección propia del cap. 9: la lectura de ensayos como caso de riesgo inductivo, con la ciencia hecha desde Latinoamérica.
-12. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
+12. **Pase de integración** (5ª ronda): cap. 9 dividido en «La evidencia y el caso singular» (9) y «Decidir sin certeza: umbrales, valores y lectura de la evidencia» (10) → 17 capítulos; renumeración completa de referencias cruzadas, talleres e índice analítico verificada; costuras alisadas (colisión sala/cama 12, eco Rudner en la saga).
+13. **Dimensión emocional y médico-legal**: sección «El miedo también escribe» (cap. 15) — documentación defensiva como corruptor epistémico y segunda víctima (Wu, BMJ 2000).
+14. **Alcance de escenarios**: viñetas 9 (pediátrica — el testimonio de la madre, Van den Bruel BMJ 2012) y 10 (salud mental — ensombrecimiento diagnóstico, Thornicroft BJP 2011); Cuaderno con diez casos.
+15. **Aparato didáctico**: Figura 7 nueva (línea de tiempo de la saga ANDROMEDA) y Taller 2B (creatividad: cinco hipótesis en tres minutos); 9 figuras y 14 talleres en total.
+16. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
 
 ## PENDIENTE DEL AUTOR (importante)
 

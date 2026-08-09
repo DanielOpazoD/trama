@@ -232,3 +232,25 @@ ax.text(5.3, -0.15, "Versión de 60 segundos:  ¿qué vi? · ¿qué creo y con q
 guardar(fig, "fig08_hiid.png")
 
 print("Figuras generadas en", OUT)
+
+# ---------------------------------------------------------- fig09 saga ANDROMEDA
+fig, ax = plt.subplots(figsize=(7.6, 3.6))
+ax.set_xlim(0, 10.6); ax.set_ylim(0, 5.0); ax.axis("off")
+ax.annotate("", xy=(10.1, 2.5), xytext=(0.3, 2.5),
+            arrowprops=dict(arrowstyle="-|>", color=INK, lw=2.0))
+hitos = [
+    (1.2, "2019", "ANDROMEDA-SHOCK\n(JAMA)", "relleno capilar vs. lactato:\n−8,5 pts de mortalidad,\np = 0,06 → \"negativo\"", ACENTO),
+    (3.9, "2020", "Reanálisis bayesiano\n(AJRCCM)", "mismo dato, otro marco:\n>90% de probabilidad\nde beneficio", ACENTO2),
+    (6.5, "2022–2025", "Refinamiento", "fenotipos hemodinámicos,\nalgoritmo personalizado:\nprueba más severa", GRIS),
+    (9.3, "2025", "ANDROMEDA-SHOCK-2\n(JAMA)", "86 centros, 19 países:\nsuperior al cuidado\nhabitual", ACENTO),
+]
+for x, anio, titulo, detalle, color in hitos:
+    ax.plot([x], [2.5], marker="o", ms=9, color=color, zorder=3)
+    ax.text(x, 2.95, anio, ha="center", fontsize=10, fontweight="bold", color=color)
+    ax.text(x, 3.85, titulo, ha="center", va="center", fontsize=8.6, fontweight="bold", color=INK)
+    ax.text(x, 1.55, detalle, ha="center", va="center", fontsize=7.2, color="#4a4a4a")
+ax.text(5.3, 4.75, "Un ensayo no se lee solo: el marco inferencial es parte de la lectura",
+        ha="center", fontsize=9.2, style="italic", color=GRIS)
+ax.text(5.3, 0.35, "\"No significativo\" no significó \"sin efecto\": la hipótesis se refinó y se volvió a someter a prueba",
+        ha="center", fontsize=8.6, style="italic", color=ACENTO)
+guardar(fig, "fig09_andromeda.png")

@@ -121,7 +121,7 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 
 # Apéndice C. Guía de implementación en un servicio clínico
 
-Esta guía condensa el capítulo 16 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 15, "Límites"); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la ronda— es también la más poderosa.
+Esta guía condensa el capítulo 17 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 16, "Límites"); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la ronda— es también la más poderosa.
 
 ### Semana 1–2: instalar el lenguaje
 
@@ -182,7 +182,11 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Doble proceso.** Familia de teorías que distingue procesamiento rápido, asociativo y automático de procesamiento lento, analítico y controlado; ambos pueden acertar o errar.
 
+**Documentación defensiva.** Escritura clínica orientada a un lector jurídico imaginario y no al siguiente clínico: omite dudas, multiplica constancias y prefiere la vaguedad. Corruptor epistémico que, además, protege menos que la trazabilidad honesta.
+
 **Encapsulación.** Compresión del conocimiento biomédico en conceptos clínicos de nivel superior, característica del desarrollo de la pericia (Schmidt y Rikers).
+
+**Ensombrecimiento diagnóstico.** Atribución de síntomas físicos a la enfermedad mental de base, con el consiguiente subdiagnóstico somático; contribuye a la mortalidad prematura en salud mental (Thornicroft).
 
 **Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
 
@@ -218,6 +222,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Safety-netting (red de seguridad).** Instrucciones explícitas de reconsulta y vigilancia que acompañan una decisión tomada bajo incertidumbre, especialmente en ambulatorio.
 
+**Segunda víctima.** El clínico dañado por su propio error —culpa, vergüenza, aislamiento— (Wu). Su cuidado no es indulgencia: sin él no hay análisis de trayectoria ni aprendizaje del error.
+
 **Sensibilidad metacognitiva.** Capacidad de discriminar los propios aciertos de los propios errores mediante la confianza; distinta del sesgo metacognitivo (tendencia global a confiar mucho o poco).
 
 **Testimonio (epistemología del).** Estudio del conocimiento obtenido mediante informes de otros. Coady defendió la confianza por defecto como condición de todo conocimiento compartido; Lackey añadió la vigilancia activa del oyente. La anamnesis es su caso clínico paradigmático.
@@ -231,62 +237,66 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 Los números remiten a capítulos (Int = introducción, Interludios I–III, CC = cuaderno de casos, C = conclusión, Ap = apéndices).
 
 - Abducción — 2
-- Anclaje — 7, 10, CC (viñeta 8)
+- Anclaje — 7, 11, CC (viñeta 8)
 - Ausencia de evidencia / evidencia de ausencia — 1, 4, Ap B
-- Autoridad revisable — 7, 12, 14
-- Calibración — 5, 15, 16, Ap C
+- Autoridad revisable — 7, 13, 15
+- Calibración — 5, 16, 17, Ap C
 - Carga teórica de la observación — 1
-- Cierre prematuro — 7, CC (viñeta 8)
-- Cognición distribuida — 12
-- Comunicación de incertidumbre — 12, 14, CC (viñeta 7)
+- Cierre prematuro — 2, 7, CC (viñeta 8)
+- Cognición distribuida — 13
+- Comunicación de incertidumbre — 13, 15, CC (viñeta 7)
 - Conocimiento tácito — 6
-- Contrafactuales — 10
-- Copiado de notas (fósil narrativo) — 11, Ap C
+- Contrafactuales — 11
+- Copiado de notas (fósil narrativo) — 12, Ap C
 - Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2
-- Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
-- Decisión compartida — 12, 14, Interludio III
+- Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 17
+- Decisión compartida — 13, 15, Interludio III
 - Densidad epistémica — 4
 - Desaceleración selectiva — 8, Interludio II
-- Desacuerdo clínico — 12, Interludio III
+- Desacuerdo clínico — 13, Interludio III
 - Doble proceso — 6
-- Errores asimétricos — 9, CC (viñeta 5)
-- Falsabilidad del método HII-D — 15
+- Documentación defensiva — 15
+- Ensombrecimiento diagnóstico — CC (viñeta 10)
+- Errores asimétricos — 10, CC (viñeta 5)
 - Evidencia poblacional y particularización — 9
-- Feedback diagnóstico — 5, 16, Ap C
-- Ficha como dispositivo que produce lo visible (Foucault) — 11
-- Fichas clínicas y plantillas — 11, 16, Ap C
-- Frase medular — 4, 11, C, CC (todas las viñetas)
-- Frecuencias naturales — 2, 9, 12
+- Falsabilidad del método HII-D — 16
+- Feedback diagnóstico — 5, 17, Ap C
+- Ficha como dispositivo que produce lo visible (Foucault) — 12
+- Fichas clínicas y plantillas — 12, 17, Ap C
+- Frase medular — 4, 12, C, CC (todas las viñetas)
+- Frecuencias naturales — 2, 10, 13
 - Grados de facticidad — 1
-- Hindsight bias — 8, 10, 16, CC (viñeta 8)
-- HII-D (método) — 11, 15, Ap A; auditoría de IA con — 13
-- Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
-- Illness scripts — 2, 6, 16
+- Hindsight bias — 8, 11, 17, CC (viñeta 8)
+- HII-D (método) — 12, 16, Ap A; auditoría de IA con — 14
+- Humildad epistémica como motor (explorar, aprender, reenfocar) — 15
+- Illness scripts — 2, 6, 17
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
-- Injusticia epistémica — 14
+- Injusticia epistémica — 15, CC (viñeta 10)
 - Intuición experta — 5, 6, Interludio II
-- Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 9
+- Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 10
 - Léxico de certeza — 4, Ap B
-- Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 9
+- Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 10
 - Medicina basada en evidencia — 9
-- Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 13
 - Meta-d′ y medición de la metacognición — 5
-- Observación activa — 9, 10
-- Pausa diagnóstica — 8, 16, Ap B, Ap C
+- Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 14
+- Miedo y decisión (documentación defensiva, sobreestudio) — 3, 15
+- Observación activa — 10, 11
+- Pausa diagnóstica — 8, 17, Ap B, Ap C
 - Pericia y práctica deliberada — 6
-- Phronesis — 6, 14
+- Phronesis — 6, 15
 - Pronóstico e incertidumbre de plazo — CC (viñeta 7)
 - Pruebas severas (Popper) — 2
-- Puntos de inflexión — 10, Interludio III
-- Representación del problema — Int, 2, 8, 16
-- Riesgo inductivo (Rudner, Douglas) — 9
-- Safety-netting — 10, CC (viñetas 5 y 6)
+- Puntos de inflexión — 11, Interludio III
+- Representación del problema — Int, 2, 8, 17
+- Riesgo inductivo (Rudner, Douglas) — 10
+- Safety-netting — 11, CC (viñetas 5, 6 y 9)
+- Segunda víctima — 15
 - Sesgos cognitivos: alcance y límites del vocabulario — 7
 - Sobreconfianza — 5, 7
 - Sobreestudio e intervenciones innecesarias — 3
-- Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14
-- Trayectoria y temporalidad — 10, Interludio I
-- Umbrales de decisión — 9, Interludio III, CC (viñeta 5)
+- Testimonio del paciente — 1, 15; epistemología del testimonio (Coady, Lackey) — 15; testimonio de terceros y cuidadores — CC (viñeta 9)
+- Trayectoria y temporalidad — 11, Interludio I
+- Umbrales de decisión — 10, Interludio III, CC (viñeta 5)
 - Verbos epistémicos — 4, Ap B
 
 # Referencias
@@ -505,9 +515,13 @@ Singhal, K., Azizi, S., Tu, T., Mahdavi, S. S., Wei, J., Chung, H. W., et al. (2
 
 Tajer, C. (2008). *El corazón enfermo: Puentes entre las emociones y el infarto*. Libros del Zorzal.
 
+Thornicroft, G. (2011). Physical health disparities and mental illness: The scandal of premature mortality. *British Journal of Psychiatry, 199*(6), 441–442.
+
 Tonelli, M. R. (1998). The philosophical limits of evidence-based medicine. *Academic Medicine, 73*(12), 1234–1240.
 
 Tversky, A., & Kahneman, D. (1974). Judgment under uncertainty: Heuristics and biases. *Science, 185*(4157), 1124–1131.
+
+Van den Bruel, A., Thompson, M., Buntinx, F., & Mant, D. (2012). Clinicians' gut feeling about serious infections in children: Observational study. *BMJ, 345*, e6144.
 
 Weed, L. L. (1968a). Medical records that guide and teach. *New England Journal of Medicine, 278*(11), 593–600.
 
@@ -518,6 +532,8 @@ Whitcomb, D., Battaly, H., Baehr, J., & Howard-Snyder, D. (2017). Intellectual h
 Wittgenstein, L. (2009). *Philosophical Investigations* (G. E. M. Anscombe, P. M. S. Hacker, & J. Schulte, Trans.; 4th ed.). Wiley-Blackwell. (Obra original publicada en 1953).
 
 World Health Organization. (2024). *Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models*. World Health Organization.
+
+Wu, A. W. (2000). Medical error: The second victim. The doctor who makes the mistake needs help too. *BMJ, 320*(7237), 726–727.
 
 Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2024). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. *Proceedings of ICLR 2024*.
 

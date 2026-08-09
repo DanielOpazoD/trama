@@ -1,8 +1,8 @@
 # PARTE IV. Una epistemología operativa
 
-Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente al espejo nuevo de la inteligencia artificial (capítulo 13) y frente a la responsabilidad que ninguna herramienta puede delegar (capítulo 14). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 15), un cuaderno de ocho casos para leer metacognitivamente —incluida la resolución de la historia de Carmen—, y el problema de enseñar y organizar todo esto (capítulo 16).
+Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente al espejo nuevo de la inteligencia artificial (capítulo 14) y frente a la responsabilidad —y el miedo— que ninguna herramienta puede delegar (capítulo 15). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 16), un cuaderno de diez casos para leer metacognitivamente —incluida la resolución de la historia de Carmen—, y el problema de enseñar y organizar todo esto (capítulo 17).
 
-## Capítulo 13. Inteligencia artificial como espejo del razonamiento
+## Capítulo 14. Inteligencia artificial como espejo del razonamiento
 
 Un residente pega la historia de un paciente en un asistente de lenguaje y recibe, en ocho segundos, una evaluación impecablemente redactada: diagnóstico probable, diferenciales ordenados, plan sugerido. Todo suena verosímil. La pregunta que este capítulo propone no es "¿acierta la máquina?", sino una más incómoda: ¿en qué se parece esa prosa fluida y segura a la que escribimos nosotros?
 
@@ -56,7 +56,7 @@ Usada con disciplina, puede ser un instrumento metacognitivo externo. Usada por 
 2. ¿Qué agregó el modelo que el caso no contenía?
 3. ¿Estoy usando la herramienta para ampliar hipótesis o para confirmar rápido la que ya tenía?
 
-## Capítulo 14. Humildad epistémica y responsabilidad clínica
+## Capítulo 15. Humildad epistémica y responsabilidad clínica
 
 Hay una frase que me costó años aprender a decir delante de una familia: "no lo sé". La primera vez que la dije completa —"no sé todavía por qué empeoró; sé qué descartamos, sé qué vamos a vigilar esta noche y sé cuándo tendremos más información"— esperaba encontrar decepción. Encontré alivio. La familia no necesitaba mi certeza; necesitaba saber que la incertidumbre estaba siendo trabajada. Este capítulo trata de esa diferencia: entre parecer seguro y ser responsable.
 
@@ -82,7 +82,7 @@ Segundo, permite seguir aprendiendo. El feedback sólo enseña a quien puede rec
 
 Tercero —y es el efecto más clínico de todos—, permite reubicar el foco y el manejo. La dirección de la atención diagnóstica no es un voto de por vida: es una asignación provisional de recursos, revisable cuando la trayectoria contradice el mapa. El humilde redirige sin vivirlo como derrota — de lo urinario a lo abdominal, de la lesión estructural al trastorno funcional, del objetivo curativo al de confort — y ajusta el tratamiento con la misma naturalidad con que lo inició. El orgulloso, en cambio, defiende su primera formulación como se defiende una propiedad, y convierte cada dato discordante en un ataque que repeler. El anclaje del capítulo 7 es, visto así, un fracaso de humildad antes que un fallo de memoria: la información nueva estaba disponible; lo que faltó fue la disposición a dejarla mandar.
 
-Por eso este libro necesita la humildad no como ornamento ético sino como pieza estructural. La reevaluación del método HII-D (capítulo 15) es humildad convertida en procedimiento: la cláusula "qué me haría cambiar", escrita antes de saber si habrá que cambiar, es la forma que toma esta virtud cuando se la obliga a dejar huella en la ficha.
+Por eso este libro necesita la humildad no como ornamento ético sino como pieza estructural. La reevaluación del método HII-D (capítulo 16) es humildad convertida en procedimiento: la cláusula "qué me haría cambiar", escrita antes de saber si habrá que cambiar, es la forma que toma esta virtud cuando se la obliga a dejar huella en la ficha.
 
 ### Credibilidad y experiencia del paciente
 
@@ -101,6 +101,12 @@ Comunicar incertidumbre es una obligación de veracidad, pero la forma importa. 
 La decisión compartida no significa que médico y paciente aporten lo mismo. El profesional ofrece conocimiento técnico, estimación de consecuencias y recomendación; el paciente aporta experiencia, objetivos y tolerancia al riesgo (Elwyn et al., 2012).
 
 Existe además una ética de la revisión. Una hipótesis provisional que se documenta sin plan de seguimiento puede transformarse en daño por inercia. Quien decide bajo incertidumbre adquiere la obligación de definir cómo se reconocerá el error. Los criterios de alarma, controles, responsable y plazo no son tareas administrativas agregadas: completan la racionalidad moral de la decisión.
+
+### El miedo también escribe: documentación defensiva y segunda víctima
+
+Hay una variable que ningún modelo del razonamiento clínico incluye y que opera todos los días: el miedo. Miedo a la demanda, al reclamo, a la auditoría, al pasillo. Ese miedo no se queda en el cuerpo del médico; escribe en la ficha. La documentación defensiva —notas redactadas para un abogado imaginario y no para el siguiente lector clínico— es su síntoma más visible, y es un corruptor epistémico de primer orden: donde la frase medular busca hacer auditable el razonamiento, la nota defensiva busca hacerlo inatacable, que es casi lo contrario. Se omiten las dudas (podrían "usarse en contra"), se multiplican los exámenes cuya única indicación es la constancia, se prefiere la vaguedad que no compromete a la precisión que expone. El resultado es una ficha que protege menos de lo que cree: ante cualquier revisión seria, la nota vaga sin criterios de reapertura parece ocultamiento, mientras que la nota que muestra qué se sabía, qué se dudaba y cuándo se planeó reevaluar demuestra exactamente lo que el derecho sanitario pondera — un proceso razonable con la información disponible. La trazabilidad honesta no es ingenuidad jurídica; es la mejor defensa que la epistemología puede ofrecer, además de la única compatible con seguir pensando.
+
+El mismo miedo, vuelto hacia adentro, tiene otro nombre. Wu llamó segunda víctima al clínico que, tras un error, queda él mismo dañado: culpa, vergüenza, aislamiento, la revisión obsesiva del momento en que las cosas pudieron ser distintas (Wu, 2000). El punto no es sentimental sino epistemológico: un médico devastado y solo no puede hacer el análisis de trayectoria del capítulo 7 — la vergüenza empuja o al silencio o al relato autoflagelante, y ninguno de los dos produce aprendizaje. Por eso el cuidado del que erró no es blandura institucional: es una condición del circuito de corrección. Un servicio que quiere fichas honestas y morbimortalidades útiles tiene que hacer verosímil una promesa: reconocer un error o una duda aquí no te destruirá. Donde esa promesa no existe, la humildad epistémica se vuelve un lujo peligroso, y el sistema entero paga en errores repetidos lo que ahorra en incomodidad.
 
 ### Autoridad sin opacidad
 
@@ -123,7 +129,7 @@ La confianza profesional más robusta no depende de parecer infalible. Se constr
 2. Mi última recomendación firme: ¿podría explicar qué hechos la sostienen, qué incertidumbres la modificarían y qué valores del paciente pesan?
 3. ¿Hay en mis fichas una etiqueta ("funcional", "no adherente", "poco colaborador") que esté distribuyendo credibilidad en lugar de información?
 
-## Capítulo 15. El método HII-D: una epistemología operativa
+## Capítulo 16. El método HII-D: una epistemología operativa
 
 Todo lo anterior cabe en una hoja. Esa es, deliberadamente, la ambición de este capítulo: condensar el libro en un método que pueda usarse en una discusión de caso, en una nota difícil, en una auditoría de IA o en los sesenta segundos previos a una decisión nocturna. La condensación tiene un precio —ningún método piensa por nadie— y una condición: saber cuándo usarlo y cuándo no.
 
@@ -220,7 +226,7 @@ HII-D no sustituye protocolos, guías, probabilidades cuantitativas ni experienc
 
 El valor del método depende de una actitud: aceptar que la claridad no consiste en eliminar la complejidad, sino en ordenar qué tipo de conocimiento representa cada afirmación.
 
-#### Taller 15. Su paciente, esta semana
+#### Taller 16. Su paciente, esta semana
 
 Elija el caso más incómodo de su lista actual —el que genera discusión en cada ronda o el que nadie discute hace días— y complete la plantilla condensada por escrito. Después compárela con la última evolución de la ficha: ¿qué contiene la plantilla que la ficha no registra?
 
@@ -233,7 +239,7 @@ Elija el caso más incómodo de su lista actual —el que genera discusión en c
 2. ¿Mi nota de hoy permite a otro médico reconstruir mis cuatro capas, o sólo mi conclusión?
 3. ¿Qué decisión de esta semana tomé sin criterio de reapertura, y todavía estoy a tiempo de escribirlo?
 
-## Cuaderno de casos. Ocho viñetas para una lectura metacognitiva
+## Cuaderno de casos. Diez viñetas para una lectura metacognitiva
 
 Las viñetas siguientes son composiciones docentes. Cada una se presenta con la estructura HII-D y una frase medular. No son casos "resueltos": son casos representados. La invitación es leer cada uno dos veces —primero como clínico, buscando la conducta; después como lector metacognitivo, observando qué hace cada capa.
 
@@ -361,11 +367,43 @@ Esta viñeta analiza un error completo, con la disciplina del capítulo 8: sin u
 
 *Lectura metacognitiva.* Nótese que la frase que faltó no requería más conocimiento médico, más tiempo ni más exámenes esa noche. Requería una disciplina de escritura: separar el hecho (decaimiento no explicado) de la inferencia (bacteriuria posible), conservar la incertidumbre (explicación insuficiente) y programar la revisión (48 horas, criterio global). Es la demostración más dura de la tesis de este libro: la epistemología de una frase puede ser la diferencia entre un susto y una laparotomía de madrugada.
 
-### Lo común a las ocho viñetas
+### Viñeta 9. "Lo veo raro": el testimonio de la madre
 
-En cada caso, la buena formulación evita dos extremos: describir sin interpretar o interpretar como si se hubiera observado directamente. El hecho guía la hipótesis; la incertidumbre modula su fuerza; la consecuencia define la decisión; la evolución conserva el derecho a corregir. Y en todas —de la urgencia de las 3:00 al final de la vida— la decisión termina con la misma cláusula: qué la haría cambiar, quién lo detectará y cuándo.
+Un lactante de cinco meses llega a urgencias a las 22:30. Afebril tras paracetamol en casa, signos vitales dentro de rangos para la edad, examen segmentario sin foco. La madre insiste: "No es él. No se ríe, no me busca, está como apagado". La sala está llena y el registro de triage dice "lactante febril en buenas condiciones generales".
 
-## Capítulo 16. Enseñar y organizar la metacognición clínica
+*Hechos:* temperatura normalizada bajo antipirético (dato medido, pero bajo intervención); examen sin foco en una evaluación puntual; y un relato de tercero que describe un cambio conductual respecto del basal — información longitudinal a la que ningún examen de veinte minutos accede.
+
+*Inferencia:* cuadro viral banal es lo más probable por prevalencia. Pero la preocupación parental por "no ser él mismo" no es ruido afectivo: es una observación experta sobre el único basal disponible, y la evidencia le da rango de señal — en series de atención primaria, la intuición del clínico de que "algo anda mal", frecuentemente gatillada por la inquietud de los padres, tuvo mayor valor diagnóstico que la mayoría de los signos aislados para detectar infección grave (Van den Bruel et al., 2012).
+
+*Incertidumbre:* la peligrosa es una sola: infección bacteriana grave en fase temprana, cuando el examen todavía no la muestra. Reducible sólo parcialmente con laboratorio; la evolución de las próximas horas es la mejor prueba disponible.
+
+*Decisión:* el dato que gobierna la conducta no es la temperatura sino el cambio de comportamiento reportado. Observación prolongada en urgencias con reevaluación seriada del estado general, umbral bajo para laboratorio, y —si se decide alta— red de seguridad explícita y verificada con la madre: qué mirar, cuándo volver, por qué vía. "Se va tranquila" no es un criterio de alta; "sabe exactamente qué la haría volver" sí.
+
+*Frase medular:* "Lactante afebril bajo antipiréticos y sin foco al examen, con cambio conductual significativo según su madre; el testimonio del cuidador se registra como observación del basal y gobierna la vigilancia: reevaluación seriada antes de decidir alta, con red de seguridad verificada."
+
+*Lectura metacognitiva.* La pediatría radicaliza el capítulo 1: el paciente no habla, y el "hecho" más valioso es un testimonio de tercero sobre un basal que el equipo no conoce. Descartar la preocupación materna como ansiedad es el equivalente pediátrico de la injusticia testimonial del capítulo 15 — y además, simplemente, mala medicina: pocas fuentes de información tienen mejor razón señal-ruido que quien mira a ese niño todos los días.
+
+### Viñeta 10. El dolor abdominal de la paciente que "somatiza"
+
+Una mujer de 34 años con esquizofrenia en tratamiento consulta por dolor abdominal de dos días. En el box, habla poco y evita la mirada; la nota de derivación dice "consultas frecuentes, quejas somáticas múltiples". Taquicardia de 110, abdomen difícil de evaluar — la paciente tolera mal la palpación y su tratamiento antipsicótico puede atenuar la expresión del dolor y enlentecer el tránsito.
+
+*Hechos:* taquicardia sostenida (medida, reproducible); dos días de dolor según relato coherente en sus términos; examen abdominal técnicamente limitado —no negativo: limitado—; antecedente psiquiátrico que modifica la expresión clínica y farmacológica del cuadro; una etiqueta heredada ("somatiza") sin procedencia verificable.
+
+*Inferencia:* la explicación "queja somática en contexto de patología psiquiátrica" es posible, pero está recibiendo un peso que no proviene de los datos de hoy sino del estigma: nada en la taquicardia es psiquiátrico. El fenómeno tiene nombre —ensombrecimiento diagnóstico: atribuir los síntomas físicos a la enfermedad mental— y consecuencias medibles: las personas con enfermedad mental grave mueren 15 a 20 años antes, en gran parte por enfermedad física subdiagnosticada y subtratada (Thornicroft, 2011).
+
+*Incertidumbre:* la peligrosa es un abdomen quirúrgico enmascarado — por el antipsicótico, por la dificultad comunicativa y por la disposición del equipo a cerrar temprano. Es exactamente el caso donde el examen "poco confiable" obliga a más objetividad, no a menos: laboratorio e imagen deciden lo que la palpación no puede.
+
+*Decisión:* mismo estándar que para cualquier paciente con dolor abdominal y taquicardia — laboratorio completo, imagen según hallazgos, reevaluación programada— más un estándar adicional: documentar explícitamente que la evaluación fue limitada y por qué, para que el siguiente lector no herede "abdomen negativo" donde hubo "abdomen no evaluable". La etiqueta "somatiza" no entra a la ficha sin procedencia.
+
+*Frase medular:* "Dolor abdominal y taquicardia sostenida en paciente con esquizofrenia: examen abdominal limitado —no negativo— y expresión clínica posiblemente atenuada por antipsicóticos; se estudia con el estándar completo, dejando registrado que la atribución psiquiátrica del cuadro exigiría primero excluir lo que la taquicardia sugiere."
+
+*Lectura metacognitiva.* Esta viñeta es el capítulo 15 con mortalidad: la injusticia testimonial —descontar el relato por quién lo dice— aquí no es sólo un agravio moral sino un mecanismo causal de la brecha de 15 a 20 años de vida. Nótese el movimiento epistémico central: cuando el testimonio y el examen valen menos de lo habitual, el estándar de estudio objetivo sube en compensación. El ensombrecimiento hace exactamente lo contrario — usa la dificultad como excusa para bajar el estándar — y por eso mata.
+
+### Lo común a las diez viñetas
+
+En cada caso, la buena formulación evita dos extremos: describir sin interpretar o interpretar como si se hubiera observado directamente. El hecho guía la hipótesis; la incertidumbre modula su fuerza; la consecuencia define la decisión; la evolución conserva el derecho a corregir. Y en todas —de la urgencia de las 3:00 al final de la vida, del lactante que no habla a la paciente a la que no se le cree— la decisión termina con la misma cláusula: qué la haría cambiar, quién lo detectará y cuándo.
+
+## Capítulo 17. Enseñar y organizar la metacognición clínica
 
 Una jefa de servicio que quiera "instalar metacognición" en su equipo no puede indicarla como se indica un antibiótico. Puede, en cambio, cambiar tres cosas que ve todas las semanas: qué se pregunta en la ronda, qué estructura tiene la ficha y qué pasa después de un error. Este capítulo trata de esas palancas.
 
@@ -385,7 +423,7 @@ El docente puede pedir al aprendiz que marque cada frase como hecho, inferencia 
 
 Este libro toma posición en una controversia real de la educación médica, y conviene declararla. De un lado, Croskerry y su tradición sostienen que conocer los sesgos y entrenar estrategias de debiasing mejora el diagnóstico (Croskerry, 2003; Croskerry et al., 2013a, 2013b). Del otro, Norman, Monteiro y colegas han acumulado evidencia incómoda: la mayoría de los errores diagnósticos se asocia a déficits de conocimiento más que a fallas puras de proceso, los cursos de "pensamiento crítico" generalizable transfieren poco, y obligar a reflexionar sistemáticamente sobre casos fáciles no mejora la precisión y consume tiempo (Norman et al., 2017; Monteiro & Norman, 2013; Monteiro et al., 2020).
 
-La posición de este libro es intermedia, pero no equidistante. Con los escépticos: no existe una habilidad general de "pensar bien" que flote por encima del conocimiento; la representación rica del problema —illness scripts, experiencia con feedback— es la condición de todo lo demás, y ningún método, HII-D incluido, compensa no saber medicina. Contra el escepticismo total: de esa evidencia no se sigue que la única intervención posible sea enseñar más contenido. Lo que este libro propone no es vigilancia interna permanente ni listas universales —las versiones que la evidencia ha desinflado—, sino artefactos externos y selectivos: un lenguaje que obliga a graduar afirmaciones, una estructura de nota que conserva las capas, pausas activadas por disparadores definidos y circuitos de feedback que conviertan experiencia en calibración. Es una apuesta con compromisos observables (véase el capítulo 15): si estas herramientas no cambian conductas medibles, deben abandonarse como cualquier hipótesis mimada. Entre tanto, la controversia se enseña mejor de lo que se oculta: un residente que conoce el debate sabrá desconfiar por igual del catálogo de sesgos como solución universal y del nihilismo pedagógico como coartada.
+La posición de este libro es intermedia, pero no equidistante. Con los escépticos: no existe una habilidad general de "pensar bien" que flote por encima del conocimiento; la representación rica del problema —illness scripts, experiencia con feedback— es la condición de todo lo demás, y ningún método, HII-D incluido, compensa no saber medicina. Contra el escepticismo total: de esa evidencia no se sigue que la única intervención posible sea enseñar más contenido. Lo que este libro propone no es vigilancia interna permanente ni listas universales —las versiones que la evidencia ha desinflado—, sino artefactos externos y selectivos: un lenguaje que obliga a graduar afirmaciones, una estructura de nota que conserva las capas, pausas activadas por disparadores definidos y circuitos de feedback que conviertan experiencia en calibración. Es una apuesta con compromisos observables (véase el capítulo 16): si estas herramientas no cambian conductas medibles, deben abandonarse como cualquier hipótesis mimada. Entre tanto, la controversia se enseña mejor de lo que se oculta: un residente que conoce el debate sabrá desconfiar por igual del catálogo de sesgos como solución universal y del nihilismo pedagógico como coartada.
 
 ### Rondas y pases de turno
 
