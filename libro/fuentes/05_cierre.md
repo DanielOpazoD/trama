@@ -200,6 +200,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Metacognición.** Conocimiento y regulación de los propios procesos cognitivos: monitorear la comprensión, valorar la confianza, decidir cambiar de estrategia (Flavell; Nelson y Narens).
 
+**Meta-d′ / M-ratio.** Medida de sensibilidad metacognitiva basada en teoría de detección de señales: expresa cuánta de la información disponible para la decisión aprovecha el observador al evaluar sus propias respuestas; el cociente meta-d′/d′ (M-ratio) permite comparar entre personas y tareas (Maniscalco y Lau).
+
 **Modalidad epistémica.** Recursos del lenguaje que expresan el grado de certeza de una afirmación ("demostrado", "probable", "sin evidencia de").
 
 **Phronesis.** Prudencia práctica aristotélica: la capacidad de deliberar bien sobre lo que conviene hacer en una situación particular.
@@ -208,9 +210,13 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Representación del problema.** Formulación compacta que transforma los datos del caso en relaciones clínicamente significativas mediante calificadores semánticos.
 
+**Riesgo inductivo.** Tesis de que aceptar o rechazar una hipótesis exige decidir cuánta evidencia es suficiente, y de que esa decisión depende del costo de cada error posible; fundamenta filosóficamente los umbrales de decisión clínica (Rudner; Douglas).
+
 **Safety-netting (red de seguridad).** Instrucciones explícitas de reconsulta y vigilancia que acompañan una decisión tomada bajo incertidumbre, especialmente en ambulatorio.
 
 **Sensibilidad metacognitiva.** Capacidad de discriminar los propios aciertos de los propios errores mediante la confianza; distinta del sesgo metacognitivo (tendencia global a confiar mucho o poco).
+
+**Testimonio (epistemología del).** Estudio del conocimiento obtenido mediante informes de otros. Coady defendió la confianza por defecto como condición de todo conocimiento compartido; Lackey añadió la vigilancia activa del oyente. La anamnesis es su caso clínico paradigmático.
 
 **Umbral de decisión.** Nivel de probabilidad sobre el cual una conducta (testear, tratar) supera a sus alternativas, dado el balance de daños y beneficios (Pauker y Kassirer).
 
@@ -232,14 +238,17 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Conocimiento tácito — 6
 - Contrafactuales — 10
 - Copiado de notas (fósil narrativo) — 11, Ap C
+- Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
 - Decisión compartida — 12, 14, Interludio III
 - Densidad epistémica — 4
 - Desaceleración selectiva — 8, Interludio II
 - Desacuerdo clínico — 12, Interludio III
 - Doble proceso — 6
 - Errores asimétricos — 9, CC (viñeta 5)
+- Falsabilidad del método HII-D — 15
 - Evidencia poblacional y particularización — 9
 - Feedback diagnóstico — 5, 16, Ap C
+- Ficha como dispositivo que produce lo visible (Foucault) — 11
 - Fichas clínicas y plantillas — 11, 16, Ap C
 - Frase medular — 4, 11, C, CC (todas las viñetas)
 - Frecuencias naturales — 2, 9, 12
@@ -253,17 +262,20 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Léxico de certeza — 4, Ap B
 - Medicina basada en evidencia — 9
 - Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 13
+- Meta-d′ y medición de la metacognición — 5
 - Observación activa — 9, 10
 - Pausa diagnóstica — 8, 16, Ap B, Ap C
 - Pericia y práctica deliberada — 6
 - Phronesis — 6, 14
 - Pronóstico e incertidumbre de plazo — CC (viñeta 7)
+- Pruebas severas (Popper) — 2
 - Puntos de inflexión — 10, Interludio III
 - Representación del problema — Int, 2, 8, 16
+- Riesgo inductivo (Rudner, Douglas) — 9
 - Safety-netting — 10, CC (viñetas 5 y 6)
 - Sesgos cognitivos: alcance y límites del vocabulario — 7
 - Sobreconfianza — 5, 7
-- Testimonio del paciente — 1, 14
+- Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14
 - Trayectoria y temporalidad — 10, Interludio I
 - Umbrales de decisión — 9, Interludio III, CC (viñeta 5)
 - Verbos epistémicos — 4, Ap B
@@ -292,6 +304,9 @@ Charlin, B., Boshuizen, H. P. A., Custers, E. J. F. M., & Feltovich, P. J. (2007
 
 Charon, R. (2006). *Narrative Medicine: Honoring the Stories of Illness*. Oxford University Press.
 
+Coady, C. A. J. (1992). *Testimony: A Philosophical Study*. Clarendon Press.
+
+
 Croskerry, P. (2003). The importance of cognitive errors in diagnosis and strategies to minimize them. *Academic Medicine, 78*(8), 775–780.
 
 Croskerry, P. (2009). A universal model of diagnostic reasoning. *Academic Medicine, 84*(8), 1022–1028.
@@ -303,6 +318,9 @@ Croskerry, P., Singhal, G., & Mamede, S. (2013b). Cognitive debiasing 2: Impedim
 Custers, E. J. F. M. (2015). Thirty years of illness scripts: Theoretical origins and practical applications. *Medical Teacher, 37*(5), 457–462.
 
 Djulbegovic, B., & Guyatt, G. H. (2017). Progress in evidence-based medicine: A quarter century on. *The Lancet, 390*(10092), 415–423.
+
+Douglas, H. (2000). Inductive risk and values in science. *Philosophy of Science, 67*(4), 559–579.
+
 
 Dunlosky, J., & Metcalfe, J. (2009). *Metacognition*. SAGE.
 
@@ -346,6 +364,9 @@ Graber, M. L., Franklin, N., & Gordon, R. (2005). Diagnostic error in internal m
 
 Graber, M. L., Kissam, S., Payne, V. L., Meyer, A. N. D., Sorensen, A., Lenfestey, N., et al. (2012). Cognitive interventions to reduce diagnostic error: A narrative review. *BMJ Quality & Safety, 21*(7), 535–557.
 
+Groopman, J. (2007). *How Doctors Think*. Houghton Mifflin.
+
+
 Greenhalgh, T., & Hurwitz, B. (Eds.). (1998). *Narrative Based Medicine: Dialogue and Discourse in Clinical Practice*. BMJ Books.
 
 Greenhalgh, T., Howick, J., & Maskrey, N. (2014). Evidence based medicine: A movement in crisis? *BMJ, 348*, g3725.
@@ -364,6 +385,9 @@ Hyland, K. (1998). *Hedging in Scientific Research Articles*. John Benjamins.
 
 Ji, Z., Lee, N., Frieske, R., Yu, T., Su, D., Xu, Y., et al. (2023). Survey of hallucination in natural language generation. *ACM Computing Surveys, 55*(12), Article 248.
 
+Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., et al. (2022). Language models (mostly) know what they know. *arXiv preprint*, arXiv:2207.05221.
+
+
 Kahneman, D. (2011). *Thinking, Fast and Slow*. Farrar, Straus and Giroux.
 
 Kassirer, J. P. (1989). Our stubborn quest for diagnostic certainty. *New England Journal of Medicine, 320*(22), 1489–1491.
@@ -374,15 +398,26 @@ Knight, F. H. (1921). *Risk, Uncertainty and Profit*. Houghton Mifflin.
 
 Koriat, A. (1997). Monitoring one's own knowledge during study: A cue-utilization approach to judgments of learning. *Journal of Experimental Psychology: General, 126*(4), 349–370.
 
+Lackey, J. (2008). *Learning from Words: Testimony as a Source of Knowledge*. Oxford University Press.
+
+
 Lambe, K. A., O'Reilly, G., Kelly, B. D., & Curristan, S. (2016). Dual-process cognitive interventions to enhance diagnostic reasoning: A systematic review. *BMJ Quality & Safety, 25*(10), 808–820.
 
 Lee, P., Bubeck, S., & Petro, J. (2023). Benefits, limits, and risks of GPT-4 as an AI chatbot for medicine. *New England Journal of Medicine, 388*, 1233–1239.
 
 Mamede, S., Schmidt, H. G., & Penaforte, J. C. (2008). Effects of reflective practice on the accuracy of medical diagnoses. *Medical Education, 42*(5), 468–475.
 
+Maniscalco, B., & Lau, H. (2012). A signal detection theoretic approach for estimating metacognitive sensitivity from confidence ratings. *Consciousness and Cognition, 21*(1), 422–430.
+
+
 Mann, K., Gordon, J., & MacLeod, A. (2009). Reflection and reflective practice in health professions education: A systematic review. *Advances in Health Sciences Education, 14*(4), 595–621.
 
 Meyer, A. N. D., Payne, V. L., Meeks, D. W., Rao, R., & Singh, H. (2013). Physicians' diagnostic accuracy, confidence, and resource requests: A vignette study. *JAMA Internal Medicine, 173*(21), 1952–1958.
+
+Monteiro, S., & Norman, G. (2013). Diagnostic reasoning: Where we've been, where we're going. *Teaching and Learning in Medicine, 25*(Suppl 1), S26–S32.
+
+Monteiro, S., Sherbino, J., Sibbald, M., & Norman, G. (2020). Critical thinking, biases and dual processing: The enduring myth of generalisable skills. *Medical Education, 54*(1), 66–73.
+
 
 Montgomery, K. (2006). *How Doctors Think: Clinical Judgment and the Practice of Medicine*. Oxford University Press.
 
@@ -411,6 +446,11 @@ Polanyi, M. (1966). *The Tacit Dimension*. University of Chicago Press.
 Popper, K. R. (1959). *The Logic of Scientific Discovery*. Hutchinson.
 
 Rajkomar, A., & Blandford, A. (2012). Understanding infusion administration in the ICU through distributed cognition. *Journal of Biomedical Informatics, 45*(3), 580–590.
+
+Rouault, M., McWilliams, A., Allen, M., & Fleming, S. M. (2018). Human metacognition across domains: Insights from individual differences and neuroimaging. *Personality Neuroscience, 1*, e17.
+
+Rudner, R. (1953). The scientist qua scientist makes value judgments. *Philosophy of Science, 20*(1), 1–6.
+
 
 Sackett, D. L., Rosenberg, W. M. C., Gray, J. A. M., Haynes, R. B., & Richardson, W. S. (1996). Evidence based medicine: What it is and what it isn't. *BMJ, 312*, 71–72.
 
@@ -441,3 +481,5 @@ Weed, L. L. (1968b). Medical records that guide and teach. *New England Journal 
 Wittgenstein, L. (2009). *Philosophical Investigations* (G. E. M. Anscombe, P. M. S. Hacker, & J. Schulte, Trans.; 4th ed.). Wiley-Blackwell. (Obra original publicada en 1953).
 
 World Health Organization. (2024). *Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models*. World Health Organization.
+
+Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2024). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. *Proceedings of ICLR 2024*.

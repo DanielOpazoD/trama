@@ -37,6 +37,8 @@ El modelo puede servir como generador de alternativas, revisor de coherencia, or
 
 Algunos sistemas pueden expresar confianza, criticar una respuesta o revisar pasos. Eso no demuestra autoconocimiento en el sentido humano. Una salida metacognitiva puede ser otra generación entrenada para imitar evaluación. La pregunta práctica no es si el sistema "sabe que sabe", sino si sus señales de confianza están empíricamente calibradas y si el flujo de trabajo detecta fallas.
 
+Esa pregunta ya tiene datos. La evidencia disponible muestra que la confianza verbalizada de los grandes modelos —el "estoy bastante seguro" que escriben— tiende a la sobreconfianza sistemática y se calibra mal, aun cuando algunas señales internas del modelo discriminan mejor de lo que su prosa deja ver (Kadavath et al., 2022; Xiong et al., 2024). La implicación práctica es idéntica a la del capítulo 5, aplicada ahora a la máquina: preguntarle a un modelo cuán seguro está no sustituye la verificación, igual que la seguridad de un colega no sustituye sus razones. La calibración se demuestra con series de predicciones y desenlaces, no con tono.
+
 La OMS ha recomendado gobernanza, evaluación, transparencia y supervisión para modelos multimodales en salud, atendiendo riesgos de inexactitud, sesgo, privacidad y dependencia excesiva (World Health Organization, 2024). La supervisión humana no debe ser una firma ritual al final. Debe contar con tiempo, datos y autoridad para cuestionar.
 
 ### La IA como provocación filosófica
@@ -73,6 +75,8 @@ La falsa seguridad daña porque cierra la revisión y puede engañar al paciente
 ### Credibilidad y experiencia del paciente
 
 Miranda Fricker denominó injusticia epistémica al daño cometido contra alguien en su capacidad de sujeto de conocimiento (Fricker, 2007). En salud, Carel y Kidd mostraron cómo el testimonio de pacientes puede recibir menor credibilidad o carecer de categorías interpretativas adecuadas, y cómo la propia experiencia de enfermar agudiza esa vulnerabilidad epistémica (Carel & Kidd, 2014; Kidd & Carel, 2017). El enfermo posee un conocimiento de primera persona sobre dolor, cambio funcional, tolerancia, valores y trayectoria cotidiana que no puede ser sustituido por mediciones externas. Ese conocimiento tampoco es infalible, pero merece evaluación y no descarte reflejo.
+
+La filosofía del testimonio ayuda a precisar qué significa "evaluar sin descartar". Contra la sospecha heredada del empirismo —que creerle a otro es siempre conocimiento de segunda categoría—, Coady mostró que el testimonio es una fuente básica de conocimiento, tan constitutiva como la percepción o la memoria: sin una confianza por defecto en lo que otros informan, ni la ciencia ni la vida cotidiana serían posibles (Coady, 1992). Lackey corrigió el exceso opuesto: la confianza por defecto no es un cheque en blanco; el oyente responsable mantiene una sensibilidad activa a las señales de error o engaño, y el conocimiento testimonial se logra cuando ambas condiciones —decir fiable y escuchar vigilante— se cumplen a la vez (Lackey, 2008). La anamnesis es exactamente ese contrato epistémico: el paciente aporta un informe que el médico no puede obtener por ninguna otra vía, y el médico aporta el examen de consistencia, forma temporal y relación con otros hallazgos. Ni credulidad ni auditoría hostil: recepción con estándares. La injusticia testimonial es, en estos términos, un fallo del segundo contratante: aplicar a ciertos hablantes un estándar de vigilancia que no se aplica a otros, por razones que nada tienen que ver con la fiabilidad de su informe.
 
 La injusticia testimonial aparece cuando prejuicios sobre edad, género, origen, diagnóstico psiquiátrico, discapacidad o estilo comunicativo reducen injustificadamente la credibilidad. La injusticia hermenéutica surge cuando faltan conceptos compartidos para expresar una experiencia o cuando la institución sólo admite aquello que cabe en sus formularios. En ambos casos, el problema no es cortesía: se pierde evidencia clínicamente relevante.
 
@@ -181,6 +185,20 @@ También puede usarse para revisar una nota, un informe de alta o una respuesta 
 HII-D puede usarse retrospectivamente para examinar decisiones. La pregunta no es sólo si el diagnóstico final coincidió, sino si los hechos fueron representados con fidelidad, si las inferencias recibieron una fuerza proporcional, si la incertidumbre relevante fue identificada y si la decisión era defendible con la información disponible. Este análisis evita confundir calidad del proceso con fortuna del desenlace.
 
 La calibración requiere comparar predicciones con resultados. Cuando sea posible, conviene registrar no sólo una hipótesis, sino un grado verbal o numérico de confianza y una expectativa temporal. Más tarde puede revisarse: ¿la certeza fue excesiva?, ¿la alternativa descartada ocurrió con frecuencia?, ¿el criterio de alarma fue sensible?, ¿la conducta se modificó cuando debía? Sin retorno de información, la experiencia puede acumular años sin transformarse en pericia.
+
+### Qué evidencia me haría abandonar este método
+
+Un libro que exige compromisos observables a cada hipótesis clínica debe formular los suyos. Estos son los míos.
+
+Primero: si clínicos entrenados no logran un acuerdo razonable al clasificar las frases de una nota en hechos, inferencias e incertidumbre, la distinción central del método es subjetiva en la práctica, y HII-D debe reformularse o abandonarse. La trazabilidad que promete depende de que las capas sean reconocibles entre lectores, no sólo para quien escribe.
+
+Segundo: si las notas escritas con esta disciplina no difieren de las convencionales en instrumentos estándar de calidad de registro, ni en la capacidad de otro clínico para reconstruir el razonamiento a partir de ellas, el método es cosmética con nombre propio.
+
+Tercero: si un servicio que adopta el léxico de certeza no modifica en algunos meses ninguna conducta medible —ningún "se descarta" reconvertido, ningún criterio de reapertura agregado, ninguna vigilancia activada que antes no existía—, el léxico es un póster, no una herramienta.
+
+Cuarto: si el tiempo que consume la versión completa supera de forma sostenida el beneficio detectable, la respuesta racional no es la fe sino la poda: quedarse con la versión de sesenta segundos, o con nada.
+
+Formular estas condiciones no es un gesto retórico de modestia. Es la diferencia entre proponer una hipótesis y fundar una escuela. Prefiero lo primero: que el método quede expuesto a la misma reevaluación que le exige a cada diagnóstico, y que el mundo conserve, también aquí, la capacidad de corregirnos.
 
 ### Límites
 
@@ -350,6 +368,12 @@ La National Academies recomendó educación diagnóstica, trabajo en equipo, tec
 En formación, pedir "el diagnóstico" prematuramente favorece la adivinación. Es más útil solicitar primero una representación del problema y preguntar qué datos fueron transformados en calificadores. Bowen y Eva han destacado la enseñanza explícita del razonamiento, mientras la teoría de illness scripts explica por qué el conocimiento debe organizarse alrededor de condiciones, mecanismos y consecuencias (Eva, 2005; Bowen, 2006).
 
 El docente puede pedir al aprendiz que marque cada frase como hecho, inferencia o incertidumbre. Luego puede comparar la versión inicial con una formulación experta, no para imponer estilo, sino para mostrar qué relaciones fueron seleccionadas. El feedback debe ser específico: "presentaste la bacteriuria como infección", "omitiste que la imagen sólo excluye complicación actual", "tu plan no indica qué te haría cambiar".
+
+### Un debate honesto: ¿se puede enseñar a pensar mejor?
+
+Este libro toma posición en una controversia real de la educación médica, y conviene declararla. De un lado, Croskerry y su tradición sostienen que conocer los sesgos y entrenar estrategias de debiasing mejora el diagnóstico (Croskerry, 2003; Croskerry et al., 2013a, 2013b). Del otro, Norman, Monteiro y colegas han acumulado evidencia incómoda: la mayoría de los errores diagnósticos se asocia a déficits de conocimiento más que a fallas puras de proceso, los cursos de "pensamiento crítico" generalizable transfieren poco, y obligar a reflexionar sistemáticamente sobre casos fáciles no mejora la precisión y consume tiempo (Norman et al., 2017; Monteiro & Norman, 2013; Monteiro et al., 2020).
+
+La posición de este libro es intermedia, pero no equidistante. Con los escépticos: no existe una habilidad general de "pensar bien" que flote por encima del conocimiento; la representación rica del problema —illness scripts, experiencia con feedback— es la condición de todo lo demás, y ningún método, HII-D incluido, compensa no saber medicina. Contra el escepticismo total: de esa evidencia no se sigue que la única intervención posible sea enseñar más contenido. Lo que este libro propone no es vigilancia interna permanente ni listas universales —las versiones que la evidencia ha desinflado—, sino artefactos externos y selectivos: un lenguaje que obliga a graduar afirmaciones, una estructura de nota que conserva las capas, pausas activadas por disparadores definidos y circuitos de feedback que conviertan experiencia en calibración. Es una apuesta con compromisos observables (véase el capítulo 15): si estas herramientas no cambian conductas medibles, deben abandonarse como cualquier hipótesis mimada. Entre tanto, la controversia se enseña mejor de lo que se oculta: un residente que conoce el debate sabrá desconfiar por igual del catálogo de sesgos como solución universal y del nihilismo pedagógico como coartada.
 
 ### Rondas y pases de turno
 

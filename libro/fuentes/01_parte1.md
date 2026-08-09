@@ -101,7 +101,9 @@ El razonamiento bayesiano formaliza parte de este proceso: la evidencia modifica
 
 Una inferencia se fortalece cuando sobrevive a alternativas serias. Preguntar "¿qué más podría producir este conjunto?" no exige elaborar listas interminables. Exige identificar competidores capaces de modificar la conducta. La hipótesis rival debe tener derecho a explicar los mismos hechos, no ser un nombre añadido por obligación ritual.
 
-Una prueba de resistencia útil contiene cuatro preguntas: ¿qué dato es más difícil de explicar con mi hipótesis?, ¿qué hallazgo esperaría y no está?, ¿qué explicación rival produciría una conducta diferente?, ¿qué nueva información haría cambiar mi jerarquía? Estas preguntas convierten el diagnóstico diferencial en una herramienta de falsación práctica, cercana al espíritu de Popper sin pretender que cada diagnóstico pueda refutarse de modo instantáneo (Popper, 1959).
+Una prueba de resistencia útil contiene cuatro preguntas: ¿qué dato es más difícil de explicar con mi hipótesis?, ¿qué hallazgo esperaría y no está?, ¿qué explicación rival produciría una conducta diferente?, ¿qué nueva información haría cambiar mi jerarquía? Estas preguntas convierten el diagnóstico diferencial en una herramienta de falsación práctica.
+
+La lección de Popper, bien leída, no es el eslogan de que toda hipótesis deba poder refutarse en el acto. Es una asimetría más fina: las confirmaciones valen poco cuando se obtienen buscando lo que la hipótesis predice cómodamente, y valen mucho cuando provienen de pruebas severas — aquellas que tenían una probabilidad real de desmentirla (Popper, 1959). En clínica, esto distingue dos maneras de pedir exámenes: el que confirma lo que ya se cree —otro marcador inflamatorio en quien ya fue etiquetado de infección— y el que somete la hipótesis a riesgo — el examen cuyo resultado obligaría a abandonar el diagnóstico si vuelve normal. Un diagnóstico que sólo acumula hallazgos "compatibles" no está corroborado; está mimado.
 
 > La inferencia clínica no es una licencia para completar la realidad; es una hipótesis graduada que debe conservar el camino de regreso a los hechos.
 

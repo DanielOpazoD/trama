@@ -42,6 +42,14 @@ Falso positivo y falso negativo no tienen el mismo costo en todos los casos. En 
 
 Considere la obstrucción recurrente de Carmen. La ausencia de isquemia en la imagen reduce la indicación de cirugía de emergencia, pero un episodio actual con shock y bacteriemia puede modificar el balance de una reparación electiva. La decisión no depende sólo de si hubo estrangulación demostrada; depende de la gravedad alcanzada, recurrencia, aptitud fisiológica futura y mortalidad potencial de un nuevo episodio.
 
+### El umbral es un juicio de valor: el riesgo inductivo
+
+La estructura de umbrales tiene una fundamentación filosófica precisa que rara vez se nombra en medicina. Richard Rudner argumentó en 1953 que ningún científico acepta o rechaza una hipótesis por lógica pura: como la evidencia nunca es concluyente, decidir que *ya es suficiente* exige ponderar qué tan grave sería equivocarse, y esa ponderación es un juicio de valor (Rudner, 1953). Heather Douglas llamó a esto riesgo inductivo y mostró que atraviesa toda la ciencia con consecuencias prácticas: cuánta evidencia exigimos antes de afirmar que un compuesto es tóxico depende de qué error —afirmar de más o afirmar de menos— produce más daño (Douglas, 2000).
+
+La clínica es el caso extremo y más honesto de esta tesis. El umbral de Pauker y Kassirer es exactamente el riesgo inductivo vuelto aritmética: el punto donde "suficiente evidencia" queda definido por el costo de los dos errores posibles. Por eso "se descarta" nunca es una afirmación puramente epistémica: descartar una embolia con dímero negativo en un paciente de baja probabilidad no significa que la probabilidad sea cero, sino que el residuo de duda ya no justifica el daño esperado de seguir estudiando. Quien entiende esto deja de buscar un umbral "objetivo" escondido en las guías y empieza a hacer la pregunta correcta: ¿qué error estamos más dispuestos a tolerar en este paciente, y quién decidió eso?
+
+Esta fundamentación tiene una consecuencia liberadora. Reconocer que hay valores dentro del umbral no corrompe la objetividad clínica; la localiza. Los hechos y las probabilidades se estiman con toda la disciplina de la Parte I; el punto de corte se delibera —con el paciente cuando es posible— y se declara. Lo indefendible no es que haya valores en la decisión: es esconderlos detrás de una retórica de pura evidencia.
+
 ### Tiempo y reversibilidad
 
 La misma probabilidad conduce a decisiones distintas según el tiempo. Cuando el daño progresa rápidamente, el valor de esperar información disminuye. Cuando la conducta es reversible, puede iniciarse con un umbral menor y reevaluarse. Cuando es irreversible, la deliberación debe ser más exigente.
@@ -139,6 +147,12 @@ Abra la evolución de cualquier paciente con más de una semana de hospitalizaci
 La ficha clínica suele entenderse como memoria legal y medio de comunicación. También puede ser un dispositivo cognitivo. Weed propuso el registro orientado por problemas para que la información guiara y enseñara, vinculando datos, evaluación y plan (Weed, 1968a, 1968b). La estructura del registro influye en lo que el equipo ve, recuerda y considera resuelto.
 
 Una nota extensa puede ser epistemológicamente pobre si copia datos sin jerarquía. Una nota breve puede ser peligrosa si sólo conserva conclusiones. El objetivo es trazabilidad: que otro lector pueda identificar qué se observó, qué se infirió, qué permanece incierto y por qué se decidió.
+
+### La ficha produce lo visible
+
+Foucault mostró que la clínica moderna no nació simplemente de mirar mejor, sino de reorganizar qué era decible y registrable: el hospital, la autopsia y el registro crearon un espacio donde ciertos fenómenos pudieron convertirse en signos y otros ni siquiera podían formularse (Foucault, 1973). La ficha contemporánea hace hoy ese mismo trabajo, silenciosamente. Sus campos deciden qué existe institucionalmente: si la plantilla tiene casilla para "dolor EVA" pero no hay lugar para "esta vez el dolor era otro", la primera afirmación sobrevivirá en el registro y la segunda morirá en el pasillo. Lo que no cabe en el formulario no se pierde por descuido; se pierde por diseño.
+
+Esta perspectiva cambia el estatuto del registro: no es una ventana neutra sobre el caso, sino un instrumento óptico con distorsiones propias. Los menús desplegables convierten un continuo en categorías administrativas; los campos obligatorios producen texto ritual; las frases autocompletadas homogeneizan descripciones que eran distintas. Nada de esto es neutral para el razonamiento, porque —como vimos en el capítulo 4— el equipo piensa con las representaciones que el artefacto le permite conservar. Una epistemología clínica operativa incluye, por eso, la crítica del formulario: preguntar qué vuelve visible, qué vuelve invisible y a quién sirve esa distribución. El médico no siempre puede rediseñar la plantilla; siempre puede saber qué le está haciendo a su percepción.
 
 ### El problema como unidad
 
