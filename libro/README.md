@@ -5,11 +5,11 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 ## Entregables
 
 - `Hechos_inferencias_incertidumbre_edicion_revisada.docx` — Word completo (portada, legal, TOC con páginas, 4 partes / 18 capítulos, 9 figuras, tablas, apéndices, glosario, índice analítico, referencias).
-- `Hechos_inferencias_incertidumbre_edicion_revisada.pdf` — mismo contenido, 103 páginas A4.
+- `Hechos_inferencias_incertidumbre_edicion_revisada.pdf` — mismo contenido, 125 páginas A4 (121 de cuerpo).
 
 ## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~39.000)
 
-1. **Voz del autor**: prefacio en primera persona y pasajes personales en caps. 5, 7 y 14.
+1. **Voz del autor**: prefacio en primera persona y pasajes personales en caps. 5, 7 y 15.
 2. **Hilo narrativo**: el caso de Carmen (hernia incisional) abre la introducción, cierra cada parte con un interludio y se resuelve en el Cuaderno de casos.
 3. **Estructura**: 4 partes explícitas; fusiones 9+10 (evidencia y umbrales) y 13+14 (equipos y comunicación); 19 → 16 capítulos.
 4. **Material aplicado**: 12 talleres con solución comentada, cierres «En una frase» + «Tres preguntas» en todos los capítulos, «HII-D en 60 segundos», 4 viñetas nuevas (urgencia, APS, fin de vida, error consumado) y guía de implementación en servicio (Apéndice C).
@@ -26,6 +26,7 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 15. **Aparato didáctico**: Figura 7 nueva (línea de tiempo de la saga ANDROMEDA) y Taller 2B (creatividad: cinco hipótesis en tres minutos); 9 figuras y 14 talleres en total.
 16. **Capítulo 18 — «La palabra exacta: lo que la poesía sabe del juicio clínico»**: Huidobro (la palabra que crea) vs. Parra (la deflación antipoética) como los dos polos del lenguaje clínico; la belleza como señal y como trampa; la prueba de Parra como taller. Referencias: Huidobro 1916, Parra 1954 y 1969.
 17. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
+18. **El cruce con la bioética** (cap. 10): el contexto global del paciente —funcionalidad, pronóstico de fondo, red de apoyo sociofamiliar— como hechos clínicos de pleno derecho, no ornamentos de la anamnesis. Cuatro herramientas verificadas: los cuatro tópicos de Jonsen, Siegler y Winslade (9.ª ed., 2022), la proporcionalidad terapéutica de Taboada (Acta Bioethica 2000), la deliberación moral de Gracia (Med Clin 2001) y la fragilidad medible de Rockwood (CMAJ 2005). Taller 10B («Las cuatro casillas en cinco minutos»); capa D del HII-D y Apéndice A ampliados con contexto global y pregunta de proporcionalidad; 4 entradas nuevas de glosario; 15 talleres en total.
 
 ## PENDIENTE DEL AUTOR (importante)
 
@@ -34,7 +35,7 @@ Los pasajes en primera persona son **composiciones docentes redactadas como borr
 - Prefacio: el caso de la frase «neumonía aspirativa» heredada.
 - Cap. 5: el cólico renal que era un aneurisma.
 - Cap. 7: el error de la «ITU» que era colecistitis.
-- Cap. 14: el primer «no lo sé» completo ante una familia.
+- Cap. 15: el primer «no lo sé» completo ante una familia.
 
 También revisar el nombre «Carmen» y los detalles del caso longitudinal.
 

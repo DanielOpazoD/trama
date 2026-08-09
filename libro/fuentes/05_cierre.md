@@ -66,7 +66,9 @@ El ideal no es un médico que nunca se equivoca, sino uno cuyo razonamiento pued
 - Conducta elegida.
 - Por qué el beneficio esperado supera al de las alternativas.
 - Urgencia, reversibilidad y capacidad de vigilancia.
-- Preferencias del paciente.
+- Contexto global: funcionalidad basal, pronóstico de fondo, red de apoyo social y familiar.
+- Preferencias del paciente (citadas, no presumidas).
+- Proporcionalidad: ¿la intervención guarda proporción con el pronóstico y los fines del enfermo?
 
 **Reevaluación**
 
@@ -176,7 +178,11 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Creatividad clínica.** Momento generativo del juicio: conjeturar hipótesis (abducción), re-plantear el problema y crear opciones de manejo. Casi siempre es creatividad psicológica y exploratoria (Boden): nueva para el caso, no para la humanidad. Se ejerce en la generación y se corrige en la selección.
 
+**Cuatro tópicos (método de los).** Lista de verificación deliberativa de la ética clínica que ordena todo caso en indicaciones médicas, preferencias del paciente, calidad de vida y rasgos contextuales (Jonsen, Siegler y Winslade). Ningún cuadrante puede quedar vacío sin que la decisión quede incompleta.
+
 **Decisión compartida.** Proceso de deliberación entre profesional y paciente sobre opciones, evidencia y preferencias, distinto de la mera entrega de información (Elwyn).
+
+**Deliberación moral.** Método de la ética clínica para los conflictos de valores: identificar qué valores chocan, enumerar los cursos de acción extremos, buscar los intermedios y elegir el curso prudente y públicamente defendible (Gracia). Es a los valores lo que el diagnóstico diferencial a las hipótesis.
 
 **Densidad epistémica.** Propiedad de una formulación clínica que conserva los ejes que cambian la interpretación (tiempo, severidad, mecanismo, evidencia contraria, consecuencia) en lugar de sólo abreviar.
 
@@ -187,6 +193,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 **Encapsulación.** Compresión del conocimiento biomédico en conceptos clínicos de nivel superior, característica del desarrollo de la pericia (Schmidt y Rikers).
 
 **Ensombrecimiento diagnóstico.** Atribución de síntomas físicos a la enfermedad mental de base, con el consiguiente subdiagnóstico somático; contribuye a la mortalidad prematura en salud mental (Thornicroft).
+
+**Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho de pleno derecho, no una impresión.
 
 **Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
 
@@ -216,6 +224,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Probabilidad pretest / postest.** Probabilidad de una condición antes y después de incorporar el resultado de una prueba; su relación depende del rendimiento de la prueba y de la prevalencia.
 
+**Proporcionalidad terapéutica.** Obligación moral de implementar sólo las medidas que guarden debida proporción entre los medios empleados y el resultado previsible, juzgada desde el pronóstico, las cargas y los fines del paciente (Taboada). Exige un pronóstico honesto: sin buen juicio epistémico no hay juicio de proporcionalidad.
+
 **Representación del problema.** Formulación compacta que transforma los datos del caso en relaciones clínicamente significativas mediante calificadores semánticos.
 
 **Riesgo inductivo.** Tesis de que aceptar o rechazar una hipótesis exige decidir cuánta evidencia es suficiente, y de que esa decisión depende del costo de cada error posible; fundamenta filosóficamente los umbrales de decisión clínica (Rudner; Douglas).
@@ -240,17 +250,21 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Anclaje — 7, 11, CC (viñeta 8)
 - Ausencia de evidencia / evidencia de ausencia — 1, 4, Ap B
 - Autoridad revisable — 7, 13, 15
+- Bioética y razonamiento clínico (cuatro tópicos, proporcionalidad, deliberación) — 10, 16, CC (viñeta 7), Ap A
 - Calibración — 5, 16, 17, Ap C
 - Carga teórica de la observación — 1
 - Cierre prematuro — 2, 7, CC (viñeta 8)
 - Cognición distribuida — 13
 - Comunicación de incertidumbre — 13, 15, CC (viñeta 7)
 - Conocimiento tácito — 6
+- Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 16, Ap A
 - Contrafactuales — 11
 - Copiado de notas (fósil narrativo) — 12, Ap C
 - Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2, 18
+- Cuatro tópicos (Jonsen, Siegler y Winslade) — 10, Ap A
 - Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 17
 - Decisión compartida — 13, 15, Interludio III
+- Deliberación moral (Gracia) — 10
 - Densidad epistémica — 4
 - Desaceleración selectiva — 8, Interludio II
 - Desacuerdo clínico — 13, Interludio III
@@ -263,6 +277,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Feedback diagnóstico — 5, 17, Ap C
 - Ficha como dispositivo que produce lo visible (Foucault) — 12
 - Fichas clínicas y plantillas — 12, 17, Ap C
+- Fragilidad y funcionalidad como hechos clínicos — 10, 16, Ap A
 - Frase medular — 4, 12, C, CC (todas las viñetas)
 - Frecuencias naturales — 2, 10, 13
 - Grados de facticidad — 1
@@ -286,6 +301,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Pericia y práctica deliberada — 6
 - Phronesis — 6, 15
 - Pronóstico e incertidumbre de plazo — CC (viñeta 7)
+- Proporcionalidad terapéutica (Taboada) — 10, 16, CC (viñeta 7)
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III
 - Representación del problema — Int, 2, 8, 17
@@ -394,6 +410,8 @@ Graber, M. L., Franklin, N., & Gordon, R. (2005). Diagnostic error in internal m
 
 Graber, M. L., Kissam, S., Payne, V. L., Meyer, A. N. D., Sorensen, A., Lenfestey, N., et al. (2012). Cognitive interventions to reduce diagnostic error: A narrative review. *BMJ Quality & Safety, 21*(7), 535–557.
 
+Gracia, D. (2001). La deliberación moral: El método de la ética clínica. *Medicina Clínica, 117*(1), 18–23.
+
 Groopman, J. (2007). *How Doctors Think*. Houghton Mifflin.
 
 
@@ -422,6 +440,8 @@ Hutchins, E. (1995). *Cognition in the Wild*. MIT Press.
 Hyland, K. (1998). *Hedging in Scientific Research Articles*. John Benjamins.
 
 Ji, Z., Lee, N., Frieske, R., Yu, T., Su, D., Xu, Y., et al. (2023). Survey of hallucination in natural language generation. *ACM Computing Surveys, 55*(12), Article 248.
+
+Jonsen, A. R., Siegler, M., & Winslade, W. J. (2022). *Clinical Ethics: A Practical Approach to Ethical Decisions in Clinical Medicine* (9.ª ed.). McGraw-Hill. (1.ª ed., 1982).
 
 Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., et al. (2022). Language models (mostly) know what they know. *arXiv preprint*, arXiv:2207.05221.
 
@@ -497,6 +517,8 @@ Rajkomar, A., & Blandford, A. (2012). Understanding infusion administration in t
 
 Riquelme, A., Méndez, B., de la Fuente, P., Padilla, O., Benaglio, C., Sirhan, M., & Labarca, J. (2011). Desarrollo y validación de encuesta de percepción del portafolio en estudiantes de medicina de pregrado. *Revista Médica de Chile, 139*(1), 45–53.
 
+Rockwood, K., Song, X., MacKnight, C., Bergman, H., Hogan, D. B., McDowell, I., & Mitnitski, A. (2005). A global clinical measure of fitness and frailty in elderly people. *CMAJ, 173*(5), 489–495.
+
 Rouault, M., McWilliams, A., Allen, M., & Fleming, S. M. (2018). Human metacognition across domains: Insights from individual differences and neuroimaging. *Personality Neuroscience, 1*, e17.
 
 Rudner, R. (1953). The scientist qua scientist makes value judgments. *Philosophy of Science, 20*(1), 1–6.
@@ -519,6 +541,8 @@ Schön, D. A. (1983). *The Reflective Practitioner: How Professionals Think in A
 Simpkin, A. L., & Schwartzstein, R. M. (2016). Tolerating uncertainty — The next medical revolution? *New England Journal of Medicine, 375*, 1713–1715.
 
 Singhal, K., Azizi, S., Tu, T., Mahdavi, S. S., Wei, J., Chung, H. W., et al. (2023). Large language models encode clinical knowledge. *Nature, 620*, 172–180.
+
+Taboada, P. (2000). El derecho a morir con dignidad. *Acta Bioethica, 6*(1), 89–101.
 
 Tajer, C. (2008). *El corazón enfermo: Puentes entre las emociones y el infarto*. Libros del Zorzal.
 

@@ -167,7 +167,7 @@ Aquí se reconoce la diferencia entre "no sé la etiología exacta" y "no sé si
 
 ### Paso 5. Decidir por umbral y consecuencias
 
-La decisión integra probabilidad, gravedad, tiempo, reversibilidad, capacidad de monitorización y valores. Debe poder formularse: "aunque X no está demostrado, actúo porque…" o "aunque X es posible, no actúo todavía porque…". Esta frase obliga a distinguir compromiso práctico de certeza epistémica.
+La decisión integra probabilidad, gravedad, tiempo, reversibilidad, capacidad de monitorización y valores — y el contexto global del paciente: funcionalidad basal, pronóstico de fondo, red de apoyo y fines declarados, los hechos que el capítulo 10 llamó de pleno derecho. Debe poder formularse: "aunque X no está demostrado, actúo porque…" o "aunque X es posible, no actúo todavía porque…". Esta frase obliga a distinguir compromiso práctico de certeza epistémica. Y ante intervenciones mayores, la pregunta de proporcionalidad cierra la capa: ¿esta medida guarda proporción con el pronóstico y con los fines de este enfermo?
 
 Toda decisión incluye un plan de reapertura: criterio clínico, examen pendiente, plazo o evento. Sin él, HII-D queda incompleto.
 
@@ -178,6 +178,7 @@ Toda decisión incluye un plan de reapertura: criterio clínico, examen pendient
 - Inferencia principal y grado:
 - Alternativa que cambiaría conducta:
 - Incertidumbre crítica:
+- Contexto global (funcionalidad, pronóstico de fondo, red de apoyo):
 - Decisión y razón:
 - Criterio de reevaluación:
 
@@ -349,7 +350,7 @@ Hombre de 78 años con cáncer de páncreas metastásico, en tercera línea de t
 
 *Frase medular:* "Neumonía potencialmente reversible sobre cáncer avanzado en progresión con deterioro funcional acelerado: se trata la parte reversible con metas de confort, se comunica la trayectoria sin fingir precisión de plazo, y las decisiones mayores se subordinan a las metas del paciente, no a la disponibilidad de otra línea."
 
-*Lectura metacognitiva.* El final de la vida concentra todos los temas del libro: la tentación de responder "¿cuánto queda?" con una cifra falsa (certeza retórica), la de esconderse en "no se puede saber" (abandono), y la confusión entre lo técnicamente posible y lo indicado. Comunicar dirección y escenarios en vez de plazos, y anclar la decisión en las metas del enfermo, es la forma que toma aquí la incertidumbre bien gobernada.
+*Lectura metacognitiva.* El final de la vida concentra todos los temas del libro: la tentación de responder "¿cuánto queda?" con una cifra falsa (certeza retórica), la de esconderse en "no se puede saber" (abandono), y la confusión entre lo técnicamente posible y lo proporcionado — el juicio de proporcionalidad del capítulo 10, que aquí exige lo que más cuesta: un pronóstico honesto. Comunicar dirección y escenarios en vez de plazos, y anclar la decisión en las metas del enfermo, es la forma que toma aquí la incertidumbre bien gobernada.
 
 ### Viñeta 8. Anatomía de un error consumado
 
