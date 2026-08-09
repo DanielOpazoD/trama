@@ -259,8 +259,9 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
 - Injusticia epistémica — 14
 - Intuición experta — 5, 6, Interludio II
+- Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 9
 - Léxico de certeza — 4, Ap B
-- Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1
+- Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 9
 - Medicina basada en evidencia — 9
 - Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 13
 - Meta-d′ y medición de la metacognición — 5
@@ -381,7 +382,11 @@ Han, P. K. J., Klein, W. M. P., & Arora, N. K. (2011). Varieties of uncertainty 
 
 Hernán, M. A., & Robins, J. M. (2020). *Causal Inference: What If*. Chapman & Hall/CRC.
 
+Hernández, G., Bellomo, R., & Bakker, J. (2019). The ten pitfalls of lactate clearance in sepsis. *Intensive Care Medicine, 45*(1), 82–85.
+
 Hernández, G., Ospina-Tascón, G. A., Damiani, L. P., Estenssoro, E., Dubin, A., Hurtado, J., et al. (2019). Effect of a resuscitation strategy targeting peripheral perfusion status vs serum lactate levels on 28-day mortality among patients with septic shock: The ANDROMEDA-SHOCK randomized clinical trial. *JAMA, 321*(7), 654–664.
+
+Hernández, G., Ospina-Tascón, G. A., Kattan, E., et al., por los investigadores de ANDROMEDA-SHOCK-2. (2025). Personalized hemodynamic resuscitation targeting capillary refill time in early septic shock: The ANDROMEDA-SHOCK-2 randomized clinical trial. *JAMA, 334*(22), 1988–1999.
 
 Hoffrage, U., & Gigerenzer, G. (1998). Using natural frequencies to improve diagnostic inferences. *Academic Medicine, 73*(5), 538–540.
 
@@ -501,3 +506,5 @@ Wittgenstein, L. (2009). *Philosophical Investigations* (G. E. M. Anscombe, P. M
 World Health Organization. (2024). *Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models*. World Health Organization.
 
 Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2024). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. *Proceedings of ICLR 2024*.
+
+Zampieri, F. G., Damiani, L. P., Bakker, J., Ospina-Tascón, G. A., Castro, R., Cavalcanti, A. B., & Hernández, G. (2020). Effects of a resuscitation strategy targeting peripheral perfusion status versus serum lactate levels among patients with septic shock: A Bayesian reanalysis of the ANDROMEDA-SHOCK trial. *American Journal of Respiratory and Critical Care Medicine, 201*(4), 423–429.

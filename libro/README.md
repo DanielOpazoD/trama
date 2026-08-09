@@ -19,7 +19,8 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 8. **Falsabilidad del propio método**: sección «Qué evidencia me haría abandonar este método» (cap. 15) con cuatro compromisos observables.
 9. **Posicionamiento**: párrafo en el prefacio que sitúa el libro frente a Groopman, Croskerry y Montgomery. Pendientes del autor: prólogo invitado y test A/B del título («Medicina lúcida») con ~20 lectores médicos.
 10. **Diálogo hispanohablante y clínico** (3ª ronda): ocho autores verificados citados donde hacen trabajo real — Lifshitz (introducción), Hernández/ANDROMEDA-SHOCK (cap. 1), Gérvas & Pérez Fernández (cap. 3), Tajer (cap. 5), Mamede et al. 2010 (cap. 8), Novoa (cap. 9), Alves de Lima y Riquelme et al. (cap. 16). Utili sin cita: no se halló publicación formal pertinente.
-11. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
+11. **La saga ANDROMEDA como protagonista** (4ª ronda): G. Hernández con tres obras verificadas — «ten pitfalls» de la depuración de lactato (cap. 1, ICM 2019), el ensayo JAMA 2019 + reanálisis bayesiano (Zampieri, AJRCCM 2020) + ANDROMEDA-SHOCK-2 (JAMA 2025) como sección propia del cap. 9: la lectura de ensayos como caso de riesgo inductivo, con la ciencia hecha desde Latinoamérica.
+12. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
 
 ## PENDIENTE DEL AUTOR (importante)
 
