@@ -36,3 +36,8 @@ También revisar el nombre «Carmen» y los detalles del caso longitudinal.
 - `00_preliminares.md` … `05_cierre.md` — texto fuente por partes.
 - `figuras.py` — genera las 8 figuras (matplotlib) en `../figs/`.
 - `build_docx.js` — construye el .docx (docx-js). Uso: `node build_docx.js --toc toc.json`; el PDF sale de LibreOffice (`soffice --headless --convert-to pdf`). El TOC usa dos pasadas: construir sin `--toc`, convertir a PDF, extraer páginas reales, reconstruir con `--toc`.
+
+## Gestiones externas (`gestiones/`)
+
+- **Prólogo invitado**: `prologo_candidatos.md` (9 candidatos en 3 niveles, con racional, canales y estrategia secuencial de abordaje — verificar vigencia y correos antes de escribir), `prologo_carta.md` (plantilla de solicitud; ya cargada como borrador en el Gmail del autor) y `prologo_dossier.pdf` (dossier de 2 páginas para adjuntar).
+- **Test A/B del título**: `titulo_test_protocolo.md/.pdf` (protocolo pre-registrado: diseño, cuestionario listo para Google Forms, regla de decisión pre-especificada, predicción del autor y mensaje de reclutamiento) + `portada_A.png` / `portada_B.png` (maquetas idénticas salvo título, generadas con `portadas.py`).
