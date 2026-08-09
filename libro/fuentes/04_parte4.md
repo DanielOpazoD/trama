@@ -367,7 +367,7 @@ La National Academies recomendó educación diagnóstica, trabajo en equipo, tec
 
 En formación, pedir "el diagnóstico" prematuramente favorece la adivinación. Es más útil solicitar primero una representación del problema y preguntar qué datos fueron transformados en calificadores. Bowen y Eva han destacado la enseñanza explícita del razonamiento, mientras la teoría de illness scripts explica por qué el conocimiento debe organizarse alrededor de condiciones, mecanismos y consecuencias (Eva, 2005; Bowen, 2006).
 
-El docente puede pedir al aprendiz que marque cada frase como hecho, inferencia o incertidumbre. Luego puede comparar la versión inicial con una formulación experta, no para imponer estilo, sino para mostrar qué relaciones fueron seleccionadas. El feedback debe ser específico: "presentaste la bacteriuria como infección", "omitiste que la imagen sólo excluye complicación actual", "tu plan no indica qué te haría cambiar".
+El docente puede pedir al aprendiz que marque cada frase como hecho, inferencia o incertidumbre. Luego puede comparar la versión inicial con una formulación experta, no para imponer estilo, sino para mostrar qué relaciones fueron seleccionadas. El feedback debe ser específico: "presentaste la bacteriuria como infección", "omitiste que la imagen sólo excluye complicación actual", "tu plan no indica qué te haría cambiar". La devolución constructiva tiene técnica y tradición docente propia en nuestra lengua: describir conducta observable en lugar de juzgar a la persona, equilibrar lo logrado con lo corregible y terminar en un plan (Alves de Lima, 2008).
 
 ### Un debate honesto: ¿se puede enseñar a pensar mejor?
 
@@ -397,7 +397,7 @@ Debe evitarse el hindsight bias. El desenlace no convierte automáticamente en o
 
 Los médicos necesitan saber qué ocurrió con pacientes derivados, dados de alta o transferidos. Sistemas simples pueden devolver diagnósticos finales, resultados discrepantes, reconsultas y cambios terapéuticos. La calibración requiere series, no recuerdos aislados.
 
-Un portafolio privado puede registrar: hipótesis principal, confianza aproximada, alternativa relevante, desenlace y aprendizaje. No busca puntuar moralmente; busca detectar patrones: exceso de confianza en un dominio, subestimación de recurrencias, tendencia a tratar cultivos sin síndrome o dificultad para reconocer diagnósticos funcionales. El Taller 5 de este libro es su versión mínima.
+Un portafolio privado puede registrar: hipótesis principal, confianza aproximada, alternativa relevante, desenlace y aprendizaje. No busca puntuar moralmente; busca detectar patrones: exceso de confianza en un dominio, subestimación de recurrencias, tendencia a tratar cultivos sin síndrome o dificultad para reconocer diagnósticos funcionales. El Taller 5 de este libro es su versión mínima. El portafolio como instrumento docente tiene además desarrollo propio en la educación médica latinoamericana, incluida la validación en español de instrumentos para evaluar su uso (Riquelme et al., 2011).
 
 ### Lenguaje institucional
 

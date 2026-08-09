@@ -260,6 +260,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Injusticia epistémica — 14
 - Intuición experta — 5, 6, Interludio II
 - Léxico de certeza — 4, Ap B
+- Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1
 - Medicina basada en evidencia — 9
 - Metacognición: definición y niveles — Int, 5; sensibilidad vs. sesgo — Int, 5; artificial — 13
 - Meta-d′ y medición de la metacognición — 5
@@ -275,12 +276,15 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Safety-netting — 10, CC (viñetas 5 y 6)
 - Sesgos cognitivos: alcance y límites del vocabulario — 7
 - Sobreconfianza — 5, 7
+- Sobreestudio e intervenciones innecesarias — 3
 - Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14
 - Trayectoria y temporalidad — 10, Interludio I
 - Umbrales de decisión — 9, Interludio III, CC (viñeta 5)
 - Verbos epistémicos — 4, Ap B
 
 # Referencias
+
+Alves de Lima, A. (2008). Devolución constructiva: Una estrategia para mejorar el aprendizaje. *Medicina (Buenos Aires), 68*(1), 88–92.
 
 Aristotle. (2009). *The Nicomachean Ethics* (D. Ross, Trans.; L. Brown, Rev.). Oxford University Press.
 
@@ -356,6 +360,8 @@ Fricker, M. (2007). *Epistemic Injustice: Power and the Ethics of Knowing*. Oxfo
 
 Gadamer, H.-G. (1996). *The Enigma of Health: The Art of Healing in a Scientific Age* (J. Gaiger & N. Walker, Trans.). Stanford University Press.
 
+Gérvas, J., & Pérez Fernández, M. (2013). *Sano y salvo (y libre de intervenciones médicas innecesarias)*. Los Libros del Lince.
+
 Gigerenzer, G., & Gaissmaier, W. (2011). Heuristic decision making. *Annual Review of Psychology, 62*, 451–482.
 
 Gigerenzer, G., Gaissmaier, W., Kurz-Milcke, E., Schwartz, L. M., & Woloshin, S. (2007). Helping doctors and patients make sense of health statistics. *Psychological Science in the Public Interest, 8*(2), 53–96.
@@ -374,6 +380,8 @@ Greenhalgh, T., Howick, J., & Maskrey, N. (2014). Evidence based medicine: A mov
 Han, P. K. J., Klein, W. M. P., & Arora, N. K. (2011). Varieties of uncertainty in health care: A conceptual taxonomy. *Medical Decision Making, 31*(6), 828–838.
 
 Hernán, M. A., & Robins, J. M. (2020). *Causal Inference: What If*. Chapman & Hall/CRC.
+
+Hernández, G., Ospina-Tascón, G. A., Damiani, L. P., Estenssoro, E., Dubin, A., Hurtado, J., et al. (2019). Effect of a resuscitation strategy targeting peripheral perfusion status vs serum lactate levels on 28-day mortality among patients with septic shock: The ANDROMEDA-SHOCK randomized clinical trial. *JAMA, 321*(7), 654–664.
 
 Hoffrage, U., & Gigerenzer, G. (1998). Using natural frequencies to improve diagnostic inferences. *Academic Medicine, 73*(5), 538–540.
 
@@ -405,7 +413,11 @@ Lambe, K. A., O'Reilly, G., Kelly, B. D., & Curristan, S. (2016). Dual-process c
 
 Lee, P., Bubeck, S., & Petro, J. (2023). Benefits, limits, and risks of GPT-4 as an AI chatbot for medicine. *New England Journal of Medicine, 388*, 1233–1239.
 
+Lifshitz, A. (2014). *La nueva clínica*. Academia Nacional de Medicina de México.
+
 Mamede, S., Schmidt, H. G., & Penaforte, J. C. (2008). Effects of reflective practice on the accuracy of medical diagnoses. *Medical Education, 42*(5), 468–475.
+
+Mamede, S., van Gog, T., van den Berge, K., Rikers, R. M. J. P., van Saase, J. L. C. M., van Guldener, C., & Schmidt, H. G. (2010). Effect of availability bias and reflective reasoning on diagnostic accuracy among internal medicine residents. *JAMA, 304*(11), 1198–1203.
 
 Maniscalco, B., & Lau, H. (2012). A signal detection theoretic approach for estimating metacognitive sensitivity from confidence ratings. *Consciousness and Cognition, 21*(1), 422–430.
 
@@ -433,6 +445,8 @@ Norman, G. (2009). Dual processing and diagnostic errors. *Advances in Health Sc
 
 Norman, G. R., Monteiro, S. D., Sherbino, J., Ilgen, J. S., Schmidt, H. G., & Mamede, S. (2017). The causes of errors in clinical reasoning: Cognitive biases, knowledge deficits, and dual process thinking. *Academic Medicine, 92*(1), 23–30.
 
+Novoa Jurado, A. J. (2025). Terapia epistémica del conocimiento clínico. *Revista Clínica de Medicina de Familia, 18*(3), 274–282.
+
 Pauker, S. G., & Kassirer, J. P. (1980). The threshold approach to clinical decision making. *New England Journal of Medicine, 302*(20), 1109–1117.
 
 Pearl, J., & Mackenzie, D. (2018). *The Book of Why: The New Science of Cause and Effect*. Basic Books.
@@ -446,6 +460,8 @@ Polanyi, M. (1966). *The Tacit Dimension*. University of Chicago Press.
 Popper, K. R. (1959). *The Logic of Scientific Discovery*. Hutchinson.
 
 Rajkomar, A., & Blandford, A. (2012). Understanding infusion administration in the ICU through distributed cognition. *Journal of Biomedical Informatics, 45*(3), 580–590.
+
+Riquelme, A., Méndez, B., de la Fuente, P., Padilla, O., Benaglio, C., Sirhan, M., & Labarca, J. (2011). Desarrollo y validación de encuesta de percepción del portafolio en estudiantes de medicina de pregrado. *Revista Médica de Chile, 139*(1), 45–53.
 
 Rouault, M., McWilliams, A., Allen, M., & Fleming, S. M. (2018). Human metacognition across domains: Insights from individual differences and neuroimaging. *Personality Neuroscience, 1*, e17.
 
@@ -469,6 +485,8 @@ Schön, D. A. (1983). *The Reflective Practitioner: How Professionals Think in A
 Simpkin, A. L., & Schwartzstein, R. M. (2016). Tolerating uncertainty — The next medical revolution? *New England Journal of Medicine, 375*, 1713–1715.
 
 Singhal, K., Azizi, S., Tu, T., Mahdavi, S. S., Wei, J., Chung, H. W., et al. (2023). Large language models encode clinical knowledge. *Nature, 620*, 172–180.
+
+Tajer, C. (2008). *El corazón enfermo: Puentes entre las emociones y el infarto*. Libros del Zorzal.
 
 Tonelli, M. R. (1998). The philosophical limits of evidence-based medicine. *Academic Medicine, 73*(12), 1234–1240.
 

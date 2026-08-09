@@ -36,7 +36,7 @@ Mi cólico renal de aquella noche tenía todas las claves de la fluidez: el patr
 
 ### Señales de conflicto
 
-La metacognición clínica necesita sensibilidad a señales de conflicto. Algunas son cognitivas: un dato no encaja, dos hallazgos exigen mecanismos incompatibles, el diagnóstico depende de una sola pieza. Otras son afectivas: incomodidad, sorpresa, irritación con el paciente, deseo de terminar, excesiva tranquilidad ante un caso complejo. Epstein llamó práctica atenta a la capacidad de observar no sólo al paciente, sino las propias categorías, emociones y errores potenciales (Epstein, 1999).
+La metacognición clínica necesita sensibilidad a señales de conflicto. Algunas son cognitivas: un dato no encaja, dos hallazgos exigen mecanismos incompatibles, el diagnóstico depende de una sola pieza. Otras son afectivas: incomodidad, sorpresa, irritación con el paciente, deseo de terminar, excesiva tranquilidad ante un caso complejo. Las emociones no son ruido del trabajo clínico: son parte de su materia. Tajer ha mostrado cómo atraviesan incluso la fisiopatología de aquello que tratamos —del ánimo al infarto—, y con mayor razón atraviesan a quien trata (Tajer, 2008). Epstein llamó práctica atenta a la capacidad de observar no sólo al paciente, sino las propias categorías, emociones y errores potenciales (Epstein, 1999).
 
 Estas señales no son pruebas de error. Son indicaciones para revisar. El clínico puede formular disparadores explícitos: discordancia entre gravedad y diagnóstico; reconsulta; evolución inesperada; falta de respuesta; diagnóstico que explica sólo una parte; presión de tiempo; transferencia entre equipos; caso que genera una confianza desproporcionadamente rápida.
 
@@ -185,7 +185,7 @@ Disparadores razonables incluyen: evolución inesperada; reconsulta; falta de re
 
 ### Reflexión estructurada
 
-Mamede y colaboradores estudiaron la reflexión deliberada y encontraron que, en ciertos problemas complejos, comparar hipótesis mediante evidencia a favor y en contra puede mejorar la precisión diagnóstica (Mamede et al., 2008). Otros trabajos y revisiones muestran resultados variables, lo que impide convertir la reflexión en una receta universal (Graber et al., 2012; Lambe et al., 2016).
+Mamede y colaboradores estudiaron la reflexión deliberada y encontraron que, en ciertos problemas complejos, comparar hipótesis mediante evidencia a favor y en contra puede mejorar la precisión diagnóstica (Mamede et al., 2008). El mismo grupo mostró después algo más específico: la exposición reciente a ciertos diagnósticos induce sesgo de disponibilidad en residentes, y la reflexión estructurada revierte ese efecto (Mamede et al., 2010) — la mejor evidencia disponible de que la pausa correcta no es un ritual, sino un antídoto con indicación precisa. Otros trabajos y revisiones muestran resultados variables, lo que impide convertir la reflexión en una receta universal (Graber et al., 2012; Lambe et al., 2016).
 
 Una estructura breve puede ser:
 

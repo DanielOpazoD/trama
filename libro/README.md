@@ -18,7 +18,8 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 7. **Literatura 2015–2025** (2ª ronda): recuadro meta-d′/M-ratio y dominio-generalidad (cap. 5), posición explícita en el debate Croskerry vs. Norman/Monteiro (cap. 16), calibración de confianza verbalizada en LLMs (cap. 13).
 8. **Falsabilidad del propio método**: sección «Qué evidencia me haría abandonar este método» (cap. 15) con cuatro compromisos observables.
 9. **Posicionamiento**: párrafo en el prefacio que sitúa el libro frente a Groopman, Croskerry y Montgomery. Pendientes del autor: prólogo invitado y test A/B del título («Medicina lúcida») con ~20 lectores médicos.
-10. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
+10. **Diálogo hispanohablante y clínico** (3ª ronda): ocho autores verificados citados donde hacen trabajo real — Lifshitz (introducción), Hernández/ANDROMEDA-SHOCK (cap. 1), Gérvas & Pérez Fernández (cap. 3), Tajer (cap. 5), Mamede et al. 2010 (cap. 8), Novoa (cap. 9), Alves de Lima y Riquelme et al. (cap. 16). Utili sin cita: no se halló publicación formal pertinente.
+11. **Aparato crítico depurado**: las 11 referencias huérfanas ahora se citan donde corresponde; Peirce corregido («Deduction, Induction, and Hypothesis», 1878; término «abducción» de 1903); Montgomery 2005→2006; numeraciones de listas reparadas.
 
 ## PENDIENTE DEL AUTOR (importante)
 

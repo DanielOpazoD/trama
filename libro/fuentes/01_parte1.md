@@ -22,6 +22,8 @@ La ausencia de un dato tampoco es equivalente a un hallazgo negativo. "No consig
 
 La medición introduce otra capa. Los valores dependen de precisión analítica, variabilidad biológica, umbrales de decisión y contexto pretest. Un lactato elevado es un hecho medido; su significado puede ser hipoperfusión, estimulación adrenérgica, menor depuración u otra causa. Una PCR elevada informa inflamación, no su etiología. El salto desde el marcador a la enfermedad pertenece ya a la inferencia.
 
+La distinción no es académica. El ensayo ANDROMEDA-SHOCK comparó dos maneras de leer al mismo paciente en shock séptico —guiar la reanimación por la normalización del lactato o por la del relleno capilar— y la estrategia guiada por el marcador de laboratorio no resultó superior a la guiada por la perfusión periférica observada en la piel (Hernández et al., 2019). Cuando dos blancos que supuestamente "miden lo mismo" conducen a conductas y desenlaces distintos, lo que queda expuesto es exactamente la brecha entre el dato y su interpretación: el lactato era un hecho; "el paciente sigue hipoperfundido" era una inferencia que convenía someter a examen.
+
 ### El testimonio como evidencia
 
 Los síntomas no son datos inferiores por ser subjetivos. Son evidencia de otra naturaleza. El paciente informa una experiencia corporal mediante lenguaje, memoria, categorías culturales y expectativas. La tarea clínica consiste en respetar ese testimonio y, al mismo tiempo, examinar su forma temporal, desencadenantes, consistencia y relación con otros hallazgos. La medicina narrativa ha recordado que la historia no es ruido alrededor del diagnóstico; es una de sus fuentes constitutivas (Hunter, 1991; Charon, 2006).
@@ -150,7 +152,7 @@ Renée Fox describió cómo la incertidumbre acompaña la socialización médica
 
 Simpkin y Schwartzstein propusieron que tolerar la incertidumbre constituye una competencia central y no una debilidad profesional (Simpkin & Schwartzstein, 2016). Tolerar no significa resignarse ni abandonar la investigación. Significa no llenar prematuramente el vacío con una certeza ficticia. El médico competente reduce la incertidumbre que puede reducirse y organiza una conducta segura frente a la que permanece.
 
-La intolerancia puede expresarse como sobreestudio, sobretratamiento, cierre prematuro o derivación defensiva. Curiosamente, conductas opuestas pueden tener la misma raíz: necesidad de escapar de la ambigüedad. Por ello, la pregunta no es sólo cuánta incertidumbre existe, sino qué hacemos emocional y cognitivamente con ella.
+La intolerancia puede expresarse como sobreestudio, sobretratamiento, cierre prematuro o derivación defensiva. Curiosamente, conductas opuestas pueden tener la misma raíz: necesidad de escapar de la ambigüedad. Gérvas y Pérez Fernández han documentado la versión poblacional de esa intolerancia: cascadas de intervenciones innecesarias que nacen de no soportar la espera vigilante, y que dañan con especial eficacia a los más sanos (Gérvas & Pérez Fernández, 2013). Por ello, la pregunta no es sólo cuánta incertidumbre existe, sino qué hacemos emocional y cognitivamente con ella.
 
 ### Incertidumbre precisa
 
