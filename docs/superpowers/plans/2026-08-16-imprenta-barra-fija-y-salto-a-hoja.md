@@ -40,6 +40,13 @@ hoja concreta que no fuera arrastrar la barra de scroll a ojo.
   código dice exactamente esto, en vez de atribuirse un efecto que no se puede
   demostrar acá.
 
+## Hallazgo de revisión (Greptile, corregido)
+
+`input[type=number]` acepta notación científica, y `parseInt('1e2', 10)` devuelve
+**1**: pedir la hoja 100 habría llevado a la 1 sin decir nada. Pasa a `Number` +
+`Math.round`, que además hace que un `11,6` vaya a la hoja 12 en vez de no hacer
+nada — la misma regla que ya aplicaba a los números fuera de rango.
+
 ## Validación
 
 - Suite completa: **5392 tests** en verde (791 archivos).

@@ -54,6 +54,26 @@ describe('PdfSheetJump', () => {
     limpiar()
   })
 
+  it('entiende la notación científica que el propio input permite', () => {
+    // `input[type=number]` acepta `1e2` como valor válido, y `parseInt` leería
+    // sólo el `1`: pedir la hoja 100 llevaría a la 1 sin decir nada.
+    const { tarjetas, limpiar } = montar(90)
+
+    saltar('1e2')
+
+    expect(tarjetas[89]!.scrollIntoView).toHaveBeenCalled()
+    limpiar()
+  })
+
+  it('redondea un decimal en vez de quedarse quieto', () => {
+    const { tarjetas, limpiar } = montar(90)
+
+    saltar('11.6')
+
+    expect(tarjetas[11]!.scrollIntoView).toHaveBeenCalled()
+    limpiar()
+  })
+
   it('acota el cero y los negativos a la primera hoja', () => {
     const { tarjetas, limpiar } = montar(90)
 

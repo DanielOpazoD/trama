@@ -18,9 +18,13 @@ export function PdfSheetJump({ total }: { total: number }) {
 
   function jump(event: FormEvent) {
     event.preventDefault()
-    const requested = Number.parseInt(value, 10)
-    if (!Number.isFinite(requested)) return
-    const index = Math.min(Math.max(requested, 1), total) - 1
+    // `Number` y no `parseInt`: un `input[type=number]` acepta notación
+    // científica, y `parseInt('1e2', 10)` devuelve 1 — pedir la hoja 100
+    // llevaría a la 1 sin decir nada. Se redondea por la misma razón por la que
+    // se acota: un `1,5` es un dedazo, y no moverse deja al usuario adivinando.
+    const requested = Number(value.trim())
+    if (value.trim() === '' || !Number.isFinite(requested)) return
+    const index = Math.min(Math.max(Math.round(requested), 1), total) - 1
     const card = formRef.current
       ?.closest('.pdf-studio-canvas')
       ?.querySelector<HTMLElement>(`[data-page-index="${index}"]`)
