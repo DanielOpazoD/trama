@@ -66,12 +66,19 @@ export async function assembleSearchablePdf(file: File, pages: OcrPage[]): Promi
     const source = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()), {
       ignoreEncryption: true,
     })
-    for (const ocrPage of pages) {
-      const [copied] = await out.copyPages(source, [ocrPage.pageNumber - 1])
-      if (!copied) continue
+    // Un solo `copyPages`: pdf-lib deduplica lo compartido (fuentes, imágenes)
+    // dentro de cada llamada, así que copiar de a una página lo embebe otra vez
+    // por página y el PDF buscable crece tantas veces como páginas tenga.
+    const copiedPages = await out.copyPages(
+      source,
+      pages.map((ocrPage) => ocrPage.pageNumber - 1),
+    )
+    pages.forEach((ocrPage, index) => {
+      const copied = copiedPages[index]
+      if (!copied) return
       const page = out.addPage(copied)
       drawInvisibleOcrText({ font, page, rgb, ocrPage })
-    }
+    })
   } else {
     for (const ocrPage of pages) {
       const page = out.addPage([ocrPage.width, ocrPage.height])

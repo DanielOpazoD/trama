@@ -39,6 +39,12 @@ se suben al backend.
   dinamicos de `pdf-lib` y `@pdf-lib/fontkit` usados por exportacion, OCR
   buscable, imagenes a PDF y Libro.
 - `src/lib/pdfStudio/assemble/assemble.ts`: orquestador del pipeline de exportacion.
+- `src/lib/pdfStudio/assemble/assemblePageCopy.ts`: copia las paginas de cada PDF
+  fuente en UNA sola llamada a `copyPages`, con reintento pagina por pagina si el
+  lote falla.
+- `src/lib/pdfStudio/assemble/assemblePageResources.ts`: poda del `/Resources`
+  heredado antes de copiar, para que una pagina suelta no arrastre los recursos
+  de todo el libro.
 - `src/lib/pdfStudio/assemble/assemblePipeline.ts`: tipos de fases, progreso y errores de
   exportacion.
 - `src/lib/pdfStudio/export/heavyOperationContract.ts`: contrato comun para operaciones
@@ -116,6 +122,14 @@ emite fases en orden:
 1. `load-fonts`: registra fontkit solo si hay texto con fuentes embebibles.
 2. `validate-images`: cuenta imagenes de paginas y anotaciones.
 3. `process-pages`: copia paginas PDF con `copyPages` o crea paginas desde imagen.
+   La copia va POR SOURCE y en una sola llamada: pdf-lib crea un copier nuevo en
+   cada `copyPages` y solo deduplica dentro de esa llamada, asi que copiar de a
+   una pagina reembebe fuentes, imagenes y recursos compartidos una vez por
+   pagina. Antes de copiar, `prunePageResources` deja en cada pagina solo los
+   `/XObject` y `/Font` que su content stream nombra: sin eso, un libro que cuelga
+   sus recursos del nodo raiz del arbol de paginas se copia entero en CADA pagina
+   exportada. Las dos cosas juntas llevaron 16 paginas de un libro de 600 de
+   1,8 GB a unos pocos MB.
 4. `apply-annotations`: dibuja anotaciones vectoriales; si la pagina tiene
    redacciones, primero rasteriza la pagina completa y quema los bloques de
    redaccion para no conservar el contenido subyacente.
@@ -357,6 +371,10 @@ Imprenta.
   avanzado con unidades, nudging fino y presets de proporcion.
 - La exportacion recomprime imagenes grandes segun perfil, pero aun no estima
   memoria precisa por pagina ni muestra prediccion de peso final antes de guardar.
+- La poda de `/Resources` es una sobre-aproximacion deliberada: cuenta como usado
+  cualquier token `/Nombre` de los content streams y de las apariencias de
+  anotaciones, y solo toca `/XObject` y `/Font`. Puede conservar recursos de mas
+  —nunca quitar uno en uso— y si un stream no se puede decodificar no poda nada.
 - La redaccion real rasteriza la pagina completa. Es segura para remover contenido
   subyacente, pero convierte esa pagina en imagen y pierde texto/vector
   seleccionable en esa pagina.

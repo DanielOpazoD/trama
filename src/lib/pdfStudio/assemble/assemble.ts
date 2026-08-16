@@ -7,6 +7,7 @@ import { createPdfFontResolver } from './assembleFontResolver'
 import { readPngSize, resolveImagesPerPage } from './assembleImages'
 import { addImageSheetFromDoc } from './assembleImageSheets'
 import { countImages, emitLifecycle } from './assembleProgress'
+import { createPdfPageCopier } from './assemblePageCopy'
 import { loadPdfFontkit, loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 import {
   addRedactedRasterPage,
@@ -54,7 +55,8 @@ export async function assemble(
 ): Promise<AssembleResult> {
   const emit = createProgressEmitter(options.onProgress)
   throwIfAborted(options.signal, 'load-fonts')
-  const { PDFDocument, rgb, degrees } = await loadPdfLib()
+  const lib = await loadPdfLib()
+  const { PDFDocument, rgb, degrees } = lib
   const out = await PDFDocument.create()
 
   emitLifecycle(emit, 'load-fonts', 'start')
@@ -89,13 +91,21 @@ export async function assemble(
 
   const skipped: SkippedSource[] = []
   const skippedIds = new Set<string>()
-  const recordSkip = (source: PdfSource, err: unknown) => {
-    if (skippedIds.has(source.id)) return
-    skippedIds.add(source.id)
+  const notedIds = new Set<string>()
+  /** Avisa al usuario de un source con problemas, una sola vez. */
+  const noteSkip = (source: PdfSource, err: unknown) => {
+    if (notedIds.has(source.id)) return
+    notedIds.add(source.id)
     skipped.push({ name: source.file.name, reason: errMessage(err) })
+  }
+  /** Además, deja de intentar el source entero: no se pudo ni abrir. */
+  const recordSkip = (source: PdfSource, err: unknown) => {
+    skippedIds.add(source.id)
+    noteSkip(source, err)
   }
 
   const fontFor = createPdfFontResolver(out)
+  const pageCopier = createPdfPageCopier({ doc, lib, loadPdf, out })
 
   emitLifecycle(emit, 'process-pages', 'start', 0, doc.pages.length)
   const imagesPerPage = resolveImagesPerPage(doc.settings)
@@ -115,9 +125,12 @@ export async function assemble(
           compression: options.compression,
         })
       } else if (page.kind === 'pdf') {
-        const src = await loadPdf(source.file)
-        const [copied] = await out.copyPages(src, [page.pageIndex])
-        if (copied) outPage = out.addPage(copied)
+        const copied = await pageCopier.copyPage(pageIndex, source)
+        // Una hoja suelta ilegible no invalida a sus hermanas sanas: se avisa y
+        // se sigue. Un source que no se pudo ni abrir sí corta el resto, porque
+        // ese error lo propaga `copyPage` al catch de abajo.
+        if (!copied) noteSkip(source, pageCopier.failureFor(pageIndex))
+        else outPage = out.addPage(copied)
       } else {
         const sheet = await addImageSheetFromDoc({
           doc,
