@@ -363,8 +363,20 @@ Imprenta.
   de fuentes/render en Linux CI; la cadencia automatica vive en el workflow
   `pdf-visual`.
 - Los fixtures reales cubren multipagina, rotado, escaneado, corrupto, fuente no
-  usual y una exportacion de estres pequena medida; falta una carpeta curada de PDFs
-  grandes de usuario para pruebas de memoria extrema.
+  usual y una exportacion de estres pequena medida. Para el peso de exportacion
+  hay ademas un corpus de FORMAS patologicas
+  (`src/test/factories/pathologicalPdfs.ts`): recursos heredados del arbol,
+  fuente pesada compartida, formularios anidados en cadena y escaneado como
+  control. Los libros reales de un usuario no se versionan —pesan, y son
+  suyos—, asi que se reproduce su estructura, que es lo que rompe.
+- El presupuesto de peso (`assembleWeightBudget.test.ts`) fija una RAZON, no un
+  numero: exportar N paginas cuesta lo que pesan N paginas y NO depende de
+  cuantas tenga el libro. Hacen falta las dos afirmaciones — la primera atrapa
+  la poda rota (el peso escala con el libro) y la segunda el `copyPages` por
+  pagina (lo compartido se reembebe por pagina elegida).
+- Falta una envolvente de MEMORIA medida. Hoy se acota el tiempo de exportar 16
+  de 600 paginas; la memoria pico no se afirma porque la medicion depende del GC
+  y saldria inestable en CI.
 - El lazo libre existe con modificador de teclado; aun no tiene affordance visual
   dedicada en la barra ni seleccion por rango semantico de objetos.
 - El inspector permite posicion/tamano por inputs numericos basicos; falta un modo
