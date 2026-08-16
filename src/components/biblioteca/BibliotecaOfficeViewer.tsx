@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { requestBlob } from '../../api/request'
 import { api } from '../../api'
+import { readOfficeSheets } from '../../lib/biblioteca/officeSheetsClient'
 import type { LibraryItem } from '../../types/biblioteca'
 import { officeKindFor } from './helpers'
 
@@ -16,11 +17,15 @@ import { officeKindFor } from './helpers'
  * En ambos casos el HTML se SANITIZA con DOMPurify antes de inyectarlo
  * (`dangerouslySetInnerHTML`), porque viene de un archivo arbitrario del usuario.
  *
- * Las tres librerías (mammoth ~150 KB, xlsx ~430 KB, dompurify) se importan
- * DINÁMICAMENTE dentro del efecto: este componente se monta con
- * `lazy(() => import(...))` desde BibliotecaViewer, así que su chunk —y el de las
- * librerías— recién se baja cuando el usuario abre un documento de Office. Nunca
- * tocan el bundle inicial.
+ * Las librerías se importan DINÁMICAMENTE: este componente se monta con
+ * `lazy(() => import(...))` desde BibliotecaViewer, así que su chunk —y el de
+ * mammoth y dompurify— recién se baja cuando el usuario abre un documento de
+ * Office. Nunca tocan el bundle inicial.
+ *
+ * `xlsx` ya NO se importa acá: vive dentro de un Worker desechable
+ * (`lib/biblioteca/officeSheetsClient`) porque arrastra contaminación de
+ * prototipo y ReDoS sin parche disponible. Si esa importación vuelve a este
+ * archivo, vuelve el riesgo.
  */
 function BibliotecaOfficeViewer({
   item,
@@ -57,15 +62,13 @@ function BibliotecaOfficeViewer({
           if (!active) return
           setDocHtml(sanitize(value))
         } else {
-          const XLSX = await loadXlsx()
-          const wb = XLSX.read(arrayBuffer, { type: 'array' })
-          const rendered = wb.SheetNames.map((name) => {
-            const sheet = wb.Sheets[name]
-            const html = sheet ? XLSX.utils.sheet_to_html(sheet) : ''
-            return { name, html: sanitize(html) }
-          })
+          // El parseo ocurre en un Worker desechable (ver officeSheetsClient):
+          // `xlsx` tiene contaminación de prototipo y ReDoS sin parche, y esto
+          // los deja encerrados en un realm que se termina al devolver. Lo que
+          // vuelve es HTML crudo, así que se sanitiza acá.
+          const parsed = await readOfficeSheets(arrayBuffer)
           if (!active) return
-          setSheets(rendered)
+          setSheets(parsed.map((sheet) => ({ ...sheet, html: sanitize(sheet.html) })))
         }
         setStatus('ready')
       } catch {
@@ -215,10 +218,6 @@ async function loadMammoth(): Promise<MammothModule> {
     | MammothModule
     | { default: MammothModule }
   return 'convertToHtml' in mod ? mod : mod.default
-}
-
-async function loadXlsx() {
-  return import('xlsx')
 }
 
 type Sanitizer = { sanitize: (dirty: string) => string }

@@ -95,8 +95,17 @@ export const PDF_LAZY_ENTRYPOINT_BASES = [
   ...new Set(PDF_ENTRYPOINT_INVENTORY.flatMap((entry) => entry.lazyBases)),
 ].sort()
 
+// La duplicación de estos vendors es ESTRUCTURAL, no un descuido de chunking:
+// el hilo principal y el Worker son grafos de módulos separados y cada uno
+// necesita su copia. Por eso el budget cuenta el par, no cada copia.
+//
+// `vendor-pdfjs` subió de 250 a 260 KB al actualizar `pdfjs-dist` 6.0.227 →
+// 6.2.108, que cierra GHSA-hq66-cqwq-w95j (ejecución arbitraria de JavaScript
+// al abrir un PDF malicioso). Son ~2 KB gzip por copia: no se rechaza un parche
+// de esa gravedad para conservar un número. Cualquier subida futura de este
+// techo necesita una razón escrita igual de concreta.
 export const PDF_DUPLICATE_VENDOR_BUDGETS = {
   'vendor-pdf-lib': { maxCount: 2, maxGzKb: 1100 },
-  'vendor-pdfjs': { maxCount: 2, maxGzKb: 250 },
+  'vendor-pdfjs': { maxCount: 2, maxGzKb: 260 },
   'vendor-ocr': { maxCount: 2, maxGzKb: 15 },
 }

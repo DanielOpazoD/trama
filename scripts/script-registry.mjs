@@ -155,6 +155,15 @@ const SCRIPT_ENTRIES = [
       'Verifica que scripts, comandos npm, quality gates y CLIs estén documentados.',
   },
   {
+    file: 'scripts/check-deps-advisories.mjs',
+    domain: 'ci',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:deps-advisories'],
+    summary:
+      'Falla ante avisos altos o críticos en dependencias de producción sin aceptar por escrito.',
+  },
+  {
     file: 'scripts/check-docs-drift.mjs',
     domain: 'docs',
     kind: 'check',
@@ -686,6 +695,13 @@ export const QUALITY_GATES = [
     phase: 'static',
     required: true,
     summary: 'Prettier sobre archivos versionados.',
+  },
+  {
+    command: 'npm run check:deps-advisories',
+    job: 'lint',
+    phase: 'static',
+    required: true,
+    summary: 'Avisos altos o críticos en dependencias de producción sin aceptar.',
   },
   {
     command: 'npm run check:docs-drift',
