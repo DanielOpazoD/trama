@@ -91,10 +91,17 @@ export async function assemble(
 
   const skipped: SkippedSource[] = []
   const skippedIds = new Set<string>()
-  const recordSkip = (source: PdfSource, err: unknown) => {
-    if (skippedIds.has(source.id)) return
-    skippedIds.add(source.id)
+  const notedIds = new Set<string>()
+  /** Avisa al usuario de un source con problemas, una sola vez. */
+  const noteSkip = (source: PdfSource, err: unknown) => {
+    if (notedIds.has(source.id)) return
+    notedIds.add(source.id)
     skipped.push({ name: source.file.name, reason: errMessage(err) })
+  }
+  /** Además, deja de intentar el source entero: no se pudo ni abrir. */
+  const recordSkip = (source: PdfSource, err: unknown) => {
+    skippedIds.add(source.id)
+    noteSkip(source, err)
   }
 
   const fontFor = createPdfFontResolver(out)
@@ -119,7 +126,11 @@ export async function assemble(
         })
       } else if (page.kind === 'pdf') {
         const copied = await pageCopier.copyPage(pageIndex, source)
-        if (copied) outPage = out.addPage(copied)
+        // Una hoja suelta ilegible no invalida a sus hermanas sanas: se avisa y
+        // se sigue. Un source que no se pudo ni abrir sí corta el resto, porque
+        // ese error lo propaga `copyPage` al catch de abajo.
+        if (!copied) noteSkip(source, pageCopier.failureFor(pageIndex))
+        else outPage = out.addPage(copied)
       } else {
         const sheet = await addImageSheetFromDoc({
           doc,

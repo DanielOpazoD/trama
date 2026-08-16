@@ -31,6 +31,10 @@ const calls = vi.hoisted(() => ({
   load: vi.fn(),
   save: vi.fn(),
   failSave: false,
+  /** Rompe la copia en lote, para ejercitar el reintento de a una página. */
+  failBatchCopy: false,
+  /** Índice de página del source que no se puede copiar ni de a una. */
+  failPageIndex: null as number | null,
 }))
 const pdfjsCalls = vi.hoisted(() => ({
   getDocument: vi.fn(),
@@ -57,6 +61,10 @@ vi.mock('pdf-lib', () => {
           copyPages: async (...a: unknown[]) => {
             calls.copyPages(...a)
             const indices = (a[1] ?? []) as number[]
+            if (calls.failBatchCopy && indices.length > 1)
+              throw new Error('lote ilegible')
+            if (calls.failPageIndex !== null && indices.includes(calls.failPageIndex))
+              throw new Error('hoja ilegible')
             return indices.map(() => makePage(400, 560))
           },
           addPage: (arg: unknown) => {
@@ -166,6 +174,8 @@ beforeEach(() => {
   pdfjsCalls.render.mockClear()
   pdfjsCalls.destroy.mockClear()
   calls.failSave = false
+  calls.failBatchCopy = false
+  calls.failPageIndex = null
   // `fetch` del WOFF → bytes cualquiera (pdf-lib está mockeado, no los parsea).
   vi.stubGlobal(
     'fetch',
@@ -299,6 +309,18 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     )
     expect(calls.addPage).toHaveBeenCalledTimes(20)
     expect(calls.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('una hoja ilegible no se lleva puestas a las sanas del mismo PDF', async () => {
+    // El lote falla → se reintenta de a una. La hoja 3 tampoco se puede copiar,
+    // pero las otras cuatro ya están copiadas y tienen que llegar al PDF final.
+    calls.failBatchCopy = true
+    calls.failPageIndex = 2
+
+    const { skipped } = await assemble(addPdfSource(emptyDoc(), pdf('mixto.pdf'), 5))
+
+    expect(calls.addPage).toHaveBeenCalledTimes(4)
+    expect(skipped).toEqual([{ name: 'mixto.pdf', reason: 'hoja ilegible' }])
   })
 
   it('permite configurar compatibilidad de compresión al guardar', async () => {

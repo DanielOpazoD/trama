@@ -20,11 +20,13 @@ type CopyRequest = { docPageIndex: number; sourcePageIndex: number }
 
 export type PdfPageCopier = {
   /**
-   * Página copiada lista para `addPage`, o `null` si esa página no se pidió.
-   * Propaga el error del source (cifrado, corrupto) para que el llamador lo
-   * registre como salteado, igual que cuando se copiaba de a una.
+   * Página copiada lista para `addPage`, o `null` si no se pudo copiar. El error
+   * del SOURCE entero (cifrado, corrupto, ilegible) sí se propaga, para que el
+   * llamador lo registre como salteado y no vuelva a intentar sus otras páginas.
    */
   copyPage(docPageIndex: number, source: PdfSource): Promise<PDFPage | null>
+  /** Error de la copia individual de esa página, si fue ella la que falló. */
+  failureFor(docPageIndex: number): unknown
 }
 
 export function createPdfPageCopier({
@@ -92,8 +94,8 @@ export function createPdfPageCopier({
         prepared.add(source.id)
         await prepare(source)
       }
-      if (failures.has(docPageIndex)) throw failures.get(docPageIndex)
       return copies.get(docPageIndex) ?? null
     },
+    failureFor: (docPageIndex) => failures.get(docPageIndex),
   }
 }

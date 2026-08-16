@@ -33,9 +33,6 @@ const NAME_TERMINATORS = new Set([
 const SLASH = 0x2f
 const HASH = 0x23
 
-/** Vueltas máximas resolviendo XObjects de formulario que anidan otros. */
-const NESTED_FORM_ROUNDS = 4
-
 /** Junta los `/Nombre` que aparecen en `bytes` (con escapes `#XX` resueltos). */
 export function collectResourceNames(bytes: Uint8Array, into: Set<string>): void {
   for (let index = 0; index < bytes.length; index += 1) {
@@ -133,8 +130,13 @@ function appearanceStreams(
 /**
  * Suma los nombres que usan los XObjects de formulario ya marcados como usados:
  * un formulario sin `/Resources` propio resuelve contra los de la página, así
- * que sus nombres cuentan igual. Se repite hasta que no crece (formularios
- * anidados) con un tope duro por si un archivo se referencia en círculo.
+ * que sus nombres cuentan igual.
+ *
+ * Se recorre por frontera y NO por vueltas contadas: un formulario puede nombrar
+ * a otro que ya quedó atrás en el orden del diccionario, así que un tope de N
+ * pasadas deja sin leer las cadenas más profundas —y lo que nombren se poda por
+ * error—. Termina siempre porque `scanned` sólo crece y está acotado por el
+ * número de entradas, así que un ciclo entre formularios no da vueltas.
  */
 function expandWithNestedForms(
   lib: PdfLib,
@@ -144,26 +146,22 @@ function expandWithNestedForms(
 ): boolean {
   const xobjects = dictAt(lib, doc, resources, 'XObject')
   if (!xobjects) return true
-  const visited = new Set<string>()
-  for (let round = 0; round < NESTED_FORM_ROUNDS; round += 1) {
-    let grew = false
-    for (const [key, value] of xobjects.entries()) {
-      const name = key.decodeText()
-      if (!used.has(name) || visited.has(name)) continue
-      const xobject = resolve(doc, value)
-      if (!(xobject instanceof lib.PDFStream)) continue
-      const subtype = xobject.dict.get(lib.PDFName.of('Subtype'))
-      if (!(subtype instanceof lib.PDFName) || subtype.decodeText() !== 'Form') continue
-      visited.add(name)
-      const bytes = decodeStream(lib, xobject)
-      if (!bytes) return false
-      const before = used.size
-      collectResourceNames(bytes, used)
-      if (used.size !== before) grew = true
-    }
-    if (!grew) break
+  const byName = new Map(
+    xobjects.entries().map(([key, value]) => [key.decodeText(), value]),
+  )
+  const scanned = new Set<string>()
+  for (;;) {
+    const next = [...used].find((name) => byName.has(name) && !scanned.has(name))
+    if (next === undefined) return true
+    scanned.add(next)
+    const xobject = resolve(doc, byName.get(next))
+    if (!(xobject instanceof lib.PDFStream)) continue
+    const subtype = xobject.dict.get(lib.PDFName.of('Subtype'))
+    if (!(subtype instanceof lib.PDFName) || subtype.decodeText() !== 'Form') continue
+    const bytes = decodeStream(lib, xobject)
+    if (!bytes) return false
+    collectResourceNames(bytes, used)
   }
-  return true
 }
 
 /**

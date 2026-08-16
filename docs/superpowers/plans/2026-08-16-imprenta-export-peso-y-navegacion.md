@@ -51,9 +51,25 @@ el `overflow-hidden` del `main` recortaba el resto. Medido en el navegador:
   —source con una página ilegible— reintenta de a una y sólo cae la que falla.
 - `assemble/assemblePageResources.ts` (nuevo): antes de copiar, deja en cada
   página sólo los `/XObject` y `/Font` que nombra.
-- `assemble/assemble.ts`: usa el copier en vez de `copyPages` por página.
+- `assemble/assemble.ts`: usa el copier en vez de `copyPages` por página, y
+  separa «avisar de un source con problemas» de «dejar de intentarlo».
 - `ocr/pdfOcrSearchablePdf.ts`: el mismo defecto de copia de a una, corregido.
 - `PdfStudioView.tsx`: `h-full` en la sección, y fuera el `flex-1` inerte.
+
+## Hallazgos de revisión (Greptile, ambos P1, ambos corregidos)
+
+1. **El recorrido de formularios anidados perdía las cadenas profundas.** El tope
+   de 4 vueltas era arbitrario: con una cadena de 5+ formularios listada al revés
+   en el diccionario, cada pasada resolvía un solo eslabón y el más hondo quedaba
+   sin leer — su fuente se podaba y el contenido desaparecía en silencio. Ahora se
+   recorre por frontera, sin tope; termina porque `scanned` sólo crece y está
+   acotado por el número de entradas, así que un ciclo tampoco da vueltas.
+2. **El reintento de a una recuperaba páginas y luego las tiraba.** Una hoja
+   ilegible marcaba el source entero como salteado y se perdían también las sanas
+   —incluidas las que el fallback ya había copiado—. Era el comportamiento previo
+   al pack, pero con el reintento en su sitio quedaba absurdo. Ahora una hoja
+   suelta ilegible se anota y se sigue; sólo un source que no se puede ni abrir
+   corta el resto.
 
 ## Decisiones
 
@@ -98,6 +114,10 @@ el `overflow-hidden` del `main` recortaba el resto. Medido en el navegador:
 - Lote apagado → 1.243.542 bytes contra un techo de 300.000, y el contrato de
   `copyPages` pasa de 1 llamada a 20.
 - `h-full` revertido → el e2e falla con `scrollH (2577) === clientH`: cero scroll.
+- Tope de vueltas reintroducido en el recorrido de formularios → la cadena de 6
+  pierde su fuente entera (`[]` en vez de `['Honda']`).
+- Reintento de a una devuelto a saltear el source entero → llegan 2 hojas de 5 en
+  vez de 4.
 
 **Verificado en el navegador**, el flujo exacto del reporte: libro sintético de
 600 páginas y 4,91 MB con `/Resources` colgado del nodo raíz → marcar 16 hojas →
@@ -105,6 +125,11 @@ Guardar. Resultado: **135.466 bytes (132 KB)**, 16 XObjects de formulario (uno
 por hoja, no 9.600) y las hojas exactas marcadas —1, 6, 12, 41, 78, 121, 200,
 251, 302, 356, 401, 461, 502, 541, 576, 600—. Con el defecto, esa misma
 exportación pesaba ~78 MB.
+
+Repetido tras los arreglos de revisión, con una cadena de 6 formularios anidados
+listada al revés metida en la hoja 1: **133 KB**, 22 XObjects de formulario —16
+hojas + los 6 eslabones— y la cadena entera intacta, `/F5` y su fuente `/Honda`
+incluidos.
 
 ## Pendiente
 

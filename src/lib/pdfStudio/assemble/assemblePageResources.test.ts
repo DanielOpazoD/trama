@@ -175,6 +175,62 @@ describe('pdfStudio/assemble · poda de /Resources heredados', () => {
     expect(namesIn(page, 'XObject').sort()).toEqual(['Marco', 'Sello'])
   })
 
+  it('sigue una cadena profunda de formularios listada al revés', async () => {
+    // El caso que rompe cualquier tope de N pasadas: F0 → F1 → … → F5, con el
+    // diccionario en orden inverso, así que cada pasada resuelve un solo
+    // eslabón. Con un tope de 4 vueltas, F5 quedaba sin leer y su fuente se
+    // podaba: contenido faltante en silencio.
+    const doc = await PDFDocument.create()
+    const page = doc.addPage([200, 200])
+    const ULTIMO = 5
+    const cadena = doc.context.obj({})
+    for (let index = ULTIMO; index >= 0; index -= 1) {
+      cadena.set(
+        PDFName.of(`F${index}`),
+        formXObject(
+          doc,
+          encode(index === ULTIMO ? 'BT /Honda 12 Tf ET' : `q /F${index + 1} Do Q`),
+        ),
+      )
+    }
+    const font = (name: string) =>
+      doc.context.register(doc.context.obj({ Type: 'Font', BaseFont: name }))
+    page.node.set(
+      PDFName.of('Resources'),
+      doc.context.obj({
+        XObject: cadena,
+        Font: doc.context.obj({ Honda: font('Honda'), Nadie: font('Nadie') }),
+      }),
+    )
+    setContents(doc, page, 'q /F0 Do Q')
+
+    expect(prunePageResources(pdfLib, doc, 0)).toBe(true)
+
+    // La fuente que sólo nombra el eslabón más hondo sobrevive…
+    expect(namesIn(page, 'Font')).toEqual(['Honda'])
+    // …y la cadena entera también.
+    expect(namesIn(page, 'XObject').sort()).toEqual(['F0', 'F1', 'F2', 'F3', 'F4', 'F5'])
+  })
+
+  it('termina aunque dos formularios se nombren en círculo', async () => {
+    const doc = await PDFDocument.create()
+    const page = doc.addPage([200, 200])
+    page.node.set(
+      PDFName.of('Resources'),
+      doc.context.obj({
+        XObject: doc.context.obj({
+          Ida: formXObject(doc, encode('q /Vuelta Do Q')),
+          Vuelta: formXObject(doc, encode('q /Ida Do Q')),
+          Nadie: formXObject(doc, heavyBytes(4, 9)),
+        }),
+      }),
+    )
+    setContents(doc, page, 'q /Ida Do Q')
+
+    expect(prunePageResources(pdfLib, doc, 0)).toBe(true)
+    expect(namesIn(page, 'XObject').sort()).toEqual(['Ida', 'Vuelta'])
+  })
+
   it('conserva lo que sólo nombra la apariencia de una anotación', async () => {
     const doc = await PDFDocument.create()
     const page = doc.addPage([200, 200])
