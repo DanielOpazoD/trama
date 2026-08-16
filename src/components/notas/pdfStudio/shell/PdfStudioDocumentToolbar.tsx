@@ -16,6 +16,13 @@ import {
 } from '../../../Icons'
 import { CloseButton } from '../../../CloseButton'
 import { IconButton } from '../../../IconButton'
+import { PdfSheetJump } from './PdfSheetJump'
+
+/**
+ * Desde cuántas hojas el contador deja de ser rótulo y pasa a ser salto. Dos
+ * pantallas de grilla: por debajo, llegar a cualquier hoja es un scroll corto.
+ */
+const SHEET_JUMP_FROM = 60
 
 const IMAGE_LAYOUT_OPTIONS = [1, 2, 4, 6] as const
 
@@ -135,10 +142,14 @@ export function PdfStudioDocumentToolbar({
   if (empty && !isTemplates && !undoable && !redoable) return null
 
   return (
+    // `sticky top-0`: la barra vive DENTRO del área scrolleable junto a la
+    // grilla, así que con un libro largo se iba de la vista y había que volver
+    // arriba del todo para exportar. El fondo pasa a ser opaco porque ahora
+    // tiene contenido pasando por debajo.
     <div
       role="toolbar"
       aria-label="Acciones del documento PDF"
-      className="flex flex-nowrap items-center gap-1.5 border-y border-ink-100/70 bg-paper-50/70 px-1.5 py-1 shadow-sm shadow-ink-900/5"
+      className="sticky top-0 z-20 flex flex-nowrap items-center gap-1.5 border-y border-ink-100/70 bg-paper-50/95 px-1.5 py-1 shadow-sm shadow-ink-900/5 backdrop-blur-sm"
     >
       <div className="flex min-w-0 items-center gap-1.5">
         <button
@@ -194,11 +205,17 @@ export function PdfStudioDocumentToolbar({
           empty && !isTemplates ? 'hidden' : ''
         }`}
       >
-        {!empty && (
-          <span className="hidden text-micro text-ink-300 tabular-nums sm:inline">
-            {total} {total === 1 ? 'página' : 'páginas'}
-          </span>
-        )}
+        {/* Con pocas hojas, el contador es un rótulo. Pasado el umbral la
+            grilla ya no se recorre a ojo y ese mismo sitio pasa a llevarte a la
+            hoja que pidas. */}
+        {!empty &&
+          (total >= SHEET_JUMP_FROM ? (
+            <PdfSheetJump total={total} />
+          ) : (
+            <span className="hidden text-micro text-ink-300 tabular-nums sm:inline">
+              {total} {total === 1 ? 'página' : 'páginas'}
+            </span>
+          ))}
         {!isTemplates && (
           <OverflowMenu
             label="Ajustes del documento"

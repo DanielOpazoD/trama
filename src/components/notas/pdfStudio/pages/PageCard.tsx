@@ -142,6 +142,9 @@ export function PageCard({
         }
       }}
       data-page-id={page.id}
+      /* Identidad posicional para el salto a hoja de la barra: buscar «la
+         enésima tarjeta» rompería en silencio si la grilla filtrara. */
+      data-page-index={index}
       className={`${isDropTarget || selected ? 'selection-ring ' : ''}group pdf-page-card flex flex-col rounded-lg border bg-paper-50 overflow-hidden ${
         dragging
           ? 'opacity-40 scale-[0.97] border-ink-300'
