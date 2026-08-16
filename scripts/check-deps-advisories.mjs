@@ -22,14 +22,22 @@ import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
 /**
- * Avisos aceptados a conciencia, por paquete. `reason` tiene que explicar qué
- * hace que el riesgo sea tolerable HOY, no prometer un arreglo futuro.
+ * Avisos aceptados a conciencia, por paquete y por IDENTIFICADOR de aviso.
+ *
+ * Anclar en el identificador y no en el paquete es lo que hace que esto sirva:
+ * una excepción para `xlsx` escrita pensando en contaminación de prototipo no
+ * puede convertirse en un salvoconducto para el próximo agujero de `xlsx`, que
+ * será otra cosa y nadie habrá evaluado. Un GHSA nuevo bloquea aunque el paquete
+ * ya figure acá.
+ *
+ * `reason` tiene que explicar qué hace que el riesgo sea tolerable HOY, no
+ * prometer un arreglo futuro.
  */
 export const ACCEPTED_ADVISORIES = new Map([
   [
     'xlsx',
     {
-      severities: ['high'],
+      advisories: ['GHSA-4r6h-8v6p-xvw6', 'GHSA-5pgg-2g8v-p4x9'],
       reason:
         'Contaminación de prototipo (GHSA-4r6h-8v6p-xvw6) y ReDoS (GHSA-5pgg-2g8v-p4x9) sin parche publicado. ' +
         'El parseo corre dentro de un Worker de un solo uso (src/lib/biblioteca/officeSheets.worker.ts) ' +
@@ -41,6 +49,32 @@ export const ACCEPTED_ADVISORIES = new Map([
 
 const BLOCKING = new Set(['high', 'critical'])
 
+/** `GHSA-xxxx-...` de una URL de aviso; si no hay, el id numérico de npm. */
+function advisoryId(via) {
+  const fromUrl = /GHSA-[0-9a-z-]+/i.exec(via.url ?? '')
+  if (fromUrl) return fromUrl[0]
+  return via.source ? `npm-${via.source}` : 'desconocido'
+}
+
+/**
+ * Identificadores de aviso de un paquete. `via` mezcla objetos (el aviso en sí)
+ * con strings (el nombre del paquete por el que le llega), así que hay que
+ * seguir esas cadenas hasta el aviso real. `seen` corta las referencias
+ * circulares que aparecen entre dependencias transitivas.
+ */
+function collectIds(name, vulnerabilities, seen = new Set()) {
+  if (seen.has(name)) return []
+  seen.add(name)
+  const entry = vulnerabilities[name]
+  if (!entry) return []
+  const ids = []
+  for (const via of entry.via ?? []) {
+    if (typeof via === 'string') ids.push(...collectIds(via, vulnerabilities, seen))
+    else ids.push(advisoryId(via))
+  }
+  return ids
+}
+
 export function readProductionAdvisories(runner = defaultRunner) {
   const raw = runner()
   let report
@@ -49,10 +83,12 @@ export function readProductionAdvisories(runner = defaultRunner) {
   } catch {
     throw new Error('npm audit no devolvió JSON interpretable')
   }
-  return Object.entries(report.vulnerabilities ?? {}).map(([name, entry]) => ({
+  const vulnerabilities = report.vulnerabilities ?? {}
+  return Object.entries(vulnerabilities).map(([name, entry]) => ({
     name,
     severity: entry.severity,
     fixAvailable: Boolean(entry.fixAvailable),
+    ids: [...new Set(collectIds(name, vulnerabilities))],
   }))
 }
 
@@ -76,11 +112,19 @@ export function evaluateAdvisories(advisories, accepted = ACCEPTED_ADVISORIES) {
   for (const advisory of advisories) {
     if (!BLOCKING.has(advisory.severity)) continue
     const entry = accepted.get(advisory.name)
-    if (entry && entry.severities.includes(advisory.severity)) {
+    const ids = advisory.ids ?? []
+    // Sin identificadores no se puede saber QUÉ se está aceptando, así que no
+    // se acepta: es preferible un falso bloqueo a una exención a ciegas.
+    const unreviewed = entry
+      ? ids.length === 0
+        ? ['(aviso sin identificador)']
+        : ids.filter((id) => !entry.advisories.includes(id))
+      : ids
+    if (entry && unreviewed.length === 0) {
       tolerated.push({ ...advisory, reason: entry.reason })
       continue
     }
-    blocking.push(advisory)
+    blocking.push({ ...advisory, unreviewed, hasEntry: Boolean(entry) })
   }
   // Una excepción que ya no hace falta es ruido que envejece mal.
   const names = new Set(advisories.map((advisory) => advisory.name))
@@ -113,6 +157,12 @@ function main() {
         advisory.fixAvailable ? 'HAY PARCHE: npm audit fix' : 'sin parche publicado'
       }`,
     )
+    console.error(`    sin evaluar: ${advisory.unreviewed.join(', ')}`)
+    if (advisory.hasEntry) {
+      console.error(
+        '    (el paquete ya tiene excepción, pero ESTE aviso es otro y nadie lo evaluó)',
+      )
+    }
   }
   console.error(
     '\nSi hay parche, aplicalo. Si no lo hay, acota el riesgo y escribí por qué\n' +

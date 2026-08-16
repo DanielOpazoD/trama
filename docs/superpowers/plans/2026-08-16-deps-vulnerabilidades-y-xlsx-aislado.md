@@ -60,6 +60,13 @@ dependencias de producción que no esté aceptado **por escrito**. Corre en el j
   por copia que trae el parche de ejecución arbitraria. No se rechaza un parche
   de esa gravedad para conservar un número; la razón queda escrita junto al
   budget.
+- **La excepción se ancla en el IDENTIFICADOR del aviso, no en el paquete.** Lo
+  señaló la revisión y tenía razón: una exención por paquete convierte la razón
+  escrita para la contaminación de prototipo en un salvoconducto para el próximo
+  agujero de `xlsx`, que será otra cosa y nadie habrá evaluado. Ahora un GHSA
+  nuevo bloquea aunque el paquete ya figure, y el mensaje lo dice con esas
+  palabras. Un aviso sin identificador tampoco se acepta: si no se sabe qué se
+  está aceptando, no se acepta.
 - **Aceptar un aviso exige una razón de más de 80 caracteres**, comprobado por
   test. Una razón corta es una casilla marcada, no una decisión.
 - **El gate mira sólo `--omit=dev`.** Un aviso en una herramienta de build no
@@ -72,8 +79,12 @@ dependencias de producción que no esté aceptado **por escrito**. Corre en el j
 - 17 gates `check:*` en verde, incluido el nuevo `check:deps-advisories`.
 - `npm audit --omit=dev`: de 12 avisos (6 altos) a **1**, aceptado por escrito.
 
-**Verificado por mutación**: añadir un fallback al hilo principal en
-`officeSheetsClient` pone en rojo el test que guarda esa garantía.
+**Verificado por mutación**:
+
+- Añadir un fallback al hilo principal en `officeSheetsClient` pone en rojo el
+  test que guarda esa garantía.
+- Quitar un GHSA de la lista aceptada hace que el gate falle nombrando ese aviso
+  y aclarando que el paquete ya tiene excepción pero ese aviso es otro.
 
 **Verificado en el navegador**, con una planilla real de dos hojas generada para
 la prueba:
