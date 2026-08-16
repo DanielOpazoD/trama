@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { NOTAS_SECTIONS, type NotasSection } from '../src/types/notas'
 import { emptyState, mockBackend } from './fixtures'
 
@@ -34,19 +34,54 @@ const A11Y_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']
  * la tabla se contrasta contra `NOTAS_SECTIONS` en el último test de este
  * archivo: si aparece una sección y no se lista acá, el CI lo dice.
  */
-const SECCIONES_NOTAS: Record<NotasSection, { titulo: string }> = {
-  inicio: { titulo: 'Inicio' },
-  notas: { titulo: 'Notas' },
-  tareas: { titulo: 'Tareas' },
-  prompts: { titulo: 'Prompts' },
-  claves: { titulo: 'Claves' },
-  pdf: { titulo: 'Imprenta' },
-  planillas: { titulo: 'Planillas' },
-  biblioteca: { titulo: 'Biblioteca' },
+const SECCIONES_NOTAS: Record<
+  NotasSection,
+  { titulo: string; señal: (page: Page) => Locator }
+> = {
+  // `señal` NO puede ser el título de la sección: ese `<h1>` es cromo y lo pinta
+  // el chrome de Notas antes de que resuelva el `Suspense`, así que esperarlo
+  // deja a axe auditando el esqueleto de carga en vez de la sección. Medido:
+  // en `pdf` y `planillas` el `h1` es el ÚNICO encabezado que existe, y en
+  // `inicio` el encabezado de contenido dice «Hoy», no «Inicio».
+  inicio: { titulo: 'Inicio', señal: (page) => page.locator('main h2').first() },
+  notas: {
+    titulo: 'Notas',
+    señal: (page) => page.getByRole('heading', { name: 'Notas', level: 2 }),
+  },
+  tareas: {
+    titulo: 'Tareas',
+    señal: (page) => page.getByRole('heading', { name: 'Tareas', level: 2 }),
+  },
+  prompts: {
+    titulo: 'Prompts',
+    señal: (page) => page.getByRole('heading', { name: 'Prompts', level: 2 }),
+  },
+  claves: {
+    titulo: 'Claves',
+    señal: (page) => page.getByRole('heading', { name: 'Claves', level: 2 }),
+  },
+  // Imprenta y Planillas no tienen encabezado propio: su contenido empieza en
+  // el lienzo de arrastre, que es lo único que prueba que montaron.
+  pdf: { titulo: 'Imprenta', señal: (page) => page.getByText(/Trae un PDF/) },
+  planillas: {
+    titulo: 'Planillas',
+    señal: (page) => page.getByText(/Una planilla empieza con una hoja/),
+  },
+  biblioteca: {
+    titulo: 'Biblioteca',
+    señal: (page) => page.getByRole('heading', { name: 'Biblioteca', level: 2 }),
+  },
 }
 
-/** Corre axe sobre `main` y falla nombrando cada violación con su nodo. */
+/**
+ * Corre axe sobre `main` y falla nombrando cada violación con su nodo.
+ * Antes comprueba que el esqueleto de `Suspense` ya no esté: auditar la
+ * pantalla de carga da un verde que no dice nada de la sección.
+ */
 async function auditar(page: Page, dónde: string) {
+  await expect(
+    page.locator('main [role="status"]').filter({ hasText: 'Cargando' }),
+  ).toHaveCount(0)
   const results = await new AxeBuilder({ page })
     .include('main')
     .withTags(A11Y_TAGS)
@@ -402,17 +437,16 @@ test('a11y: palette ⌘K abierto sin violaciones', async ({ page }) => {
 // título cambiado, y esa forma es justo la que hace caro añadir la novena.
 // ─────────────────────────────────────────────────────────────────────────────
 
-for (const [section, { titulo }] of Object.entries(SECCIONES_NOTAS) as [
+for (const [section, { titulo, señal }] of Object.entries(SECCIONES_NOTAS) as [
   NotasSection,
-  { titulo: string },
+  (typeof SECCIONES_NOTAS)[NotasSection],
 ][]) {
   test(`a11y: Notas · ${titulo} sin violaciones`, async ({ page }) => {
     await skipSplash(page)
     await mockBackend(page, emptyState())
     await page.goto(`/?world=notas&section=${section}`)
-    // El encabezado de la sección es la señal de que terminó de montar; el
-    // `main` existe desde el primer frame y auditarlo antes mediría el vacío.
-    await page.getByRole('heading', { name: titulo }).first().waitFor({ timeout: 15_000 })
+    // Espera a algo que SÓLO existe con la sección montada (ver la tabla).
+    await señal(page).first().waitFor({ timeout: 15_000 })
     // Deja asentar las transiciones: axe a mitad de animación da falsos
     // positivos de contraste.
     await page.waitForTimeout(400)

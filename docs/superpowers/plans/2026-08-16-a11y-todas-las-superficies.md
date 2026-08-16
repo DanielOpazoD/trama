@@ -21,6 +21,32 @@ verde informando sobre las secciones de siempre.
   constante que consume el enrutador. Una sección nueva aparece ahí sola, y este
   test la reclama antes de que llegue a producción sin revisar.
 
+## Hallazgo de revisión (Greptile, corregido)
+
+La primera versión esperaba `getByRole('heading', { name: <título de sección> })`
+antes de auditar. Ese encabezado es **cromo**: lo pinta el chrome de Notas y vive
+dentro de `main` desde el primer frame, así que la espera se cumplía sin que el
+`Suspense` de la sección hubiera resuelto — y axe podía terminar auditando el
+esqueleto de carga en vez de los controles.
+
+Medido en el navegador, el hallazgo se sostiene:
+
+- El `<h1>` con el título de la sección está dentro de `main`, y es cromo.
+- En `pdf` y `planillas` ese `h1` es el **único** encabezado que existe: no hay
+  ningún encabezado de contenido con el que distinguir «montado» de «cargando».
+- En `inicio` el encabezado de contenido dice «Hoy», no «Inicio».
+
+Cada sección declara ahora una `señal` que sólo existe con la sección montada
+—el encabezado de contenido, o el lienzo de arrastre en Imprenta y Planillas— y
+`auditar` comprueba además que el esqueleto (`role="status"` + «Cargando…») ya no
+esté.
+
+**Lo que NO se pudo demostrar:** no logré construir una carga en la que la espera
+vieja diera verde auditando el esqueleto. Al bloquear el chunk perezoso fallan
+las dos versiones, la vieja y la nueva. Así que el defecto está corregido por
+construcción y respaldado por la medición de arriba, pero no por un test que
+antes fallara. Queda dicho en vez de contado como si estuviera probado.
+
 ## Decisiones
 
 - **La lista se deriva del enrutador, no se escribe a mano.** Un inventario
@@ -51,6 +77,8 @@ sonda no está mirando nada:
 have alternative text`, con el nodo. La cobertura nueva ve contenido real.
 - Se quitó `biblioteca` de la tabla → el ratchet falla nombrando la sección que
   faltó.
+- Se bloqueó el chunk perezoso de Imprenta → la espera nueva agota su tiempo, lo
+  que confirma que está anclada al contenido y no al cromo.
 
 ## Pendiente
 
