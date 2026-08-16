@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+import { NOTAS_SECTIONS, type NotasSection } from '../src/types/notas'
 import { emptyState, mockBackend } from './fixtures'
 
 /**
@@ -23,6 +24,44 @@ import { emptyState, mockBackend } from './fixtures'
  */
 
 const A11Y_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice']
+
+/**
+ * Cada sección del mundo Notas, con cómo saber que terminó de montar.
+ *
+ * El gate cubría 5 superficies de 13, y dejaba fuera Imprenta y Planillas —las
+ * dos con más controles del producto—. Peor que el hueco era que nada lo
+ * señalaba: una sección nueva entraba sin prueba y nadie se enteraba. Por eso
+ * la tabla se contrasta contra `NOTAS_SECTIONS` en el último test de este
+ * archivo: si aparece una sección y no se lista acá, el CI lo dice.
+ */
+const SECCIONES_NOTAS: Record<NotasSection, { titulo: string }> = {
+  inicio: { titulo: 'Inicio' },
+  notas: { titulo: 'Notas' },
+  tareas: { titulo: 'Tareas' },
+  prompts: { titulo: 'Prompts' },
+  claves: { titulo: 'Claves' },
+  pdf: { titulo: 'Imprenta' },
+  planillas: { titulo: 'Planillas' },
+  biblioteca: { titulo: 'Biblioteca' },
+}
+
+/** Corre axe sobre `main` y falla nombrando cada violación con su nodo. */
+async function auditar(page: Page, dónde: string) {
+  const results = await new AxeBuilder({ page })
+    .include('main')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log(`Violaciones en ${dónde}:`)
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+      for (const node of v.nodes.slice(0, 3)) {
+        console.log(`      → ${node.html.slice(0, 120)}`)
+      }
+    }
+  }
+  expect(results.violations, dónde).toEqual([])
+}
 
 /**
  * Skip el Splash en a11y tests. El splash es decorativo (aria-hidden) y
@@ -356,55 +395,35 @@ test('a11y: palette ⌘K abierto sin violaciones', async ({ page }) => {
   expect(results.violations).toEqual([])
 })
 
-// Vistas con formularios: validan, end-to-end, el barrido de nombres accesibles
-// en controles (check:form-control-labels). Si un <input>/<textarea> queda sin
-// nombre, axe lo marca acá además del gate estático.
-test('a11y: Notas · Prompts (formularios) sin violaciones', async ({ page }) => {
-  await skipSplash(page)
-  await mockBackend(page, emptyState())
-  await page.goto('/?world=notas&section=prompts')
-  await page
-    .getByRole('heading', { name: 'Prompts', level: 2 })
-    .waitFor({ timeout: 10_000 })
-  await page.waitForTimeout(400)
+// ─────────────────────────────────────────────────────────────────────────────
+// Todas las secciones del mundo Notas, generadas desde la tabla.
+//
+// Reemplaza a los tests copiados uno por sección: eran el mismo bloque con el
+// título cambiado, y esa forma es justo la que hace caro añadir la novena.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const results = await new AxeBuilder({ page })
-    .include('main')
-    .withTags(A11Y_TAGS)
-    .analyze()
-  if (results.violations.length > 0) {
-    console.log('Violaciones en Notas · Prompts:')
-    for (const v of results.violations) {
-      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
-      for (const node of v.nodes.slice(0, 3)) {
-        console.log(`      → ${node.html.slice(0, 120)}`)
-      }
-    }
-  }
-  expect(results.violations).toEqual([])
-})
+for (const [section, { titulo }] of Object.entries(SECCIONES_NOTAS) as [
+  NotasSection,
+  { titulo: string },
+][]) {
+  test(`a11y: Notas · ${titulo} sin violaciones`, async ({ page }) => {
+    await skipSplash(page)
+    await mockBackend(page, emptyState())
+    await page.goto(`/?world=notas&section=${section}`)
+    // El encabezado de la sección es la señal de que terminó de montar; el
+    // `main` existe desde el primer frame y auditarlo antes mediría el vacío.
+    await page.getByRole('heading', { name: titulo }).first().waitFor({ timeout: 15_000 })
+    // Deja asentar las transiciones: axe a mitad de animación da falsos
+    // positivos de contraste.
+    await page.waitForTimeout(400)
 
-test('a11y: Notas · Tareas (formularios) sin violaciones', async ({ page }) => {
-  await skipSplash(page)
-  await mockBackend(page, emptyState())
-  await page.goto('/?world=notas&section=tareas')
-  await page
-    .getByRole('heading', { name: 'Tareas', level: 2 })
-    .waitFor({ timeout: 10_000 })
-  await page.waitForTimeout(400)
+    await auditar(page, `Notas · ${titulo}`)
+  })
+}
 
-  const results = await new AxeBuilder({ page })
-    .include('main')
-    .withTags(A11Y_TAGS)
-    .analyze()
-  if (results.violations.length > 0) {
-    console.log('Violaciones en Notas · Tareas:')
-    for (const v of results.violations) {
-      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
-      for (const node of v.nodes.slice(0, 3)) {
-        console.log(`      → ${node.html.slice(0, 120)}`)
-      }
-    }
-  }
-  expect(results.violations).toEqual([])
+test('a11y: ninguna sección de Notas se queda sin auditar', async () => {
+  // El ratchet. La lista viene de `NOTAS_SECTIONS`, que es lo que consume el
+  // enrutador: una sección nueva aparece acá sola y este test la reclama antes
+  // de que llegue a producción sin revisar.
+  expect(Object.keys(SECCIONES_NOTAS).sort()).toEqual([...NOTAS_SECTIONS].sort())
 })
