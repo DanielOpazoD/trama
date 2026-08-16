@@ -225,7 +225,8 @@ export function PdfStudioView({
     watermarkText,
   } = usePdfStudioDocumentSettings(doc, updateSettings)
   return (
-    <section className="pdf-studio flex min-h-0 flex-1" aria-hidden={textPage !== null}>
+    // `h-full` y no `flex-1`: el padre es block y ahí `flex-1` no da altura.
+    <section className="pdf-studio flex h-full min-h-0" aria-hidden={textPage !== null}>
       <PdfStudioWorkspacePanel
         show={showPanel}
         workspace={workspace}

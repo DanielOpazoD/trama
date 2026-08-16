@@ -7,6 +7,7 @@ import { createPdfFontResolver } from './assembleFontResolver'
 import { readPngSize, resolveImagesPerPage } from './assembleImages'
 import { addImageSheetFromDoc } from './assembleImageSheets'
 import { countImages, emitLifecycle } from './assembleProgress'
+import { createPdfPageCopier } from './assemblePageCopy'
 import { loadPdfFontkit, loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 import {
   addRedactedRasterPage,
@@ -54,7 +55,8 @@ export async function assemble(
 ): Promise<AssembleResult> {
   const emit = createProgressEmitter(options.onProgress)
   throwIfAborted(options.signal, 'load-fonts')
-  const { PDFDocument, rgb, degrees } = await loadPdfLib()
+  const lib = await loadPdfLib()
+  const { PDFDocument, rgb, degrees } = lib
   const out = await PDFDocument.create()
 
   emitLifecycle(emit, 'load-fonts', 'start')
@@ -96,6 +98,7 @@ export async function assemble(
   }
 
   const fontFor = createPdfFontResolver(out)
+  const pageCopier = createPdfPageCopier({ doc, lib, loadPdf, out })
 
   emitLifecycle(emit, 'process-pages', 'start', 0, doc.pages.length)
   const imagesPerPage = resolveImagesPerPage(doc.settings)
@@ -115,8 +118,7 @@ export async function assemble(
           compression: options.compression,
         })
       } else if (page.kind === 'pdf') {
-        const src = await loadPdf(source.file)
-        const [copied] = await out.copyPages(src, [page.pageIndex])
+        const copied = await pageCopier.copyPage(pageIndex, source)
         if (copied) outPage = out.addPage(copied)
       } else {
         const sheet = await addImageSheetFromDoc({

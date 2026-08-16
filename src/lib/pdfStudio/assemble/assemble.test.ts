@@ -56,7 +56,8 @@ vi.mock('pdf-lib', () => {
         return {
           copyPages: async (...a: unknown[]) => {
             calls.copyPages(...a)
-            return [makePage(400, 560)]
+            const indices = (a[1] ?? []) as number[]
+            return indices.map(() => makePage(400, 560))
           },
           addPage: (arg: unknown) => {
             calls.addPage(arg)
@@ -286,11 +287,17 @@ describe('pdfStudio/assemble (contrato browser-only)', () => {
     expect(calls.embedJpg).not.toHaveBeenCalled()
   })
 
-  it('cachea un PDF grande y copia múltiples páginas sin recargar el source', async () => {
+  it('copia las páginas de un source en UNA sola llamada a copyPages', async () => {
+    // Una llamada por página crea un copier nuevo cada vez y pdf-lib vuelve a
+    // duplicar todo lo compartido: el PDF final crece 20× sin motivo.
     await assemble(addPdfSource(emptyDoc(), pdf('heavy.pdf'), 20))
 
     expect(calls.load).toHaveBeenCalledTimes(1)
-    expect(calls.copyPages).toHaveBeenCalledTimes(20)
+    expect(calls.copyPages).toHaveBeenCalledTimes(1)
+    expect(calls.copyPages.mock.calls[0]?.[1]).toEqual(
+      Array.from({ length: 20 }, (_, index) => index),
+    )
+    expect(calls.addPage).toHaveBeenCalledTimes(20)
     expect(calls.save).toHaveBeenCalledTimes(1)
   })
 
