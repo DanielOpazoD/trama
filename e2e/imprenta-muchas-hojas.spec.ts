@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { emptyState, mockBackend } from './fixtures'
 
@@ -33,20 +33,25 @@ async function libroDePrueba(): Promise<Buffer> {
   return Buffer.from(await pdf.save())
 }
 
+/** Deja Imprenta con el libro de prueba cargado y la primera hoja visible. */
+async function abrirLibro(page: Page) {
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem('trama:splash-seen', '1')
+  })
+  await mockBackend(page, emptyState())
+  await page.goto('/?world=notas&section=pdf')
+
+  await page.getByLabel('Archivo PDF o imagen').setInputFiles({
+    name: 'libro-largo.pdf',
+    mimeType: 'application/pdf',
+    buffer: await libroDePrueba(),
+  })
+  await expect(page.getByAltText('Página 1').first()).toBeVisible({ timeout: 20_000 })
+}
+
 test.describe('Imprenta con muchas hojas', () => {
   test('la grilla scrollea y se llega a la última hoja', async ({ page }) => {
-    await page.addInitScript(() => {
-      window.sessionStorage.setItem('trama:splash-seen', '1')
-    })
-    await mockBackend(page, emptyState())
-    await page.goto('/?world=notas&section=pdf')
-
-    await page.getByLabel('Archivo PDF o imagen').setInputFiles({
-      name: 'libro-largo.pdf',
-      mimeType: 'application/pdf',
-      buffer: await libroDePrueba(),
-    })
-    await expect(page.getByAltText('Página 1').first()).toBeVisible({ timeout: 20_000 })
+    await abrirLibro(page)
 
     const area = page.locator('.pdf-studio-canvas')
     const medidas = await area.evaluate((el) => ({
@@ -64,5 +69,47 @@ test.describe('Imprenta con muchas hojas', () => {
       el.scrollTop = el.scrollHeight
     })
     await expect(ultima).toBeInViewport()
+  })
+
+  test('la barra del documento sigue alcanzable en el fondo de la grilla', async ({
+    page,
+  }) => {
+    // La barra vive DENTRO del área scrolleable, junto a la grilla: sin
+    // `sticky` se iba de la vista y para exportar había que volver arriba del
+    // todo. Con 90 hojas ya no cabe en pantalla, así que esto lo comprueba de
+    // verdad y no por casualidad.
+    await abrirLibro(page)
+
+    const barra = page.getByRole('toolbar', { name: 'Acciones del documento PDF' })
+    await expect(barra).toBeInViewport()
+
+    await page.locator('.pdf-studio-canvas').evaluate((el) => {
+      el.scrollTop = el.scrollHeight * 0.8
+    })
+
+    await expect(barra).toBeInViewport()
+    await expect(barra.getByRole('button', { name: /Guardar/ })).toBeInViewport()
+  })
+
+  test('el salto lleva a la hoja pedida', async ({ page }) => {
+    await abrirLibro(page)
+
+    await page.getByLabel('Ir a la hoja').fill('72')
+    await page.getByLabel('Ir a la hoja').press('Enter')
+
+    const hoja = page.getByLabel(/Página 72 de 90\./)
+    await expect(hoja).toBeInViewport()
+
+    // Y CENTRADA, no apenas asomando: desde un borde no se sabe en qué parte
+    // del documento aterrizaste. Esto afirma el RESULTADO, no quién lo
+    // consigue: en Chromium el `focus()` ya centra por su cuenta, así que este
+    // test no distingue si el `scrollIntoView` explícito sobra. Vale igual —
+    // lo que no puede cambiar es dónde queda la hoja.
+    const desviación = await hoja.evaluate((card) => {
+      const área = card.closest('.pdf-studio-canvas')!.getBoundingClientRect()
+      const caja = card.getBoundingClientRect()
+      return Math.abs((caja.top + caja.bottom) / 2 - (área.top + área.bottom) / 2)
+    })
+    expect(desviación).toBeLessThan(120)
   })
 })
