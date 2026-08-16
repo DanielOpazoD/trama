@@ -29,6 +29,16 @@ export type PathologicalBook = {
    * cuántas tenga el libro.
    */
   sharedBytes: number
+  /**
+   * Nombres de recurso que la página `sourcePageIndex` DEBE conservar tras
+   * exportarse. Sin esto el presupuesto sólo pondría un techo, y una poda que
+   * borrase de más produciría un archivo más chico —y verde— con páginas
+   * vacías. Un peso menor del esperado también es un defecto.
+   */
+  expectedResources: (sourcePageIndex: number) => {
+    xobjects: string[]
+    fonts?: string[]
+  }
   /** Cómo se llama esta forma, para que un fallo diga cuál rompió. */
   label: string
 }
@@ -117,6 +127,7 @@ export async function inheritedResourcesBook(
     // Nada se comparte de verdad: cada página usa su propio XObject y sólo los
     // hereda por cómo está armado el árbol.
     sharedBytes: 0,
+    expectedResources: (index) => ({ xobjects: [`X${index}`] }),
     label: 'recursos heredados del árbol',
   }
 }
@@ -164,6 +175,7 @@ async function sharedFontBook(
     bytesPerPage,
     // La fuente sí la usan todas: viaja UNA vez, no una por página.
     sharedBytes: fontBytes,
+    expectedResources: (index) => ({ xobjects: [`X${index}`], fonts: ['F1'] }),
     label: 'fuente pesada compartida',
   }
 }
@@ -212,6 +224,15 @@ async function nestedFormsBook(
     bytesPerPage,
     // La cadena entera la usan todas las páginas; son streams diminutos.
     sharedBytes: depth * 64,
+    // La cadena completa MÁS el `X0` que cuelga de su último eslabón: si la
+    // poda se queda corta, alguno de estos desaparece y la página se vacía.
+    expectedResources: (index) => ({
+      xobjects: [
+        ...Array.from({ length: depth }, (_, link) => `F${link}`),
+        'X0',
+        `X${index}`,
+      ],
+    }),
     label: 'formularios anidados en cadena',
   }
 }
@@ -244,6 +265,7 @@ async function scannedBook(
     pages,
     bytesPerPage,
     sharedBytes: 0,
+    expectedResources: () => ({ xobjects: ['Im0'] }),
     label: 'escaneado sin recursos compartidos',
   }
 }

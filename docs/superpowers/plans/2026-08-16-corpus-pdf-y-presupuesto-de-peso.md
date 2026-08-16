@@ -45,6 +45,19 @@ Son dos afirmaciones y hacen falta las dos, porque atrapan defectos distintos:
   duplicación escala con lo SELECCIONADO, no con el libro, así que la primera
   afirmación no la ve.
 
+## Hallazgos de revisión (Greptile, ambos corregidos)
+
+1. **Un techo se satisface también borrando de más.** El presupuesto sólo ponía
+   cota superior, así que una poda que se pasara dejaría páginas vacías, un
+   archivo MÁS chico y el gate en verde. Ahora cada forma declara
+   `expectedResources(pagina)` y la exportación se abre para comprobar que cada
+   página conserva lo suyo. Un peso por debajo de lo esperado no es una mejora:
+   es contenido perdido.
+2. **La envolvente de 15 s era decorativa.** El timeout de vitest son 5 s por
+   defecto, así que una exportación de 8 s moría por timeout en vez de fallar
+   diciendo cuánto tardó. El test declara ahora su propio timeout por encima de
+   la envolvente que afirma.
+
 ## Decisiones
 
 - **Una razón y no un número absoluto.** Un umbral holgado lo pasaba el mismo
@@ -79,6 +92,9 @@ uno por el caso que le corresponde:
   compartida siguen verdes, que es lo correcto.
 - Lote apagado → falla la fuente compartida: **805 KB contra un techo de
   155 KB**, la fuente embebida 8 veces en vez de una.
+- Poda que NO sigue la cadena de formularios (borra de más) → la hoja exportada
+  queda con `['X1', 'F0']` en vez de la cadena entera. Antes de las aserciones
+  de contenido, esa mutación producía un archivo más chico y pasaba.
 
 ## Pendiente
 
