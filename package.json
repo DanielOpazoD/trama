@@ -36,6 +36,7 @@
     "check:architecture": "node scripts/check-architecture-boundaries.mjs",
     "check:adr-index": "node scripts/check-adr-index.mjs",
     "check:dependency-cruiser": "node scripts/check-architecture-boundaries.mjs",
+    "check:deps-advisories": "node scripts/check-deps-advisories.mjs",
     "report:quality-gates": "node scripts/report-quality-gates.mjs",
     "check:structure-ratchets": "node scripts/check-structure-ratchets.mjs",
     "check:frontend-boundaries": "node scripts/check-frontend-boundaries.mjs",

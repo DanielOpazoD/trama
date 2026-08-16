@@ -41,6 +41,13 @@ jobs:
       - name: Format check
         run: npm run format:check
 
+      # La cadena de suministro no la miraba nadie hasta agosto de 2026: se
+      # habían acumulado doce avisos, y uno era ejecución arbitraria de
+      # JavaScript al abrir un PDF, en una app que abre PDFs. Ahora un aviso
+      # alto nuevo frena el merge salvo que esté aceptado por escrito.
+      - name: Dependency advisories check
+        run: npm run check:deps-advisories
+
       - name: Documentation drift check
         run: npm run check:docs-drift
 
