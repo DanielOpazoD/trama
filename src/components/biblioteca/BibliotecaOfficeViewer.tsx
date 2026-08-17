@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { requestBlob } from '../../api/request'
 import { api } from '../../api'
-import { readOfficeSheets } from '../../lib/biblioteca/officeSheetsClient'
+import {
+  readOfficeDocument,
+  readOfficeSheets,
+} from '../../lib/biblioteca/officeParseClient'
 import type { LibraryItem } from '../../types/biblioteca'
 import { officeKindFor } from './helpers'
 
@@ -11,21 +14,20 @@ import { officeKindFor } from './helpers'
  *
  * Baja el blob por la URL servida AUTENTICADA (`requestBlob` adjunta el bearer;
  * un fetch directo daría 401) como `arrayBuffer` y, según el tipo:
- *   - docx → `mammoth.convertToHtml` produce HTML semántico.
- *   - xlsx → `xlsx` (SheetJS) arma una tabla HTML por hoja, con selector si hay
- *     varias.
+ *   - docx → `mammoth` produce HTML semántico.
+ *   - xlsx → SheetJS arma una tabla HTML por hoja, con selector si hay varias.
  * En ambos casos el HTML se SANITIZA con DOMPurify antes de inyectarlo
  * (`dangerouslySetInnerHTML`), porque viene de un archivo arbitrario del usuario.
  *
- * Las librerías se importan DINÁMICAMENTE: este componente se monta con
- * `lazy(() => import(...))` desde BibliotecaViewer, así que su chunk —y el de
- * mammoth y dompurify— recién se baja cuando el usuario abre un documento de
- * Office. Nunca tocan el bundle inicial.
+ * DOMPurify se importa DINÁMICAMENTE: este componente se monta con
+ * `lazy(() => import(...))` desde BibliotecaViewer, así que su chunk recién se
+ * baja cuando el usuario abre un documento de Office. Nunca toca el bundle
+ * inicial.
  *
- * `xlsx` ya NO se importa acá: vive dentro de un Worker desechable
- * (`lib/biblioteca/officeSheetsClient`) porque arrastra contaminación de
- * prototipo y ReDoS sin parche disponible. Si esa importación vuelve a este
- * archivo, vuelve el riesgo.
+ * Ni `xlsx` ni `mammoth` se importan acá: los dos viven dentro de un Worker
+ * desechable (`lib/biblioteca/officeParseClient`), que es donde se lee el
+ * archivo del usuario. Si alguna de esas importaciones vuelve a este archivo,
+ * vuelve el parseo al hilo principal y con él el riesgo.
  */
 function BibliotecaOfficeViewer({
   item,
@@ -55,17 +57,19 @@ function BibliotecaOfficeViewer({
         const arrayBuffer = await blob.arrayBuffer()
         // DOMPurify se importa junto al convertidor: ambos viven en chunks lazy.
         const { sanitize } = await loadSanitizer()
+        // Si el visor se cerró o cambió de archivo mientras bajaba el
+        // sanitizador, no se arranca el Worker: leer un documento que ya nadie
+        // va a ver puede ocupar CPU y memoria hasta 30 segundos (el tope del
+        // temporizador) por un resultado que se descarta igual.
+        if (!active) return
 
         if (kind === 'docx') {
-          const mammoth = await loadMammoth()
-          const { value } = await mammoth.convertToHtml({ arrayBuffer })
+          const html = await readOfficeDocument(arrayBuffer)
           if (!active) return
-          setDocHtml(sanitize(value))
+          setDocHtml(sanitize(html))
         } else {
-          // El parseo ocurre en un Worker desechable (ver officeSheetsClient):
-          // `xlsx` tiene contaminación de prototipo y ReDoS sin parche, y esto
-          // los deja encerrados en un realm que se termina al devolver. Lo que
-          // vuelve es HTML crudo, así que se sanitiza acá.
+          // El parseo ocurre en un Worker desechable (ver officeParseClient).
+          // Lo que vuelve es HTML crudo, así que se sanitiza acá.
           const parsed = await readOfficeSheets(arrayBuffer)
           if (!active) return
           setSheets(parsed.map((sheet) => ({ ...sheet, html: sanitize(sheet.html) })))
@@ -205,20 +209,9 @@ function OfficeError({ item }: { item: LibraryItem }) {
 
 // ---------------------------------------------------------------------------
 // Cargadores lazy. Aislados en funciones para dejar el `import()` explícito y
-// reusable, y para resolver el interop de los paquetes CommonJS (mammoth y
-// dompurify exponen el valor en `default` bajo algunos modos de interop).
+// reusable, y para resolver el interop de CommonJS (dompurify expone el valor
+// en `default` bajo algunos modos de interop).
 // ---------------------------------------------------------------------------
-
-type MammothModule = {
-  convertToHtml: (input: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>
-}
-
-async function loadMammoth(): Promise<MammothModule> {
-  const mod = (await import('mammoth')) as unknown as
-    | MammothModule
-    | { default: MammothModule }
-  return 'convertToHtml' in mod ? mod : mod.default
-}
 
 type Sanitizer = { sanitize: (dirty: string) => string }
 

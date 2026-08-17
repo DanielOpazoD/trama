@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { OfficeSheetsUnavailableError, readOfficeSheets } from './officeSheetsClient'
-import { OFFICE_SHEETS_TIMEOUT_MS } from './officeSheetsContract'
+import {
+  OfficeParseUnavailableError,
+  readOfficeDocument,
+  readOfficeSheets,
+} from './officeParseClient'
+import { OFFICE_PARSE_TIMEOUT_MS } from './officeParseContract'
 
-type Posted = { id: number; buffer: ArrayBuffer }
+type Posted = { id: number; kind: string; buffer: ArrayBuffer }
 
 /**
  * Worker de mentira que deja inspeccionar qué se le mandó y responder a mano.
@@ -61,11 +65,43 @@ describe('readOfficeSheets', () => {
     worker.reply({
       id: worker.posted[0]!.id,
       ok: true,
+      kind: 'xlsx',
       sheets: [{ name: 'Hoja1', html: '<table></table>' }],
     })
 
     await expect(promise).resolves.toEqual([{ name: 'Hoja1', html: '<table></table>' }])
     expect(worker.terminated).toBe(1)
+  })
+
+  it('devuelve el HTML del documento de Word', async () => {
+    const { FakeWorker, instances } = fakeWorkerClass()
+    globalThis.Worker = FakeWorker as never
+
+    const promise = readOfficeDocument(new ArrayBuffer(8))
+    const worker = instances[0]!
+    expect(worker.posted[0]!.kind).toBe('docx')
+    worker.reply({
+      id: worker.posted[0]!.id,
+      ok: true,
+      kind: 'docx',
+      html: '<p>hola</p>',
+    })
+
+    await expect(promise).resolves.toBe('<p>hola</p>')
+    expect(worker.terminated).toBe(1)
+  })
+
+  it('rechaza si el worker responde con el formato equivocado', async () => {
+    // Una respuesta de planilla a un pedido de documento significa que el
+    // contrato se desincronizó; devolverla como si nada mezclaría los dos HTML.
+    const { FakeWorker, instances } = fakeWorkerClass()
+    globalThis.Worker = FakeWorker as never
+
+    const promise = readOfficeDocument(new ArrayBuffer(8))
+    const worker = instances[0]!
+    worker.reply({ id: worker.posted[0]!.id, ok: true, kind: 'xlsx', sheets: [] })
+
+    await expect(promise).rejects.toThrow('respuesta inesperada')
   })
 
   it('NO cae al hilo principal cuando no hay Worker', async () => {
@@ -76,7 +112,7 @@ describe('readOfficeSheets', () => {
     globalThis.Worker = undefined
 
     await expect(readOfficeSheets(new ArrayBuffer(8))).rejects.toBeInstanceOf(
-      OfficeSheetsUnavailableError,
+      OfficeParseUnavailableError,
     )
   })
 
@@ -88,7 +124,7 @@ describe('readOfficeSheets', () => {
     } as never
 
     await expect(readOfficeSheets(new ArrayBuffer(8))).rejects.toBeInstanceOf(
-      OfficeSheetsUnavailableError,
+      OfficeParseUnavailableError,
     )
   })
 
@@ -112,7 +148,7 @@ describe('readOfficeSheets', () => {
     const worker = instances[0]!
     worker.fail()
 
-    await expect(promise).rejects.toThrow('No se pudo leer la planilla.')
+    await expect(promise).rejects.toThrow('No se pudo leer el archivo.')
     expect(worker.terminated).toBe(1)
   })
 
@@ -123,8 +159,13 @@ describe('readOfficeSheets', () => {
     const promise = readOfficeSheets(new ArrayBuffer(8))
     const worker = instances[0]!
     const id = worker.posted[0]!.id
-    worker.reply({ id: id + 999, ok: true, sheets: [{ name: 'ajena', html: '' }] })
-    worker.reply({ id, ok: true, sheets: [{ name: 'propia', html: '' }] })
+    worker.reply({
+      id: id + 999,
+      ok: true,
+      kind: 'xlsx',
+      sheets: [{ name: 'ajena', html: '' }],
+    })
+    worker.reply({ id, ok: true, kind: 'xlsx', sheets: [{ name: 'propia', html: '' }] })
 
     await expect(promise).resolves.toEqual([{ name: 'propia', html: '' }])
   })
@@ -138,7 +179,7 @@ describe('readOfficeSheets', () => {
 
     const promise = readOfficeSheets(new ArrayBuffer(8))
     const rejected = expect(promise).rejects.toThrow('tardó demasiado')
-    await vi.advanceTimersByTimeAsync(OFFICE_SHEETS_TIMEOUT_MS + 10)
+    await vi.advanceTimersByTimeAsync(OFFICE_PARSE_TIMEOUT_MS + 10)
     await rejected
 
     expect(instances[0]!.terminated).toBe(1)
