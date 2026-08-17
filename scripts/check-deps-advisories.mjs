@@ -40,7 +40,7 @@ export const ACCEPTED_ADVISORIES = new Map([
       advisories: ['GHSA-4r6h-8v6p-xvw6', 'GHSA-5pgg-2g8v-p4x9'],
       reason:
         'Contaminación de prototipo (GHSA-4r6h-8v6p-xvw6) y ReDoS (GHSA-5pgg-2g8v-p4x9) sin parche publicado. ' +
-        'El parseo corre dentro de un Worker de un solo uso (src/lib/biblioteca/officeSheets.worker.ts) ' +
+        'El parseo corre dentro de un Worker de un solo uso (src/lib/biblioteca/officeParse.worker.ts) ' +
         'con temporizador: la contaminación queda en un realm que se termina al devolver el resultado, ' +
         'y un ReDoS cuelga un hilo desechable en vez de la interfaz. No hay fallback al hilo principal.',
     },
