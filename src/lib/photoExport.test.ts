@@ -16,12 +16,25 @@ vi.mock('./downloadBlob', () => ({
   downloadBlob: downloadMocks.downloadBlob,
 }))
 
-import { downloadAllImages } from './photoExport'
+const assembleMocks = vi.hoisted(() => ({
+  imagesToSheetPdfFile: vi.fn(
+    async () => new File(['%PDF'], 'hojas.pdf', { type: 'application/pdf' }),
+  ),
+}))
+
+// El ensamblador real necesita pdf-lib y canvas: acá se fija el CONTRATO —qué
+// archivos recibe y con qué maquetación—, que es lo que cambió al dejar jsPDF.
+vi.mock('./pdfStudio/assemble/imagesToSheetPdfFile', () => ({
+  imagesToSheetPdfFile: assembleMocks.imagesToSheetPdfFile,
+}))
+
+import { downloadAllImages, exportImagesToPdf } from './photoExport'
 
 describe('photoExport', () => {
   afterEach(() => {
     requestMocks.requestBlob.mockClear()
     downloadMocks.downloadBlob.mockClear()
+    assembleMocks.imagesToSheetPdfFile.mockClear()
   })
 
   it('descarga fotos privadas mediante requestBlob y conserva el nombre de archivo', async () => {
@@ -36,5 +49,50 @@ describe('photoExport', () => {
       expect.objectContaining({ type: 'image/jpeg' }),
       'foto.jpg',
     )
+  })
+
+  it('arma el PDF con el ensamblador compartido, dos fotos por hoja', async () => {
+    // Antes esto tenía su propia maquetación con jsPDF. El contrato que
+    // importa: las fotos llegan como File y la hoja lleva dos.
+    await exportImagesToPdf(
+      [
+        { url: '/api/f/1.jpg', fileName: 'uno.jpg' },
+        { url: '/api/f/2.jpg', fileName: 'dos.jpg' },
+      ],
+      'Semana 3',
+    )
+
+    const llamada = assembleMocks.imagesToSheetPdfFile.mock.calls[0]
+    expect(llamada).toBeDefined()
+    const [files, opciones] = llamada as unknown as [File[], unknown]
+    expect(files.map((file) => file.name)).toEqual(['uno.jpg', 'dos.jpg'])
+    expect(opciones).toEqual({ imagesPerPage: 2 })
+  })
+
+  it('descarga el PDF con el título saneado', async () => {
+    await exportImagesToPdf([{ url: '/api/f/1.jpg', fileName: 'uno.jpg' }], 'Semana 3/4')
+
+    const [, nombre] = (downloadMocks.downloadBlob.mock.calls[0] ?? []) as [
+      unknown,
+      string,
+    ]
+    expect(nombre).toBe('Semana-3-4.pdf')
+  })
+
+  it('no arma nada si no hay fotos', async () => {
+    await exportImagesToPdf([], 'vacío')
+
+    expect(assembleMocks.imagesToSheetPdfFile).not.toHaveBeenCalled()
+    expect(downloadMocks.downloadBlob).not.toHaveBeenCalled()
+  })
+
+  it('cae a un nombre por defecto cuando el título no deja caracteres útiles', async () => {
+    await exportImagesToPdf([{ url: '/api/f/1.jpg', fileName: 'uno.jpg' }], '///')
+
+    const [, nombre] = (downloadMocks.downloadBlob.mock.calls[0] ?? []) as [
+      unknown,
+      string,
+    ]
+    expect(nombre).toBe('fotos.pdf')
   })
 })
