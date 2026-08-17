@@ -57,6 +57,11 @@ function BibliotecaOfficeViewer({
         const arrayBuffer = await blob.arrayBuffer()
         // DOMPurify se importa junto al convertidor: ambos viven en chunks lazy.
         const { sanitize } = await loadSanitizer()
+        // Si el visor se cerró o cambió de archivo mientras bajaba el
+        // sanitizador, no se arranca el Worker: leer un documento que ya nadie
+        // va a ver puede ocupar CPU y memoria hasta 30 segundos (el tope del
+        // temporizador) por un resultado que se descarta igual.
+        if (!active) return
 
         if (kind === 'docx') {
           const html = await readOfficeDocument(arrayBuffer)
