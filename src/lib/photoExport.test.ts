@@ -95,4 +95,30 @@ describe('photoExport', () => {
     ]
     expect(nombre).toBe('fotos.pdf')
   })
+
+  it('baja las fotos EN SERIE, sin ráfaga de peticiones', async () => {
+    // Cada foto es una descarga autenticada. Con `Promise.all` salían todas a
+    // la vez —ráfaga al backend y todos los blobs en memoria antes de
+    // ensamblar—, que es lo que hacía la versión anterior a este test.
+    let enVuelo = 0
+    let maxEnVuelo = 0
+    requestMocks.requestBlob.mockImplementation(async () => {
+      enVuelo += 1
+      maxEnVuelo = Math.max(maxEnVuelo, enVuelo)
+      await new Promise((r) => setTimeout(r, 0))
+      enVuelo -= 1
+      return new Blob(['img'], { type: 'image/jpeg' })
+    })
+
+    await exportImagesToPdf(
+      Array.from({ length: 5 }, (_, i) => ({
+        url: `/api/f/${i}.jpg`,
+        fileName: `${i}.jpg`,
+      })),
+      'Semana',
+    )
+
+    expect(maxEnVuelo).toBe(1)
+    expect(requestMocks.requestBlob).toHaveBeenCalledTimes(5)
+  })
 })

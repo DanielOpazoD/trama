@@ -58,6 +58,17 @@ Un título como `///` se sanea a `-`, que es truthy, así que el respaldo
 del código con jsPDF; se arregla recortando los guiones de los bordes antes del
 respaldo.
 
+## Hallazgo de revisión (Greptile, corregido)
+
+Mi reescritura bajaba las fotos con `Promise.all`. El código anterior las bajaba
+**en serie**, dentro del bucle — y `downloadAllImages`, unas líneas más arriba
+del mismo archivo, también es secuencial a propósito. Es decir: introduje una
+ráfaga de descargas autenticadas y retención de todos los blobs en memoria antes
+de ensamblar, en un archivo cuya convención era justo la contraria.
+
+Vuelve a ser secuencial, y ahora hay un test que lo fija midiendo el solapamiento
+máximo de peticiones en vuelo (mutar a `Promise.all` da 5 en vez de 1).
+
 ## Validación
 
 - Suite completa en verde, con **4 pruebas nuevas** sobre un camino que no tenía

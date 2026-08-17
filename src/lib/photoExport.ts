@@ -45,12 +45,16 @@ export async function exportImagesToPdf(
   title: string,
 ): Promise<void> {
   if (photos.length === 0) return
-  const files = await Promise.all(
-    photos.map(async (photo) => {
-      const blob = await fetchBlob(photo.url)
-      return new File([blob], photo.fileName, { type: blob.type || 'image/jpeg' })
-    }),
-  )
+  // EN SERIE, no con `Promise.all`: cada foto es una descarga autenticada, y
+  // dispararlas todas a la vez le manda una ráfaga al backend y retiene todos
+  // los blobs en memoria antes de empezar a ensamblar. Un dueño con cincuenta
+  // fotos lo nota. Es además como bajaba el código anterior, y como sigue
+  // bajando `downloadAllImages` unas líneas más arriba.
+  const files: File[] = []
+  for (const photo of photos) {
+    const blob = await fetchBlob(photo.url)
+    files.push(new File([blob], photo.fileName, { type: blob.type || 'image/jpeg' }))
+  }
   const { imagesToSheetPdfFile } =
     await import('./pdfStudio/assemble/imagesToSheetPdfFile')
   const pdf = await imagesToSheetPdfFile(files, { imagesPerPage: 2 })
