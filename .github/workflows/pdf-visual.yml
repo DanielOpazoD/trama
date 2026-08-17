@@ -24,6 +24,8 @@ on:
       - 'e2e/fixtures.ts'
       - 'e2e/pdf-studio-visual.spec.ts'
       - 'e2e/pdf-studio-visual.spec.ts-snapshots/**'
+      - 'e2e/focus-ring-visual.spec.ts'
+      - 'e2e/focus-ring-visual.spec.ts-snapshots/**'
       - '.github/workflows/pdf-visual.yml'
   workflow_dispatch:
   schedule:
@@ -51,6 +53,17 @@ jobs:
 
       - name: Run PDF visual snapshots
         run: npm run e2e:pdf-visual
+
+      # El anillo de foco tenía script, baselines commiteadas y hasta una línea
+      # en design.md… y no lo corría ningún workflow. Un gate que existe en el
+      # papel y no en la práctica: cuando #391 subió el botón de herramienta de
+      # 30×28 a 32×32 la baseline quedó podrida, y no se supo hasta ejecutarlo a
+      # mano meses después. Va acá porque comparte runner macOS y captura la
+      # misma barra del editor. `always()` para que un fallo del snapshot de
+      # arriba no lo deje sin correr: son dos señales distintas.
+      - name: Run focus-ring visual snapshots
+        if: always()
+        run: npm run e2e:focus-visual
 
       - name: Upload Playwright report
         if: always()
