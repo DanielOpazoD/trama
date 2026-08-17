@@ -1007,6 +1007,13 @@ export const QUALITY_GATES = [
     summary: 'Smoke visual de PDF Studio en workflow dedicado.',
   },
   {
+    command: 'npm run e2e:focus-visual',
+    job: 'pdf-visual',
+    phase: 'pdf',
+    required: true,
+    summary: 'Regresión visual del anillo de foco (claro y oscuro), mismo runner macOS.',
+  },
+  {
     command: 'gitleaks detect',
     job: 'secrets',
     phase: 'security',
