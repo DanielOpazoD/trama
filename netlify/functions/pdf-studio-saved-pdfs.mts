@@ -155,6 +155,15 @@ async function handleDelete(req: Request, context: Context, requestId: string) {
     RETURNING id, storage_key
   `)
   if (!rows[0]) return ApiErrors.notFound(requestId, 'No encontrado')
+  // El objeto se borra DE VERDAD, no sólo la fila. La fila queda en soft-delete
+  // porque sirve de rastro, pero el PDF pesa y este dominio no tiene endpoint
+  // que lo sirva: una vez borrado el registro, nadie puede volver a pedirlo, así
+  // que conservarlo es ocupar espacio para siempre a cambio de nada. Mismo orden
+  // que `pdf-studio-templates`: primero el blob, después el manifest, para no
+  // dejar un manifest vivo apuntando a un objeto que ya no está.
+  await createNetlifyBlobStorageAdapter(STORE)
+    .delete(rows[0].storage_key)
+    .catch(() => {})
   await softDeleteStorageAsset(sql, {
     userId: authedUser.id,
     domain: 'pdf-studio-saved-pdfs',

@@ -32,6 +32,7 @@ import {
   type SavedFolder,
   type SavedFolderColor,
 } from '../../../../lib/pdfStudio/render/persistence'
+import { deletePdfStudioSavedPdf } from '../../../../api/pdfStudioSavedPdfs'
 import { useCurrentClientUserId } from '../../../../lib/clientIdentity'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
@@ -378,7 +379,15 @@ export function usePdfStudioWorkspace({
     const target = saved.find((s) => s.id === id)
     setSaved((list) => list.filter((s) => s.id !== id))
     void deleteSavedDoc(userKey, id)
-    if (target) templateCloud.removeRemoteTemplate(target)
+    if (!target) return
+    templateCloud.removeRemoteTemplate(target)
+    // Cada guardado sube un PDF al servidor. Sin esta línea, borrar la creación
+    // quitaba el registro local y la plantilla remota, pero dejaba ese PDF
+    // subido para siempre: ninguna pantalla vuelve a mostrarlo y ningún camino
+    // lo borraba. Best-effort como el resto del borrado —si no hay red, el
+    // registro local ya se fue igual—, pero ahora existe el camino.
+    const remoteId = target.serverPdf?.id
+    if (remoteId) void deletePdfStudioSavedPdf(remoteId).catch(() => {})
   }
 
   return {

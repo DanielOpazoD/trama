@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   listSavedDocs: vi.fn(),
   listSavedFolders: vi.fn(),
   toastShow: vi.fn(),
+  deletePdfStudioSavedPdf: vi.fn(async () => {}),
 }))
 
 vi.mock('../../../../lib/pdfStudio/render/persistence', () => ({
@@ -27,6 +28,10 @@ vi.mock('../../../../lib/pdfStudio/render/persistence', () => ({
   putSavedFolder: vi.fn(),
   putSavedDoc: vi.fn(),
   savedTemplateStatus: (saved: { status?: 'draft' | 'ready' }) => saved.status ?? 'ready',
+}))
+
+vi.mock('../../../../api/pdfStudioSavedPdfs', () => ({
+  deletePdfStudioSavedPdf: mocks.deletePdfStudioSavedPdf,
 }))
 
 vi.mock('../../../../lib/clientIdentity', () => ({
@@ -230,5 +235,39 @@ describe('usePdfStudioWorkspace', () => {
 
     expect(mocks.saveDraft).not.toHaveBeenCalled()
     expect(hook.result.current.autosaveState).toEqual({ kind: 'idle', pages: 0 })
+  })
+
+  it('al borrar una creación también borra el PDF subido al servidor', async () => {
+    // Cada guardado sube un PDF. Antes de esto, borrar quitaba el registro local
+    // y la plantilla remota pero dejaba ese PDF huérfano para siempre: ninguna
+    // pantalla vuelve a mostrarlo y ningún camino lo borraba.
+    mocks.listSavedDocs.mockResolvedValue([
+      {
+        id: 'local-1',
+        name: 'Contrato',
+        doc: pdfDoc(1),
+        savedAt: 1,
+        kind: 'creation',
+        serverPdf: { id: 'remoto-9', uploadedAt: '2026-08-01T00:00:00.000Z' },
+      },
+    ])
+    const hook = renderWorkspace(pdfDoc(1))
+    await flushAsyncEffects()
+
+    act(() => hook.result.current.removeSaved('local-1'))
+
+    expect(mocks.deletePdfStudioSavedPdf).toHaveBeenCalledWith('remoto-9')
+  })
+
+  it('no llama al servidor si esa creación nunca se subió', async () => {
+    mocks.listSavedDocs.mockResolvedValue([
+      { id: 'local-2', name: 'Sin subir', doc: pdfDoc(1), savedAt: 1, kind: 'creation' },
+    ])
+    const hook = renderWorkspace(pdfDoc(1))
+    await flushAsyncEffects()
+
+    act(() => hook.result.current.removeSaved('local-2'))
+
+    expect(mocks.deletePdfStudioSavedPdf).not.toHaveBeenCalled()
   })
 })

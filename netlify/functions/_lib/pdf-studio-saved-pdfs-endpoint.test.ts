@@ -3,11 +3,12 @@ import { mockContext, mockSqlResponses, mockSqlState, setupMockSql } from './tes
 
 const blobMocks = vi.hoisted(() => ({
   set: vi.fn(async () => {}),
+  delete: vi.fn(async () => {}),
 }))
 
 vi.mock('./db.js', () => setupMockSql())
 vi.mock('@netlify/blobs', () => ({
-  getStore: vi.fn(() => ({ set: blobMocks.set })),
+  getStore: vi.fn(() => ({ set: blobMocks.set, delete: blobMocks.delete })),
 }))
 
 import handler from '../pdf-studio-saved-pdfs'
@@ -16,6 +17,7 @@ describe('pdf-studio saved PDFs endpoint', () => {
   beforeEach(() => {
     mockSqlResponses.reset()
     blobMocks.set.mockClear()
+    blobMocks.delete.mockClear()
   })
 
   it('lista sólo PDFs guardados del usuario autenticado', async () => {
@@ -147,6 +149,10 @@ describe('pdf-studio saved PDFs endpoint', () => {
     )
 
     expect(res.status).toBe(204)
+    // El OBJETO se borra, no sólo la fila: este dominio no tiene endpoint que
+    // sirva el blob, así que dejarlo es ocupar espacio para siempre a cambio de
+    // nada. Antes de esto, cada guardado dejaba un PDF imborrable.
+    expect(blobMocks.delete).toHaveBeenCalledWith('legacy-single-user/abc.pdf')
     const update = mockSqlState.calls.find((call) =>
       /UPDATE pdf_studio_saved_pdfs/i.test(call.template),
     )
