@@ -1,9 +1,16 @@
 /**
  * Exportar las fotos de un dueño (semana/tarea): bajar todas, o armar un PDF
  * con dos imágenes por hoja. Los blobs viven detrás de un endpoint autenticado,
- * así que se bajan con `requestBlob` (lleva el bearer de Clerk). jsPDF se importa
- * de forma perezosa para no engordar el bundle principal (solo se carga al
- * exportar).
+ * así que se bajan con `requestBlob` (lleva el bearer de Clerk).
+ *
+ * El PDF lo arma `imagesToSheetPdfFile`, el MISMO ensamblador que usa Imprenta.
+ * Antes esto tenía su propia implementación con jsPDF: dos maquetadores de
+ * imágenes-a-hoja conviviendo, y 126 KB gzip de una librería que sólo se usaba
+ * acá. pdf-lib ya viaja en la aplicación, así que la segunda sobraba.
+ *
+ * Se importa DINÁMICAMENTE, igual que antes se hacía con jsPDF: estático mete
+ * el ensamblador y sus dependencias en el chunk de NotasWorld, que lo carga
+ * cualquiera que entre al mundo Notas aunque no exporte una foto en su vida.
  */
 import { requestBlob } from '../api/request'
 import { downloadBlob } from './downloadBlob'
@@ -25,76 +32,37 @@ export async function downloadAllImages(photos: ExportablePhoto[]): Promise<void
   }
 }
 
-/** Carga un blob a un <img> para conocer sus dimensiones naturales. */
-function loadImage(blobUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('No se pudo cargar la imagen'))
-    img.src = blobUrl
-  })
-}
-
-/** Re-encodea a JPEG vía canvas (jsPDF embebe JPEG/PNG de forma confiable; WebP
- *  no siempre). Cap de dimensión para que el PDF no pese de más. */
-async function toJpeg(
-  blob: Blob,
-): Promise<{ dataUrl: string; width: number; height: number }> {
-  const blobUrl = URL.createObjectURL(blob)
-  try {
-    const img = await loadImage(blobUrl)
-    const MAX = 1600
-    const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight))
-    const width = Math.max(1, Math.round(img.naturalWidth * scale))
-    const height = Math.max(1, Math.round(img.naturalHeight * scale))
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('Canvas no disponible')
-    // Fondo blanco: imágenes con transparencia no salen negras en el PDF.
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, width, height)
-    ctx.drawImage(img, 0, 0, width, height)
-    return { dataUrl: canvas.toDataURL('image/jpeg', 0.85), width, height }
-  } finally {
-    URL.revokeObjectURL(blobUrl)
-  }
-}
-
 /**
  * Arma un PDF A4 con DOS imágenes por hoja (apiladas), cada una centrada en su
  * mitad manteniendo proporción. `title` da el nombre del archivo.
+ *
+ * El margen cambió de 12mm a 19mm al pasar al ensamblador compartido: es el que
+ * usa Imprenta para lo mismo, y tener dos márgenes distintos para «dos fotos en
+ * una hoja» era la clase de diferencia que nadie eligió.
  */
 export async function exportImagesToPdf(
   photos: ExportablePhoto[],
   title: string,
 ): Promise<void> {
   if (photos.length === 0) return
-  const { jsPDF } = await import('jspdf')
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-
-  const pageW = 210
-  const pageH = 297
-  const margin = 12
-  const gap = 8
-  const slotW = pageW - margin * 2
-  const slotH = (pageH - margin * 2 - gap) / 2 // dos slots verticales
-
-  for (let i = 0; i < photos.length; i++) {
-    const blob = await fetchBlob(photos[i]!.url)
-    const { dataUrl, width, height } = await toJpeg(blob)
-    const slot = i % 2 // 0 = arriba, 1 = abajo
-    if (i > 0 && slot === 0) doc.addPage()
-
-    const scale = Math.min(slotW / width, slotH / height)
-    const drawW = width * scale
-    const drawH = height * scale
-    const x = margin + (slotW - drawW) / 2
-    const y = margin + slot * (slotH + gap) + (slotH - drawH) / 2
-    doc.addImage(dataUrl, 'JPEG', x, y, drawW, drawH)
+  // EN SERIE, no con `Promise.all`: cada foto es una descarga autenticada, y
+  // dispararlas todas a la vez le manda una ráfaga al backend y retiene todos
+  // los blobs en memoria antes de empezar a ensamblar. Un dueño con cincuenta
+  // fotos lo nota. Es además como bajaba el código anterior, y como sigue
+  // bajando `downloadAllImages` unas líneas más arriba.
+  const files: File[] = []
+  for (const photo of photos) {
+    const blob = await fetchBlob(photo.url)
+    files.push(new File([blob], photo.fileName, { type: blob.type || 'image/jpeg' }))
   }
-
-  const safe = (title || 'fotos').replace(/[^\p{L}\p{N}_-]+/gu, '-').slice(0, 60)
-  doc.save(`${safe || 'fotos'}.pdf`)
+  const { imagesToSheetPdfFile } =
+    await import('./pdfStudio/assemble/imagesToSheetPdfFile')
+  const pdf = await imagesToSheetPdfFile(files, { imagesPerPage: 2 })
+  // Los guiones de los bordes se recortan ANTES del respaldo: un título como
+  // «///» se sanea a «-», que es truthy, y el archivo salía llamándose «-.pdf».
+  const safe = (title || '')
+    .replace(/[^\p{L}\p{N}_-]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+  downloadBlob(pdf, `${safe || 'fotos'}.pdf`)
 }

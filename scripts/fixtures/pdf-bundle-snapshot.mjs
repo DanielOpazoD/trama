@@ -1,6 +1,6 @@
 export const PDF_BUNDLE_SNAPSHOT = {
   source:
-    'PDF heavy worker dedup baseline, npm run build + node scripts/check-bundle-size.mjs after shared worker router',
+    'Baseline tras quitar jsPDF y html2canvas: photoExport pasó a usar el ensamblador de Imprenta (npm run build + node scripts/check-bundle-size.mjs)',
   entries: [
     { file: 'PdfStudioView', gzKb: 34, status: 'ok' },
     { file: 'PdfTextEditor', gzKb: 37, status: 'ok' },
@@ -9,8 +9,6 @@ export const PDF_BUNDLE_SNAPSHOT = {
     { file: 'assemble', gzKb: 5, status: 'no-budget' },
     { file: 'assembleImages', gzKb: 1, status: 'no-budget' },
     { file: 'buildLibro', gzKb: 2, status: 'no-budget' },
-    { file: 'html2canvas.esm', gzKb: 46, status: 'ok' },
-    { file: 'jspdf.es.min', gzKb: 123, status: 'ok' },
     { file: 'libroPreview', gzKb: 1, status: 'no-budget' },
     { file: 'pdf.worker.min', gzKb: 361, status: 'ok' },
     { file: 'pdfForms', gzKb: 2, status: 'no-budget' },
@@ -35,10 +33,10 @@ export const PDF_BUNDLE_SNAPSHOT = {
   },
   workers: ['pdf.worker.min', 'pdfHeavy.worker'],
   families: {
-    'PDF lazy payload total': { gzKb: 1978, budget: 2050 },
+    'PDF lazy payload total': { gzKb: 1809, budget: 2050 },
     'PDF viewer': { gzKb: 643, budget: 720 },
     'PDF editor': { gzKb: 37, budget: 80 },
-    'PDF assemble/export': { gzKb: 1266, budget: 1320 },
+    'PDF assemble/export': { gzKb: 1097, budget: 1320 },
     'PDF forms': { gzKb: 4, budget: 20 },
     'PDF heavy worker': { gzKb: 1, budget: 10 },
     'PDF OCR': { gzKb: 19, budget: 30 },
