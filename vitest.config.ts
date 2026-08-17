@@ -105,6 +105,20 @@ export default defineConfig({
         functions: 74,
         branches: 66,
         statements: 75,
+        // El pipeline que decide QUÉ BYTES acaban en el archivo del usuario.
+        // Un piso propio acá vale más que empujar el global: son ~1.100 líneas
+        // sobre ~102.000, así que un desplome no movería la aguja del total y
+        // pasaría inadvertido — que es exactamente lo que ocurrió con el
+        // defecto de las 16 hojas que pesaban 1,8 GB (#404).
+        //
+        // Medido: 79,92 / 72,66 / 91,25 / 82,94. Los pisos quedan por debajo
+        // para absorber el jitter de v8, no como objetivo a la baja.
+        '**/src/lib/pdfStudio/assemble/**': {
+          statements: 77,
+          branches: 70,
+          functions: 88,
+          lines: 80,
+        },
         '**/netlify/functions/_lib/auth.ts': {
           statements: 80,
           branches: 68,
