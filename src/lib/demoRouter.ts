@@ -177,6 +177,15 @@ function demoHealth(store: Store): HealthResponse {
     alerts: [],
     embeddings: { pendingEntities: 0, pendingQuotes: 0 },
     dailyCost: [],
+    // La demo no envía vitals a ningún servidor: las tres casillas se ven,
+    // pero vacías, que es la verdad.
+    webVitals: (['LCP', 'INP', 'CLS'] as const).map((metric) => ({
+      metric,
+      unit: metric === 'CLS' ? ('score' as const) : ('ms' as const),
+      p75: { d7: null, d28: null },
+      samples: { d7: 0, d28: 0 },
+      rating: 'no-data' as const,
+    })),
   }
 }
 

@@ -3,7 +3,10 @@ import { Sparkline } from '../Sparkline'
 import {
   buildLegacyCutoverChecklist,
   dedupHealthErrors,
+  formatVital,
   resolveBudgetTone,
+  resolveVitalTone,
+  WEB_VITAL_RATING_LABEL,
   type HealthErrorGroup,
   type LegacyCutoverChecklistItem,
 } from './healthPanelModel'
@@ -201,6 +204,51 @@ export function HealthDailyCostSection({
       <div className="flex items-baseline justify-between text-micro text-ink-400 tabular-nums">
         <span>hace 30d</span>
         <span>hoy</span>
+      </div>
+    </div>
+  )
+}
+
+export function HealthWebVitalsSection({
+  webVitals,
+}: {
+  webVitals: HealthPanelData['webVitals']
+}) {
+  if (!webVitals || webVitals.length === 0) return null
+  return (
+    <div className="card-paper p-4 space-y-3" data-testid="health-web-vitals">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="section-eyebrow">web vitals · p75 últimos 7 días</span>
+        <span className="text-micro text-ink-300 tabular-nums">
+          {webVitals.reduce((sum, v) => sum + v.samples.d7, 0)} muestras
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {webVitals.map((vital) => {
+          const tone = resolveVitalTone(vital.rating)
+          return (
+            <div key={vital.metric} className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-micro uppercase tracking-eyebrow text-ink-400">
+                  {vital.metric}
+                </span>
+                <span
+                  className="text-micro uppercase tracking-eyebrow font-medium px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: tone.bg, color: tone.fg }}
+                >
+                  {WEB_VITAL_RATING_LABEL[vital.rating]}
+                </span>
+              </div>
+              <p className="text-h2 font-serif tabular-nums text-ink-800 leading-none">
+                {formatVital(vital.unit, vital.p75.d7)}
+              </p>
+              <p className="text-micro text-ink-300 tabular-nums">
+                28 d: {formatVital(vital.unit, vital.p75.d28)} · {vital.samples.d28}{' '}
+                muestras
+              </p>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

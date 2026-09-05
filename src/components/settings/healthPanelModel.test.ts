@@ -42,6 +42,7 @@ const HEALTH: HealthResponse = {
   },
   embeddings: { pendingEntities: 5, pendingQuotes: 6 },
   dailyCost: [],
+  webVitals: [],
 }
 
 describe('healthPanelModel', () => {

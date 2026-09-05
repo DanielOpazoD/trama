@@ -72,4 +72,15 @@ export type HealthResponse = {
     costCents: number
     calls: number
   }>
+  /** Core Web Vitals del usuario: p75 a 7 y 28 días con semáforo de Google.
+      Siempre las tres métricas, en orden LCP · INP · CLS. */
+  webVitals: WebVitalSummary[]
+}
+
+export type WebVitalSummary = {
+  metric: 'LCP' | 'INP' | 'CLS'
+  unit: 'ms' | 'score'
+  p75: { d7: number | null; d28: number | null }
+  samples: { d7: number; d28: number }
+  rating: 'good' | 'needs-improvement' | 'poor' | 'no-data'
 }

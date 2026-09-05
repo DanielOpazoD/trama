@@ -120,7 +120,7 @@ Targets aspiracionales. Cuando los pasamos sostenidamente, abrimos un incidente 
 | FCP     | < 1.8s  | 1.8s – 3.0s       | > 3.0s          |
 | TTFB    | < 800ms | 800ms – 1.8s      | > 1.8s          |
 
-Si en una semana el p75 de cualquier métrica entra en "poor", revisar Settings → Logs → buscar `event:web_vitals rating:poor` y correlacionar con deploys.
+El p75 a 7 y 28 días de LCP, INP y CLS se ve en **Settings → Estado del sistema → Web Vitals**, calculado por `/api/health` sobre `web_vitals_samples`. Si el p75 semanal de cualquier métrica entra en "poor", el panel emite la alerta `web_vitals_poor`; para el detalle, Settings → Logs → buscar `event:web_vitals rating:poor` y correlacionar con deploys.
 
 ### Backend (latencia de endpoints clave)
 

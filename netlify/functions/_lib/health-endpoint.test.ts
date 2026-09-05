@@ -18,7 +18,7 @@ describe('health endpoint — aislamiento por user_id', () => {
     mockSqlResponses.reset()
     process.env['AI_MONTHLY_BUDGET_CENTS'] = '5000'
     resetEnvCache()
-    // 11 respuestas: set_config RLS + 10 queries del handler.
+    // 12 respuestas: set_config RLS + 11 queries del handler.
     mockSqlResponses.push(
       [{ set_config: 'legacy-single-user' }],
       [{ cap: null }], // users.monthly_budget_cents
@@ -31,6 +31,7 @@ describe('health endpoint — aislamiento por user_id', () => {
       [{ c: '0' }], // errores 24h
       [{ entities: '0', quotes: '0' }], // embeddings pendientes
       [], // daily cost
+      [], // web vitals p75
     )
   })
   afterEach(() => {
@@ -67,6 +68,7 @@ describe('health endpoint — aislamiento por user_id', () => {
       [{ c: '12' }], // errores 24h → ráfaga (>=10)
       [{ entities: '0', quotes: '0' }], // embeddings pendientes
       [], // daily cost
+      [], // web vitals p75
     )
 
     const res = await handler(new Request('http://localhost/api/health'), mockContext())
@@ -82,11 +84,67 @@ describe('health endpoint — aislamiento por user_id', () => {
     expect(JSON.stringify(body.alerts)).not.toMatch(/@|sk_|bearer|jwt/i)
   })
 
+  it('resume los web vitals por métrica y alerta cuando el p75 semanal es «poor»', async () => {
+    mockSqlResponses.reset()
+    mockSqlResponses.push(
+      [{ set_config: 'legacy-single-user' }],
+      [{ cap: null }],
+      [{ c: '5' }],
+      [{ c: '10' }],
+      [{ c: '3' }],
+      [{ calls: '0', tokens_in: '0', tokens_out: '0', cost_cents: '0' }],
+      [],
+      [],
+      [{ c: '0' }],
+      [{ entities: '0', quotes: '0' }],
+      [],
+      [
+        {
+          metric: 'LCP',
+          p75_7d: 4310.5,
+          samples_7d: '9',
+          p75_28d: 3100,
+          samples_28d: '30',
+        },
+        { metric: 'INP', p75_7d: null, samples_7d: '0', p75_28d: 140, samples_28d: '30' },
+      ],
+    )
+
+    const res = await handler(new Request('http://localhost/api/health'), mockContext())
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.webVitals.map((v: { metric: string }) => v.metric)).toEqual([
+      'LCP',
+      'INP',
+      'CLS',
+    ])
+    expect(body.webVitals[0]).toMatchObject({
+      p75: { d7: 4310.5, d28: 3100 },
+      samples: { d7: 9, d28: 30 },
+      rating: 'poor',
+    })
+    // INP sin muestras esta semana: el semáforo cae a los 28 días.
+    expect(body.webVitals[1]).toMatchObject({
+      p75: { d7: null, d28: 140 },
+      rating: 'good',
+    })
+    expect(body.webVitals[2]).toMatchObject({ metric: 'CLS', rating: 'no-data' })
+    expect(body.alerts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'web_vitals_poor',
+          label: 'Rendimiento pobre: LCP',
+        }),
+      ]),
+    )
+    expect(body.status).toBe('degraded')
+  })
+
   it('TODAS las queries de datos filtran por user_id', async () => {
     await handler(new Request('http://localhost/api/health'), mockContext())
     // Cada query ejecutada debe mencionar user_id — sin esto, Health
     // mostraría agregados globales cross-user.
-    expect(mockSqlResponses.calls.length).toBeGreaterThanOrEqual(10)
+    expect(mockSqlResponses.calls.length).toBeGreaterThanOrEqual(11)
     for (const call of mockSqlResponses.calls) {
       if (/set_config\('app\.current_user_id'/.test(call.template)) continue
       if (/FROM users/i.test(call.template)) continue
@@ -108,6 +166,7 @@ describe('health endpoint — aislamiento por user_id', () => {
       [{ c: '0' }],
       [{ entities: '0', quotes: '0' }],
       [],
+      [], // web vitals p75
     )
 
     const res = await handler(new Request('http://localhost/api/health'), mockContext())
