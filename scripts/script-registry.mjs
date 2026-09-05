@@ -172,6 +172,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Bloquea referencias documentales obsoletas en runbooks y convenciones.',
   },
   {
+    file: 'scripts/pendientes.mjs',
+    domain: 'docs',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:pendientes', 'pendientes'],
+    summary:
+      'Genera docs/pendientes.md desde las secciones «## Pendiente» de los planes y falla si quedó desactualizado.',
+  },
+  {
     file: 'scripts/check-frontend-boundaries.mjs',
     domain: 'frontend',
     kind: 'check',
@@ -709,6 +718,14 @@ export const QUALITY_GATES = [
     phase: 'docs',
     required: true,
     summary: 'Drift documental bloqueante.',
+  },
+  {
+    command: 'npm run check:pendientes',
+    job: 'lint',
+    phase: 'docs',
+    required: true,
+    summary:
+      'El registro de pendientes refleja las secciones «## Pendiente» de los planes.',
   },
   {
     command: 'npm run check:architecture-map',

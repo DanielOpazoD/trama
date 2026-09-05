@@ -51,6 +51,9 @@ jobs:
       - name: Documentation drift check
         run: npm run check:docs-drift
 
+      - name: Pending register check
+        run: npm run check:pendientes
+
       # El mapa de arquitectura cita ~200 archivos reales: si un PR renombra o
       # borra alguno, el mapa pasa a mentir y este gate lo dice acá y no dentro
       # de seis meses. También verifica que el HTML no quede con una copia

@@ -29,6 +29,8 @@
     "architecture-map:build": "node scripts/architecture-map.mjs --build",
     "check:architecture-map": "node scripts/architecture-map.mjs",
     "check:docs-drift": "node scripts/check-docs-drift.mjs",
+    "check:pendientes": "node scripts/pendientes.mjs --check",
+    "pendientes": "node scripts/pendientes.mjs",
     "check:script-registry": "node scripts/check-script-registry.mjs",
     "check:mock-completeness": "node scripts/check-mock-completeness.mjs",
     "check:knip": "node_modules/.bin/knip --no-progress --reporter compact",
