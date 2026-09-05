@@ -4,7 +4,15 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**21 pendientes** en 14 planes. Del más reciente al más viejo.
+**24 pendientes** en 15 planes. Del más reciente al más viejo.
+
+## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
+
+Plan: [2026-09-05-vitals-en-el-panel-de-salud.md](superpowers/plans/2026-09-05-vitals-en-el-panel-de-salud.md)
+
+- FCP y TTFB se guardan pero no se muestran. Son diagnósticos, no Core Web Vitals; entran cuando alguien los necesite para explicar un LCP.
+- No hay serie temporal: si el p75 empeora, la tarjeta lo dice, pero no cuándo empezó. Un sparkline diario por métrica es el paso siguiente natural.
+- La query no está en `check:query-plans` (pide Postgres local). El índice `idx_web_vitals_metric_time` la cubre, pero conviene confirmarlo con `EXPLAIN` cuando haya base a mano.
 
 ## 2026-09-05 · Los pendientes en un solo lugar
 
