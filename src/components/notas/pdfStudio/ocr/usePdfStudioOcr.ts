@@ -101,7 +101,8 @@ export function usePdfStudioOcr({
         commit((prev) =>
           addPdfSource({ ...prev, sources: [], pages: [] }, searchable, count),
         )
-        setOcrOpen(false)
+        // El panel se queda abierto: es donde el usuario hizo clic y donde lee
+        // el resultado. Cerrarlo justo al terminar le quitaría el mensaje.
         message += ' El documento ahora es la versión buscable; ⌘Z lo deshace.'
       }
       setOcrStatus(message)

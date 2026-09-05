@@ -23,8 +23,8 @@ tipo: el mecanismo existía y no llegaba al usuario.
   (arrastrar, doble clic para abrir) y los controles internos no se pisan. La
   etiqueta accesible y el tooltip del tick lo dicen.
 - **`usePdfStudioOcr`** acepta `commit`: al terminar, el PDF buscable
-  reemplaza al documento abierto (misma configuración, un solo origen) y el
-  panel se cierra. Las descargas siguen. `PdfStudioView` pasa `commit` en la
+  reemplaza al documento abierto (misma configuración, un solo origen). El
+  panel se queda abierto con el resultado. Las descargas siguen. `PdfStudioView` pasa `commit` en la
   misma línea que ya tenía: sigue en 364/365 del ratchet.
 
 ## Decisiones
@@ -33,6 +33,9 @@ tipo: el mecanismo existía y no llegaba al usuario.
   cada hoja. El documento pasa a ser la versión con capa de texto; las
   anotaciones ya viajan fijadas dentro del PDF ensamblado, y es un commit del
   historial, así que ⌘Z lo deshace.
+- **El panel no se cierra solo.** La primera versión lo cerraba al terminar y
+  el test de la vista lo dijo en CI: el usuario lee «OCR completado» ahí, donde
+  hizo clic. Cerrarlo le quitaba el mensaje justo cuando aparecía.
 - **Las descargas se quedan.** El `.txt` es un artefacto propio (el texto
   reconocido), y quitar la descarga del `.pdf` cambiaría un hábito sin
   ganar nada.

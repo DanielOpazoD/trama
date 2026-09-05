@@ -50,7 +50,7 @@ describe('usePdfStudioOcr', () => {
     mocks.getPdfPageCount.mockResolvedValue(2)
   })
 
-  it('con commit, el PDF buscable reemplaza al documento, conserva los ajustes y cierra el panel', async () => {
+  it('con commit, el PDF buscable reemplaza al documento y conserva los ajustes', async () => {
     const commit = vi.fn()
     const before = docWithPages(2)
     const { result } = renderHook(() => usePdfStudioOcr({ commit }))
@@ -69,7 +69,8 @@ describe('usePdfStudioOcr', () => {
     expect(after.pages.every((page) => page.sourceId === after.sources[0]?.id)).toBe(true)
     expect(after.settings).toEqual(before.settings)
 
-    expect(result.current.ocrOpen).toBe(false)
+    // El panel sigue abierto: ahí se lee el resultado.
+    expect(result.current.ocrOpen).toBe(true)
     expect(result.current.ocrStatus).toMatch(/1\/2 páginas con texto/)
     expect(result.current.ocrStatus).toMatch(/versión buscable/)
     // Las descargas siguen: el .txt es un artefacto propio y el PDF, por si acaso.
