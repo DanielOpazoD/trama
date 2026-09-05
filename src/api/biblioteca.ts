@@ -74,17 +74,20 @@ function buildQuery(params: BibliotecaListParams): string {
 }
 
 /**
- * Endpoint de servir-blob por dominio de storage. Los tres comparten la forma
- * `/api/<x>/:key` (autorizan internamente y devuelven el blob). Los dominios de
- * PDF (`pdf-studio-saved-pdfs`, `pdf-stamp-assets`) no tienen miniatura todavía
- * → `null` (la card cae al ícono de tipo). En modo prueba `demoMedia` sirve un
- * placeholder para cualquier key de estos tres endpoints.
+ * Endpoint de servir-blob por dominio de storage. Todos comparten la forma
+ * `/api/<x>/:key` (autorizan internamente y devuelven el blob). Los PDF de
+ * Imprenta (`pdf-studio-saved-pdfs`) se sirven desde su propio endpoint: con
+ * eso tienen descarga, visor y vuelta a Imprenta. `pdf-stamp-assets` sigue sin
+ * endpoint (el blob es un data URL en la tabla) → `null`, y la card cae al
+ * ícono de tipo. En modo prueba `demoMedia` sirve un placeholder para
+ * cualquier key de estos endpoints.
  */
 const SERVE_ENDPOINT: Partial<Record<LibraryStorageDomain, string>> = {
   'library-uploads': '/api/library-uploads-file',
   'notas-attachments': '/api/notas-attachments-file',
   'momentos-media': '/api/momentos-file',
   'recortes-media': '/api/recortes-image',
+  'pdf-studio-saved-pdfs': '/api/pdf-studio-saved-pdfs-file',
 }
 
 /**

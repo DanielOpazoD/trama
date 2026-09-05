@@ -501,6 +501,16 @@ export const ENDPOINT_PRIVACY_CONTRACTS = [
     ],
   },
   {
+    route: '/api/pdf-studio-saved-pdfs-file/:key',
+    files: ['netlify/functions/pdf-studio-saved-pdfs-file.mts'],
+    auth: 'required',
+    operations: ['download'],
+    tables: ['pdf_studio_saved_pdfs'],
+    ownership:
+      'Blob download first checks the storage key namespace and then resolves the live row under user_id.',
+    evidence: ['netlify/functions/_lib/pdf-studio-saved-pdfs-file-endpoint.test.ts'],
+  },
+  {
     route: '/api/notas-attachments-file/:key',
     files: ['netlify/functions/notas-attachments-file.mts'],
     auth: 'required',

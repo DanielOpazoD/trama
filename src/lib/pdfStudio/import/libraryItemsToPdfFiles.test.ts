@@ -53,11 +53,11 @@ describe('canSendLibraryItemToImprenta', () => {
     expect(
       canSendLibraryItemToImprenta(
         item({
-          kind: 'pdf-saved',
-          fileType: 'pdf',
-          mimeType: 'application/pdf',
-          storageDomain: 'pdf-studio-saved-pdfs',
-          storageKey: 'user/saved.pdf',
+          kind: 'pdf-stamp',
+          fileType: 'image',
+          mimeType: 'image/png',
+          storageDomain: 'pdf-stamp-assets',
+          storageKey: null,
         }),
       ),
     ).toBe(false)
@@ -83,10 +83,11 @@ describe('libraryItemsToPdfFiles', () => {
         item({
           id: 'c',
           itemId: 'c',
-          kind: 'pdf-saved',
-          fileType: 'pdf',
-          mimeType: 'application/pdf',
-          storageDomain: 'pdf-studio-saved-pdfs',
+          kind: 'pdf-stamp',
+          fileType: 'image',
+          mimeType: 'image/png',
+          storageDomain: 'pdf-stamp-assets',
+          storageKey: null,
         }),
       ],
       { fetchBlob },

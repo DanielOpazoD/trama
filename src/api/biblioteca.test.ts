@@ -12,7 +12,8 @@ vi.mock('../lib/demo', () => ({
   isDemoMode: isDemoModeMock,
 }))
 
-import { bibliotecaApi } from './biblioteca'
+import { bibliotecaApi, canDownloadLibraryItem, libraryItemServeUrl } from './biblioteca'
+import { canSendLibraryItemToImprenta } from '../lib/pdfStudio/import/libraryItemsToPdfFiles'
 import type { LibraryItem } from '../types/biblioteca'
 
 /** Item camelCase mínimo (lo que devuelven los endpoints de subida). */
@@ -241,5 +242,33 @@ describe('bibliotecaApi.upload — enrutamiento por tamaño', () => {
     expect(res.items[0]!.itemId).toBe('d1')
     expect(requestMock).toHaveBeenCalledTimes(1)
     expect(requestMock.mock.calls[0]![0]).toBe('/api/library-uploads')
+  })
+})
+
+describe('PDF guardados de Imprenta en Biblioteca', () => {
+  it('se sirven, se descargan y vuelven a Imprenta desde su propio endpoint', () => {
+    const saved = item({
+      storageDomain: 'pdf-studio-saved-pdfs',
+      storageKey: 'user_1/ab cd.pdf',
+      fileType: 'pdf',
+      mimeType: 'application/pdf',
+    })
+    expect(libraryItemServeUrl(saved)).toBe(
+      '/api/pdf-studio-saved-pdfs-file/user_1/ab%20cd.pdf',
+    )
+    expect(canDownloadLibraryItem(saved)).toBe(true)
+    expect(canSendLibraryItemToImprenta(saved)).toBe(true)
+  })
+
+  it('los sellos siguen sin endpoint: ni descarga ni Imprenta', () => {
+    const stamp = item({
+      storageDomain: 'pdf-stamp-assets',
+      storageKey: null,
+      fileType: 'image',
+      mimeType: 'image/png',
+    })
+    expect(libraryItemServeUrl(stamp)).toBeNull()
+    expect(canDownloadLibraryItem(stamp)).toBe(false)
+    expect(canSendLibraryItemToImprenta(stamp)).toBe(false)
   })
 })
