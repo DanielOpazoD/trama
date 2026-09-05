@@ -12,6 +12,10 @@
   # rompe en "Install dependencies". Removerlo cuando jsx-a11y publique
   # una versión con peer eslint@^9 (hay PR upstream pendiente).
   NPM_FLAGS = "--legacy-peer-deps"
+  # @netlify/database 2.x exige Node >= 22.12 (#419). El CI ya corre en 22;
+  # aquí se fija para que build y Functions usen la misma línea y el
+  # requisito quede escrito, no heredado del default de la plataforma.
+  NODE_VERSION = "22"
 
 [functions]
   node_bundler = "esbuild"
