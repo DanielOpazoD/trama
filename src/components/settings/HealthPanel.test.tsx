@@ -68,6 +68,29 @@ const HEALTH_FIXTURE: HealthResponse = {
     { day: '2026-05-30', costCents: 0, calls: 0 },
     { day: '2026-05-31', costCents: 80, calls: 4 },
   ],
+  webVitals: [
+    {
+      metric: 'LCP',
+      unit: 'ms',
+      p75: { d7: 2810, d28: 2400 },
+      samples: { d7: 12, d28: 40 },
+      rating: 'needs-improvement',
+    },
+    {
+      metric: 'INP',
+      unit: 'ms',
+      p75: { d7: 96, d28: 110 },
+      samples: { d7: 12, d28: 40 },
+      rating: 'good',
+    },
+    {
+      metric: 'CLS',
+      unit: 'score',
+      p75: { d7: null, d28: 0.31 },
+      samples: { d7: 0, d28: 8 },
+      rating: 'poor',
+    },
+  ],
 }
 
 describe('<HealthPanel />', () => {
@@ -176,5 +199,33 @@ describe('<HealthPanel />', () => {
       'counts=12 entities, 34 quotes, 5 relationships',
     )
     expect(await screen.findByText(/diagnóstico copiado/i)).toBeInTheDocument()
+  })
+})
+
+describe('HealthPanel — web vitals', () => {
+  it('muestra el p75 de 7 días de cada métrica con su semáforo, y el de 28 como contexto', async () => {
+    vi.spyOn(api, 'getHealth').mockResolvedValue(HEALTH_FIXTURE)
+    renderWithProviders(<HealthPanel />)
+
+    const section = await screen.findByTestId('health-web-vitals')
+    expect(section).toHaveTextContent('LCP')
+    expect(section).toHaveTextContent('2,8 s')
+    expect(section).toHaveTextContent('mejorable')
+    expect(section).toHaveTextContent('96 ms')
+    expect(section).toHaveTextContent('bien')
+    // CLS sin muestras esta semana: guion, pero el semáforo viene del servidor
+    // sobre los 28 días y sigue diciendo «pobre».
+    expect(section).toHaveTextContent('—')
+    expect(section).toHaveTextContent('28 d: 0,31 · 8 muestras')
+    expect(section).toHaveTextContent('pobre')
+    expect(section).toHaveTextContent('24 muestras')
+  })
+
+  it('sin vitals no pinta la sección', async () => {
+    vi.spyOn(api, 'getHealth').mockResolvedValue({ ...HEALTH_FIXTURE, webVitals: [] })
+    renderWithProviders(<HealthPanel />)
+
+    await screen.findByText(/estado del sistema/i)
+    expect(screen.queryByTestId('health-web-vitals')).toBeNull()
   })
 })

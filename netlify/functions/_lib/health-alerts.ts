@@ -62,6 +62,12 @@ export type HealthSignals = {
    */
   clerkConfigured: boolean
   legacyFallbackAllowed: boolean
+  /**
+   * Métricas cuyo p75 de la última semana cae en «poor» según los umbrales
+   * de Google (LCP > 4 s, INP > 500 ms, CLS > 0,25). Sale del percentil que
+   * Postgres calcula sobre `web_vitals_samples`. Solo nombres, nunca paths.
+   */
+  webVitalsPoor: string[]
 }
 
 // ── Umbrales ────────────────────────────────────────────────────────
@@ -133,6 +139,18 @@ export function buildHealthAlerts(signals: HealthSignals): HealthAlert[] {
       code: 'errors_recent',
       label: `${signals.errors24h} errores en 24h`,
       hint: 'Hay más errores de los habituales. Vale la pena una mirada.',
+    })
+  }
+
+  // Rendimiento — el SLO informal de docs/observability.md dice: si en una
+  // semana el p75 entra en «poor», revisar. Antes esa frase no tenía quien la
+  // mirara; ahora salta aquí.
+  if (signals.webVitalsPoor.length > 0) {
+    alerts.push({
+      severity: 'warn',
+      code: 'web_vitals_poor',
+      label: `Rendimiento pobre: ${signals.webVitalsPoor.join(', ')}`,
+      hint: 'El p75 de la última semana supera el umbral «poor» de Google. Mira Web Vitals en Estado del sistema y correlaciona con los últimos deploys.',
     })
   }
 

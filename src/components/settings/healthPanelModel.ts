@@ -1,4 +1,5 @@
 import type { HealthResponse } from '../../api'
+import type { WebVitalSummary } from '../../types/health'
 
 export type HealthErrorGroup = {
   functionName: string
@@ -23,6 +24,33 @@ export function resolveBudgetTone(pct: number) {
     return { bg: 'var(--accent-gold-soft)', fg: 'var(--accent-gold)' }
   }
   return { bg: 'rgb(239 68 68 / 0.10)', fg: 'rgb(185 28 28)' }
+}
+
+export const WEB_VITAL_RATING_LABEL: Record<WebVitalSummary['rating'], string> = {
+  good: 'bien',
+  'needs-improvement': 'mejorable',
+  poor: 'pobre',
+  'no-data': 'sin muestras',
+}
+
+export function resolveVitalTone(rating: WebVitalSummary['rating']) {
+  if (rating === 'good')
+    return { bg: 'var(--accent-sage-soft)', fg: 'var(--accent-sage)' }
+  if (rating === 'needs-improvement') {
+    return { bg: 'var(--accent-gold-soft)', fg: 'var(--accent-gold)' }
+  }
+  if (rating === 'poor') return { bg: 'rgb(239 68 68 / 0.10)', fg: 'rgb(185 28 28)' }
+  return { bg: 'transparent', fg: 'var(--ink-400, currentColor)' }
+}
+
+/** «2,8 s», «180 ms», «0,08» — como lo leería alguien mirando DevTools. */
+export function formatVital(unit: WebVitalSummary['unit'], value: number | null): string {
+  if (value === null) return '—'
+  if (unit === 'score') return value.toLocaleString('es', { maximumFractionDigits: 2 })
+  if (value >= 1000) {
+    return `${(value / 1000).toLocaleString('es', { maximumFractionDigits: 1 })} s`
+  }
+  return `${Math.round(value)} ms`
 }
 
 export function buildHealthDiagnostic(data: HealthResponse): string {

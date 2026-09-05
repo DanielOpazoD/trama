@@ -52,6 +52,7 @@ function health(alerts: HealthAlert[]): HealthResponse {
     alerts,
     embeddings: { pendingEntities: 0, pendingQuotes: 0 },
     dailyCost: [],
+    webVitals: [],
   }
 }
 

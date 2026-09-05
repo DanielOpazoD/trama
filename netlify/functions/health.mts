@@ -6,6 +6,7 @@ import { getAuthedUser } from './_lib/auth.js'
 import { getEnv } from './_lib/env.js'
 import { runWithUserRls } from './_lib/user-rls.js'
 import { buildHealthAlerts, deriveHealthStatus } from './_lib/health-alerts.js'
+import { summarizeWebVitals, type WebVitalRow } from './_lib/web-vitals-summary.js'
 
 export type HealthAuthStatus = {
   clerkConfigured: boolean
@@ -92,6 +93,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     errors24hRows,
     embeddingPendingRows,
     dailyCostRows,
+    webVitalRows,
   ] = (await runWithUserRls(sql, userId, (scoped) => [
     scoped`
       SELECT monthly_budget_cents AS cap
@@ -162,6 +164,22 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       GROUP BY day
       ORDER BY day ASC
     `,
+    // Core Web Vitals: p75 por métrica a 7 y 28 días. Postgres calcula el
+    // percentil; el semáforo lo decide `web-vitals-summary.ts`.
+    scoped`
+      SELECT
+        metric,
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY value)
+          FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS p75_7d,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::text AS samples_7d,
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY value) AS p75_28d,
+        COUNT(*)::text AS samples_28d
+      FROM web_vitals_samples
+      WHERE created_at >= NOW() - INTERVAL '28 days'
+        AND user_id = ${userId}
+        AND metric IN ('LCP', 'INP', 'CLS')
+      GROUP BY metric
+    `,
   ])) as [
     UserBudgetRow[],
     CountRow[],
@@ -173,6 +191,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
     ErrorCountRow[],
     EmbeddingPendingRow[],
     DailyCostRow[],
+    WebVitalRow[],
   ]
 
   // Health debe mostrar el mismo cap que aplica cost-cap.ts:
@@ -199,12 +218,14 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
   const pendingEntities = Number(embeddingPendingRows[0]?.entities ?? 0)
   const pendingQuotes = Number(embeddingPendingRows[0]?.quotes ?? 0)
   const errors24h = Number(errors24hRows[0]?.c ?? 0)
+  const webVitals = summarizeWebVitals(webVitalRows)
   const alerts = buildHealthAlerts({
     budgetPct,
     errors24h,
     pendingEmbeddings: pendingEntities + pendingQuotes,
     clerkConfigured: auth.clerkConfigured,
     legacyFallbackAllowed: auth.legacyFallbackAllowed,
+    webVitalsPoor: webVitals.filter((v) => v.rating === 'poor').map((v) => v.metric),
   })
   // Estado global derivado (additive): ok / degraded / critical.
   const status = deriveHealthStatus(alerts)
@@ -269,6 +290,7 @@ export default withObservability('health', async (req, _ctx, { requestId }) => {
       pendingQuotes,
     },
     dailyCost,
+    webVitals,
     byProvider: providerRows.map((r) => ({
       provider: r.provider,
       model: r.model,

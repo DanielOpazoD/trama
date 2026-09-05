@@ -11,6 +11,7 @@ import {
   HealthLegacyCutoverSection,
   HealthProviderBreakdown,
   HealthRecentErrorsSection,
+  HealthWebVitalsSection,
 } from './HealthPanelSections'
 import { buildHealthDiagnostic } from './healthPanelModel'
 
@@ -86,6 +87,7 @@ export function HealthPanel() {
       <HealthCountsGrid counts={data.counts} />
       <HealthBudgetSection budget={data.budget} month={data.month} />
       <HealthDailyCostSection dailyCost={data.dailyCost} />
+      <HealthWebVitalsSection webVitals={data.webVitals} />
       <HealthProviderBreakdown byProvider={data.byProvider} />
       <HealthRecentErrorsSection
         recentErrors={data.recentErrors}

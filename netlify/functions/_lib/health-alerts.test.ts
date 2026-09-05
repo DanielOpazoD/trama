@@ -22,6 +22,7 @@ import {
 function quietSignals(overrides: Partial<HealthSignals> = {}): HealthSignals {
   return {
     budgetPct: 0,
+    webVitalsPoor: [],
     errors24h: 0,
     pendingEmbeddings: 0,
     clerkConfigured: false,
@@ -150,6 +151,7 @@ describe('buildHealthAlerts — composición y orden', () => {
       pendingEmbeddings: 100,
       clerkConfigured: true,
       legacyFallbackAllowed: true,
+      webVitalsPoor: [],
     })
     const codes = alerts.map((a) => a.code)
     expect(codes).toEqual([
@@ -177,6 +179,7 @@ describe('buildHealthAlerts — contrato de privacidad', () => {
       pendingEmbeddings: 100,
       clerkConfigured: true,
       legacyFallbackAllowed: true,
+      webVitalsPoor: [],
     })
     const serialized = JSON.stringify(alerts).toLowerCase()
     expect(serialized).not.toMatch(/@/) // ningún email
@@ -207,5 +210,23 @@ describe('deriveHealthStatus', () => {
         { severity: 'error', code: 'z', label: 'l', hint: 'h' },
       ]),
     ).toBe('critical')
+  })
+})
+
+describe('buildHealthAlerts — web vitals', () => {
+  it('sin métricas pobres no dice nada', () => {
+    expect(buildHealthAlerts(quietSignals({ webVitalsPoor: [] }))).toEqual([])
+  })
+
+  it('una métrica con p75 semanal «poor» es un warn que nombra la métrica, nunca un path', () => {
+    const alerts = buildHealthAlerts(quietSignals({ webVitalsPoor: ['LCP', 'CLS'] }))
+    expect(alerts).toEqual([
+      expect.objectContaining({
+        severity: 'warn',
+        code: 'web_vitals_poor',
+        label: 'Rendimiento pobre: LCP, CLS',
+      }),
+    ])
+    expect(JSON.stringify(alerts)).not.toMatch(/\//)
   })
 })
