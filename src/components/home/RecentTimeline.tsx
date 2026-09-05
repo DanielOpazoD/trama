@@ -92,35 +92,29 @@ export function buildTimeline(
   relationships: Relationship[],
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [
-    ...entities.map(
-      (e): TimelineEvent => ({
-        kind: 'entity' as const,
-        id: e.id,
-        at: e.createdAt,
-        payload: { name: e.name, type: e.type, isAI: e.origin.kind === 'ai' },
-      }),
-    ),
-    ...quotes.map(
-      (q): TimelineEvent => ({
-        kind: 'quote' as const,
-        id: q.id,
-        at: q.createdAt,
-        payload: { text: q.text, entityId: q.entityId, isAI: q.origin.kind === 'ai' },
-      }),
-    ),
-    ...relationships.map(
-      (r): TimelineEvent => ({
-        kind: 'relationship' as const,
-        id: r.id,
-        at: r.createdAt,
-        payload: {
-          fromId: r.fromId,
-          toId: r.toId,
-          type: r.type,
-          isAI: r.origin.kind === 'ai',
-        },
-      }),
-    ),
+    ...entities.map((e): TimelineEvent => ({
+      kind: 'entity' as const,
+      id: e.id,
+      at: e.createdAt,
+      payload: { name: e.name, type: e.type, isAI: e.origin.kind === 'ai' },
+    })),
+    ...quotes.map((q): TimelineEvent => ({
+      kind: 'quote' as const,
+      id: q.id,
+      at: q.createdAt,
+      payload: { text: q.text, entityId: q.entityId, isAI: q.origin.kind === 'ai' },
+    })),
+    ...relationships.map((r): TimelineEvent => ({
+      kind: 'relationship' as const,
+      id: r.id,
+      at: r.createdAt,
+      payload: {
+        fromId: r.fromId,
+        toId: r.toId,
+        type: r.type,
+        isAI: r.origin.kind === 'ai',
+      },
+    })),
   ]
   events.sort((a, b) => b.at.localeCompare(a.at))
   return events.slice(0, 8)

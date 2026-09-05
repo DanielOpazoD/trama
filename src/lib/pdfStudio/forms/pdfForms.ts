@@ -13,13 +13,7 @@ import { loadPdfFontkit, loadPdfLib } from '../pdfRuntime/pdfLibLoader'
 const DEFAULT_FORM_FIELD_SIZE_RATIO = 0.04
 
 export type PdfFormFieldType =
-  | 'text'
-  | 'checkbox'
-  | 'radio'
-  | 'dropdown'
-  | 'option-list'
-  | 'button'
-  | 'unknown'
+  'text' | 'checkbox' | 'radio' | 'dropdown' | 'option-list' | 'button' | 'unknown'
 
 export type PdfFormFieldValue = string | boolean | string[] | null
 

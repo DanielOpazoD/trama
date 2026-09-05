@@ -17,18 +17,41 @@ updates:
     labels:
       - dependencies
     groups:
+      # Los formateadores y linters van aparte. Una versión nueva de Prettier
+      # reformatea archivos y tumba `format:check`; si viaja en el mismo PR que
+      # 17 parches, se los lleva por delante (agosto de 2026: tres lunes seguidos
+      # en rojo por Prettier 3.8 → 3.9 y ninguna actualización menor entró).
+      tooling:
+        patterns:
+          - 'prettier'
+          - 'eslint'
+          - 'eslint-*'
+          - '@eslint/*'
+          - 'typescript-eslint'
+          - '@typescript-eslint/*'
+          - 'knip'
+          - 'dependency-cruiser'
       # Minor + patch en un solo PR para evitar inbox flood.
       minor-and-patch:
         update-types:
           - minor
           - patch
-        # Excluir majors críticos que merecen PR aparte aunque sean minor.
+        # Excluir majors críticos que merecen PR aparte aunque sean minor,
+        # y el tooling, que ya tiene su grupo.
         exclude-patterns:
           - 'react'
           - 'react-dom'
           - 'vite'
           - '@netlify/*'
           - '@clerk/*'
+          - 'prettier'
+          - 'eslint'
+          - 'eslint-*'
+          - '@eslint/*'
+          - 'typescript-eslint'
+          - '@typescript-eslint/*'
+          - 'knip'
+          - 'dependency-cruiser'
 
   - package-ecosystem: github-actions
     directory: '/'

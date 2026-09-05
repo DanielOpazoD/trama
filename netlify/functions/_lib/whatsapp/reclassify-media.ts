@@ -30,9 +30,7 @@ import { persistCapture } from './persist.js'
  * poblar y el origen ya borrado.
  */
 export type ReclassifyResult =
-  | { status: 'ok'; id: string }
-  | { status: 'no-images' }
-  | { status: 'failed' }
+  { status: 'ok'; id: string } | { status: 'no-images' } | { status: 'failed' }
 
 /**
  * Texto "placeholder" que el webhook pone cuando una captura de imagen no trae

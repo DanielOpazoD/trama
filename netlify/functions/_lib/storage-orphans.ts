@@ -38,9 +38,7 @@ export type StorageManifestRow = {
 
 /** Categoría de cada item del reporte. */
 export type StorageOrphanCategory =
-  | 'manifest-without-object'
-  | 'object-without-manifest'
-  | 'ok'
+  'manifest-without-object' | 'object-without-manifest' | 'ok'
 
 /** Item ya clasificado, con la key sanitizada lista para imprimir. */
 export type StorageOrphanItem = {

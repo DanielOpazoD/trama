@@ -12,9 +12,7 @@ type ScopedRlsSql = UserRlsSql & {
 }
 
 type RlsContext =
-  | { kind: 'none' }
-  | { kind: 'user'; userId: string; email?: string }
-  | { kind: 'system' }
+  { kind: 'none' } | { kind: 'user'; userId: string; email?: string } | { kind: 'system' }
 
 const rlsContext = new AsyncLocalStorage<RlsContext>()
 

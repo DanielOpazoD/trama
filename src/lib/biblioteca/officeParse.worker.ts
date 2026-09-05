@@ -27,8 +27,7 @@ type MammothModule = {
 
 async function loadMammoth(): Promise<MammothModule> {
   const mod = (await import('mammoth')) as unknown as
-    | MammothModule
-    | { default: MammothModule }
+    MammothModule | { default: MammothModule }
   return 'convertToHtml' in mod ? mod : mod.default
 }
 

@@ -52,10 +52,7 @@ export type CronologiaEscucha = {
 }
 
 export type CronologiaEntrada =
-  | CronologiaCita
-  | CronologiaMomento
-  | CronologiaCronica
-  | CronologiaEscucha
+  CronologiaCita | CronologiaMomento | CronologiaCronica | CronologiaEscucha
 
 export type CronologiaResponse = {
   entradas: CronologiaEntrada[]

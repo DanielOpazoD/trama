@@ -1,13 +1,7 @@
 import { useCallback, useState } from 'react'
 
 export type AppModalKey =
-  | 'settings'
-  | 'reading'
-  | 'sortes'
-  | 'espejo'
-  | 'careo'
-  | 'palette'
-  | 'shortcuts'
+  'settings' | 'reading' | 'sortes' | 'espejo' | 'careo' | 'palette' | 'shortcuts'
 
 type AppModalState = Record<AppModalKey, boolean>
 

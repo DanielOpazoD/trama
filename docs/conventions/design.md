@@ -5,47 +5,51 @@
 El sistema visual usa tokens semánticos definidos en `tailwind.config.js`. **NO uses arbitrary values (`text-[Npx]`, `tracking-[Xem]`) — significa que el sistema ya tiene un nombre para eso.**
 
 **Type scale — 6 niveles:**
-| Token | Tamaño | Para qué |
-|---|---|---|
-| `text-micro` | 10px | chips, badges, eyebrows uppercase, kbd |
-| `text-caption` | 12px | labels, metadata, dates |
-| `text-body` | 14px | default UI |
-| `text-lead` | 16px | primer párrafo, intros |
-| `text-h2` | 20px | títulos de sección |
-| `text-h1` | 32px | títulos de vista |
+
+| Token                                                                                                               | Tamaño | Para qué                               |
+| ------------------------------------------------------------------------------------------------------------------- | ------ | -------------------------------------- |
+| `text-micro`                                                                                                        | 10px   | chips, badges, eyebrows uppercase, kbd |
+| `text-caption`                                                                                                      | 12px   | labels, metadata, dates                |
+| `text-body`                                                                                                         | 14px   | default UI                             |
+| `text-lead`                                                                                                         | 16px   | primer párrafo, intros                 |
+| `text-h2`                                                                                                           | 20px   | títulos de sección                     |
+| `text-h1`                                                                                                           | 32px   | títulos de vista                       |
 | Legacy aliases `text-xs/sm/base/lg/xl/2xl/3xl/4xl` siguen existiendo pero el código nuevo debe usar los semánticos. |
 
 **Icon sizes — 5 valores:**
-| Valor | Para qué |
-|---|---|
+
+| Valor       | Para qué                                             |
+| ----------- | ---------------------------------------------------- |
 | `size={10}` | indicadores inline, chips de aviso (• IA, • offline) |
-| `size={12}` | default UI, toolbar |
-| `size={14}` | botones medianos, nav icons |
-| `size={18}` | CTAs primarios, hero |
-| `size={22}` | logo Trama, splash |
+| `size={12}` | default UI, toolbar                                  |
+| `size={14}` | botones medianos, nav icons                          |
+| `size={18}` | CTAs primarios, hero                                 |
+| `size={22}` | logo Trama, splash                                   |
 
 **Letter spacing — 5 valores:**
-| Token | Valor | Para qué |
-|---|---|---|
-| `tracking-tight` | -0.02em | serif headings compactos |
-| `tracking-normal` | 0 | body (default) |
-| `tracking-wider` | 0.05em (Tailwind) | uppercase sutil en metadata |
-| `tracking-eyebrow` | 0.18em | chips, eyebrows uppercase emphatic |
-| `tracking-shout` | 0.3em | greetings, separator labels |
+
+| Token              | Valor             | Para qué                           |
+| ------------------ | ----------------- | ---------------------------------- |
+| `tracking-tight`   | -0.02em           | serif headings compactos           |
+| `tracking-normal`  | 0                 | body (default)                     |
+| `tracking-wider`   | 0.05em (Tailwind) | uppercase sutil en metadata        |
+| `tracking-eyebrow` | 0.18em            | chips, eyebrows uppercase emphatic |
+| `tracking-shout`   | 0.3em             | greetings, separator labels        |
 
 **Animaciones — 6 canónicas:** `animate-fade-up`, `animate-slide-in-right`, `animate-slide-up`, `animate-shimmer`, `animate-pulse-subtle`, `animate-node-breathe`. Todas usan `cubic-bezier(0.25, 1, 0.5, 1)` ("ease-out-quart") salvo `node-breathe` que es `ease-in-out` (pulso simétrico). Si querés otra animación, primero pensá si una de estas no resuelve.
 
 **Vertical rhythm — 8 steps (commit δ1):**
-| Token | Valor | Para qué |
-|---|---|---|
-| `--space-1` | 5.5px | ajustes finos |
-| `--space-2` | 11px | separación entre líneas de metadata |
-| `--space-3` | 16.5px | padding interno de card / form |
-| `--space-4` | 22px | rhythm-unit base |
-| `--space-5` | 33px | padding generoso de section header |
-| `--space-6` | 44px | separación entre secciones grandes |
-| `--space-8` | 66px | padding hero / portada editorial |
-| `--space-12` | 99px | espacio de ornament / pull-quote breathing |
+
+| Token        | Valor  | Para qué                                   |
+| ------------ | ------ | ------------------------------------------ |
+| `--space-1`  | 5.5px  | ajustes finos                              |
+| `--space-2`  | 11px   | separación entre líneas de metadata        |
+| `--space-3`  | 16.5px | padding interno de card / form             |
+| `--space-4`  | 22px   | rhythm-unit base                           |
+| `--space-5`  | 33px   | padding generoso de section header         |
+| `--space-6`  | 44px   | separación entre secciones grandes         |
+| `--space-8`  | 66px   | padding hero / portada editorial           |
+| `--space-12` | 99px   | espacio de ornament / pull-quote breathing |
 
 Utilities Tailwind que consumen estos tokens:
 

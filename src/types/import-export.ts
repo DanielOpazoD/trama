@@ -67,13 +67,7 @@ export type ExportPayload = {
  */
 export type ImportFailedItem = {
   kind:
-    | 'entity'
-    | 'relationship'
-    | 'quote'
-    | 'momento'
-    | 'momento_entity'
-    | 'note'
-    | 'task'
+    'entity' | 'relationship' | 'quote' | 'momento' | 'momento_entity' | 'note' | 'task'
   id: string | null
   reason: string
 }

@@ -33,7 +33,7 @@ el patrón que el repo ya usa para `auth.ts` y `cost-cap.ts`.
   `_lib`, y así lo dice la convención. Ponerles un piso sería fijar lo
   equivocado.
 - **Se descartó `src/lib/biblioteca/**`.** Parecía candidato (58% de ramas), pero
-ese número lo arrastra `officeParse.worker.ts`, que por definición no se
+  ese número lo arrastra `officeParse.worker.ts`, que por definición no se
   ejecuta en tests unitarios: los Workers no corren en vitest. Un piso ahí
   mediría cuánto worker hay, no cuánto está probado.
 - **Un directorio y no archivo por archivo.** El pipeline se reparte entre once
