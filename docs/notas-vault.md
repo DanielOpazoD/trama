@@ -25,6 +25,26 @@ al submódulo **Claves**.
 - Los conteos y filtros de la UI se calculan con esa metadata visible; nunca usan
   el valor secreto descifrado.
 
+## Respaldo
+
+La configuración del vault (salt, verificador y si pide llave física) vive solo
+en `localStorage`. Los `secrets` cifrados sí están en el servidor y salen en el
+export de Ajustes → Datos; sin la configuración, ese archivo restaurado en otro
+navegador es una lista de sobres que nadie puede abrir.
+
+Por eso el export **sí incluye** la configuración del vault, y el import la
+restaura. Reglas:
+
+- La suma y la separa el cliente (`dataVaultBackup.ts`). El campo `vault` del
+  archivo nunca se envía a `/api/import`.
+- La contraseña y la llave física no están en el archivo: con la configuración
+  sola no se descifra nada.
+- Al importar, si este navegador ya tiene un vault distinto, **se conserva el
+  local** y se avisa; pisarlo dejaría ilegibles las claves guardadas con él.
+- Coste asumido: la salt en el archivo permite fuerza bruta offline contra la
+  contraseña. Se acepta porque un respaldo que no se puede abrir no es un
+  respaldo, y PBKDF2 con 250 000 iteraciones hace cara esa fuerza bruta.
+
 ## Multiusuario
 
 El backend filtra Claves por `user_id`, igual que el resto del Mundo Notas. El

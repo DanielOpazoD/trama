@@ -1,13 +1,17 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useExport, useImport } from '../../state'
+import { useVaultScope } from '../../lib/vaultScope'
 import { DownloadIcon, UploadIcon } from '../Icons'
 import { PanelHeader } from './_shared'
 import { RescueOrphansPanel } from '../momentos/RescueOrphansPanel'
+import { parseImportPayloadText, type ParsedImportFile } from './dataImportPreviewModel'
 import {
-  formatImportResultMessage,
-  parseImportPayloadText,
-  type ParsedImportFile,
-} from './dataImportPreviewModel'
+  applyVaultFromImport,
+  attachVaultToExport,
+  importDoneMessage,
+  splitVaultFromImport,
+  vaultImportNotice,
+} from './dataVaultBackup'
 
 const DataImportPreviewHost = lazy(() =>
   import('./DataImportPreviewHost').then((mod) => ({
@@ -37,6 +41,7 @@ const DataImportPreviewHost = lazy(() =>
 export function DataPanel() {
   const doExport = useExport()
   const doImport = useImport()
+  const vaultScope = useVaultScope()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -54,7 +59,7 @@ export function DataPanel() {
     setBusy(true)
     setMessage(null)
     try {
-      const payload = await doExport()
+      const payload = attachVaultToExport(await doExport(), vaultScope)
       const json = JSON.stringify(payload, null, 2)
       const blob = new Blob([json], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -107,8 +112,9 @@ export function DataPanel() {
     setBusy(true)
     setMessage(null)
     try {
-      const result = await doImport(parsed.payload)
-      setMessage(formatImportResultMessage(result))
+      const { payload, vault } = splitVaultFromImport(parsed.payload)
+      const result = await doImport(payload)
+      setMessage(importDoneMessage(result, applyVaultFromImport(vault, vaultScope)))
       setParsed(null) // limpiar el preview tras aplicar
     } catch (err) {
       setMessage(err instanceof Error ? `Error: ${err.message}` : 'Error al importar')
@@ -126,7 +132,7 @@ export function DataPanel() {
     <section>
       <PanelHeader
         title="Datos"
-        hint="Exporta el core estructurado de tu trama como JSON, o importa una copia previa. El archivo no incluye bytes de Blobs, tokens ni logs."
+        hint="Exporta el core estructurado de tu trama como JSON, o importa una copia previa. El archivo no incluye bytes de Blobs, tokens ni logs. Sí incluye la configuración del vault de Claves (no tu contraseña), para que las claves se abran al restaurar en otro navegador."
       />
       <div className="flex gap-2">
         <button
@@ -164,6 +170,7 @@ export function DataPanel() {
         <Suspense fallback={null}>
           <DataImportPreviewHost
             parsed={parsed}
+            vaultNotice={vaultImportNotice(parsed.payload.vault, vaultScope)}
             busy={busy}
             onConfirm={handleConfirmImport}
             onCancel={handleCancelImport}

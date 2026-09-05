@@ -95,6 +95,13 @@ export function VaultGate({
           <h3 className="font-medium text-ink-800">
             {hasVault ? 'Abrir vault' : 'Crear clave de acceso'}
           </h3>
+          {!hasVault && (
+            <p className="mt-2 text-caption text-ink-500">
+              ¿Ya tenías un vault en otro navegador? Restaura primero tu copia desde
+              Ajustes → Datos: un vault nuevo no abre las claves guardadas con el
+              anterior.
+            </p>
+          )}
           <div className="mt-4 space-y-2">
             <input
               type="password"

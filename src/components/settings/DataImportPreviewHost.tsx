@@ -4,11 +4,13 @@ import { useDataPanelImportPreview } from './useDataPanelImportPreview'
 
 export function DataImportPreviewHost({
   parsed,
+  vaultNotice,
   busy,
   onConfirm,
   onCancel,
 }: {
   parsed: ParsedImportFile
+  vaultNotice: string | null
   busy: boolean
   onConfirm: () => void
   onCancel: () => void
@@ -21,6 +23,7 @@ export function DataImportPreviewHost({
     <DataImportPreviewCard
       fileName={parsed.fileName}
       preview={preview}
+      vaultNotice={vaultNotice}
       busy={busy}
       onConfirm={onConfirm}
       onCancel={onCancel}

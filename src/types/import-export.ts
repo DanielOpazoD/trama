@@ -46,6 +46,21 @@ export type ExportTask = {
   updatedAt: string
 }
 
+/**
+ * Configuración del vault de Claves: salt, verificador y si pide llave
+ * física. Sin esto, los `secrets` cifrados del export no se pueden volver a
+ * abrir en otro navegador. La añade y la consume SOLO el cliente; nunca se
+ * envía a `/api/import`.
+ */
+export type ExportVaultConfig = {
+  v: 1
+  kdf: 'PBKDF2-SHA-256'
+  salt: string
+  verifierIv: string
+  verifierData: string
+  requiresPhysicalKey?: boolean
+}
+
 export type ExportPayload = {
   version: 1 | 2
   scope?: ExportScope
@@ -57,6 +72,7 @@ export type ExportPayload = {
   notes?: ExportNote[]
   tasks?: ExportTask[]
   blobReferences?: string[]
+  vault?: ExportVaultConfig
 }
 
 /**
