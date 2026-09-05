@@ -3,7 +3,12 @@ import { assemblePdfInWorker } from '../../../../lib/pdfStudio/export/exportWork
 import { createSearchablePdfInWorker } from '../../../../lib/pdfStudio/ocr/pdfOcrWorkerClient'
 import type { PdfOcrLanguage, PdfOcrProgress } from '../../../../lib/pdfStudio/ocr/pdfOcr'
 import { assessPdfOcrDocument } from '../../../../lib/pdfStudio/ocr/pdfOcrLimits'
-import { canExport, type PdfDoc } from '../../../../lib/pdfStudio/model/model'
+import {
+  addPdfSource,
+  canExport,
+  type PdfDoc,
+} from '../../../../lib/pdfStudio/model/model'
+import { getPdfPageCount } from '../../../../lib/pdfStudio/render/pdfRender'
 import type { AssembleOptions } from '../../../../lib/pdfStudio/assemble/assemble'
 import { downloadBlob } from '../../../../lib/downloadBlob'
 import { useToast } from '../../../../state'
@@ -32,8 +37,16 @@ function ocrFileName(ext: 'pdf' | 'txt'): string {
 
 export function usePdfStudioOcr({
   compression = 'balanced',
+  commit,
 }: {
   compression?: AssembleOptions['compression']
+  /**
+   * Si se pasa, el PDF buscable REEMPLAZA al documento abierto al terminar:
+   * el OCR vuelve a Imprenta en vez de quedarse en la carpeta de descargas.
+   * Las anotaciones ya viajan fijadas dentro del PDF ensamblado. Es un commit
+   * normal del historial, así que ⌘Z lo deshace.
+   */
+  commit?: (next: PdfDoc | ((prev: PdfDoc) => PdfDoc)) => void
 } = {}) {
   const toast = useToast()
   const abortRef = useRef<AbortController | null>(null)
@@ -79,7 +92,18 @@ export function usePdfStudioOcr({
         toast.show({ message: warning.message, tone: 'default' }),
       )
       const pagesWithText = result.pages.filter((page) => page.text.trim()).length
-      const message = `OCR completado: ${pagesWithText}/${result.pages.length} páginas con texto.`
+      let message = `OCR completado: ${pagesWithText}/${result.pages.length} páginas con texto.`
+      if (commit) {
+        const searchable = new File([result.pdfBlob], ocrFileName('pdf'), {
+          type: 'application/pdf',
+        })
+        const count = await getPdfPageCount(searchable)
+        commit((prev) =>
+          addPdfSource({ ...prev, sources: [], pages: [] }, searchable, count),
+        )
+        setOcrOpen(false)
+        message += ' El documento ahora es la versión buscable; ⌘Z lo deshace.'
+      }
       setOcrStatus(message)
       toast.show({ message, tone: 'success' })
     } catch (err) {

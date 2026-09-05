@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**24 pendientes** en 15 planes. Del más reciente al más viejo.
+**26 pendientes** en 16 planes. Del más reciente al más viejo.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 
@@ -25,6 +25,13 @@ Plan: [2026-09-05-registro-de-pendientes.md](superpowers/plans/2026-09-05-regist
 Plan: [2026-09-05-prettier-3-9-y-grupo-tooling.md](superpowers/plans/2026-09-05-prettier-3-9-y-grupo-tooling.md)
 
 - ESLint 10.4 → 10.9 y typescript-eslint 8.60 → 8.68 siguen dentro de #417. El CI nunca llegó a ejecutar `lint` con esas versiones porque `format:check` cortaba antes; si traen una regla nueva, se verá en el rebase.
+
+## 2026-09-05 · Imprenta: elegir hojas sin apuntar, y un OCR que vuelve
+
+Plan: [2026-09-05-imprenta-teclado-y-ocr-de-vuelta.md](superpowers/plans/2026-09-05-imprenta-teclado-y-ocr-de-vuelta.md)
+
+- Flechas arriba/abajo con Shift para extender la selección desde el teclado sin pasar por el ratón; hoy las flechas reordenan, y cambiarlas de sentido pide decidir primero qué gesto gana.
+- Un e2e con un PDF real en Imprenta cubriría lo que la demo no puede.
 
 ## 2026-09-05 · La llave del vault viaja en el respaldo
 

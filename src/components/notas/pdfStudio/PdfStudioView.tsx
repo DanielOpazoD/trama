@@ -131,7 +131,7 @@ export function PdfStudioView({
     setLanguage: setOcrLanguage,
     setOcrOpen,
     startOcr,
-  } = usePdfStudioOcr({ compression: exportCompression })
+  } = usePdfStudioOcr({ compression: exportCompression, commit })
   const { printFilledTemplate, printMailMergeTemplate, saveFilledTemplateCopy } =
     usePdfStudioFilledTemplateActions({
       activeTemplateName,
