@@ -136,6 +136,13 @@ export function demoMediaResponse(url: string): Response | null {
       })
     }
   }
+  // PDF guardados de Imprenta en modo prueba: un PDF mínimo válido, para que el
+  // visor y «enviar a Imprenta» funcionen igual que con un anexo.
+  if (path.startsWith('/api/pdf-studio-saved-pdfs-file/')) {
+    return new Response(demoPdfBytes().buffer as ArrayBuffer, {
+      headers: { 'Content-Type': 'application/pdf' },
+    })
+  }
   // Fotos de Momentos en modo prueba: como los recortes/anexos, cualquier key
   // sirve un placeholder para que las miniaturas y el visor se vean (en vez de
   // quedar rotos). Si la key parece audio (nota de voz), un WAV silencioso; si

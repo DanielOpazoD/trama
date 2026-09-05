@@ -118,6 +118,10 @@ const REQUIRED_EVENT_SOURCE_SNIPPETS = [
     snippets: ['blob.access.denied', "operation: 'attachment.blob.read'"],
   },
   {
+    file: 'netlify/functions/pdf-studio-saved-pdfs-file.mts',
+    snippets: ['blob.access.denied', "operation: 'pdf-studio-saved-pdf.blob.read'"],
+  },
+  {
     file: 'netlify/functions/recortes-image.mts',
     snippets: ['blob.access.denied', "operation: 'recorte.blob.read'"],
   },

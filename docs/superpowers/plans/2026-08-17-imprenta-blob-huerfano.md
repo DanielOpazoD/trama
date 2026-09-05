@@ -58,10 +58,10 @@ huérfano igual:
 
 ## Pendiente
 
-- El dominio `pdf-studio-saved-pdfs` sigue siendo de **sólo escritura**: no
-  existe endpoint que sirva el blob, así que esos PDFs aparecen en Biblioteca sin
-  miniatura ni descarga y no se pueden traer de vuelta a Imprenta. Cerrar eso
-  pide un endpoint nuevo espejo de `notas-attachments-file`, que es otro pack.
+- Resuelto (pack `2026-09-05-imprenta-pdfs-guardados-servidos`): el dominio
+  `pdf-studio-saved-pdfs` ya tiene endpoint de servir, espejo de
+  `notas-attachments-file`, y esos PDFs se descargan, se ven y vuelven a
+  Imprenta desde Biblioteca.
 - Queda una carrera anterior a este cambio: si se borra mientras la subida está
   en vuelo, `syncSavedPdf` todavía hace `putSavedDoc` y resucita el registro
   local; y como en ese momento no había `serverPdf`, el blob queda huérfano sin

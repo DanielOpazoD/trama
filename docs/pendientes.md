@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**26 pendientes** en 16 planes. Del más reciente al más viejo.
+**27 pendientes** en 17 planes. Del más reciente al más viejo.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 
@@ -33,6 +33,13 @@ Plan: [2026-09-05-imprenta-teclado-y-ocr-de-vuelta.md](superpowers/plans/2026-09
 - Flechas arriba/abajo con Shift para extender la selección desde el teclado sin pasar por el ratón; hoy las flechas reordenan, y cambiarlas de sentido pide decidir primero qué gesto gana.
 - Un e2e con un PDF real en Imprenta cubriría lo que la demo no puede.
 
+## 2026-09-05 · Los PDF guardados de Imprenta se pueden recuperar
+
+Plan: [2026-09-05-imprenta-pdfs-guardados-servidos.md](superpowers/plans/2026-09-05-imprenta-pdfs-guardados-servidos.md)
+
+- La miniatura sigue siendo el ícono de tipo: `Thumbnail` solo pide el blob para imágenes. Renderizar la primera hoja con pdf.js en la card es posible ahora que el blob se sirve, pero pesa y conviene medirlo antes.
+- Al re-guardar, el `UPSERT` apunta la fila al key nuevo y el blob viejo queda sin fila: es el huérfano por re-guardado, distinto del de #414. Se cierra borrando el key anterior en el mismo `POST`.
+
 ## 2026-09-05 · La llave del vault viaja en el respaldo
 
 Plan: [2026-09-05-claves-llave-en-el-backup.md](superpowers/plans/2026-09-05-claves-llave-en-el-backup.md)
@@ -44,7 +51,6 @@ Plan: [2026-09-05-claves-llave-en-el-backup.md](superpowers/plans/2026-09-05-cla
 
 Plan: [2026-08-17-imprenta-blob-huerfano.md](superpowers/plans/2026-08-17-imprenta-blob-huerfano.md)
 
-- El dominio `pdf-studio-saved-pdfs` sigue siendo de **sólo escritura**: no existe endpoint que sirva el blob, así que esos PDFs aparecen en Biblioteca sin miniatura ni descarga y no se pueden traer de vuelta a Imprenta. Cerrar eso pide un endpoint nuevo espejo de `notas-attachments-file`, que es otro pack.
 - Queda una carrera anterior a este cambio: si se borra mientras la subida está en vuelo, `syncSavedPdf` todavía hace `putSavedDoc` y resucita el registro local; y como en ese momento no había `serverPdf`, el blob queda huérfano sin rastro. Se arregla con un guard de cancelación en `syncSavedPdf`.
 
 ## 2026-08-16 · Un piso de cobertura donde un desplome no se vería
