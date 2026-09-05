@@ -32,7 +32,7 @@ jobs:
     steps:
       # fetch-depth: 0 — la sonda necesita la historia completa de main para
       # decidir si el sha servido pertenece a main (merge-base --is-ancestor).
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
