@@ -117,7 +117,22 @@ export function PageCard({
       ref={viewRef}
       draggable
       tabIndex={0}
-      aria-label={`Página ${index + 1} de ${total}. Flechas izquierda/derecha para reordenar.`}
+      aria-label={`Página ${index + 1} de ${total}. Flechas izquierda/derecha para reordenar; Espacio marca, Shift+Espacio extiende el rango.`}
+      onClick={(e) => {
+        // Elegir muchas hojas no puede depender de acertar un tick de 20 px:
+        // ⌘/Ctrl+clic alterna esta hoja y Shift+clic extiende el rango desde
+        // la última marcada, en cualquier punto de la tarjeta. El clic simple
+        // sigue libre (arrastrar, doble clic) y los controles internos, suyos.
+        if ((e.target as HTMLElement).closest('button, a, input, select, textarea'))
+          return
+        if (e.metaKey || e.ctrlKey) {
+          e.preventDefault()
+          onToggleSelect(false)
+        } else if (e.shiftKey) {
+          e.preventDefault()
+          onToggleSelect(true)
+        }
+      }}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move'
         onDragStart()
@@ -133,7 +148,10 @@ export function PageCard({
       onKeyDown={(e) => {
         // Reordenar por teclado cuando la card (no un control interno) tiene foco.
         if (e.target !== e.currentTarget) return
-        if (e.key === 'ArrowLeft' && index > 0) {
+        if (e.key === ' ') {
+          e.preventDefault()
+          onToggleSelect(e.shiftKey)
+        } else if (e.key === 'ArrowLeft' && index > 0) {
           e.preventDefault()
           onNudge(index, -1)
         } else if (e.key === 'ArrowRight' && index < total - 1) {
@@ -203,7 +221,11 @@ export function PageCard({
           label={
             selected ? `Desmarcar la hoja ${index + 1}` : `Marcar la hoja ${index + 1}`
           }
-          title={selected ? 'Desmarcar (Shift: rango)' : 'Marcar (Shift: rango)'}
+          title={
+            selected
+              ? 'Desmarcar (Shift: rango · ⌘/Ctrl+clic en la hoja: alternar)'
+              : 'Marcar (Shift: rango · ⌘/Ctrl+clic en la hoja: alternar)'
+          }
           className={`absolute top-1 right-1 inline-flex h-5 w-5 items-center justify-center rounded border transition-colors ${
             selected
               ? 'text-paper-50'
