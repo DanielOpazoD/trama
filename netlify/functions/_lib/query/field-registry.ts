@@ -17,15 +17,7 @@ import type { ObjectKind } from './ast.js'
 
 export type FieldType = 'text' | 'number' | 'date' | 'bool'
 export type CompareOp =
-  | 'eq'
-  | 'neq'
-  | 'lt'
-  | 'lte'
-  | 'gt'
-  | 'gte'
-  | 'between'
-  | 'in'
-  | 'contains'
+  'eq' | 'neq' | 'lt' | 'lte' | 'gt' | 'gte' | 'between' | 'in' | 'contains'
 
 export type FieldDef = {
   /** Expresión SQL de confianza (constante, nunca input). */

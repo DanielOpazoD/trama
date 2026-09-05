@@ -1,10 +1,6 @@
 export type SecretHealthLevel = 'healthy' | 'watch' | 'high'
 export type SecretHealthFlag =
-  | 'vencida'
-  | 'vence-pronto'
-  | 'critica'
-  | 'rotacion-pendiente'
-  | 'sin-rotacion'
+  'vencida' | 'vence-pronto' | 'critica' | 'rotacion-pendiente' | 'sin-rotacion'
 
 export type SecretHealthInput = {
   critical: boolean

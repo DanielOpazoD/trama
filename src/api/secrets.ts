@@ -1,13 +1,7 @@
 import { request } from './request'
 
 export type SecretKind =
-  | 'api_key'
-  | 'token'
-  | 'pin'
-  | 'license'
-  | 'recovery_code'
-  | 'password'
-  | 'other'
+  'api_key' | 'token' | 'pin' | 'license' | 'recovery_code' | 'password' | 'other'
 
 export type Secret = {
   id: string

@@ -26,10 +26,7 @@ export type Predicate =
   | { op: 'linked_to'; id: string }
 
 export type Condition =
-  | { and: Condition[] }
-  | { or: Condition[] }
-  | { not: Condition }
-  | Predicate
+  { and: Condition[] } | { or: Condition[] } | { not: Condition } | Predicate
 
 export type QueryInput = {
   from: ObjectKind[]

@@ -85,13 +85,7 @@ export type Annotation =
   | ImageAnnotation
 
 export type PdfFormFieldKind =
-  | 'text'
-  | 'date'
-  | 'checkbox'
-  | 'radio'
-  | 'dropdown'
-  | 'option-list'
-  | 'signature'
+  'text' | 'date' | 'checkbox' | 'radio' | 'dropdown' | 'option-list' | 'signature'
 
 export type PdfFormValue = string | boolean | string[] | null
 

@@ -37,14 +37,7 @@ export const HIGHLIGHT_OPACITY = 0.35
 /** Herramientas del editor (modos). `rect/oval/line/arrow/x` son formas vectoriales;
  *  `x` es la marca de casillero (clic para activar/desactivar). */
 export type Tool =
-  | 'select'
-  | 'highlight'
-  | 'redact'
-  | 'rect'
-  | 'oval'
-  | 'line'
-  | 'arrow'
-  | 'x'
+  'select' | 'highlight' | 'redact' | 'rect' | 'oval' | 'line' | 'arrow' | 'x'
 
 /** ¿La herramienta activa es una forma (rect/oval/line/arrow/x)? */
 export function isShapeTool(t: Tool): boolean {

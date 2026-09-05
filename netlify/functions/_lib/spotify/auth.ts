@@ -273,8 +273,7 @@ export async function getValidAccessToken(
  * que evolucionar el copy o el code path es un cambio de un solo file.
  */
 export type SpotifyConnectionResult =
-  | { ok: true; token: string }
-  | { ok: false; response: Response }
+  { ok: true; token: string } | { ok: false; response: Response }
 
 export async function requireSpotifyConnection(opts: {
   sql: SqlClient

@@ -1,8 +1,5 @@
 export type PdfHeavyOperationKind =
-  | 'pdf-export'
-  | 'pdf-ocr'
-  | 'pdf-form'
-  | 'pdf-redaction'
+  'pdf-export' | 'pdf-ocr' | 'pdf-form' | 'pdf-redaction'
 
 export type PdfHeavyOperationRunMessage<TPayload = unknown> = {
   type: 'run'
@@ -17,8 +14,7 @@ export type PdfHeavyOperationCancelMessage = {
 }
 
 export type PdfHeavyOperationWorkerRequest<TPayload = unknown> =
-  | PdfHeavyOperationRunMessage<TPayload>
-  | PdfHeavyOperationCancelMessage
+  PdfHeavyOperationRunMessage<TPayload> | PdfHeavyOperationCancelMessage
 
 export type PdfHeavyOperationSerializedError = {
   name?: string

@@ -3,8 +3,7 @@ import type { ViewMode } from '../../types/view'
 
 type ShellModalAction = 'settings' | 'shortcuts' | 'sortes' | 'espejo' | 'careo'
 export type ShellPaletteIntent =
-  | { kind: 'modal'; modal: ShellModalAction }
-  | { kind: 'view'; view: ViewMode }
+  { kind: 'modal'; modal: ShellModalAction } | { kind: 'view'; view: ViewMode }
 
 export function resolveShellPaletteAction(action: CommandAction): ShellPaletteIntent {
   switch (action) {

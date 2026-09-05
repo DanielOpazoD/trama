@@ -25,8 +25,7 @@ type AnchoredPopoverLeftOptions = AnchoredPopoverBaseOptions & {
 }
 
 export type AnchoredPopoverOptions =
-  | AnchoredPopoverRightOptions
-  | AnchoredPopoverLeftOptions
+  AnchoredPopoverRightOptions | AnchoredPopoverLeftOptions
 
 export function useAnchoredPopover(options: AnchoredPopoverOptions = {}) {
   const {

@@ -1,12 +1,7 @@
 import { Spinner } from './Spinner'
 
 type AIThinkingState =
-  | 'thinking'
-  | 'reading'
-  | 'weaving'
-  | 'synthesizing'
-  | 'proposing'
-  | 'reviewing'
+  'thinking' | 'reading' | 'weaving' | 'synthesizing' | 'proposing' | 'reviewing'
 
 const AI_STATE_COPY: Record<AIThinkingState, string> = {
   thinking: 'pensando',

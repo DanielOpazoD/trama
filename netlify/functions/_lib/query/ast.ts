@@ -69,10 +69,7 @@ export const Predicate = z.union([
 export type Predicate = z.infer<typeof Predicate>
 
 export type Condition =
-  | { and: Condition[] }
-  | { or: Condition[] }
-  | { not: Condition }
-  | Predicate
+  { and: Condition[] } | { or: Condition[] } | { not: Condition } | Predicate
 
 export const Condition: z.ZodType<Condition> = z.lazy(() =>
   z.union([
