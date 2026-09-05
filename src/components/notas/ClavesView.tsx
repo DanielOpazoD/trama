@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SecretKind } from '../../api'
-import { isDemoMode } from '../../lib/demo'
-import { useCurrentClientUserId } from '../../lib/clientIdentity'
+import { useVaultScope } from '../../lib/vaultScope'
 import { decryptVaultSecret, encryptVaultSecret } from '../../lib/vaultCrypto'
 import {
   useCreateSecret,
@@ -37,9 +36,8 @@ export function ClavesView({
   autoLockMs?: number
   clipboardClearMs?: number
 } = {}) {
-  const currentUserId = useCurrentClientUserId()
-  const vaultUserId = isDemoMode() ? 'demo' : (currentUserId ?? 'legacy-single-user')
-  const vaultScope = useMemo(() => ({ userId: vaultUserId }), [vaultUserId])
+  const vaultScope = useVaultScope()
+  const vaultUserId = vaultScope.userId
   const [vaultKey, setVaultKey] = useState<CryptoKey | null>(null)
   const secretsQuery = useSecretsQuery({ enabled: vaultKey !== null })
   const createSecret = useCreateSecret()

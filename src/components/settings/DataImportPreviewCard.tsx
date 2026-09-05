@@ -3,12 +3,14 @@ import type { BucketCount, ImportPreview } from './dataImportPreviewModel'
 export function DataImportPreviewCard({
   fileName,
   preview,
+  vaultNotice = null,
   busy,
   onConfirm,
   onCancel,
 }: {
   fileName: string
   preview: ImportPreview
+  vaultNotice?: string | null
   busy: boolean
   onConfirm: () => void
   onCancel: () => void
@@ -63,6 +65,15 @@ export function DataImportPreviewCard({
           </tr>
         </tbody>
       </table>
+
+      {vaultNotice && (
+        <p
+          className="text-caption text-ink-600 leading-relaxed"
+          data-testid="vault-notice"
+        >
+          {vaultNotice}
+        </p>
+      )}
 
       <div className="flex items-center justify-end gap-2 pt-1">
         <button

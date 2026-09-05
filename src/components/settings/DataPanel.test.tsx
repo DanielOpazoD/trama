@@ -24,6 +24,7 @@ import { DataPanel } from './DataPanel'
 import { buildPreview } from './dataImportPreviewModel'
 import * as apiModule from '../../api'
 import type { Entity, ExportPayload, Quote, Relationship } from '../../types'
+import { createVault, exportVaultConfig, hasVaultConfig } from '../../lib/vaultCrypto'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -65,6 +66,7 @@ const EMPTY_PAYLOAD: ExportPayload = {
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  window.localStorage.clear()
   vi.spyOn(apiModule.api, 'listOrphanedBlobs').mockResolvedValue({
     orphans: [],
     totalInStore: 0,
@@ -401,5 +403,116 @@ describe('<DataPanel /> — flujo de import con preview', () => {
       expect(screen.getByText(/aditiva/i)).toBeInTheDocument()
       expect(screen.getByText(/no reemplaza/i)).toBeInTheDocument()
     })
+  })
+})
+
+describe('<DataPanel /> — la llave del vault de Claves viaja en el respaldo', () => {
+  /** Captura el JSON que el panel manda a descargar. */
+  function interceptDownload(): () => Promise<ExportPayload> {
+    let blob: Blob | null = null
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((value) => {
+      blob = value as Blob
+      return 'blob:trama'
+    })
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    return async () => JSON.parse(await (blob as Blob | null)!.text()) as ExportPayload
+  }
+
+  it('el export lleva la configuración del vault local, y el servidor no la conoce', async () => {
+    await createVault('mi-contraseña')
+    const fromServer: ExportPayload = { ...EMPTY_PAYLOAD, version: 2 }
+    vi.spyOn(apiModule.api, 'exportAll').mockResolvedValue(fromServer)
+    const readDownload = interceptDownload()
+    const qc = makeQueryClient()
+
+    render(<DataPanel />, { wrapper: wrap(qc) })
+    await userEvent.setup().click(screen.getByRole('button', { name: /exportar/i }))
+
+    await waitFor(() =>
+      expect(screen.getByText(/exportado correctamente/i)).toBeInTheDocument(),
+    )
+    const downloaded = await readDownload()
+    expect(downloaded.vault).toEqual(exportVaultConfig())
+    expect(JSON.stringify(downloaded)).not.toContain('mi-contraseña')
+    // El servidor sigue devolviendo lo suyo: el vault se sumó en el cliente.
+    expect('vault' in fromServer).toBe(false)
+  })
+
+  it('al importar, el vault se restaura en este navegador y NO se envía al servidor', async () => {
+    await createVault('la-de-siempre')
+    const vault = exportVaultConfig()!
+    window.localStorage.clear()
+    const importSpy = vi
+      .spyOn(apiModule.api, 'importAll')
+      .mockResolvedValue({ imported: 1, skipped: 0, failed: [] })
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [])
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [])
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [])
+
+    render(<DataPanel />, { wrapper: wrap(qc) })
+    const payload: ExportPayload = {
+      ...EMPTY_PAYLOAD,
+      entities: [{ id: 'e-1', type: 'persona', name: 'x' }] as ExportPayload['entities'],
+      vault,
+    }
+    const user = userEvent.setup()
+    await user.upload(
+      document.querySelector('input[type="file"]') as HTMLInputElement,
+      makeFile(payload),
+    )
+
+    await waitFor(() =>
+      expect(screen.getByTestId('vault-notice')).toHaveTextContent(/se restaurará/),
+    )
+    expect(hasVaultConfig()).toBe(false)
+
+    await user.click(screen.getByRole('button', { name: /agregar 1 nuevas?/i }))
+    await waitFor(() => expect(importSpy).toHaveBeenCalledTimes(1))
+
+    const sent = importSpy.mock.calls[0]![0]
+    expect('vault' in sent).toBe(false)
+    expect(sent.entities).toHaveLength(1)
+    expect(hasVaultConfig()).toBe(true)
+    expect(screen.getByText(/vault de claves restaurado/i)).toBeInTheDocument()
+  })
+
+  it('no pisa el vault de este navegador con el del archivo', async () => {
+    await createVault('ajeno')
+    const ajeno = exportVaultConfig()!
+    window.localStorage.clear()
+    await createVault('local')
+    const local = exportVaultConfig()!
+    vi.spyOn(apiModule.api, 'importAll').mockResolvedValue({
+      imported: 1,
+      skipped: 0,
+      failed: [],
+    })
+    const qc = makeQueryClient()
+    qc.setQueryData<Entity[]>(queryKeys.entities, [])
+    qc.setQueryData<Quote[]>(queryKeys.quotes, [])
+    qc.setQueryData<Relationship[]>(queryKeys.relationships, [])
+
+    render(<DataPanel />, { wrapper: wrap(qc) })
+    const payload: ExportPayload = {
+      ...EMPTY_PAYLOAD,
+      entities: [{ id: 'e-1', type: 'persona', name: 'x' }] as ExportPayload['entities'],
+      vault: ajeno,
+    }
+    const user = userEvent.setup()
+    await user.upload(
+      document.querySelector('input[type="file"]') as HTMLInputElement,
+      makeFile(payload),
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('vault-notice')).toHaveTextContent(/OTRO vault/),
+    )
+    await user.click(screen.getByRole('button', { name: /agregar 1 nuevas?/i }))
+
+    await waitFor(() =>
+      expect(screen.getByText(/se conservó el vault/i)).toBeInTheDocument(),
+    )
+    expect(exportVaultConfig()).toEqual(local)
   })
 })

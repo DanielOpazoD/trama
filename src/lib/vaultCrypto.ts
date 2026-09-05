@@ -124,6 +124,65 @@ export function hasVaultConfig(scope?: VaultScope): boolean {
   return readVaultConfig(scope) !== null
 }
 
+function isVaultConfig(value: unknown): value is VaultConfig {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return (
+    candidate.v === 1 &&
+    candidate.kdf === 'PBKDF2-SHA-256' &&
+    typeof candidate.salt === 'string' &&
+    candidate.salt.length > 0 &&
+    typeof candidate.verifierIv === 'string' &&
+    typeof candidate.verifierData === 'string'
+  )
+}
+
+/**
+ * La configuración que hace falta para volver a abrir el vault con la misma
+ * contraseña en otro navegador: salt, verificador y si pide llave física.
+ * No contiene la contraseña ni la llave, y sin ellas no descifra nada; pero
+ * sin ESTO, un respaldo de Claves es un archivo de sobres que nadie puede
+ * abrir. Es lo que viaja dentro del export de Datos.
+ */
+export function exportVaultConfig(scope?: VaultScope): VaultConfig | null {
+  return readVaultConfig(scope)
+}
+
+export type VaultRestoreOutcome =
+  | 'restored' // no había vault local: se instala el del archivo
+  | 'same-vault' // el local ya es este mismo (misma salt): nada que hacer
+  | 'kept-local' // hay un vault local DISTINTO: se conserva, no se pisa
+  | 'invalid' // el archivo trae algo que no es una configuración de vault
+
+/**
+ * Qué haría `restoreVaultConfig` sin hacerlo. Sirve para decirlo en la vista
+ * previa de la importación antes de que el usuario confirme.
+ */
+export function planVaultRestore(
+  incoming: unknown,
+  scope?: VaultScope,
+): VaultRestoreOutcome {
+  if (!isVaultConfig(incoming)) return 'invalid'
+  const local = readVaultConfig(scope)
+  if (!local) return 'restored'
+  return local.salt === incoming.salt ? 'same-vault' : 'kept-local'
+}
+
+/**
+ * Instala la configuración del archivo SOLO si este navegador no tiene vault.
+ * Pisar un vault existente dejaría ilegibles las claves guardadas con él, y
+ * ese es exactamente el daño que un respaldo existe para evitar.
+ */
+export function restoreVaultConfig(
+  incoming: unknown,
+  scope?: VaultScope,
+): VaultRestoreOutcome {
+  const outcome = planVaultRestore(incoming, scope)
+  if (outcome !== 'restored') return outcome
+  window.localStorage.setItem(vaultConfigKey(scope), JSON.stringify(incoming))
+  return outcome
+}
+
 export function vaultRequiresPhysicalKey(scope?: VaultScope): boolean {
   return readVaultConfig(scope)?.requiresPhysicalKey === true
 }
