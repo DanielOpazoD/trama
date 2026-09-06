@@ -58,7 +58,7 @@ export function MarkdownField({
 }: {
   value: string
   onChange: (next: string) => void
-  textareaRef?: RefObject<HTMLTextAreaElement>
+  textareaRef?: RefObject<HTMLTextAreaElement | null>
   placeholder?: string
   rows?: number
   autoFocus?: boolean

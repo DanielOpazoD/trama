@@ -25,7 +25,7 @@ export function PdfStudioDocumentControls({
   doc: PdfDoc
   effectiveTemplateMode: 'design' | 'fill' | null
   empty: boolean
-  fileInputRef: RefObject<HTMLInputElement>
+  fileInputRef: RefObject<HTMLInputElement | null>
   formSummary: string | null
   onFileInput: (event: ChangeEvent<HTMLInputElement>) => void
   preflightReport: ComponentProps<typeof PdfStudioOperationalStatus>['preflightReport']

@@ -11,7 +11,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 export function useInViewport<T extends Element>({
   root = null,
   rootMargin = '400px',
-}: { root?: Element | null; rootMargin?: string } = {}): [RefObject<T>, boolean] {
+}: { root?: Element | null; rootMargin?: string } = {}): [RefObject<T | null>, boolean] {
   const ref = useRef<T>(null)
   const [inView, setInView] = useState(false)
   useEffect(() => {

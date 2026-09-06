@@ -498,26 +498,29 @@ describe('<App />', () => {
 
     render(<App />)
 
-    expect(screen.getByText(/sidebar inicio trama/i)).toBeInTheDocument()
-    expect(screen.getByText(/view:inicio/i)).toBeInTheDocument()
-    expect(screen.getByText(/askbar inicio none idle/i)).toBeInTheDocument()
+    expect(await screen.findByText(/sidebar inicio trama/i)).toBeInTheDocument()
+    expect(await screen.findByText(/view:inicio/i)).toBeInTheDocument()
+    expect(await screen.findByText(/askbar inicio none idle/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'ir citas' }))
-    expect(screen.getByText(/view:citas/i)).toBeInTheDocument()
+    expect(await screen.findByText(/view:citas/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'abrir lectura' }))
-    expect(screen.getByText('reading open')).toBeInTheDocument()
+    expect(await screen.findByText('reading open')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'lectura proposal' }))
-    expect(screen.getByText(/right desktop proposal no-detail/i)).toBeInTheDocument()
-    expect(screen.getByText(/askbar citas none busy/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/right desktop proposal no-detail/i),
+    ).toBeInTheDocument()
+    expect(await screen.findByText(/askbar citas none busy/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'close proposal' }))
     await user.click(screen.getByRole('button', { name: 'abrir settings' }))
-    expect(screen.getByText(/settings paper none plain/i)).toBeInTheDocument()
+    // Settings es lazy: React 19 no revela el Suspense dentro del mismo act.
+    expect(await screen.findByText(/settings paper none plain/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'abrir sortes' }))
-    expect(screen.getByText('sortes open')).toBeInTheDocument()
+    expect(await screen.findByText('sortes open')).toBeInTheDocument()
   })
 
   it('conecta command palette, shortcuts, detalle y threads', async () => {
@@ -526,24 +529,26 @@ describe('<App />', () => {
     render(<App />)
 
     await user.click(screen.getByRole('button', { name: 'abrir palette' }))
-    expect(screen.getByText('palette open')).toBeInTheDocument()
+    expect(await screen.findByText('palette open')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'palette entity' }))
     expect(appMocks.startViewTransition).toHaveBeenCalled()
-    expect(screen.getByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
-    expect(screen.getByText(/topbar inicio entidad/i)).toBeInTheDocument()
+    expect(await screen.findByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
+    expect(await screen.findByText(/topbar inicio entidad/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'detail thread' }))
-    expect(screen.getByText(/view:chat/i)).toBeInTheDocument()
-    expect(screen.getByText(/thread:thread-detail/i)).toBeInTheDocument()
+    expect(await screen.findByText(/view:chat/i)).toBeInTheDocument()
+    expect(await screen.findByText(/thread:thread-detail/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'abrir palette' }))
     await user.click(screen.getByRole('button', { name: 'action shortcuts' }))
-    expect(screen.getByText('shortcuts open')).toBeInTheDocument()
+    expect(await screen.findByText('shortcuts open')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'action new quote' }))
-    expect(screen.getByText(/view:citas/i)).toBeInTheDocument()
-    expect(screen.getByText(/right desktop no-proposal no-detail/i)).toBeInTheDocument()
+    expect(await screen.findByText(/view:citas/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/right desktop no-proposal no-detail/i),
+    ).toBeInTheDocument()
   })
 
   it('limpia el detalle de entidad cuando el palette navega fuera de grafo', async () => {
@@ -553,13 +558,15 @@ describe('<App />', () => {
 
     await user.click(screen.getByRole('button', { name: 'abrir palette' }))
     await user.click(screen.getByRole('button', { name: 'palette entity' }))
-    expect(screen.getByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
+    expect(await screen.findByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'abrir palette' }))
     await user.click(screen.getByRole('button', { name: 'action new quote' }))
 
-    expect(screen.getByText(/view:citas/i)).toBeInTheDocument()
-    expect(screen.getByText(/right desktop no-proposal no-detail/i)).toBeInTheDocument()
+    expect(await screen.findByText(/view:citas/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/right desktop no-proposal no-detail/i),
+    ).toBeInTheDocument()
   })
 
   it('maneja mobile nav, panel derecho y modo focus', async () => {
@@ -568,15 +575,15 @@ describe('<App />', () => {
 
     render(<App />)
 
-    expect(screen.getByText(/mobile nav inicio/i)).toBeInTheDocument()
+    expect(await screen.findByText(/mobile nav inicio/i)).toBeInTheDocument()
     expect(screen.queryByText(/sidebar inicio/i)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'select entity' }))
-    expect(screen.getByText(/right mobile no-proposal e1/i)).toBeInTheDocument()
+    expect(await screen.findByText(/right mobile no-proposal e1/i)).toBeInTheDocument()
     expect(screen.queryByText(/mobile nav inicio/i)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'close detail' }))
-    expect(screen.getByText(/mobile nav inicio/i)).toBeInTheDocument()
+    expect(await screen.findByText(/mobile nav inicio/i)).toBeInTheDocument()
 
     act(() => {
       appMocks.shortcutConfig?.onToggleFocusMode()
@@ -606,12 +613,12 @@ describe('<App />', () => {
 
     await user.click(screen.getByRole('button', { name: 'mundo notas' }))
 
-    expect(screen.getByText(/notas world notas/i)).toBeInTheDocument()
+    expect(await screen.findByText(/notas world notas/i)).toBeInTheDocument()
     expect(window.localStorage.getItem('trama:world')).toBe('notas')
 
     await user.click(screen.getByRole('button', { name: 'volver trama' }))
 
-    expect(screen.getByText(/sidebar inicio trama/i)).toBeInTheDocument()
+    expect(await screen.findByText(/sidebar inicio trama/i)).toBeInTheDocument()
     expect(window.localStorage.getItem('trama:world')).toBe('trama')
   })
 
@@ -648,12 +655,14 @@ describe('<App />', () => {
 
     render(<App />)
 
-    expect(screen.getByText(/notas world notas section:tareas/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/notas world notas section:tareas/i),
+    ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'volver trama' }))
     await user.click(screen.getByRole('button', { name: 'mundo notas' }))
 
-    expect(screen.getByText(/notas world notas section:none/i)).toBeInTheDocument()
+    expect(await screen.findByText(/notas world notas section:none/i)).toBeInTheDocument()
   })
 
   it('prioriza el deep link de mundo sobre la preferencia persistida', () => {

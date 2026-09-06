@@ -142,7 +142,7 @@ export function FeedSearchPanel({
 }: {
   accent: string
   search: string
-  searchInputRef: RefObject<HTMLInputElement>
+  searchInputRef: RefObject<HTMLInputElement | null>
   activeTag: string | null
   tagCounts: Array<[string, number]>
   showTags: boolean

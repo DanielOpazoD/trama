@@ -37,7 +37,7 @@ export function PdfTextEditorFloatingFormTools({
   /** Selección de casilleros en diseño ([] en modo llenar: sin inspector). */
   fields: PdfFormFieldDraft[]
   /** Host del portal al body: el focus trap del editor lo cuenta como propio. */
-  portalHostRef?: RefObject<HTMLDivElement>
+  portalHostRef?: RefObject<HTMLDivElement | null>
   signatureField: PdfFormFieldDraft | null
   onAlignFields: (alignment: FormFieldAlignment) => void
   onApplyPreset: (key: FormFieldPresetKey) => void

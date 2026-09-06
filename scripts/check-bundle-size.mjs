@@ -31,7 +31,10 @@ import { PDF_DUPLICATE_VENDOR_BUDGETS } from './pdf-entrypoint-inventory.mjs'
 const BUDGETS = {
   // +14 KB por @clerk/react v6 (auth UI + ClerkProvider). Carga condicional
   // según VITE_CLERK_PUBLISHABLE_KEY; sin esa var sigue siendo ~50 KB.
-  'vendor-react': 70,
+  // +15 KB por React 19 (medido: 67 → 82 KB gzip al pasar de 18.3 a 19.2; el
+  // reconciliador y el scheduler nuevos pesan más). Es el precio de la
+  // migración, no una fuga: nada más entró en este chunk.
+  'vendor-react': 85,
   'vendor-query': 25,
   'vendor-graph': 50,
   browser: 15,

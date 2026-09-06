@@ -19,7 +19,7 @@ export function usePdfTextEditorPageRender({
   source: PdfSource | undefined
   zoom: number
 }): {
-  areaRef: RefObject<HTMLDivElement>
+  areaRef: RefObject<HTMLDivElement | null>
   bg: PdfTextEditorBackground | null
   layout: PageLayout | null
   resetBackground: () => void
@@ -113,7 +113,7 @@ export function usePdfTextEditorPageRender({
   }, [])
 
   return {
-    areaRef: areaRef as RefObject<HTMLDivElement>,
+    areaRef: areaRef as RefObject<HTMLDivElement | null>,
     bg,
     layout,
     resetBackground: () => setBg(null),

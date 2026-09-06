@@ -27,7 +27,7 @@ const THRESHOLD = 64 // px
 const MAX_PULL = 120 // hard ceiling para que el "rubber band" no infinite
 
 export function usePullToRefresh(
-  scrollContainerRef: React.RefObject<HTMLElement>,
+  scrollContainerRef: React.RefObject<HTMLElement | null>,
   onRefresh: () => Promise<unknown>,
 ): { pullDistance: number; refreshing: boolean } {
   const [pullDistance, setPullDistance] = useState(0)
