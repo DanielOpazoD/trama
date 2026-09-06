@@ -4,7 +4,13 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**28 pendientes** en 18 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**29 pendientes** en 19 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+
+## 2026-09-05 · vitest 5
+
+Plan: [2026-09-05-vitest-5.md](superpowers/plans/2026-09-05-vitest-5.md)
+
+- La optimización del entorno de tests (`vmThreads` o `isolate: false`): la suite tarda 5 minutos y la mitad es crear happy-dom. Medir con y sin, y comprobar que ningún test dependía del aislamiento.
 
 ## 2026-09-05 · Vite 8
 
