@@ -7,7 +7,7 @@
  */
 
 import type { Entity } from '../types'
-import { request } from './request'
+import { request, requestContract } from './request'
 import { entityFromRow, type EntityRow } from './transform'
 
 /** Un candidato de artículo de Wikipedia para una entidad. */
@@ -196,7 +196,7 @@ export const entitiesApi = {
   async listEntityRefsCount(): Promise<{
     items: Array<{ id: string; quoteCount: number; relCount: number }>
   }> {
-    return request('/api/entities-refs-count')
+    return requestContract('entityRefsCount', '/api/entities-refs-count')
   },
 
   /**

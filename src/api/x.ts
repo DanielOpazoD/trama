@@ -1,4 +1,4 @@
-import { request } from './request'
+import { request, requestContract } from './request'
 
 /** Un bookmark de X guardado (fila de x_bookmarks, ya en camelCase). */
 export type XBookmark = {
@@ -39,7 +39,7 @@ export type XStatus =
 
 export const xApi = {
   async xStatus(): Promise<XStatus> {
-    return request<XStatus>('/api/x/status')
+    return requestContract<XStatus>('xStatus', '/api/x/status')
   },
   /**
    * Arranca el OAuth2 (PKCE) de X autenticado; el server setea las cookies del

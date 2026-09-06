@@ -140,7 +140,17 @@ describe('<MobileBottomNav />', () => {
     vi.mocked(fetch).mockImplementation(async (input: string | Request | URL) => {
       const url = String(input)
       if (url.includes('/api/momentos-share-invitations')) {
-        return jsonResponse({ items: [{ id: 'inv1' }] })
+        // Forma completa: el contrato de lectura rechaza una invitación a medias.
+        return jsonResponse({
+          items: [
+            {
+              id: 'inv1',
+              inviteeEmail: 'yo@example.com',
+              role: 'viewer',
+              status: 'pending',
+            },
+          ],
+        })
       }
       if (url.includes('/api/proactive-suggestions')) {
         return jsonResponse([])

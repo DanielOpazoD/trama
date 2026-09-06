@@ -1,9 +1,12 @@
 import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PdfFormFieldDraft, PdfPage } from '../../../../lib/pdfStudio/model/model'
 import type { TextStyle } from '../editor/editorStyle'
 import { initialFieldBox } from './pdfTextEditorFormDefaults'
+import { focusFormFieldControl } from './pdfFormFieldFocus'
 import { usePdfTextEditorFormPlacement } from './usePdfTextEditorFormPlacement'
+
+vi.mock('./pdfFormFieldFocus', () => ({ focusFormFieldControl: vi.fn(() => true) }))
 
 const page: PdfPage = {
   id: 'p1',
@@ -43,6 +46,10 @@ function renderPlacement() {
 }
 
 describe('usePdfTextEditorFormPlacement · quickPlaceFormField', () => {
+  beforeEach(() => {
+    vi.mocked(focusFormFieldControl).mockClear()
+  })
+
   it('shift+clic crea un casillero de texto centrado en el punto y lo selecciona', () => {
     const { hook, setFields, setSelectedIds } = renderPlacement()
 
@@ -82,6 +89,39 @@ describe('usePdfTextEditorFormPlacement · quickPlaceFormField', () => {
     const field = updater([])[0]!
     expect(field.xRatio + field.wRatio).toBeLessThanOrEqual(1)
     expect(field.yRatio + field.hRatio).toBeLessThanOrEqual(1)
+  })
+
+  it('si el editor se desmonta antes de los 60 ms, el foco tardío no se dispara', () => {
+    // El temporizador tocaba `document` después de destruirse el DOM del test
+    // (error no capturado bajo cobertura en CI). Desmontar debe cancelarlo.
+    vi.useFakeTimers()
+    try {
+      const { hook } = renderPlacement()
+      act(() => {
+        hook.result.current.quickPlaceFormField({ xRatio: 0.5, yRatio: 0.5 }, page)
+      })
+      hook.unmount()
+      vi.advanceTimersByTime(100)
+      expect(focusFormFieldControl).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('montado, el foco cae en el casillero recién creado tras 60 ms', () => {
+    vi.useFakeTimers()
+    try {
+      const { hook } = renderPlacement()
+      act(() => {
+        hook.result.current.quickPlaceFormField({ xRatio: 0.5, yRatio: 0.5 }, page)
+      })
+      vi.advanceTimersByTime(100)
+      expect(focusFormFieldControl).toHaveBeenCalledWith(expect.any(String), {
+        select: true,
+      })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('sin página activa no crea nada', () => {

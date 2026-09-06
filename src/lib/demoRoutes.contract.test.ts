@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { CONTRACTS, verifyContract, type ContractKey } from '../api/contracts'
+import { demoRequest } from './demo'
 import { demoUnroutedGets, routeDemoRequest } from './demoRouter'
 import { loadDemoStore } from './demoStore'
 
@@ -111,5 +113,17 @@ describe('router de demo vs rutas del cliente', () => {
     )
     expect(holes, 'rutas GET del cliente que caen en el default del router').toEqual([])
     expect(stale, 'exenciones que ya no hacen falta').toEqual([])
+  })
+
+  it('toda respuesta de la demo cumple el contrato de lectura que el cliente exige', async () => {
+    // Es la mitad que faltaba: el test de arriba dice que la ruta EXISTE; este,
+    // que lo que devuelve tiene la FORMA que el cliente lee. `health.auth`,
+    // `x/status.counts` y `home` habrían caído acá antes de tumbar la app.
+    const drift: string[] = []
+    for (const key of Object.keys(CONTRACTS) as ContractKey[]) {
+      const data = await demoRequest<unknown>(CONTRACTS[key].path)
+      for (const issue of verifyContract(key, data)) drift.push(`${key} → ${issue}`)
+    }
+    expect(drift).toEqual([])
   })
 })
