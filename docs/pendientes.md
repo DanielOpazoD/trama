@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**28 pendientes** en 18 planes. Del más reciente al más viejo.
+**30 pendientes** en 19 planes. Del más reciente al más viejo.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 
@@ -45,6 +45,13 @@ Plan: [2026-09-05-imprenta-pdfs-guardados-servidos.md](superpowers/plans/2026-09
 
 - La miniatura sigue siendo el ícono de tipo: `Thumbnail` solo pide el blob para imágenes. Renderizar la primera hoja con pdf.js en la card es posible ahora que el blob se sirve, pero pesa y conviene medirlo antes.
 - Al re-guardar, el `UPSERT` apunta la fila al key nuevo y el blob viejo queda sin fila: es el huérfano por re-guardado, distinto del de #414. Se cierra borrando el key anterior en el mismo `POST`.
+
+## 2026-09-05 · Imprenta en un navegador de verdad: elegir hojas y volver desde Biblioteca
+
+Plan: [2026-09-05-e2e-imprenta-seleccion.md](superpowers/plans/2026-09-05-e2e-imprenta-seleccion.md)
+
+- El e2e corre solo en Chromium de escritorio, como el resto de la suite.
+- Sigue sin e2e de OCR; si algún día se empaqueta el idioma con la app, entra.
 
 ## 2026-09-05 · La llave del vault viaja en el respaldo
 

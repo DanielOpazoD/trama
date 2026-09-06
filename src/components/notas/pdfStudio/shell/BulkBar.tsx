@@ -131,7 +131,7 @@ export function BulkBar({
         <button
           type="button"
           onClick={onExport}
-          title="Abrir el visor para guardar o imprimir sólo las hojas marcadas"
+          title="Descargar un PDF sólo con las hojas marcadas"
           className={barBtn}
         >
           <PrinterIcon size={14} /> Guardar {count} {count === 1 ? 'hoja' : 'hojas'}
