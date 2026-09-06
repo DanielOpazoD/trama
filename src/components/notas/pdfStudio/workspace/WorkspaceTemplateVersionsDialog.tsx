@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PdfStudioTemplateVersion } from '../../../../api/pdfStudioTemplates'
 import type { SavedDoc } from '../../../../lib/pdfStudio/render/persistence'
-import { useModalOverlay } from '../../../../hooks/useModalOverlay'
+import { ModalShell } from '../../../ModalShell'
 import type { WorkspaceTemplateCloud } from './useWorkspaceTemplateCloud'
 import { workspaceTemplateSavedAtLabel } from './workspaceTemplateCardModel'
 
@@ -24,7 +24,6 @@ export function WorkspaceTemplateVersionsDialog({
   templateCloud: WorkspaceTemplateCloud
   onClose: () => void
 }) {
-  const overlay = useModalOverlay({ open: true, onClose })
   const [versions, setVersions] = useState<PdfStudioTemplateVersion[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -78,14 +77,8 @@ export function WorkspaceTemplateVersionsDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink-900/30 p-4">
-      <section
-        ref={overlay.dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Versiones de ${saved.name}`}
-        className="animate-pdf-panel-in flex max-h-[70vh] w-[min(92vw,420px)] flex-col rounded-md border border-ink-100 bg-paper-50 p-3 shadow-xl shadow-ink-900/20"
-      >
+    <ModalShell ariaLabel={`Versiones de ${saved.name}`} size="sm" onClose={onClose}>
+      <section className="flex max-h-[70vh] flex-col p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <h3 className="truncate text-body font-semibold text-ink-800">
@@ -150,6 +143,6 @@ export function WorkspaceTemplateVersionsDialog({
           )}
         </div>
       </section>
-    </div>
+    </ModalShell>
   )
 }

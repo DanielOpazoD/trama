@@ -118,4 +118,44 @@ describe('<ModalFooter />', () => {
     expect(screen.getByRole('button', { name: 'cancelar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'guardar' })).toBeInTheDocument()
   })
+
+  it('role="alertdialog" y closeOnEscape={false} son lo que ConfirmDestroy necesita', () => {
+    const onClose = vi.fn()
+    render(
+      <ModalShell
+        ariaLabel="Borrar"
+        role="alertdialog"
+        closeOnEscape={false}
+        onClose={onClose}
+      >
+        <p>c</p>
+      </ModalShell>,
+    )
+    const dialog = screen.getByRole('alertdialog', { name: 'Borrar' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('xs y lg existen para el QR y la hoja de atajos, y backdropLabel renombra el backdrop', () => {
+    const { rerender } = render(
+      <ModalShell
+        ariaLabel="q"
+        size="xs"
+        backdropLabel="Cerrar atajos"
+        onClose={() => {}}
+      >
+        <p>c</p>
+      </ModalShell>,
+    )
+    expect(screen.getByRole('dialog', { name: 'q' })).toHaveClass('max-w-sm')
+    expect(screen.getByRole('button', { name: 'Cerrar atajos' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cerrar' })).toBeNull()
+    rerender(
+      <ModalShell ariaLabel="q" size="lg" onClose={() => {}}>
+        <p>c</p>
+      </ModalShell>,
+    )
+    expect(screen.getByRole('dialog', { name: 'q' })).toHaveClass('max-w-2xl')
+  })
 })

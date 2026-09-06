@@ -44,6 +44,7 @@
     "check:frontend-boundaries": "node scripts/check-frontend-boundaries.mjs",
     "check:design-tokens": "node scripts/check-design-tokens.mjs",
     "check:modal-overlay": "node scripts/check-modal-overlay.mjs",
+    "check:modal-shell": "node scripts/check-modal-shell.mjs",
     "check:form-control-labels": "node scripts/check-form-control-labels.mjs",
     "check:icon-button": "node scripts/check-icon-button.mjs",
     "check:focus-ring": "node scripts/check-focus-ring.mjs",
