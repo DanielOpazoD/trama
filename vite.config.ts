@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
-import pkg from './package.json'
-import { manualVendorChunks } from './scripts/vite-manual-chunks'
+import pkg from './package.json' with { type: 'json' }
+import { advancedVendorChunks } from './scripts/vite-manual-chunks'
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 const projectPathNeedsRelaxedFs = projectRoot.includes(':')
@@ -38,14 +38,15 @@ export default defineConfig({
     // El exportador PDF usa imports dinamicos/chunks dentro del Worker. Vite
     // necesita formato ES para empaquetar workers con code-splitting.
     format: 'es',
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: manualVendorChunks,
+        advancedChunks: advancedVendorChunks(),
       },
     },
   },
   build: {
-    // DD2: manualChunks separa los vendors del código de aplicación.
+    // DD2: los grupos de advancedChunks (antes manualChunks; Vite 8 usa
+    // rolldown) separan los vendors del código de aplicación.
     // Beneficio: los vendors casi nunca cambian entre deploys (versión
     // de react, tanstack, etc. cambia 1-2 veces al año), pero el código
     // de la app cambia constantemente. Al ponerlos en chunks separados,
@@ -55,9 +56,9 @@ export default defineConfig({
     // re-descargar 558KB de React + Query + nuestro código.
     // Ahora: vendor-react.[hash].js + vendor-query.[hash].js queda en cache,
     // solo se re-descarga index.[hash].js (~280KB).
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: manualVendorChunks,
+        advancedChunks: advancedVendorChunks(),
       },
     },
   },

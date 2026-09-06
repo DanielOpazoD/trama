@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  extractInitialAssets,
   chunkBaseName,
   classifyBundleEntry,
   describeDuplicateBudget,
@@ -179,5 +180,22 @@ describe('bundle budget helpers', () => {
       exceeded: ['count', 'gzKb'],
       status: 'over-budget',
     })
+  })
+})
+
+describe('extractInitialAssets', () => {
+  it('toma el script de entrada y los modulepreload, sin repetir ni arrastrar CSS', () => {
+    const html = `
+      <link rel="stylesheet" href="/assets/index-abc.css">
+      <script type="module" crossorigin src="/assets/index-abc.js"></script>
+      <link rel="modulepreload" crossorigin href="/assets/vendor-react-x1.js">
+      <link rel="modulepreload" crossorigin href="/assets/vendor-react-x1.js">
+      <link rel="modulepreload" href="assets/state-q9.js">
+    `
+    expect(extractInitialAssets(html)).toEqual([
+      'index-abc.js',
+      'vendor-react-x1.js',
+      'state-q9.js',
+    ])
   })
 })
