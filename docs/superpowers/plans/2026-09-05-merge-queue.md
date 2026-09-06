@@ -1,4 +1,4 @@
-# Un merge queue en vez de rebasar a mano
+# Un merge queue en vez de rebasar a mano (no disponible)
 
 ## Problema
 
@@ -42,3 +42,18 @@ cinco PR de Dependabot, fueron cinco ciclos seguidos.
 
 - `pdf-visual.yml` no escucha `merge_group`. No es requerido, así que no
   bloquea; si algún día lo fuera, hay que añadirle el disparador.
+
+## Resultado (mismo día)
+
+**No se pudo activar.** Con el disparador ya en main, la API rechazó la regla
+tanto por REST («Invalid rule 'merge_queue'») como por GraphQL («Invalid rules:
+'Merge queue'»). La causa no es la configuración: el merge queue de GitHub
+existe solo en repositorios de **organización**, y `DanielOpazoD/trama` es de
+cuenta personal.
+
+- `strict` vuelve a `true`: es la única garantía de «probado contra el main de
+  ahora» que este repo puede tener.
+- El disparador `merge_group` se queda: es inocuo y ahorra un paso si el repo
+  se muda a una organización.
+- La cola se sigue atendiendo de a un PR. Si el coste pesa, la salida real es
+  mover el repo a una organización (gratis para repos públicos).
