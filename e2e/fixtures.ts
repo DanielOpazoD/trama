@@ -363,6 +363,13 @@ export async function mockBackend(page: Page, state: MockState) {
     }),
   )
 
+  // /api/cronologia: el catch-all devuelve `[]`, pero la vista espera
+  // `{ entradas, nextCursor }` y con un array a secas caía en el ErrorBoundary
+  // («Esta vista se rompió»). El stub la deja en su estado vacío real.
+  await page.route(apiPath('cronologia', { prefix: true }), (route) =>
+    jsonResp(route, { entradas: [], nextCursor: null }),
+  )
+
   // /api/error-log y /api/health (vacíos)
   await page.route(apiPath('error-log', { prefix: true }), (route) => jsonResp(route, []))
   await page.route(apiPath('health'), (route) =>

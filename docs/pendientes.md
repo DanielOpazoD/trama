@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**30 pendientes** en 19 planes. Del más reciente al más viejo.
+**33 pendientes** en 20 planes. Del más reciente al más viejo.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 
@@ -59,6 +59,14 @@ Plan: [2026-09-05-claves-llave-en-el-backup.md](superpowers/plans/2026-09-05-cla
 
 - Re-cifrar las claves de un vault a otro (para fusionar dos respaldos con contraseñas distintas) no existe. Hoy el aviso es honesto: se conservan las locales y las ajenas no se abren.
 - El export sigue sin incluir `prompts` ni `secrets` en el tipo `ExportPayload` aunque el servidor los envía y el import los acepta. El tipo es más estrecho que el archivo real; no afecta a este cambio, pero conviene alinearlo.
+
+## 2026-09-05 · Accesibilidad: el mundo Trama entero, y en móvil
+
+Plan: [2026-09-05-a11y-movil-y-mundo-trama.md](superpowers/plans/2026-09-05-a11y-movil-y-mundo-trama.md)
+
+- El salto intermitente de 829 px en el editor tras abrir la miniatura 8: o es un flaky de render de miniaturas o un defecto de anclaje. Reproducir con `--repeat-each` y decidir.
+- Las auditorías usan estado vacío o casi vacío; una vista con datos reales puede tener violaciones que aquí no aparecen. Conectar `visual-sweep` con axe sobre la demo completa es el siguiente paso.
+- `heading-order` y `scrollable-region-focusable` son reglas de `best-practice`; si aparecen más como estas al crecer el corpus, conviene un test unitario de estructura de encabezados por vista.
 
 ## 2026-08-17 · El PDF que se subía y no se podía borrar
 

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { NOTAS_SECTIONS, type NotasSection } from '../src/types/notas'
+import { VIEW_MODES, type ViewMode } from '../src/types/view'
 import { emptyState, mockBackend } from './fixtures'
 
 /**
@@ -165,70 +166,6 @@ const SAMPLE_RECORTE = {
   updated_at: new Date().toISOString(),
 }
 
-test('a11y: HomeView (Inicio) sin violaciones', async ({ page }) => {
-  const state = emptyState()
-  state.entities.push(SAMPLE_ENTITY)
-  state.quotes.push(SAMPLE_QUOTE)
-  await skipSplash(page)
-  await mockBackend(page, state)
-  await page.goto('/')
-  // ρ-canvas: el h2 del HomeView ya no es "Inicio" — ahora es la fecha
-  // de hoy capitalizada ("Sábado, 24 de mayo"). Esperamos al primer
-  // <h2> dentro de main, que es el del hero (estable independiente
-  // del copy concreto).
-  await page.locator('main h2').first().waitFor({ timeout: 10_000 })
-  // Pausa breve para que cualquier transition-colors animado del sidebar
-  // settlee — axe captura mid-animation puede dar falsos positivos.
-  await page.waitForTimeout(400)
-
-  // Scope: solo el contenido dinámico de la vista. El sidebar y topbar
-  // son estructurales y se chequean en su propio test. Esto mantiene
-  // los tests focused: si HomeView regresiona, falla acá; si el sidebar
-  // regresiona, falla en su test específico.
-  const results = await new AxeBuilder({ page })
-    .include('main')
-    .withTags(A11Y_TAGS)
-    .analyze()
-
-  // Si hay violaciones, las imprimimos antes de fallar — mucho más útil
-  // que un "expected 0, got N".
-  if (results.violations.length > 0) {
-    console.log('Violaciones de accesibilidad en HomeView:')
-    for (const v of results.violations) {
-      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
-      for (const node of v.nodes.slice(0, 3)) {
-        console.log(`      → ${node.html.slice(0, 120)}`)
-      }
-    }
-  }
-  expect(results.violations).toEqual([])
-})
-
-test('a11y: EntitiesView sin violaciones', async ({ page }) => {
-  const state = emptyState()
-  state.entities.push(SAMPLE_ENTITY)
-  await skipSplash(page)
-  await mockBackend(page, state)
-  await page.goto('/')
-  await page.getByRole('button', { name: /^Entidades/ }).click()
-  await page
-    .getByRole('heading', { name: 'Entidades', level: 2 })
-    .waitFor({ timeout: 10_000 })
-  await page.waitForTimeout(400)
-
-  const results = await new AxeBuilder({ page })
-    .include('main')
-    .withTags(A11Y_TAGS)
-    .analyze()
-  if (results.violations.length > 0) {
-    console.log('Violaciones en EntitiesView:')
-    for (const v of results.violations) {
-      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
-    }
-  }
-  expect(results.violations).toEqual([])
-})
-
 test('a11y: recorte en el feed de Notas sin violaciones', async ({ page }) => {
   await skipSplash(page)
   await mockBackend(page, emptyState())
@@ -353,56 +290,6 @@ test('a11y: Settings Estado sin violaciones', async ({ page }) => {
   expect(results.violations).toEqual([])
 })
 
-test('a11y: MomentosView sin violaciones', async ({ page }) => {
-  const state = emptyState()
-  state.entities.push(SAMPLE_ENTITY)
-  await skipSplash(page)
-  await mockBackend(page, state)
-  // Deep-link `?view=momentos` (mismo gesto que e2e/momentos.spec.ts):
-  // abre la vista directo sin depender del estado del sidebar.
-  await page.goto('/?view=momentos')
-  await page
-    .getByRole('heading', { name: 'Momentos', level: 2 })
-    .waitFor({ timeout: 10_000 })
-  await page.waitForTimeout(400)
-
-  const results = await new AxeBuilder({ page })
-    .include('main')
-    .withTags(A11Y_TAGS)
-    .analyze()
-  if (results.violations.length > 0) {
-    console.log('Violaciones en MomentosView:')
-    for (const v of results.violations) {
-      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
-    }
-  }
-  expect(results.violations).toEqual([])
-})
-
-test('a11y: AtlasView sin violaciones', async ({ page }) => {
-  const state = emptyState()
-  state.entities.push(SAMPLE_ENTITY)
-  await skipSplash(page)
-  await mockBackend(page, state)
-  await page.goto('/?view=atlas')
-  await page
-    .getByRole('heading', { name: 'Atlas', level: 2 })
-    .waitFor({ timeout: 10_000 })
-  await page.waitForTimeout(400)
-
-  const results = await new AxeBuilder({ page })
-    .include('main')
-    .withTags(A11Y_TAGS)
-    .analyze()
-  if (results.violations.length > 0) {
-    console.log('Violaciones en AtlasView:')
-    for (const v of results.violations) {
-      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
-    }
-  }
-  expect(results.violations).toEqual([])
-})
-
 test('a11y: palette ⌘K abierto sin violaciones', async ({ page }) => {
   const state = emptyState()
   state.entities.push(SAMPLE_ENTITY)
@@ -460,4 +347,119 @@ test('a11y: ninguna sección de Notas se queda sin auditar', async () => {
   // enrutador: una sección nueva aparece acá sola y este test la reclama antes
   // de que llegue a producción sin revisar.
   expect(Object.keys(SECCIONES_NOTAS).sort()).toEqual([...NOTAS_SECTIONS].sort())
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Todas las vistas del mundo Trama, generadas desde la tabla, con su ratchet.
+//
+// Antes había cuatro tests copiados (Inicio, Entidades, Momentos, Atlas) y
+// siete vistas sin auditar; Cronología, además, caía en el ErrorBoundary con el
+// backend simulado y nadie lo veía. La tabla se contrasta contra `VIEW_MODES`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const VISTAS_TRAMA: Record<ViewMode, { titulo: string; señal: (page: Page) => Locator }> =
+  {
+    // El h2 del hero es la fecha de hoy, no «Inicio»: se espera al primer h2.
+    inicio: { titulo: 'Inicio', señal: (page) => page.locator('main h2').first() },
+    // El grafo no tiene encabezado de contenido: montó cuando aparece el
+    // selector de lente de su cromo. `main button` a secas no sirve: el primer
+    // botón de main es el conmutador de mundo, que en el runner de CI queda
+    // fuera de vista y nunca se da por «visible».
+    grafo: {
+      titulo: 'Grafo',
+      señal: (page) => page.getByRole('button', { name: 'por densidad' }),
+    },
+    entidades: {
+      titulo: 'Entidades',
+      señal: (page) => page.getByRole('heading', { name: 'Entidades', level: 2 }),
+    },
+    citas: {
+      titulo: 'Citas',
+      señal: (page) => page.getByRole('heading', { name: 'Citas', level: 2 }),
+    },
+    escuchas: {
+      titulo: 'Escuchas',
+      señal: (page) => page.getByRole('heading', { name: 'Escuchas', level: 2 }),
+    },
+    twitter: {
+      titulo: 'Twitter',
+      señal: (page) => page.getByRole('heading', { name: 'Twitter', level: 2 }),
+    },
+    momentos: {
+      titulo: 'Momentos',
+      señal: (page) => page.getByRole('heading', { name: 'Momentos', level: 2 }),
+    },
+    cronologia: {
+      titulo: 'Cronología',
+      señal: (page) => page.locator('main h2').first(),
+    },
+    atlas: {
+      titulo: 'Atlas',
+      señal: (page) => page.getByRole('heading', { name: 'Atlas', level: 2 }),
+    },
+    chat: {
+      titulo: 'Chat',
+      señal: (page) => page.getByRole('heading', { name: 'Hilo libre', level: 2 }),
+    },
+    sugerencias: {
+      titulo: 'Sugerencias',
+      señal: (page) => page.getByRole('heading', { name: 'Sugerencias', level: 2 }),
+    },
+  }
+
+function estadoConDatos() {
+  const state = emptyState()
+  state.entities.push(SAMPLE_ENTITY)
+  state.quotes.push(SAMPLE_QUOTE)
+  return state
+}
+
+async function auditarVista(page: Page, view: ViewMode, dónde: string) {
+  await skipSplash(page)
+  await mockBackend(page, estadoConDatos())
+  await page.goto(`/?view=${view}`)
+  await VISTAS_TRAMA[view].señal(page).first().waitFor({ timeout: 15_000 })
+  // La vista rota (ErrorBoundary) también tiene h2: hay que descartarla.
+  await expect(page.getByText('Esta vista se rompió.')).toHaveCount(0)
+  await page.waitForTimeout(400)
+  await auditar(page, dónde)
+}
+
+for (const view of VIEW_MODES) {
+  test(`a11y: Trama · ${VISTAS_TRAMA[view].titulo} sin violaciones`, async ({ page }) => {
+    await auditarVista(page, view, `Trama · ${VISTAS_TRAMA[view].titulo}`)
+  })
+}
+
+test('a11y: ninguna vista de Trama se queda sin auditar', async () => {
+  expect(Object.keys(VISTAS_TRAMA).sort()).toEqual([...VIEW_MODES].sort())
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Móvil. Todo lo anterior corría a un solo viewport de escritorio; los
+// defectos de contraste y de tamaño de objetivo táctil son otros a 390 px.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test.describe('a11y en móvil', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+
+  for (const view of VIEW_MODES) {
+    test(`a11y móvil: Trama · ${VISTAS_TRAMA[view].titulo}`, async ({ page }) => {
+      await auditarVista(page, view, `móvil · Trama · ${VISTAS_TRAMA[view].titulo}`)
+    })
+  }
+
+  for (const [section, { titulo, señal }] of Object.entries(SECCIONES_NOTAS) as [
+    NotasSection,
+    (typeof SECCIONES_NOTAS)[NotasSection],
+  ][]) {
+    test(`a11y móvil: Notas · ${titulo}`, async ({ page }) => {
+      await skipSplash(page)
+      await mockBackend(page, emptyState())
+      await page.goto(`/?world=notas&section=${section}`)
+      await señal(page).first().waitFor({ timeout: 15_000 })
+      await page.waitForTimeout(400)
+      await auditar(page, `móvil · Notas · ${titulo}`)
+    })
+  }
 })

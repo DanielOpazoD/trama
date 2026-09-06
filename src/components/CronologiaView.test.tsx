@@ -104,4 +104,18 @@ describe('<CronologiaView />', () => {
       expect(screen.getByText(/el tiempo todavía está en blanco/i)).toBeInTheDocument(),
     )
   })
+
+  it('una página sin `entradas` se trata como vacía en vez de tumbar la vista', async () => {
+    // Lo que devolvía el mock de e2e (`[]`) y lo que devolvería un backend
+    // roto: antes `page.entradas` no era iterable y la vista caía en el
+    // ErrorBoundary con «Esta vista se rompió».
+    stubFetch([] as unknown as CronologiaResponse)
+    const errores = vi.spyOn(console, 'error').mockImplementation(() => {})
+    renderWithProviders(<CronologiaView onSelectEntity={() => {}} />)
+    await waitFor(() =>
+      expect(screen.getByText(/el tiempo todavía está en blanco/i)).toBeInTheDocument(),
+    )
+    expect(errores).not.toHaveBeenCalled()
+    errores.mockRestore()
+  })
 })
