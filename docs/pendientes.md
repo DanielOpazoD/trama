@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**33 pendientes** en 20 planes. Del más reciente al más viejo.
+**35 pendientes** en 21 planes. Del más reciente al más viejo.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 
@@ -19,6 +19,13 @@ Plan: [2026-09-05-vitals-en-el-panel-de-salud.md](superpowers/plans/2026-09-05-v
 Plan: [2026-09-05-registro-de-pendientes.md](superpowers/plans/2026-09-05-registro-de-pendientes.md)
 
 - El registro no distingue urgencias: cada pendiente pesa lo mismo. Si crece, una marca en el plan («[alto]») que el script respete sería suficiente.
+
+## 2026-09-05 · React 19
+
+Plan: [2026-09-05-react-19.md](superpowers/plans/2026-09-05-react-19.md)
+
+- `StrictMode` no está activado; React 19 lo hace más útil (doble render con reutilización de memo). Activarlo es un pack propio porque puede sacar a la luz efectos no idempotentes.
+- Los budgets `jspdf.es.min` y `html2canvas.esm` en `check-bundle-size.mjs` son restos: esos chunks ya no se emiten desde #412. Borrarlos es limpieza, no urgencia.
 
 ## 2026-09-05 · Tres lunes en rojo por Prettier
 

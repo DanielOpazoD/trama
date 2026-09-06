@@ -49,7 +49,7 @@ export function NotasFeedComposer({
   draft: string
   pendingFiles: File[]
   allNoteTags: string[]
-  textareaRef: RefObject<HTMLTextAreaElement>
+  textareaRef: RefObject<HTMLTextAreaElement | null>
   dragging: boolean
   composerFocused: boolean
   composerActive: boolean

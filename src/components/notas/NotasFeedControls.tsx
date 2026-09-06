@@ -48,7 +48,7 @@ export function NotasFeedControls({
   segment: NotasFeedSegment
   search: string
   searchOpen: boolean
-  searchInputRef: RefObject<HTMLInputElement>
+  searchInputRef: RefObject<HTMLInputElement | null>
   activeTag: string | null
   tagCounts: Array<[string, number]>
   calendarOpen: boolean

@@ -30,7 +30,7 @@ export function PageCanvas({
   onStartMarquee,
   children,
 }: {
-  areaRef: RefObject<HTMLDivElement>
+  areaRef: RefObject<HTMLDivElement | null>
   layout: PageLayout | null
   bg: { url: string; w: number; h: number } | null
   zoom: number

@@ -21,7 +21,7 @@ export function PdfTextEditorScrollArea({
    * medir ya?».
    */
   opening?: boolean
-  scrollContainerRef: RefObject<HTMLDivElement>
+  scrollContainerRef: RefObject<HTMLDivElement | null>
 }) {
   return (
     <div

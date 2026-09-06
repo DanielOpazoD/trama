@@ -14,9 +14,9 @@ export function PdfTextEditorAuxiliaryControls({
   fillMode: boolean
   formSuggestionStatus: string | null
   pendingFormKind: boolean
-  signatureInputRef: RefObject<HTMLInputElement>
+  signatureInputRef: RefObject<HTMLInputElement | null>
   stampAccept: string
-  stampInputRef: RefObject<HTMLInputElement>
+  stampInputRef: RefObject<HTMLInputElement | null>
   onCancelPendingFormField: () => void
   onSignatureFile: (file: File) => void
   onStampFile: (file: File) => void
