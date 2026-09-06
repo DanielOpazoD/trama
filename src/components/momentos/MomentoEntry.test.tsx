@@ -4,6 +4,10 @@ import { setApiAuthTokenProvider } from '../../api/request'
 import { setCurrentClientUser } from '../../lib/clientIdentity'
 import type { Entity, Momento } from '../../types'
 import { MomentoEntry } from './MomentoEntry'
+import {
+  IMPRENTA_HANDOFF_EVENT,
+  takeHandedOffImprentaFiles,
+} from '../../lib/imprentaHandoff'
 
 vi.mock('./MomentoEditModal', () => ({
   MomentoEditModal: ({
@@ -568,5 +572,42 @@ describe('<MomentoEntry />', () => {
         }),
       }),
     )
+  })
+
+  it('un momento con fotos ofrece «Fotos a Imprenta» y las entrega por el puente entre mundos', async () => {
+    takeHandedOffImprentaFiles()
+    const avisado = vi.fn()
+    window.addEventListener(IMPRENTA_HANDOFF_EVENT, avisado)
+    render(
+      <MomentoEntry
+        momento={baseMomento('foto', {
+          items: [
+            { storageKey: 'u1/una.jpg' },
+            { storageKey: 'u1/clip.mp4', type: 'video' },
+          ],
+        })}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /opciones del momento/i }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /fotos a imprenta/i }))
+
+    await waitFor(() => expect(avisado).toHaveBeenCalledTimes(1))
+    window.removeEventListener(IMPRENTA_HANDOFF_EVENT, avisado)
+    // Solo la foto: el clip no es una hoja.
+    expect(takeHandedOffImprentaFiles().map((f) => f.name)).toEqual(['una.jpg'])
+  })
+
+  it('una nota sin fotos no ofrece Imprenta', () => {
+    render(
+      <MomentoEntry
+        momento={baseMomento('nota', { bodyText: 'sin fotos' })}
+        entitiesById={new Map()}
+        onDelete={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /opciones del momento/i }))
+    expect(screen.queryByRole('menuitem', { name: /fotos a imprenta/i })).toBeNull()
   })
 })

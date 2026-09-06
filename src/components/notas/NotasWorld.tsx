@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { initHistory, type History } from '../../lib/pdfStudio/model/history'
 import { emptyDoc } from '../../lib/pdfStudio/model/model'
 import type { PdfDoc } from '../../lib/pdfStudio/model/modelTypes'
@@ -10,6 +10,10 @@ import { PromptsView } from './PromptsView'
 import { TareasView } from './TareasView'
 import { useModuleVisibility } from '../../hooks/useModuleVisibility'
 import { useClampedSection } from '../../hooks/useClampedSection'
+import {
+  IMPRENTA_HANDOFF_EVENT,
+  takeHandedOffImprentaFiles,
+} from '../../lib/imprentaHandoff'
 import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useTheme } from '../../hooks/useTheme'
 import { FeedSkeleton } from './FeedSkeleton'
@@ -159,6 +163,19 @@ export function NotasWorld({
     },
     [imprentaHistory, setSection, toast],
   )
+
+  // Archivos que llegaron desde el otro mundo (Momentos) por `imprentaHandoff`:
+  // se drenan al montar y cada vez que el puente avisa mientras Notas está
+  // abierto. Entran por el mismo camino que el resto, con su toast.
+  useEffect(() => {
+    const drain = () => {
+      const files = takeHandedOffImprentaFiles()
+      if (files.length > 0) deliverFilesToImprenta({ files, failures: [] })
+    }
+    drain()
+    window.addEventListener(IMPRENTA_HANDOFF_EVENT, drain)
+    return () => window.removeEventListener(IMPRENTA_HANDOFF_EVENT, drain)
+  }, [deliverFilesToImprenta])
 
   const sendImagesToPdf = useCallback(
     async (recortes: Recorte[]) => {

@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../test-utils'
 import { NotasWorld } from './NotasWorld'
+import {
+  handOffFilesToImprenta,
+  takeHandedOffImprentaFiles,
+} from '../../lib/imprentaHandoff'
 
 const pdfStudioModule = vi.hoisted(() => ({
   loaded: vi.fn(),
@@ -173,5 +177,23 @@ describe('<NotasWorld />', () => {
     fireEvent.mouseEnter(screen.getAllByRole('button', { name: 'Imprenta' })[0]!)
 
     await waitFor(() => expect(pdfStudioModule.loaded).toHaveBeenCalled())
+  })
+
+  it('drena los archivos que Momentos dejó en el puente y abre Imprenta', async () => {
+    takeHandedOffImprentaFiles()
+    handOffFilesToImprenta([new File(['x'], 'foto.jpg', { type: 'image/jpeg' })])
+
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+
+    // Arranca en Inicio; el drenaje al montar lleva a Imprenta con los
+    // archivos. El toast lo pinta el host del shell, que aquí no está: la e2e
+    // `momentos-a-imprenta` lo afirma en el navegador junto con las hojas.
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: 'Imprenta', level: 1 }),
+      ).toBeInTheDocument(),
+    )
+    // La cola quedó vacía: un segundo montaje no reenvía lo mismo.
+    expect(takeHandedOffImprentaFiles()).toEqual([])
   })
 })

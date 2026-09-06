@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { clearUserPrefsMirror, readUserPrefsMirror } from '../../state'
 import { useCurrentClientUserId } from '../../lib/clientIdentity'
 import { startViewTransition } from '../../lib/viewTransition'
+import { IMPRENTA_HANDOFF_EVENT } from '../../lib/imprentaHandoff'
 import {
   readWorldDeepLinkFromSearch,
   resolveRecortesRedirectSearch,
@@ -72,6 +73,18 @@ export function useWorldShellController({
       /* storage deshabilitado */
     }
   }, [])
+
+  // Alguien del otro mundo (Momentos) dejó archivos para Imprenta: se abre el
+  // mundo Notas en Imprenta y `NotasWorld` drena la cola al montar.
+  useEffect(() => {
+    const onHandoff = () => {
+      preloadWorldBundle('notas')
+      setPendingNotasSection('pdf')
+      changeWorld('notas')
+    }
+    window.addEventListener(IMPRENTA_HANDOFF_EVENT, onHandoff)
+    return () => window.removeEventListener(IMPRENTA_HANDOFF_EVENT, onHandoff)
+  }, [changeWorld, preloadWorldBundle])
 
   useEffect(() => {
     if (!initialWorldFromUrl) return
