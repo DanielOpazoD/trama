@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**30 pendientes** en 19 planes. Del más reciente al más viejo.
+**32 pendientes** en 20 planes. Del más reciente al más viejo.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 
