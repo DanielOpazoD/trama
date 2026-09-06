@@ -4,15 +4,12 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**39 pendientes** en 22 planes. Del más reciente al más viejo.
+**28 pendientes** en 18 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-05 · Vite 8
 
 Plan: [2026-09-05-vite-8.md](superpowers/plans/2026-09-05-vite-8.md)
 
-- El dev server registra «[Unhandled rejection] AbortError: Transition was skipped» al navegar entre vistas en e2e. Es la View Transitions API cancelando una transición pisada por la siguiente; no rompe nada visible, pero es ruido que conviene capturar (`startViewTransition(...).finished.catch`).
-- La barra de secciones de Configuración, bajo carga, puede no estar «stable» para Playwright mientras anima el carril: si vuelve a fallar en CI, esperar a que termine la transición antes del clic.
-- `vite.config.ts` sigue importando `./scripts/vite-manual-chunks` sin extensión; el cargador nativo lo avisa. Ponerle `.ts` pide `allowImportingTsExtensions` en el tsconfig que compila la config.
 - `vitest` 5 salió; entra cuando toque, con su propio pack.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
@@ -22,31 +19,6 @@ Plan: [2026-09-05-vitals-en-el-panel-de-salud.md](superpowers/plans/2026-09-05-v
 - FCP y TTFB se guardan pero no se muestran. Son diagnósticos, no Core Web Vitals; entran cuando alguien los necesite para explicar un LCP.
 - No hay serie temporal: si el p75 empeora, la tarjeta lo dice, pero no cuándo empezó. Un sparkline diario por métrica es el paso siguiente natural.
 - La query no está en `check:query-plans` (pide Postgres local). El índice `idx_web_vitals_metric_time` la cubre, pero conviene confirmarlo con `EXPLAIN` cuando haya base a mano.
-
-## 2026-09-05 · Los pendientes en un solo lugar
-
-Plan: [2026-09-05-registro-de-pendientes.md](superpowers/plans/2026-09-05-registro-de-pendientes.md)
-
-- El registro no distingue urgencias: cada pendiente pesa lo mismo. Si crece, una marca en el plan («[alto]») que el script respete sería suficiente.
-
-## 2026-09-05 · React 19
-
-Plan: [2026-09-05-react-19.md](superpowers/plans/2026-09-05-react-19.md)
-
-- `StrictMode` no está activado; React 19 lo hace más útil (doble render con reutilización de memo). Activarlo es un pack propio porque puede sacar a la luz efectos no idempotentes.
-- Los budgets `jspdf.es.min` y `html2canvas.esm` en `check-bundle-size.mjs` son restos: esos chunks ya no se emiten desde #412. Borrarlos es limpieza, no urgencia.
-
-## 2026-09-05 · Tres lunes en rojo por Prettier
-
-Plan: [2026-09-05-prettier-3-9-y-grupo-tooling.md](superpowers/plans/2026-09-05-prettier-3-9-y-grupo-tooling.md)
-
-- ESLint 10.4 → 10.9 y typescript-eslint 8.60 → 8.68 siguen dentro de #417. El CI nunca llegó a ejecutar `lint` con esas versiones porque `format:check` cortaba antes; si traen una regla nueva, se verá en el rebase.
-
-## 2026-09-05 · Un merge queue en vez de rebasar a mano (no disponible)
-
-Plan: [2026-09-05-merge-queue.md](superpowers/plans/2026-09-05-merge-queue.md)
-
-- `pdf-visual.yml` no escucha `merge_group`. No es requerido, así que no bloquea; si algún día lo fuera, hay que añadirle el disparador.
 
 ## 2026-09-05 · Imprenta: elegir hojas sin apuntar, y un OCR que vuelve
 
@@ -60,7 +32,6 @@ Plan: [2026-09-05-imprenta-teclado-y-ocr-de-vuelta.md](superpowers/plans/2026-09
 Plan: [2026-09-05-imprenta-pdfs-guardados-servidos.md](superpowers/plans/2026-09-05-imprenta-pdfs-guardados-servidos.md)
 
 - La miniatura sigue siendo el ícono de tipo: `Thumbnail` solo pide el blob para imágenes. Renderizar la primera hoja con pdf.js en la card es posible ahora que el blob se sirve, pero pesa y conviene medirlo antes.
-- Al re-guardar, el `UPSERT` apunta la fila al key nuevo y el blob viejo queda sin fila: es el huérfano por re-guardado, distinto del de #414. Se cierra borrando el key anterior en el mismo `POST`.
 
 ## 2026-09-05 · Imprenta en un navegador de verdad: elegir hojas y volver desde Biblioteca
 
@@ -74,13 +45,11 @@ Plan: [2026-09-05-e2e-imprenta-seleccion.md](superpowers/plans/2026-09-05-e2e-im
 Plan: [2026-09-05-claves-llave-en-el-backup.md](superpowers/plans/2026-09-05-claves-llave-en-el-backup.md)
 
 - Re-cifrar las claves de un vault a otro (para fusionar dos respaldos con contraseñas distintas) no existe. Hoy el aviso es honesto: se conservan las locales y las ajenas no se abren.
-- El export sigue sin incluir `prompts` ni `secrets` en el tipo `ExportPayload` aunque el servidor los envía y el import los acepta. El tipo es más estrecho que el archivo real; no afecta a este cambio, pero conviene alinearlo.
 
 ## 2026-09-05 · Accesibilidad: el mundo Trama entero, y en móvil
 
 Plan: [2026-09-05-a11y-movil-y-mundo-trama.md](superpowers/plans/2026-09-05-a11y-movil-y-mundo-trama.md)
 
-- El salto intermitente de 829 px en el editor tras abrir la miniatura 8: o es un flaky de render de miniaturas o un defecto de anclaje. Reproducir con `--repeat-each` y decidir.
 - Las auditorías usan estado vacío o casi vacío; una vista con datos reales puede tener violaciones que aquí no aparecen. Conectar `visual-sweep` con axe sobre la demo completa es el siguiente paso.
 - `heading-order` y `scrollable-region-focusable` son reglas de `best-practice`; si aparecen más como estas al crecer el corpus, conviene un test unitario de estructura de encabezados por vista.
 

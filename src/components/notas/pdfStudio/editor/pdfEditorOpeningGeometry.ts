@@ -85,6 +85,15 @@ export type PdfEditorHeightBaseline = {
   zoom: number
   tops: number[]
   heights: number[]
+  /**
+   * La sección ANCLA: la MÁS visible en el viewport, y a qué distancia del
+   * borde superior estaba. Es lo que el usuario está mirando; mantenerla donde
+   * estaba es la definición de «no se movió», venga la inflación de donde
+   * venga. No sirve «la primera que asoma»: la hoja anterior a la abierta
+   * asoma por arriba, y si es ELLA la que crece, su top no se mueve pero
+   * empuja la abierta hacia abajo. `null` si no hay ninguna sección medible.
+   */
+  anchor: { index: number; offset: number } | null
 }
 
 /** Foto de alturas de TODAS las secciones, en coordenadas de contenido. */
@@ -103,16 +112,39 @@ export function capturePdfEditorHeightBaseline(
     tops.push(rect.top - containerRect.top + container.scrollTop)
     heights.push(rect.height)
   }
-  return { zoom, tops, heights }
+  let anchor: PdfEditorHeightBaseline['anchor'] = null
+  let bestVisible = 0
+  const viewTop = container.scrollTop
+  const viewBottom = viewTop + container.clientHeight
+  for (let i = 0; i < tops.length; i += 1) {
+    const top = tops[i] ?? 0
+    const height = heights[i] ?? 0
+    if (height <= 0) continue
+    const visible = Math.min(top + height, viewBottom) - Math.max(top, viewTop)
+    if (visible > bestVisible) {
+      bestVisible = visible
+      anchor = { index: i, offset: top - viewTop }
+    }
+  }
+  return { zoom, tops, heights, anchor }
 }
 
 /**
- * Anclaje de scroll MANUAL (el contenedor usa [overflow-anchor:none]): si una
- * sección completamente por ENCIMA del viewport cambió de alto desde la última
- * foto (render lento que llegó tarde), compensa el scrollTop por el delta para
- * que lo visible no se corra. Un cambio de zoom re-dimensiona todo a la vez:
- * en ese caso solo re-fotografía (la restauración de anclas de zoom ya se
- * encarga de reposicionar) y no toca el scroll.
+ * Anclaje de scroll MANUAL (el contenedor usa [overflow-anchor:none]): la
+ * sección ancla de la última foto (la primera que asomaba en el viewport) tiene
+ * que seguir a la misma distancia del borde superior. Si algo por encima
+ * cambió de alto —una hoja que terminó de renderizar tarde, entera o a medias
+ * fuera del viewport—, se corrige el scrollTop por la diferencia.
+ *
+ * Antes se sumaban solo las secciones COMPLETAMENTE por encima. Una sección
+ * que asomaba por arriba y se inflaba empujaba lo visible hacia abajo por todo
+ * su crecimiento sin compensación: es el único camino por el que la hoja
+ * abierta podía moverse una hoja entera tras «settled», y anclar por posición
+ * lo cierra sin depender de qué sección creció.
+ *
+ * Un cambio de zoom re-dimensiona todo a la vez: en ese caso solo
+ * re-fotografía (la restauración de anclas de zoom ya se encarga de
+ * reposicionar) y no toca el scroll.
  */
 export function compensatePdfEditorInflation(
   container: HTMLElement | null,
@@ -123,18 +155,20 @@ export function compensatePdfEditorInflation(
   if (!container || !next) return next
   if (
     !baseline ||
+    !baseline.anchor ||
     baseline.zoom !== zoom ||
     baseline.heights.length !== next.heights.length
   ) {
     return next
   }
-  let delta = 0
-  for (let i = 0; i < next.heights.length; i += 1) {
-    const wasTop = baseline.tops[i] ?? 0
-    const wasHeight = baseline.heights[i] ?? 0
-    const wasFullyAbove = wasTop + wasHeight <= container.scrollTop + 1
-    if (wasFullyAbove) delta += (next.heights[i] ?? 0) - wasHeight
+  const { index, offset } = baseline.anchor
+  const nowTop = next.tops[index]
+  if (nowTop === undefined) return next
+  const delta = nowTop - container.scrollTop - offset
+  if (Math.abs(delta) > 1) {
+    container.scrollTop += delta
+    // La foto nueva tiene que describir el scroll ya corregido.
+    return capturePdfEditorHeightBaseline(container, zoom)
   }
-  if (Math.abs(delta) > 1) container.scrollTop += delta
   return next
 }

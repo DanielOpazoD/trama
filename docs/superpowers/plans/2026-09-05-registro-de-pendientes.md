@@ -43,5 +43,5 @@ recogían, y cada evaluación la redescubría a mano con `grep`.
 
 ## Pendiente
 
-- El registro no distingue urgencias: cada pendiente pesa lo mismo. Si crece,
-  una marca en el plan («[alto]») que el script respete sería suficiente.
+- Resuelto (pack `2026-09-05-pendientes-del-dia`): un ítem que empieza por
+  «[alto]» va primero dentro de su plan y se cuenta en la cabecera.

@@ -71,7 +71,5 @@ no hay camino de recuperación, ni siquiera sabiendo la contraseña.
 - Re-cifrar las claves de un vault a otro (para fusionar dos respaldos con
   contraseñas distintas) no existe. Hoy el aviso es honesto: se conservan las
   locales y las ajenas no se abren.
-- El export sigue sin incluir `prompts` ni `secrets` en el tipo
-  `ExportPayload` aunque el servidor los envía y el import los acepta. El
-  tipo es más estrecho que el archivo real; no afecta a este cambio, pero
-  conviene alinearlo.
+- Resuelto (pack `2026-09-05-pendientes-del-dia`): `ExportPayload` declara
+  `prompts` y `secrets` con la forma que el servidor envía.

@@ -32,6 +32,7 @@ export const OUTPUT_FILE = 'docs/pendientes.md'
 const SECTION_RE = /^## Pendiente/i
 const HEADING_RE = /^#{1,6}\s/
 const BULLET_RE = /^- /
+const PRIORITY_RE = /^\[alto\]/i
 const RESOLVED_RE = /\b(resuelto|cerrado|hecho)\b/i
 
 /**
@@ -61,12 +62,21 @@ export function parsePlan(markdown, fileName) {
       items[items.length - 1] += ` ${line.trim()}`
     }
   }
+  const vivos = items.filter((item) => !RESOLVED_RE.test(item))
+  // Un pendiente marcado «[alto]» al principio va primero dentro de su plan:
+  // no todos pesan lo mismo y el registro debe decirlo sin inventar ranking.
+  const altos = vivos.filter((item) => PRIORITY_RE.test(item))
+  const resto = vivos.filter((item) => !PRIORITY_RE.test(item))
   return {
     file: fileName,
     title: title || fileName,
     date,
-    items: items.filter((item) => !RESOLVED_RE.test(item)),
+    items: [...altos, ...resto],
   }
+}
+
+export function isHighPriority(item) {
+  return PRIORITY_RE.test(item)
 }
 
 export function collectPendientes(root = ROOT) {
@@ -81,6 +91,10 @@ export function collectPendientes(root = ROOT) {
 
 export function renderPendientes(plans) {
   const total = plans.reduce((sum, plan) => sum + plan.items.length, 0)
+  const altos = plans.reduce(
+    (sum, plan) => sum + plan.items.filter((item) => isHighPriority(item)).length,
+    0,
+  )
   const out = [
     '# Pendientes declarados',
     '',
@@ -88,7 +102,7 @@ export function renderPendientes(plans) {
     'sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar',
     'uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->',
     '',
-    `**${total} pendientes** en ${plans.length} planes. Del más reciente al más viejo.`,
+    `**${total} pendientes** en ${plans.length} planes${altos > 0 ? `, ${altos} marcados «[alto]»` : ''}. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.`,
     '',
   ]
   for (const plan of plans) {

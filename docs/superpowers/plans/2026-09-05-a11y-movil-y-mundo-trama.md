@@ -70,10 +70,10 @@ Un backend roto en producción habría tumbado la vista igual.
 
 ## Pendiente
 
-- El salto intermitente de 829 px en el editor tras abrir la miniatura 8: o es
-  un flaky de render de miniaturas o un defecto de anclaje. Reproducir con
-  `--repeat-each` y decidir.
-
+- Resuelto (pack `2026-09-05-pendientes-del-dia`): el salto no reprodujo en 30
+  corridas, pero la compensación de scroll solo miraba secciones completamente
+  por encima del viewport; ahora ancla por la primera sección visible y cubre
+  también la que asoma a medias.
 - Las auditorías usan estado vacío o casi vacío; una vista con datos reales
   puede tener violaciones que aquí no aparecen. Conectar `visual-sweep` con
   axe sobre la demo completa es el siguiente paso.

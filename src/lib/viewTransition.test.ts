@@ -53,4 +53,32 @@ describe('startViewTransition', () => {
       onRejected?.(new DOMException('Transition was skipped', 'AbortError')),
     ).not.toThrow()
   })
+
+  test('también traga el AbortError de `ready` y `updateCallbackDone`', async () => {
+    // Una transición pisada rechaza las TRES promesas. Si alguna queda sin
+    // manejar, vitest lo reporta como «Unhandled Rejection» y esta prueba cae.
+    const abort = () =>
+      Promise.reject(new DOMException('Transition was skipped', 'AbortError'))
+    const transition = {
+      finished: abort(),
+      ready: abort(),
+      updateCallbackDone: abort(),
+      skipTransition: vi.fn(),
+    }
+    stubStartViewTransition(transition)
+    const sinManejar: unknown[] = []
+    const onUnhandled = (event: PromiseRejectionEvent) => {
+      sinManejar.push(event.reason)
+      event.preventDefault()
+    }
+    window.addEventListener('unhandledrejection', onUnhandled)
+    try {
+      startViewTransition(() => {})
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    } finally {
+      window.removeEventListener('unhandledrejection', onUnhandled)
+    }
+    expect(sinManejar).toEqual([])
+  })
 })

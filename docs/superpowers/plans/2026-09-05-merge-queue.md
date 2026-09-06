@@ -40,8 +40,8 @@ cinco PR de Dependabot, fueron cinco ciclos seguidos.
 
 ## Pendiente
 
-- `pdf-visual.yml` no escucha `merge_group`. No es requerido, así que no
-  bloquea; si algún día lo fuera, hay que añadirle el disparador.
+- Resuelto (pack `2026-09-05-pendientes-del-dia`): `pdf-visual.yml` escucha
+  `merge_group`.
 
 ## Resultado (mismo día)
 
