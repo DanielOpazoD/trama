@@ -61,6 +61,40 @@ export type ExportVaultConfig = {
   requiresPhysicalKey?: boolean
 }
 
+export type ExportPrompt = {
+  id: string
+  title: string
+  content: string
+  collection?: string | null
+  tags: string[]
+  variables: string[]
+  favorite: boolean
+  useCount: number
+  lastUsedAt?: string | null
+  origin?: Origin
+  createdAt: string
+  updatedAt: string
+}
+
+/** Sobres cifrados en el cliente: sin la configuración del vault (`vault`) no se abren. */
+export type ExportSecret = {
+  id: string
+  label: string
+  encryptedSecret: string
+  kind: string
+  encryptedService?: string | null
+  encryptedUsername?: string | null
+  encryptedNotes?: string | null
+  favorite: boolean
+  critical: boolean
+  expiresAt?: string | null
+  lastRotatedAt?: string | null
+  copiedAt?: string | null
+  origin?: Origin
+  createdAt: string
+  updatedAt: string
+}
+
 export type ExportPayload = {
   version: 1 | 2
   scope?: ExportScope
@@ -71,6 +105,8 @@ export type ExportPayload = {
   momentos?: Momento[]
   notes?: ExportNote[]
   tasks?: ExportTask[]
+  prompts?: ExportPrompt[]
+  secrets?: ExportSecret[]
   blobReferences?: string[]
   vault?: ExportVaultConfig
 }

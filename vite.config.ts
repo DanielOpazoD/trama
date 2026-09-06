@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 import pkg from './package.json' with { type: 'json' }
-import { advancedVendorChunks } from './scripts/vite-manual-chunks'
+import { advancedVendorChunks } from './scripts/vite-manual-chunks.ts'
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url))
 const projectPathNeedsRelaxedFs = projectRoot.includes(':')

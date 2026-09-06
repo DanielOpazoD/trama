@@ -55,6 +55,5 @@ El endpoint queda cubierto por sus tests y el cliente por los suyos.
 - La miniatura sigue siendo el ícono de tipo: `Thumbnail` solo pide el blob
   para imágenes. Renderizar la primera hoja con pdf.js en la card es posible
   ahora que el blob se sirve, pero pesa y conviene medirlo antes.
-- Al re-guardar, el `UPSERT` apunta la fila al key nuevo y el blob viejo queda
-  sin fila: es el huérfano por re-guardado, distinto del de #414. Se cierra
-  borrando el key anterior en el mismo `POST`.
+- Resuelto (pack `2026-09-05-pendientes-del-dia`): el `POST` lee el key vivo
+  antes del `UPSERT` y borra el blob anterior después, con su manifest.

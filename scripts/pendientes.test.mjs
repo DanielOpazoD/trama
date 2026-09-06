@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { collectPendientes, parsePlan, renderPendientes } from './pendientes.mjs'
+import {
+  collectPendientes,
+  isHighPriority,
+  parsePlan,
+  renderPendientes,
+} from './pendientes.mjs'
 
 const PLAN = `# El PDF que se subía y no se podía borrar
 
@@ -62,5 +67,19 @@ describe('collectPendientes (repo real)', () => {
     const dates = plans.map((plan) => plan.date)
     expect(dates).toEqual([...dates].sort().reverse())
     expect(plans.every((plan) => plan.items.length > 0)).toBe(true)
+  })
+})
+
+describe('prioridad «[alto]»', () => {
+  it('los ítems marcados van primero dentro de su plan y se cuentan en la cabecera', () => {
+    const plan = parsePlan(
+      '# T\n\n## Pendiente\n\n- normal uno\n- [alto] urgente\n- normal dos\n',
+      '2026-09-06-x.md',
+    )
+    expect(plan.items).toEqual(['[alto] urgente', 'normal uno', 'normal dos'])
+    expect(isHighPriority(plan.items[0])).toBe(true)
+    expect(isHighPriority(plan.items[1])).toBe(false)
+    const out = renderPendientes([plan])
+    expect(out).toContain('**3 pendientes** en 1 planes, 1 marcados «[alto]»')
   })
 })

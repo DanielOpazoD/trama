@@ -75,6 +75,25 @@ describe('demo — seed + lecturas', () => {
     })
   })
 
+  it('GET /api/x/status cumple la forma de XStatus conectado', async () => {
+    // Al panel de X (Twitter) le faltaba `counts` y reventaba la app entera en
+    // demo. Un test de unidad del panel no lo veía: sus fixtures traían la
+    // forma correcta. Esto fija que la demo entregue lo mismo que producción.
+    const status = await demoRequest<{
+      connected: boolean
+      needsReconnect: boolean
+      username: string | null
+      xUserId: string | null
+      lastSyncedAt: string | null
+      counts: { totalBookmarks: number }
+    }>('/api/x/status')
+    expect(status.connected).toBe(true)
+    expect(status.needsReconnect).toBe(false)
+    expect(typeof status.username).toBe('string')
+    expect(typeof status.xUserId).toBe('string')
+    expect(status.counts.totalBookmarks).toBeGreaterThan(0)
+  })
+
   it('GET /api/health devuelve counts coherentes con el seed', async () => {
     const health = await demoRequest<{ counts: Record<string, number> }>('/api/health')
     expect(health.counts.entities).toBe(6)

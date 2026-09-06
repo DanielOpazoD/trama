@@ -139,6 +139,45 @@ describe('compensatePdfEditorInflation', () => {
     expect(container.scrollTop).toBe(2400)
   })
 
+  it('compensa también cuando la sección que asoma por ARRIBA es la que se infla', () => {
+    // Mirando la página 4 con la 3 asomando por arriba (scrollTop cae dentro
+    // de la 3). Antes solo contaban las secciones completamente por encima:
+    // si la 3 crecía, empujaba la 4 hacia abajo por todo su crecimiento y la
+    // hoja abierta se corría del viewport tras «settled».
+    const heights = [700, 700, 700, 700]
+    const container = makeColumn(heights, [true, true, true, true])
+    // Viewport de 400px en 1800–2200: la sección 2 (1400–2100) ocupa 300px y
+    // la 3 (2100–2800) asoma 100px por abajo. El ancla es la 2.
+    container.scrollTop = 1800
+    const baseline = capturePdfEditorHeightBaseline(container, 1)
+    expect(baseline?.anchor).toEqual({ index: 2, offset: -400 })
+    // Ahora el caso real: viewport en 2000–2400, la 3 (2100–2800) es la más
+    // visible (300px) y la 2 asoma 100px por arriba. La 2 termina de
+    // renderizar y crece 300: la 3 se iría a 2400 y saldría del viewport.
+    container.scrollTop = 2000
+    const mirandoLa3 = capturePdfEditorHeightBaseline(container, 1)
+    expect(mirandoLa3?.anchor).toEqual({ index: 3, offset: 100 })
+    heights[2] = 1000
+    compensatePdfEditorInflation(container, mirandoLa3, 1)
+    // La 3 sigue a 100px del borde superior: el scroll absorbió el crecimiento.
+    expect(container.scrollTop).toBe(2300)
+    // …y una de más arriba que crezca después se suma igual.
+    const again = capturePdfEditorHeightBaseline(container, 1)
+    heights[0] = 900
+    compensatePdfEditorInflation(container, again, 1)
+    expect(container.scrollTop).toBe(2500)
+  })
+
+  it('la foto devuelta describe el scroll ya corregido', () => {
+    const heights = [700, 700, 700, 700]
+    const container = makeColumn(heights, [true, true, true, true])
+    container.scrollTop = 2100
+    const baseline = capturePdfEditorHeightBaseline(container, 1)
+    heights[0] = 1000
+    const next = compensatePdfEditorInflation(container, baseline, 1)
+    expect(next?.anchor).toEqual({ index: 3, offset: 0 })
+  })
+
   it('devuelve la foto nueva como nueva línea base', () => {
     const heights = [700, 700]
     const container = makeColumn(heights, [true, true])

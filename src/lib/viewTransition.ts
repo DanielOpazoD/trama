@@ -47,10 +47,17 @@ export function startViewTransition(callback: () => void): void {
     // batchearía y la transición no encontraría el nuevo layout.
     flushSync(callback)
   })
-  transition.finished.catch((error: unknown) => {
+  // Una transición pisada por la siguiente (o saltada) rechaza SUS TRES
+  // promesas con AbortError («Transition was skipped»). Capturar solo
+  // `finished` dejaba `ready` y `updateCallbackDone` como rechazos sin
+  // manejar: el dev server los registraba en cada navegación de la e2e.
+  const swallowAbort = (error: unknown) => {
     if (error instanceof Error && error.name === 'AbortError') return
     throw error
-  })
+  }
+  transition.finished.catch(swallowAbort)
+  transition.ready.catch(swallowAbort)
+  transition.updateCallbackDone.catch(swallowAbort)
 
   if (reduceMotion) {
     transition.skipTransition()

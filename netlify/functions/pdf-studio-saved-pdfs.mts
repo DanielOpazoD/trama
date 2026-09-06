@@ -101,6 +101,19 @@ async function handlePost(req: Request, requestId: string) {
 
   const buf = await file.arrayBuffer()
   const storageKey = `${userId}/${randomKey()}.pdf`
+  // Cada guardado sube a un key nuevo y el UPSERT de abajo apunta la fila al
+  // nuevo: sin esto, el blob anterior quedaba sin fila —el huérfano por
+  // re-guardado, distinto del de #414— y nadie podía volver a pedirlo ni
+  // borrarlo. Se lee el key vivo antes de pisarlo.
+  const previous = await sqlTyped<{ storage_key: string }>(sql`
+    SELECT storage_key
+    FROM pdf_studio_saved_pdfs
+    WHERE user_id = ${userId}
+      AND saved_doc_id = ${savedDocId}
+      AND deleted_at IS NULL
+    LIMIT 1
+  `)
+  const previousKey = previous[0]?.storage_key ?? null
   await createNetlifyBlobStorageAdapter(STORE).put(storageKey, buf, {
     mime: 'application/pdf',
     size: String(buf.byteLength),
@@ -136,6 +149,17 @@ async function handlePost(req: Request, requestId: string) {
     byteSize: buf.byteLength,
     checksum: checksumSha256(buf),
   })
+  if (previousKey && previousKey !== storageKey) {
+    await createNetlifyBlobStorageAdapter(STORE)
+      .delete(previousKey)
+      .catch(() => {})
+    await softDeleteStorageAsset(sql, {
+      userId,
+      domain: 'pdf-studio-saved-pdfs',
+      provider: 'netlify-blobs',
+      storageKey: previousKey,
+    })
+  }
 
   return Response.json(toClient(rows[0]!), { status: 201 })
 }

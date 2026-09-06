@@ -1100,7 +1100,18 @@ export function routeDemoRequest(
         }
         return { items: live(store.x_bookmarks) }
       }
-      return { connected: true, lastSyncedAt: '2026-07-28T09:12:00.000Z' }
+      // La forma COMPLETA de `XStatus`: al panel de Configuración le faltaba
+      // `counts` y reventaba la app entera en demo («La trama se rompió»). Se
+      // vio intermitente en e2e porque la query solo alcanzaba a resolver si
+      // el clic siguiente tardaba; bajo carga, siempre.
+      return {
+        connected: true,
+        needsReconnect: false,
+        username: 'trama_demo',
+        xUserId: 'demo-x-user',
+        lastSyncedAt: '2026-07-28T09:12:00.000Z',
+        counts: { totalBookmarks: live(store.x_bookmarks).length },
+      }
     case 'export':
       return {
         entities: live(store.entities),

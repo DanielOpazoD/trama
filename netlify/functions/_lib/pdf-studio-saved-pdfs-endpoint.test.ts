@@ -63,6 +63,7 @@ describe('pdf-studio saved PDFs endpoint', () => {
   it('sube un PDF namespaced por usuario y persiste metadata con upsert', async () => {
     mockSqlResponses.push(
       [], // ensureUserRow
+      [], // sin guardado previo para este savedDocId
       [
         {
           id: 'remote-1',
@@ -132,6 +133,54 @@ describe('pdf-studio saved PDFs endpoint', () => {
         3,
       ]),
     )
+  })
+
+  it('al re-guardar, borra el blob anterior en vez de dejarlo huérfano', async () => {
+    mockSqlResponses.push(
+      [], // ensureUserRow
+      [{ storage_key: 'legacy-single-user/viejo.pdf' }], // guardado previo vivo
+      [
+        {
+          id: 'remote-1',
+          saved_doc_id: 'local-1',
+          name: 'Mi receta',
+          kind: 'creation',
+          mime_type: 'application/pdf',
+          byte_size: 3,
+          storage_key: 'legacy-single-user/nuevo.pdf',
+          created_at: '2026-06-11T00:00:00.000Z',
+          updated_at: '2026-06-12T00:00:00.000Z',
+        },
+      ],
+    )
+    const form = new FormData()
+    form.set('savedDocId', 'local-1')
+    form.set('name', 'Mi receta')
+    form.set('kind', 'creation')
+    form.set('file', new File(['pdf'], 'mi-receta.pdf', { type: 'application/pdf' }))
+
+    const res = await handler(
+      new Request('http://localhost/api/pdf-studio-saved-pdfs', {
+        method: 'POST',
+        body: form,
+      }),
+      mockContext(),
+    )
+
+    expect(res.status).toBe(201)
+    // El nuevo se sube; el viejo se borra DESPUÉS del upsert, nunca antes:
+    // si el upsert fallara, el documento seguiría teniendo su PDF.
+    expect(blobMocks.set).toHaveBeenCalledTimes(1)
+    expect(blobMocks.delete).toHaveBeenCalledWith('legacy-single-user/viejo.pdf')
+    const setOrder = blobMocks.set.mock.invocationCallOrder[0]!
+    const deleteOrder = blobMocks.delete.mock.invocationCallOrder[0]!
+    expect(deleteOrder).toBeGreaterThan(setOrder)
+    const manifestSoftDelete = mockSqlState.calls.find(
+      (call) =>
+        /UPDATE storage_assets/i.test(call.template) &&
+        call.values.includes('legacy-single-user/viejo.pdf'),
+    )
+    expect(manifestSoftDelete).toBeDefined()
   })
 
   it('borra con soft delete scoping por usuario', async () => {

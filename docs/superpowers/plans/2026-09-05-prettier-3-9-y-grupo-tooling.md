@@ -44,6 +44,7 @@ actualizaciones que lo cierran llegan a main.
 
 ## Pendiente
 
-- ESLint 10.4 → 10.9 y typescript-eslint 8.60 → 8.68 siguen dentro de #417.
+- Resuelto en #421: ESLint 10.9 y typescript-eslint 8.68 entraron con el grupo
+  regenerado y `lint` pasó. (Antes: seguían dentro de #417.)
   El CI nunca llegó a ejecutar `lint` con esas versiones porque `format:check`
   cortaba antes; si traen una regla nueva, se verá en el rebase.

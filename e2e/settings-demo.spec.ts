@@ -102,6 +102,13 @@ test('ninguna sección de Configuración se cae en modo prueba', async ({ page }
       'aria-current',
       'page',
     )
+    // Cada panel pide sus datos al montar; si se salta a la siguiente sección
+    // antes de que resuelvan, un crash al pintarlos pasa desapercibido. Así se
+    // escondió meses que X (Twitter) tumbaba la app en demo: solo se veía
+    // cuando el clic siguiente tardaba. Se espera a que el panel deje de
+    // cargar y un respiro para el render de los datos.
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
+    await page.waitForTimeout(300)
     await noSeCayo(page, seccion)
   }
 })

@@ -12,6 +12,10 @@ name: pdf-visual
 #     mueve un píxel (un token de Tailwind, un hook compartido, el propio
 #     Chromium), así que la corrida semanal sigue cubriendo el resto.
 on:
+  # No es check requerido, pero si el repo se muda a una organización y entra
+  # al merge queue, conviene que ya escuche el evento.
+  merge_group:
+    branches: [main]
   pull_request:
     paths:
       - 'src/components/notas/pdfStudio/**'
