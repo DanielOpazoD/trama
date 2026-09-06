@@ -4,13 +4,12 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**33 pendientes** en 21 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**33 pendientes** en 22 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-06 · Fotos de Momentos a Imprenta: el puente entre mundos
 
 Plan: [2026-09-06-momentos-a-imprenta.md](superpowers/plans/2026-09-06-momentos-a-imprenta.md)
 
-- En el Álbum de Momentos (la vista por defecto en la demo) la acción no está: vive en la Línea, por momento. Añadirla a «Opciones de foto» del álbum es el paso siguiente, a nivel de foto en vez de momento.
 - En el arnés de unidad, el mock de `PdfStudioView` no intercepta el import perezoso de `NotasWorld` (se ve el estudio real); el test del drenaje afirma la sección y la cola, y la e2e afirma el resto. Conviene entender por qué.
 
 ## 2026-09-06 · ModalShell, PR B: adopción y trinquete
@@ -19,6 +18,12 @@ Plan: [2026-09-06-modal-shell-pr-b.md](superpowers/plans/2026-09-06-modal-shell-
 
 - Migrar los cuatro PENDIENTES del gate a `ModalShell`: `PromoteModal`, `LibroModal`, `LaminaModal`, `BibliotecaLinkPicker`.
 - `ModalShell` no expone `aria-labelledby`; `ConfirmDestroy` pasa el título como `aria-label`, que para un `alertdialog` de una línea es equivalente.
+
+## 2026-09-06 · Fotos a Imprenta también desde el Álbum
+
+Plan: [2026-09-06-album-a-imprenta.md](superpowers/plans/2026-09-06-album-a-imprenta.md)
+
+- Nada nuevo. El toast de «enviadas» sigue viviendo en NotasWorld (ver el plan de `2026-09-06-momentos-a-imprenta`).
 
 ## 2026-09-05 · vitest 5
 

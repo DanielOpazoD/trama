@@ -18,13 +18,7 @@ import {
 } from './AuthenticatedMedia'
 import { VideoPlayBadge } from './VideoPlayBadge'
 import { MomentoEditModal } from './MomentoEditModal'
-import { requestBlob } from '../../api/request'
-import { useToast } from '../../state'
-import { handOffFilesToImprenta } from '../../lib/imprentaHandoff'
-import {
-  momentoHasPhotosForImprenta,
-  momentoPhotosToPdfFiles,
-} from './momentoPhotosToPdfFiles'
+import { useSendMomentoToImprenta } from './useSendMomentoToImprenta'
 import { PhotoLightbox } from './PhotoLightbox'
 import { AudioNote } from './AudioNote'
 import { MomentoOwnerMark } from './MomentoOwnerMark'
@@ -64,27 +58,7 @@ function MomentoEntryInternal({
   const linkedEntities = momento.entityIds
     .map((id) => entitiesById.get(id))
     .filter((e): e is Entity => Boolean(e))
-  const toast = useToast()
-  const canSendToImprenta = momentoHasPhotosForImprenta(momento)
-  // Momentos vive en el otro mundo: las fotos viajan por `imprentaHandoff` y
-  // el shell cambia a Notas → Imprenta. El toast de «enviadas» lo da
-  // NotasWorld, que sabe si había un documento en curso; aquí solo el fallo.
-  async function sendPhotosToImprenta() {
-    const { files, failures } = await momentoPhotosToPdfFiles(momento, {
-      fetchBlob: requestBlob,
-    })
-    if (files.length === 0) {
-      toast.show({
-        message:
-          failures.length > 0
-            ? 'No se pudo enviar ninguna foto a Imprenta'
-            : 'Este momento no tiene fotos para Imprenta',
-        tone: 'error',
-      })
-      return
-    }
-    handOffFilesToImprenta(files)
-  }
+  const imprenta = useSendMomentoToImprenta(momento)
   // Estado del modal de edición. Aplica a los 3 kinds (nota, recorte,
   // foto) — el modal despacha al sub-renderer correcto según kind.
   const [editOpen, setEditOpen] = useState(false)
@@ -167,11 +141,11 @@ function MomentoEntryInternal({
                     Editar
                   </OverflowMenuItem>
                 )}
-                {canSendToImprenta && (
+                {imprenta.canSend && (
                   <OverflowMenuItem
                     onClick={() => {
                       close()
-                      void sendPhotosToImprenta()
+                      void imprenta.send()
                     }}
                   >
                     <PrinterIcon size={12} />

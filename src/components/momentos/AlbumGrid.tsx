@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Entity, Momento } from '../../types'
 import { EmptyMessage } from '../EmptyMessage'
-import { PencilIcon, TrashIcon } from '../Icons'
+import { PencilIcon, PrinterIcon, TrashIcon } from '../Icons'
 import { AuthenticatedMomentoImage, MomentoVideoThumb } from './AuthenticatedMedia'
 import {
   formatMonthLabel,
@@ -14,6 +14,7 @@ import { MomentoEditModal } from './MomentoEditModal'
 import { MomentoFeedback } from './MomentoFeedback'
 import { PhotoLightbox } from './PhotoLightbox'
 import { VideoPlayBadge } from './VideoPlayBadge'
+import { useSendMomentoToImprenta } from './useSendMomentoToImprenta'
 
 /**
  * Vista alternativa de Momentos: grid de fotos en cronología año → mes.
@@ -195,6 +196,7 @@ function AlbumTile({
   const [actionsOpen, setActionsOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const imprenta = useSendMomentoToImprenta(momento)
   if (!cover) return null
   const d = new Date(momento.capturedAt)
   const dateLabel = !Number.isNaN(d.getTime())
@@ -291,7 +293,7 @@ function AlbumTile({
           {linkedEntities.map((e) => e.name).join(' · ')}
         </p>
       )}
-      {(canEdit || canDelete) && (
+      {(canEdit || canDelete || imprenta.canSend) && (
         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
           <button
             type="button"
@@ -322,6 +324,20 @@ function AlbumTile({
                 >
                   <PencilIcon size={12} />
                   Editar
+                </button>
+              )}
+              {imprenta.canSend && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setActionsOpen(false)
+                    void imprenta.send()
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-ink-600 hover:bg-ink-100/60 hover:text-ink-800"
+                >
+                  <PrinterIcon size={12} />
+                  Fotos a Imprenta
                 </button>
               )}
               {canDelete && (
