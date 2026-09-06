@@ -487,7 +487,10 @@ test.describe('Imprenta · editor PDF', () => {
     await expect(page.getByRole('dialog', { name: 'Editar página 8' })).toBeVisible()
     const scrollArea = page.locator('[data-pdf-editor-scroll]')
     await expect(scrollArea).toHaveAttribute('data-pdf-editor-positioning', 'settled')
-    expect(await centeredEditorPageNumber(page)).toBe(8)
+    // «settled» es el estado del posicionador, no del layout: una miniatura
+    // que termina de renderizar justo después puede dejar centrada la 7 un
+    // instante (falló así en CI). Se afirma el estado al que converge.
+    await expect.poll(() => centeredEditorPageNumber(page)).toBe(8)
     // La invariante es VISUAL: la hoja 8 no se mueve del viewport aunque el
     // scrollTop interno se compense (anclaje) cuando una hoja de arriba
     // re-renderiza más alta después de liberar.

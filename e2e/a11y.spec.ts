@@ -361,8 +361,14 @@ const VISTAS_TRAMA: Record<ViewMode, { titulo: string; señal: (page: Page) => L
   {
     // El h2 del hero es la fecha de hoy, no «Inicio»: se espera al primer h2.
     inicio: { titulo: 'Inicio', señal: (page) => page.locator('main h2').first() },
-    // El grafo no tiene encabezado de contenido: montó cuando aparece su cromo.
-    grafo: { titulo: 'Grafo', señal: (page) => page.locator('main button').first() },
+    // El grafo no tiene encabezado de contenido: montó cuando aparece el
+    // selector de lente de su cromo. `main button` a secas no sirve: el primer
+    // botón de main es el conmutador de mundo, que en el runner de CI queda
+    // fuera de vista y nunca se da por «visible».
+    grafo: {
+      titulo: 'Grafo',
+      señal: (page) => page.getByRole('button', { name: 'por densidad' }),
+    },
     entidades: {
       titulo: 'Entidades',
       señal: (page) => page.getByRole('heading', { name: 'Entidades', level: 2 }),

@@ -55,7 +55,24 @@ Un backend roto en producción habría tumbado la vista igual.
   antes de tocarlos y pasa después.
 - `typecheck`, `lint`, `format:check` y los gates del job `lint` en verde.
 
+## Lo que dijo el CI
+
+- **Grafo**: la señal `main button` pasaba en local y no en el runner. El
+  primer botón de `main` es el conmutador de mundo, que en CI queda fuera de
+  vista y nunca se da por visible. La señal pasa a ser el selector de lente
+  del grafo («por densidad»), que solo existe con el grafo montado.
+- **Un flaky ajeno**: `pdf-studio-editor` («abre exactamente la miniatura 8»)
+  falló en CI con la hoja 7 centrada. `settled` es el estado del posicionador,
+  no del layout; se afirma con `expect.poll` el estado al que converge. En
+  local, 1 de 3 repeticiones falla en otra aserción del mismo test (la hoja
+  salta 829 px tras 500 ms): eso no se toca aquí porque puede ser un defecto
+  real de anclaje, y queda apuntado.
+
 ## Pendiente
+
+- El salto intermitente de 829 px en el editor tras abrir la miniatura 8: o es
+  un flaky de render de miniaturas o un defecto de anclaje. Reproducir con
+  `--repeat-each` y decidir.
 
 - Las auditorías usan estado vacío o casi vacío; una vista con datos reales
   puede tener violaciones que aquí no aparecen. Conectar `visual-sweep` con
