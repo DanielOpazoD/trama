@@ -103,3 +103,17 @@ export function evaluateDuplicateBudgets(duplicates, duplicateBudgets = {}) {
   }
   return failures
 }
+
+/**
+ * Los assets JS que el navegador baja ANTES de pintar: el script de entrada y
+ * todo lo que `index.html` precarga con `modulepreload`. Es la definición
+ * operativa de «carga inicial», y es la que sobrevive a cualquier reparto de
+ * chunks del bundler: con Vite 8 (rolldown) el mismo código pasó de 3 a 20
+ * chunks iniciales sin cambiar de peso, y un presupuesto por chunk no lo veía.
+ */
+export function extractInitialAssets(indexHtml) {
+  const out = new Set()
+  const re = /(?:src|href)="\/?(assets\/[^"]+\.js)"/g
+  for (const match of indexHtml.matchAll(re)) out.add(match[1].replace(/^assets\//, ''))
+  return Array.from(out)
+}

@@ -1,4 +1,12 @@
 export function manualVendorChunks(id: string) {
+  // Módulos virtuales de Vite (`\0vite/preload-helper`, etc.). Con rolldown
+  // (Vite 8) el helper `__vitePreload` es compartido por TODOS los imports
+  // dinámicos y, si no se le da chunk propio, acaba dentro del primer chunk
+  // manual que lo toca —fue `vendor-pdfjs`— y cada vista arrastra pdf.js a la
+  // carga inicial. Medido: `check:pdf-lazy-entrypoints` en rojo sin esto.
+  if (id.includes('\0vite/') || id.includes('vite/preload-helper')) {
+    return 'vite-runtime'
+  }
   if (!id.includes('node_modules')) return undefined
   if (id.includes('react-dom') || id.match(/[\\/]react[\\/]/)) {
     return 'vendor-react'
@@ -39,4 +47,41 @@ export function manualVendorChunks(id: string) {
     return 'vendor-xlsx'
   }
   return undefined
+}
+
+/** Nombres de chunk que `manualVendorChunks` puede devolver, en orden de prioridad. */
+export const VENDOR_CHUNK_NAMES = [
+  'vite-runtime',
+  'vendor-react',
+  'vendor-query',
+  'vendor-graph',
+  'vendor-pdf-lib',
+  'vendor-pdfjs',
+  'vendor-ocr',
+  'vendor-mammoth',
+  'vendor-xlsx',
+] as const
+
+/**
+ * La misma tabla, en la forma que entiende rolldown (Vite 8): `advancedChunks`
+ * con un grupo por nombre. La capa de compatibilidad de `manualChunks` no
+ * respetaba la asignación de los módulos virtuales de Vite y el helper
+ * `__vitePreload` acababa dentro de `vendor-pdfjs`, arrastrando pdf.js a la
+ * carga inicial. Con grupos explícitos y prioridad, cada módulo cae donde la
+ * tabla dice.
+ */
+export function advancedVendorChunks() {
+  return {
+    // Rollup asignaba por id y nada más. Rolldown, por defecto, arrastra al
+    // grupo también las dependencias de cada módulo capturado
+    // (`includeDependenciesRecursively: true`): así `@clerk/react` se llevaba
+    // `@tanstack/query-core` a `vendor-react` (+12 KB) en vez de dejarlo en
+    // `vendor-query`. Apagado, cada módulo cae donde su propio id dice.
+    includeDependenciesRecursively: false,
+    groups: VENDOR_CHUNK_NAMES.map((name, index) => ({
+      name,
+      test: (id: string) => manualVendorChunks(id) === name,
+      priority: VENDOR_CHUNK_NAMES.length - index,
+    })),
+  }
 }

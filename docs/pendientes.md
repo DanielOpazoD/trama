@@ -4,7 +4,16 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**35 pendientes** en 21 planes. Del más reciente al más viejo.
+**39 pendientes** en 22 planes. Del más reciente al más viejo.
+
+## 2026-09-05 · Vite 8
+
+Plan: [2026-09-05-vite-8.md](superpowers/plans/2026-09-05-vite-8.md)
+
+- El dev server registra «[Unhandled rejection] AbortError: Transition was skipped» al navegar entre vistas en e2e. Es la View Transitions API cancelando una transición pisada por la siguiente; no rompe nada visible, pero es ruido que conviene capturar (`startViewTransition(...).finished.catch`).
+- La barra de secciones de Configuración, bajo carga, puede no estar «stable» para Playwright mientras anima el carril: si vuelve a fallar en CI, esperar a que termine la transición antes del clic.
+- `vite.config.ts` sigue importando `./scripts/vite-manual-chunks` sin extensión; el cargador nativo lo avisa. Ponerle `.ts` pide `allowImportingTsExtensions` en el tsconfig que compila la config.
+- `vitest` 5 salió; entra cuando toque, con su propio pack.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 

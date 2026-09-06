@@ -22,6 +22,7 @@ import {
   classifyBundleEntry,
   describeDuplicateBudget,
   evaluateDuplicateBudgets,
+  extractInitialAssets,
   summarizeBundleEntries,
 } from './bundle-budget.mjs'
 import { PDF_AGGREGATE_BUDGETS } from './pdf-bundle-families.mjs'
@@ -36,6 +37,14 @@ const BUDGETS = {
   // migración, no una fuga: nada más entró en este chunk.
   'vendor-react': 85,
   'vendor-query': 25,
+  // Vite 8 (rolldown) parte el código compartido de la app en chunks propios
+  // donde Rollup lo dejaba dentro de `index`: `request` (cliente HTTP + modo
+  // prueba), `state` (stores) y `lib` (helpers compartidos entre vistas lazy).
+  // Los bytes son los mismos; el presupuesto que de verdad vigila la carga
+  // inicial es INITIAL_PAYLOAD_BUDGET_KB, más abajo.
+  request: 20,
+  state: 15,
+  lib: 40,
   'vendor-graph': 50,
   browser: 15,
   // Imprenta/PDF: chunks lazy pesados. No impactan el inicio, pero sí pueden
@@ -45,8 +54,6 @@ const BUDGETS = {
   PdfTextEditor: 50,
   'pdf.worker.min': 380,
   'vendor-pdfjs': 140,
-  'jspdf.es.min': 135,
-  'html2canvas.esm': 55,
   'vendor-pdf-lib': 575,
   'vendor-ocr': 55,
   // Visor de Office de la Biblioteca: chunks lazy de mammoth (.docx → HTML) y
@@ -87,6 +94,9 @@ const DUPLICATE_BUDGETS = PDF_DUPLICATE_VENDOR_BUDGETS
 
 const DIST = 'dist/assets'
 const MAX_UNBUDGETED_KB = 10
+// Suma gzip del script de entrada + todo lo que index.html precarga. Medido:
+// 193 KB con Vite 7 (3 chunks) y 197 KB con Vite 8 (20 chunks).
+const INITIAL_PAYLOAD_BUDGET_KB = 210
 const reportOnly = process.argv.includes('--report')
 
 let stat
@@ -155,6 +165,28 @@ for (const duplicate of duplicateFailures) {
   })
 }
 
+// Carga inicial: lo que baja antes de pintar, independiente del reparto en chunks.
+let initialPayload = null
+try {
+  const initialAssets = extractInitialAssets(readFileSync('dist/index.html', 'utf8'))
+  const gzKb = initialAssets.reduce(
+    (sum, file) => sum + gzipSync(readFileSync(join(DIST, file))).length / 1024,
+    0,
+  )
+  initialPayload = { count: initialAssets.length, gzKb: Math.round(gzKb) }
+  if (initialPayload.gzKb > INITIAL_PAYLOAD_BUDGET_KB) {
+    failures.push({
+      file: 'carga inicial (index.html)',
+      gzKb: initialPayload.gzKb,
+      budget: INITIAL_PAYLOAD_BUDGET_KB,
+      status: 'over-budget',
+    })
+  }
+} catch {
+  console.error('No se pudo leer dist/index.html para medir la carga inicial.')
+  process.exit(1)
+}
+
 // Tabla resumen.
 console.log('\nBundle size report (gzip):')
 console.log('─'.repeat(50))
@@ -174,6 +206,13 @@ for (const f of failures) {
   )
 }
 console.log('─'.repeat(50))
+
+if (initialPayload) {
+  const flag = initialPayload.gzKb > INITIAL_PAYLOAD_BUDGET_KB ? ' ❌' : ''
+  console.log(
+    `\nCarga inicial (index.html): ${initialPayload.count} chunks, ${initialPayload.gzKb} KB gzip (budget ${INITIAL_PAYLOAD_BUDGET_KB} KB)${flag}`,
+  )
+}
 
 console.log('\nFamilias principales:')
 for (const family of summary.families) {
