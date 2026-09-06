@@ -4,7 +4,14 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**29 pendientes** en 19 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**31 pendientes** en 20 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+
+## 2026-09-06 · Fotos de Momentos a Imprenta: el puente entre mundos
+
+Plan: [2026-09-06-momentos-a-imprenta.md](superpowers/plans/2026-09-06-momentos-a-imprenta.md)
+
+- En el Álbum de Momentos (la vista por defecto en la demo) la acción no está: vive en la Línea, por momento. Añadirla a «Opciones de foto» del álbum es el paso siguiente, a nivel de foto en vez de momento.
+- En el arnés de unidad, el mock de `PdfStudioView` no intercepta el import perezoso de `NotasWorld` (se ve el estudio real); el test del drenaje afirma la sección y la cola, y la e2e afirma el resto. Conviene entender por qué.
 
 ## 2026-09-05 · vitest 5
 
