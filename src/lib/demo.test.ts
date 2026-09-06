@@ -94,6 +94,26 @@ describe('demo — seed + lecturas', () => {
     expect(status.counts.totalBookmarks).toBeGreaterThan(0)
   })
 
+  it('GET /api/home cumple la forma de HomeResponse (Inicio en demo no puede caerse)', async () => {
+    // Inicio en modo prueba mostraba «No se pudo cargar tu portada»: el router
+    // no tenía ruta `home` y la lectura desconocida devolvía `[]`, así que
+    // `res.entities.map` reventaba. La demo es la primera pantalla que ve
+    // cualquiera que prueba Trama; esto fija la forma que espera `homeApi`.
+    const home = await demoRequest<{
+      entities: Array<{ id: string; name: string }>
+      quotes: Array<{ id: string; text: string }>
+      relationships: Array<{ id: string }>
+      counts: { entities: number; quotes: number; relationships: number }
+    }>('/api/home')
+    expect(Array.isArray(home.entities)).toBe(true)
+    expect(home.entities.length).toBe(6)
+    expect(home.counts.entities).toBe(6)
+    expect(home.quotes.length).toBeGreaterThan(0)
+    expect(home.counts.quotes).toBe(home.quotes.length)
+    expect(home.counts.relationships).toBe(home.relationships.length)
+    expect(typeof home.entities[0]?.name).toBe('string')
+  })
+
   it('GET /api/health devuelve counts coherentes con el seed', async () => {
     const health = await demoRequest<{ counts: Record<string, number> }>('/api/health')
     expect(health.counts.entities).toBe(6)

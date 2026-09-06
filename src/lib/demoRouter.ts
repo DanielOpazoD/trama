@@ -1041,6 +1041,34 @@ export function routeDemoRequest(
       const keep = findLive(store.entities, (body.keepId as string) ?? '')
       return keep ?? { ok: true }
     }
+    case 'home': {
+      // Misma forma que netlify/functions/home.mts: las tres listas acotadas
+      // (allá LIMIT 80) y los totales aparte. Inicio lee `res.entities.map`
+      // sin defensas, como debe: la demo tiene que entregar el contrato.
+      const HOME_LIMIT = 80
+      const byNewest = (a: Row, b: Row) =>
+        String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')) ||
+        String(b.id).localeCompare(String(a.id))
+      const entities = live(store.entities)
+      const quotes = live(store.quotes)
+      const relationships = live(store.relationships)
+      return {
+        entities: [...entities].sort(byNewest).slice(0, HOME_LIMIT),
+        quotes: [...quotes]
+          .sort(
+            (a, b) =>
+              String(b.pinned_at ?? '').localeCompare(String(a.pinned_at ?? '')) ||
+              byNewest(a, b),
+          )
+          .slice(0, HOME_LIMIT),
+        relationships: [...relationships].sort(byNewest).slice(0, HOME_LIMIT),
+        counts: {
+          entities: entities.length,
+          quotes: quotes.length,
+          relationships: relationships.length,
+        },
+      }
+    }
     case 'health':
       return demoHealth(store)
     case 'extraction-log':
