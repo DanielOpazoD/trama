@@ -378,6 +378,8 @@ describe('<NotasFeedView />', () => {
           url: 'https://example.com/x',
           title: 'Artículo de ejemplo',
           description: 'Un resumen',
+          // El servidor siempre manda `source`; el contrato de lectura lo exige.
+          source: 'example.com',
           author: 'Autora',
           image: null,
           fetched: true,

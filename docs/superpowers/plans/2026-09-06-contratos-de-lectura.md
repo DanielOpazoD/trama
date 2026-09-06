@@ -62,6 +62,13 @@ de la última evaluación: «formas validadas en runtime en el borde».
   `typecheck`, `lint`, `format:check`, gates del job `lint` (incluidos
   `architecture`, `dependency-cruiser`, `knip`) y el presupuesto de bundle.
 
+## Lo que encontró el contrato antes de entrar
+
+- Una fixture de `NotasFeedView.test.tsx` simulaba la vista previa de URL sin
+  `source`, campo que el servidor siempre manda. El test pasaba porque nada
+  comparaba la fixture con el contrato; con `requestContract` en desarrollo
+  el desvío rechaza la lectura y el test cayó en CI. Se completó la fixture.
+
 ## Pendiente
 
 - Extender los contratos a las lecturas de listas (`entities`, `quotes`,
