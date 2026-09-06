@@ -44,23 +44,31 @@ describe('pdfjsLoader', () => {
   })
 
   it('retries after a worker import failure', async () => {
-    vi.doMock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => {
-      throw new Error('worker unavailable')
-    })
+    // vitest 5 trata un factory que lanza como error del sistema de mocks (y
+    // tumba el test aunque el import se capture), y además conserva la
+    // instancia del módulo mockeado entre imports. El fallo se simula DENTRO
+    // del módulo, una sola vez: el primer acceso a `default` revienta y el
+    // segundo devuelve la URL. Lo que se prueba es que el loader no cachea el
+    // fallo y vuelve a importar.
+    let intentos = 0
+    vi.doMock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({
+      get default(): string {
+        intentos += 1
+        if (intentos === 1) throw new Error('worker unavailable')
+        return '/assets/retried.worker.mjs'
+      },
+    }))
     vi.doMock('pdfjs-dist', () => ({
       GlobalWorkerOptions: { workerSrc: '' },
       getDocument: vi.fn(),
     }))
     const { loadPdfjs } = await import('./pdfjsLoader')
 
-    await expect(loadPdfjs()).rejects.toThrow()
-
-    vi.doMock('pdfjs-dist/build/pdf.worker.min.mjs?url', () => ({
-      default: '/assets/retried.worker.mjs',
-    }))
+    await expect(loadPdfjs()).rejects.toThrow('worker unavailable')
 
     await expect(loadPdfjs()).resolves.toMatchObject({
       GlobalWorkerOptions: { workerSrc: '/assets/retried.worker.mjs' },
     })
+    expect(intentos).toBe(2)
   })
 })
