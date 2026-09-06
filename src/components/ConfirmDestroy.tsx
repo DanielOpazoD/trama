@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useModalOverlay } from '../hooks/useModalOverlay'
+import { ModalFooter, ModalShell } from './ModalShell'
 
 /**
  * Modal de confirmación para acciones destructivas (eliminar entidad,
@@ -43,66 +43,49 @@ export function ConfirmDestroy({
   onConfirm: () => void
   onCancel: () => void
 }) {
-  const overlay = useModalOverlay({
-    open,
-    onClose: onCancel,
-    closeOnEscape: !pending,
-    lockScroll: false,
-  })
-
   if (!open) return null
 
+  // Mientras la acción está en vuelo no se puede cancelar a medias: ni por
+  // Escape ni por el backdrop. ModalShell aporta portal, backdrop, foco y
+  // scroll; acá solo queda el contenido.
+  const cancel = pending ? () => {} : onCancel
+
   return (
-    <>
-      <button
-        onClick={onCancel}
-        disabled={pending}
-        aria-label="Cancelar"
-        className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up disabled:cursor-not-allowed"
-        tabIndex={-1}
-      />
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
-        <div
-          ref={overlay.dialogRef}
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="confirm-destroy-title"
-          className="pointer-events-auto w-full max-w-sm border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25"
-          style={{ backgroundColor: 'rgb(var(--paper-50))' }}
-        >
-          <div className="px-5 py-4 space-y-2">
-            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-clay)' }}>
-              acción irreversible
-            </p>
-            <h3
-              id="confirm-destroy-title"
-              className="font-serif text-lg text-ink-800 leading-tight"
-            >
-              {title}
-            </h3>
-            {body && <p className="text-body text-ink-400 leading-relaxed">{body}</p>}
-          </div>
-          <div className="px-5 py-3 border-t border-ink-100/60 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={pending}
-              className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
-            >
-              cancelar
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={pending}
-              className="px-3 py-1.5 text-xs font-medium rounded-md text-paper-50 transition-all duration-150 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
-              style={{ backgroundColor: 'var(--accent-clay)' }}
-            >
-              {pending ? 'eliminando…' : confirmLabel.toLowerCase()}
-            </button>
-          </div>
-        </div>
+    <ModalShell
+      role="alertdialog"
+      ariaLabel={title}
+      size="xs"
+      lockScroll={false}
+      closeOnEscape={!pending}
+      backdropLabel="Cancelar"
+      onClose={cancel}
+    >
+      <div className="px-5 py-4 space-y-2">
+        <p className="section-eyebrow-serif" style={{ color: 'var(--accent-clay)' }}>
+          acción irreversible
+        </p>
+        <h3 className="font-serif text-lg text-ink-800 leading-tight">{title}</h3>
+        {body && <p className="text-body text-ink-400 leading-relaxed">{body}</p>}
       </div>
-    </>
+      <ModalFooter>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={pending}
+          className="section-eyebrow hover:text-ink-700 transition-colors disabled:opacity-60"
+        >
+          cancelar
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={pending}
+          className="px-3 py-1.5 text-xs font-medium rounded-md text-paper-50 transition-all duration-150 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+          style={{ backgroundColor: 'var(--accent-clay)' }}
+        >
+          {pending ? 'eliminando…' : confirmLabel.toLowerCase()}
+        </button>
+      </ModalFooter>
+    </ModalShell>
   )
 }

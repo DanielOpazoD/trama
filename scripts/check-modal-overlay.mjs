@@ -70,6 +70,11 @@ export const MODAL_OVERLAY_PENDING = new Map([
 // que extender esto (y probablemente clasificar el archivo a mano).
 const DIALOG_ROLE_RE = /\brole=(["'])(?:dialog|alertdialog)\1/
 const HOOK_RE = /\buseModalOverlay\b/
+// Un archivo que monta `ModalShell` también está adoptado: el shell llama al
+// hook por él. Sin esto, pasar `role="alertdialog"` como prop del shell
+// (ConfirmDestroy) se leía como un dialog a mano.
+const SHELL_RE =
+  /import\s*\{[^}]*\bModalShell\b[^}]*\}\s*from\s*['"][^'"]*\/ModalShell['"]/
 
 export function collectModalOverlayUsage(root = process.cwd()) {
   const projectRoot = resolve(root)
@@ -80,7 +85,7 @@ export function collectModalOverlayUsage(root = process.cwd()) {
     if (!DIALOG_ROLE_RE.test(source)) continue
     dialogs.push({
       file: relative(projectRoot, file),
-      usesHook: HOOK_RE.test(source),
+      usesHook: HOOK_RE.test(source) || SHELL_RE.test(source),
     })
   }
 

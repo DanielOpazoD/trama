@@ -215,6 +215,15 @@ const SCRIPT_ENTRIES = [
       'Ratchet que institucionaliza la adopción de useModalOverlay en role=dialog.',
   },
   {
+    file: 'scripts/check-modal-shell.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:modal-shell'],
+    summary:
+      'Ratchet de adopción de ModalShell: las cajas de diálogo estándar no recopian portal, backdrop y cromo a mano.',
+  },
+  {
     file: 'scripts/check-form-control-labels.mjs',
     domain: 'frontend',
     kind: 'check',
@@ -923,6 +932,13 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Ratchet de adopción de useModalOverlay en componentes con role=dialog.',
+  },
+  {
+    command: 'npm run check:modal-shell',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary: 'Ratchet de adopción de ModalShell en las cajas de diálogo estándar.',
   },
   {
     command: 'npm run check:form-control-labels',

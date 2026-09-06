@@ -174,6 +174,9 @@ jobs:
       - name: Modal overlay adoption check
         run: npm run check:modal-overlay
 
+      - name: ModalShell adoption check
+        run: npm run check:modal-shell
+
       - name: Form control labels check
         run: npm run check:form-control-labels
 

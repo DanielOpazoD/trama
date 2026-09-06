@@ -32,7 +32,20 @@ const adoptedDialog = (label) =>
     '}',
   ].join('\n')
 
+const shellDialog = (label) =>
+  [
+    "import { ModalShell } from '../components/ModalShell'",
+    `export const M = () => <ModalShell role="alertdialog" ariaLabel="${label}" onClose={() => {}} />`,
+  ].join('\n')
+
 describe('checkModalOverlay', () => {
+  it('montar ModalShell cuenta como adoptado, aunque se le pase role="alertdialog"', async () => {
+    const { root, write } = await makeRepo()
+    write('src/Shell.tsx', shellDialog('s'))
+    const dialogs = collectModalOverlayUsage(root)
+    expect(dialogs).toEqual([{ file: 'src/Shell.tsx', usesHook: true }])
+  })
+
   it('detecta role=dialog/alertdialog (ambas comillas) y si usa el hook', async () => {
     const { root, write } = await makeRepo()
     write('src/Adopted.tsx', adoptedDialog('a'))

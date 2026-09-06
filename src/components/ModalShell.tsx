@@ -21,11 +21,14 @@ import { useModalOverlay } from '../hooks/useModalOverlay'
  * `<ModalShell>` de forma condicional (típicamente `if (!open) return null`
  * antes del return), por eso el hook recibe `open: true` mientras vive.
  */
-export type ModalSize = 'sm' | 'md'
+export type ModalSize = 'xs' | 'sm' | 'md' | 'lg'
 
 const SIZE_CLASS: Record<ModalSize, string> = {
+  // xs: el QR de Momentos (una tarjeta); lg: la hoja de atajos (dos columnas).
+  xs: 'max-w-sm',
   sm: 'max-w-md',
   md: 'max-w-xl',
+  lg: 'max-w-2xl',
 }
 
 export function ModalShell({
@@ -36,6 +39,9 @@ export function ModalShell({
   size = 'md',
   onClose,
   lockScroll = true,
+  closeOnEscape = true,
+  role = 'dialog',
+  backdropLabel = 'Cerrar',
   children,
 }: {
   /** Nombre accesible del diálogo (`role="dialog"` + `aria-label`). */
@@ -50,9 +56,19 @@ export function ModalShell({
   onClose: () => void
   /** Bloquea el scroll del body (default true). */
   lockScroll?: boolean
+  /**
+   * Nombre accesible del backdrop (default «Cerrar»). Un modal con su propia X
+   * «Cerrar» en el header lo cambia para que no haya dos botones con el mismo
+   * nombre (los tests por rol y los lectores de pantalla los distinguen).
+   */
+  backdropLabel?: string
+  /** `false` mientras una acción está en vuelo: Escape no cancela a medias. */
+  closeOnEscape?: boolean
+  /** `alertdialog` para confirmaciones destructivas; `dialog` por defecto. */
+  role?: 'dialog' | 'alertdialog'
   children: ReactNode
 }) {
-  const overlay = useModalOverlay({ open: true, onClose, lockScroll })
+  const overlay = useModalOverlay({ open: true, onClose, lockScroll, closeOnEscape })
   const hasHeader = Boolean(eyebrow || title)
 
   return createPortal(
@@ -63,14 +79,14 @@ export function ModalShell({
       <button
         type="button"
         onClick={onClose}
-        aria-label="Cerrar"
+        aria-label={backdropLabel}
         tabIndex={-1}
         className="fixed inset-0 z-overlay bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up motion-reduce:animate-none"
       />
       <div className="fixed inset-0 z-modal flex items-center justify-center px-4 pointer-events-none animate-fade-up motion-reduce:animate-none">
         <div
           ref={overlay.dialogRef}
-          role="dialog"
+          role={role}
           aria-label={ariaLabel}
           aria-modal="true"
           className={`pointer-events-auto w-full ${SIZE_CLASS[size]} max-h-[90vh] overflow-y-auto border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25`}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useModalOverlay } from '../../hooks/useModalOverlay'
+import { ModalFooter, ModalShell } from '../ModalShell'
 
 /**
  * τ-mobile-bridge: modal con un código QR que abre el composer de
@@ -29,9 +29,6 @@ export function MomentoQRModal({
   const [svgMarkup, setSvgMarkup] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   // υ-a11y: focus trap + aria-modal + Escape + restaurar foco unificados en
-  // useModalOverlay. lockScroll:false preserva el comportamiento previo (este
-  // modal nunca bloqueó el scroll del body).
-  const overlay = useModalOverlay({ open, onClose, lockScroll: false })
 
   const url =
     typeof window !== 'undefined'
@@ -79,114 +76,77 @@ export function MomentoQRModal({
   if (!open) return null
 
   return (
-    <>
-      <button
-        onClick={onClose}
-        aria-label="Cerrar"
-        className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm cursor-default animate-fade-up"
-        tabIndex={-1}
-      />
-      {/* υ-bugfix: contenedor con flex centering en lugar de
-          top-1/2 + translate. Razones:
-          1. Centro robusto con altura variable del contenido (sin
-             salirse por arriba cuando el QR + textos son altos).
-          2. max-h-[90vh] + overflow-y-auto evita que el modal nunca
-             quede cortado en pantallas chicas.
-          El z-50 va arriba del backdrop (z-40), antes era ambos al
-          mismo nivel y ciertos browsers renderizaban inconsistente.
-          pointer-events-none en el wrapper + auto en el dialog deja
-          que el backdrop reciba los clicks fuera del modal. */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-fade-up">
+    <ModalShell
+      ariaLabel="Escanear con el celular"
+      eyebrow="desde el celular"
+      title="Escanear y subir foto"
+      size="xs"
+      // lockScroll:false preserva el comportamiento previo: el modal se abre
+      // desde el composer y no bloquea el scroll de la página.
+      lockScroll={false}
+      onClose={onClose}
+    >
+      <div className="px-5 py-6 flex flex-col items-center gap-4">
         <div
-          ref={overlay.dialogRef}
-          role="dialog"
-          aria-label="Escanear con el celular"
-          aria-modal="true"
-          className="pointer-events-auto w-full max-w-sm max-h-[90vh] overflow-y-auto bg-paper-50 border border-ink-100/80 rounded-xl shadow-xl shadow-ink-900/25"
-          style={{
-            // υ-bugfix: forzamos background-color sólido inline porque
-            // el ::before del .paper-grain global proyecta un overlay
-            // SVG noise sobre todo lo que herede el padding, y con el
-            // shadow-lg + backdrop-blur del wrapper algunos browsers
-            // dejaban "ver" el grain de atrás. Color directo desde la
-            // CSS var → siempre opaco en cualquier theme.
-            backgroundColor: 'rgb(var(--paper-50))',
-          }}
+          className="bg-paper-100/40 border border-ink-100/60 rounded-lg p-4 w-56 h-56 flex items-center justify-center"
+          aria-hidden={!svgMarkup}
         >
-          <header className="px-5 py-3 border-b border-ink-100/60">
-            <p className="section-eyebrow-serif" style={{ color: 'var(--accent-gold)' }}>
-              desde el celular
-            </p>
-            <h3 className="font-serif text-xl text-ink-800 leading-tight mt-1">
-              Escanear y subir foto
-            </h3>
-          </header>
-
-          <div className="px-5 py-6 flex flex-col items-center gap-4">
+          {svgMarkup ? (
             <div
-              className="bg-paper-100/40 border border-ink-100/60 rounded-lg p-4 w-56 h-56 flex items-center justify-center"
-              aria-hidden={!svgMarkup}
-            >
-              {svgMarkup ? (
-                <div
-                  className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
-                  // N2 — threat model justificando dangerouslySetInnerHTML:
-                  //
-                  // Input al QR: una URL que construimos nosotros con
-                  // `window.location.origin + '/?view=momentos&compose=...'`.
-                  // El usuario NO puede meter contenido arbitrario que
-                  // termine en el QR — el origin viene del browser, y los
-                  // params son literales hardcoded acá. No hay path donde
-                  // un user agregue caracteres a `svgMarkup`.
-                  //
-                  // Salida del qrcode lib: SVG con `<svg>` + `<path>` puros,
-                  // sin scripts ni handlers (la lib no acepta opciones que
-                  // generen markup ejecutable). Auditado en la versión
-                  // pinned a `^1.5.4`.
-                  //
-                  // Si en el futuro el QR encodea contenido del user
-                  // (ej. un texto que pegan), hay que sanear antes de
-                  // generar el SVG. Por ahora: safe.
-                  dangerouslySetInnerHTML={{ __html: svgMarkup }}
-                />
-              ) : error ? (
-                <p className="text-caption text-[color:var(--accent-clay)] text-center leading-snug px-2">
-                  {error}
-                </p>
-              ) : (
-                <p className="text-caption text-ink-300 italic">generando…</p>
-              )}
-            </div>
-
-            <p className="text-caption text-ink-400 leading-relaxed text-center max-w-xs">
-              Abre la cámara del celular y apunta. Se abrirá Momentos listo para tomar o
-              adjuntar una foto.
+              className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+              // N2 — threat model justificando dangerouslySetInnerHTML:
+              //
+              // Input al QR: una URL que construimos nosotros con
+              // `window.location.origin + '/?view=momentos&compose=...'`.
+              // El usuario NO puede meter contenido arbitrario que
+              // termine en el QR — el origin viene del browser, y los
+              // params son literales hardcoded acá. No hay path donde
+              // un user agregue caracteres a `svgMarkup`.
+              //
+              // Salida del qrcode lib: SVG con `<svg>` + `<path>` puros,
+              // sin scripts ni handlers (la lib no acepta opciones que
+              // generen markup ejecutable). Auditado en la versión
+              // pinned a `^1.5.4`.
+              //
+              // Si en el futuro el QR encodea contenido del user
+              // (ej. un texto que pegan), hay que sanear antes de
+              // generar el SVG. Por ahora: safe.
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
+          ) : error ? (
+            <p className="text-caption text-[color:var(--accent-clay)] text-center leading-snug px-2">
+              {error}
             </p>
+          ) : (
+            <p className="text-caption text-ink-300 italic">generando…</p>
+          )}
+        </div>
 
-            <div className="w-full flex items-center gap-2 px-3 py-2 bg-paper-100/60 border border-ink-100/60 rounded-md">
-              <code className="flex-1 text-micro text-ink-500 font-mono truncate">
-                {url}
-              </code>
-              <button
-                onClick={handleCopy}
-                className="section-eyebrow hover:text-ink-700 transition-colors shrink-0"
-                title="Copiar URL"
-              >
-                copiar
-              </button>
-            </div>
-          </div>
+        <p className="text-caption text-ink-400 leading-relaxed text-center max-w-xs">
+          Abre la cámara del celular y apunta. Se abrirá Momentos listo para tomar o
+          adjuntar una foto.
+        </p>
 
-          <div className="px-5 py-2 border-t border-ink-100/60 flex justify-end">
-            <button
-              onClick={onClose}
-              className="section-eyebrow hover:text-ink-700 transition-colors"
-            >
-              cerrar
-            </button>
-          </div>
+        <div className="w-full flex items-center gap-2 px-3 py-2 bg-paper-100/60 border border-ink-100/60 rounded-md">
+          <code className="flex-1 text-micro text-ink-500 font-mono truncate">{url}</code>
+          <button
+            onClick={handleCopy}
+            className="section-eyebrow hover:text-ink-700 transition-colors shrink-0"
+            title="Copiar URL"
+          >
+            copiar
+          </button>
         </div>
       </div>
-    </>
+
+      <ModalFooter>
+        <button
+          onClick={onClose}
+          className="section-eyebrow hover:text-ink-700 transition-colors"
+        >
+          cerrar
+        </button>
+      </ModalFooter>
+    </ModalShell>
   )
 }
