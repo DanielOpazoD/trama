@@ -26,7 +26,7 @@ Plan: [2026-09-05-prettier-3-9-y-grupo-tooling.md](superpowers/plans/2026-09-05-
 
 - ESLint 10.4 → 10.9 y typescript-eslint 8.60 → 8.68 siguen dentro de #417. El CI nunca llegó a ejecutar `lint` con esas versiones porque `format:check` cortaba antes; si traen una regla nueva, se verá en el rebase.
 
-## 2026-09-05 · Un merge queue en vez de rebasar a mano
+## 2026-09-05 · Un merge queue en vez de rebasar a mano (no disponible)
 
 Plan: [2026-09-05-merge-queue.md](superpowers/plans/2026-09-05-merge-queue.md)
 

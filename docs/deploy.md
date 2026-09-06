@@ -62,14 +62,15 @@ en verde lo cierra solo.
 ## Protección de la rama main
 
 `main` tiene branch protection: solo se llega por PR con los checks de
-`test.yml` en verde (`unit`, `lint`, `e2e`, `secrets`, `migrations`), sin
-force-push ni borrado, y aplica también para admins. La garantía de «probado
-contra el main de ahora» la da el **merge queue** (ruleset `merge-queue-main`):
-el PR se encola con `gh pr merge N --squash --auto`, GitHub construye un commit
-temporal main + PR, corre los mismos checks sobre él (`test.yml` escucha
-`merge_group`) y fusiona solo si pasan. Antes esa garantía la daba «la rama debe
-estar al día», que obligaba a rebasar y esperar el CI otra vez tras cada merge
-ajeno: con cinco PR en cola eran doce minutos por cabeza. `pdf-visual` NO es requerido (es path-filtered: en un PR
+`test.yml` en verde (`unit`, `lint`, `e2e`, `secrets`, `migrations`), la rama
+debe estar al día con main al mergear, sin force-push ni borrado, y aplica
+también para admins. Con varios PR en cola eso obliga a rebasar y esperar el
+CI otra vez tras cada merge ajeno (unos doce minutos por PR). El **merge
+queue** de GitHub resolvería justo eso, pero **no está disponible en repos de
+cuenta personal** —solo en repos de organización—: la API lo rechaza con
+«Invalid rules: 'Merge queue'». `test.yml` ya escucha `merge_group` por si el
+repo se muda a una organización; hasta entonces, la cola se atiende de a un
+PR: rebasar (`@dependabot rebase` en los suyos), esperar el CI, fusionar. `pdf-visual` NO es requerido (es path-filtered: en un PR
 que no toca PDF nunca reporta y bloquearía el merge); CodeRabbit tampoco (sus
 verdes por rate-limit no prueban nada). Si una emergencia real exige saltarse
 la protección, se desactiva temporalmente en
