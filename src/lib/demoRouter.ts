@@ -1069,6 +1069,69 @@ export function routeDemoRequest(
         },
       }
     }
+    // ---- Lecturas que el cliente pide y que antes caían al default (`[]`).
+    // Las de forma objeto reventaban al consumidor; las de lista quedan
+    // declaradas para que el contrato sepa que la demo las sirve vacías.
+    case 'counts':
+      return {
+        entities: live(store.entities).length,
+        quotes: live(store.quotes).length,
+        relationships: live(store.relationships).length,
+        momentos: live(store.momentos).length,
+      }
+    case 'entities-refs-count': {
+      const quotes = live(store.quotes)
+      const rels = live(store.relationships)
+      return {
+        items: live(store.entities).map((e) => ({
+          id: String(e.id),
+          quoteCount: quotes.filter((q) => q.entity_id === e.id).length,
+          relCount: rels.filter((r) => r.from_id === e.id || r.to_id === e.id).length,
+        })),
+      }
+    }
+    case 'entity-types':
+    case 'relationship-types':
+      // La demo no tiene tablas de tipos editables: el cliente usa las
+      // integradas. Las mutaciones responden ok, como el resto.
+      return method === 'GET' ? [] : { ok: true }
+    case 'saved-queries':
+    case 'momentos-share-invitations':
+      return method === 'GET' ? { items: [] } : { ok: true }
+    case 'momentos-orphaned-blobs': {
+      const referenced = live(store.momentos).length
+      return method === 'GET'
+        ? { orphans: [], totalInStore: referenced, referenced }
+        : { ok: true }
+    }
+    case 'momentos-url-preview': {
+      // Sin red en modo prueba: la vista previa vuelve vacía pero con forma.
+      const url = params.get('url') ?? ''
+      let source: string | null = null
+      try {
+        source = new URL(url).hostname || null
+      } catch {
+        source = null
+      }
+      return {
+        url,
+        title: null,
+        description: null,
+        source,
+        author: null,
+        image: null,
+        fetched: false,
+      }
+    }
+    case 'whatsapp-link':
+    case 'pdf-studio-saved-pdfs':
+      return method === 'GET' ? [] : { ok: true }
+    case 'pdf-studio-templates':
+      // Sin plantillas remotas en demo: lista vacía, historial vacío y ningún
+      // paquete que bajar (la lista vacía impide llegar a pedirlo).
+      if (method !== 'GET') return { ok: true }
+      if (id && action === 'versions') return []
+      return id ? null : []
     case 'health':
       return demoHealth(store)
     case 'extraction-log':
@@ -1151,9 +1214,17 @@ export function routeDemoRequest(
       }
     default:
       // Mutaciones desconocidas → ok; lecturas desconocidas → lista vacía.
+      // Cada lectura que cae acá queda anotada: `demoRoutes.contract.test.ts`
+      // recorre las rutas que el cliente pide y exige que ninguna termine en
+      // este default sin estar declarada. Tres caídas de la demo (health,
+      // x/status, home) salieron de una ruta que nadie sabía que faltaba.
+      if (method === 'GET') demoUnroutedGets.add(path)
       return method === 'GET' ? [] : { ok: true }
   }
 }
+
+/** Rutas GET que llegaron al `default` del router (solo para el contrato). */
+export const demoUnroutedGets = new Set<string>()
 
 let benchCache: { n: number; entities: Row[]; relationships: Row[] } | null = null
 

@@ -1,4 +1,4 @@
-# Inicio en modo prueba mostraba un error
+# Inicio en modo prueba mostraba un error (y el router no sabía qué le faltaba)
 
 ## Problema
 
@@ -23,6 +23,19 @@ Se encontró de paso, en una captura de Playwright para verificar otra cosa
   escribirla) y fija la forma que `homeApi` espera.
 - **E2E `inicio-demo.spec.ts`**: Inicio en demo (mundo Trama) muestra la cita
   del día y no el estado de error.
+- **Contrato cliente ↔ router de demo** (`demoRoutes.contract.test.ts`): el
+  `default` del router anota cada GET que cae ahí; el test recorre todas las
+  rutas `/api/...` que nombran los módulos de `src/api`, las pide con el seed
+  cargado y exige que ninguna termine en el default salvo las exentas con
+  motivo (URLs de medios que sirve `demoMediaResponse`, rutas solo de
+  escritura). Exención obsoleta también falla: es un trinquete.
+- **Doce lecturas más que caían al default** ganan caso en el router:
+  `counts` y `entities-refs-count` (objetos: reventaban al consumidor),
+  `momentos-orphaned-blobs`, `momentos-url-preview`, `saved-queries`,
+  `momentos-share-invitations` (objetos con forma), y las listas
+  `entity-types`, `relationship-types`, `whatsapp-link`,
+  `pdf-studio-templates` (con `/:id/versions`) y `pdf-studio-saved-pdfs`,
+  declaradas vacías a propósito.
 
 ## Decisiones
 
@@ -37,13 +50,14 @@ Se encontró de paso, en una captura de Playwright para verificar otra cosa
 ## Validación
 
 - `demo.test.ts` en verde con el test nuevo (y en rojo sin la ruta).
+- Contrato: en verde con las exenciones; por mutación, quitar el caso
+  `counts` lo hace fallar nombrando `/api/counts`.
 - `inicio-demo.spec.ts` en verde contra el dev server.
 - `typecheck`, `lint`, `format:check` y los gates del job `lint`.
 
 ## Pendiente
 
-- [alto] Un gate que compare las respuestas del router de demo con los tipos
-  del cliente (`HomeResponse`, `HealthResponse`, `XStatus`…): tres caídas de
-  la demo salieron del mismo agujero. Podría ser un test que recorra las rutas
-  GET conocidas de `api/*.ts` y verifique que `routeDemoRequest` no devuelve
-  la lista vacía por defecto.
+- El contrato comprueba que cada ruta GET del cliente tenga caso en el router,
+  no que la FORMA coincida con el tipo del cliente (eso solo lo fijan los
+  tests puntuales de `demo.test.ts`: health, x/status, home). Comparar formas
+  pediría tipos en runtime (zod o similar) en `src/api`; es otro pack.

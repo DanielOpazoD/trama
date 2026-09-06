@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**34 pendientes** en 24 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**34 pendientes** en 24 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-06 · Fotos de Momentos a Imprenta: el puente entre mundos
 
@@ -24,11 +24,11 @@ Plan: [2026-09-06-modal-shell-pr-b.md](superpowers/plans/2026-09-06-modal-shell-
 
 - `ModalShell` no expone `aria-labelledby`; `ConfirmDestroy` pasa el título como `aria-label`, que para un `alertdialog` de una línea es equivalente.
 
-## 2026-09-06 · Inicio en modo prueba mostraba un error
+## 2026-09-06 · Inicio en modo prueba mostraba un error (y el router no sabía qué le faltaba)
 
 Plan: [2026-09-06-inicio-en-demo.md](superpowers/plans/2026-09-06-inicio-en-demo.md)
 
-- [alto] Un gate que compare las respuestas del router de demo con los tipos del cliente (`HomeResponse`, `HealthResponse`, `XStatus`…): tres caídas de la demo salieron del mismo agujero. Podría ser un test que recorra las rutas GET conocidas de `api/*.ts` y verifique que `routeDemoRequest` no devuelve la lista vacía por defecto.
+- El contrato comprueba que cada ruta GET del cliente tenga caso en el router, no que la FORMA coincida con el tipo del cliente (eso solo lo fijan los tests puntuales de `demo.test.ts`: health, x/status, home). Comparar formas pediría tipos en runtime (zod o similar) en `src/api`; es otro pack.
 
 ## 2026-09-06 · Fotos a Imprenta también desde el Álbum
 
