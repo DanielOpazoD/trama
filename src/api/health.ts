@@ -3,7 +3,7 @@
  * observabilidad que se muestran en Settings.
  */
 
-import { request } from './request'
+import { request, requestContract } from './request'
 import type { HealthResponse } from '../types/health'
 
 export type { HealthAlert, HealthResponse } from '../types/health'
@@ -50,10 +50,10 @@ export const healthApi = {
     relationships: number
     momentos: number
   }> {
-    return request('/api/counts')
+    return requestContract('counts', '/api/counts')
   },
   async getHealth(): Promise<HealthResponse> {
-    return request<HealthResponse>('/api/health')
+    return requestContract<HealthResponse>('health', '/api/health')
   },
   async extractionLog(limit = 50): Promise<ExtractionLogResponse> {
     return request<ExtractionLogResponse>(`/api/extraction-log?limit=${limit}`)

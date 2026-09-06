@@ -7,7 +7,7 @@
  */
 
 import type { Momento, MomentoKind, MomentoPayload, Origin } from '../types'
-import { request } from './request'
+import { request, requestContract } from './request'
 import { isDemoMode } from '../lib/demo'
 import { momentoFromRow, type MomentoRow } from './transform'
 
@@ -197,7 +197,8 @@ export const momentosApi = {
     // υ-bugfix: path movido de `/api/momentos/url-preview` a
     // `/api/momentos-url-preview` porque `:id` de momentos.mts matcheaba
     // "url-preview" como un id y rechazaba el GET.
-    return request<MomentoUrlPreview>(
+    return requestContract<MomentoUrlPreview>(
+      'urlPreview',
       `/api/momentos-url-preview?url=${encodeURIComponent(url)}`,
     )
   },
@@ -244,7 +245,7 @@ export const momentosApi = {
     totalInStore: number
     referenced: number
   }> {
-    return request('/api/momentos-orphaned-blobs')
+    return requestContract('orphanedBlobs', '/api/momentos-orphaned-blobs')
   },
 
   /** DD1: adopta un blob huérfano creando un Momento foto que lo apunte.
@@ -326,7 +327,7 @@ export const momentosApi = {
   },
 
   async listMomentoShareInvitations(): Promise<{ items: MomentoShareInvitation[] }> {
-    return request('/api/momentos-share-invitations')
+    return requestContract('shareInvitations', '/api/momentos-share-invitations')
   },
 
   async createMomentoShareInvitation(input: {

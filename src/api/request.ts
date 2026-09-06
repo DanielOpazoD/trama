@@ -13,6 +13,7 @@
  */
 
 import { demoMediaResponse, isDemoMode, demoRequest } from '../lib/demo'
+import type { ContractKey } from './contracts'
 
 /**
  * Read the current AI mode synchronously and convert to its header form.
@@ -317,5 +318,81 @@ export async function request<T = unknown>(url: string, init?: RequestInit): Pro
       message: `${init?.method ?? 'GET'} ${url} devolvió JSON inválido`,
       requestId: response.headers.get('x-request-id'),
     })
+  }
+}
+
+/**
+ * `request` más el contrato de lectura de `./contracts`. La respuesta se
+ * entrega tal cual; el esquema solo VERIFICA. En desarrollo y tests un
+ * desvío rechaza la promesa (que se vea); en producción se reporta a
+ * `/api/error-log` y la app sigue con lo que llegó. El módulo de contratos
+ * (y zod) se carga por `import()` para no pesar en la carga inicial.
+ */
+export async function requestContract<T = unknown>(
+  key: ContractKey,
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
+  const data = await request<T>(url, init)
+  const verified = verifyAgainstContract(key, url, data)
+  if (import.meta.env.DEV) await verified
+  return data
+}
+
+async function verifyAgainstContract(
+  key: ContractKey,
+  url: string,
+  data: unknown,
+): Promise<void> {
+  let issues: string[]
+  try {
+    const { verifyContract } = await import('./contracts')
+    issues = verifyContract(key, data)
+  } catch (error) {
+    // Sin contratos no hay verificación; en producción eso no puede tumbar
+    // una lectura que ya llegó bien.
+    if (import.meta.env.DEV) throw error
+    return
+  }
+  if (issues.length === 0) return
+  const message = `${url} no cumple el contrato «${key}»: ${issues.join('; ')}`
+  if (import.meta.env.DEV) {
+    throw new ApiClientError({
+      code: 'UNKNOWN',
+      status: 200,
+      message,
+      details: { contract: key, issues },
+      requestId: null,
+    })
+  }
+  reportContractDrift(message)
+}
+
+const driftReported = new Set<string>()
+
+/** Producción: una vez por contrato y sesión, a consola y al log de errores. */
+function reportContractDrift(message: string): void {
+  if (driftReported.has(message)) return
+  driftReported.add(message)
+  console.warn(`[contrato] ${message}`)
+  const body = JSON.stringify({
+    message: `[contract] ${message}`,
+    stack: null,
+    path: typeof window !== 'undefined' ? window.location.pathname : null,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+  })
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      navigator.sendBeacon(
+        '/api/error-log',
+        new Blob([body], { type: 'application/json' }),
+      )
+      return
+    }
+    void apiFetch('/api/error-log', { method: 'POST', body, keepalive: true }).catch(
+      () => {},
+    )
+  } catch {
+    // El reporte es best-effort: nunca puede ser él el que rompa la lectura.
   }
 }

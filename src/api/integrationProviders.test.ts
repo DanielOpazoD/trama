@@ -4,6 +4,9 @@ const requestMock = vi.hoisted(() => vi.fn())
 
 vi.mock('./request', () => ({
   request: requestMock,
+  // El contrato solo verifica; para estos tests la lectura es la misma llamada.
+  requestContract: (_key: string, url: string, init?: RequestInit) =>
+    init === undefined ? requestMock(url) : requestMock(url, init),
 }))
 
 import { spotifyApi } from './spotify'

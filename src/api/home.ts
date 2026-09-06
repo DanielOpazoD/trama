@@ -1,5 +1,5 @@
 import type { Entity, Quote, Relationship } from '../types'
-import { request } from './request'
+import { requestContract } from './request'
 import {
   entityFromRow,
   quoteFromRow,
@@ -22,12 +22,12 @@ export type HomeResponse = {
 
 export const homeApi = {
   async readHome(): Promise<HomeResponse> {
-    const res = await request<{
+    const res = await requestContract<{
       entities: EntityRow[]
       quotes: QuoteRow[]
       relationships: RelationshipRow[]
       counts: HomeResponse['counts']
-    }>('/api/home')
+    }>('home', '/api/home')
     return {
       entities: res.entities.map(entityFromRow),
       quotes: res.quotes.map(quoteFromRow),

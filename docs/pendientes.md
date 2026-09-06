@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**34 pendientes** en 24 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**36 pendientes** en 25 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-06 · Fotos de Momentos a Imprenta: el puente entre mundos
 
@@ -29,6 +29,13 @@ Plan: [2026-09-06-modal-shell-pr-b.md](superpowers/plans/2026-09-06-modal-shell-
 Plan: [2026-09-06-inicio-en-demo.md](superpowers/plans/2026-09-06-inicio-en-demo.md)
 
 - El contrato comprueba que cada ruta GET del cliente tenga caso en el router, no que la FORMA coincida con el tipo del cliente (eso solo lo fijan los tests puntuales de `demo.test.ts`: health, x/status, home). Comparar formas pediría tipos en runtime (zod o similar) en `src/api`; es otro pack.
+
+## 2026-09-06 · Contratos de lectura en runtime
+
+Plan: [2026-09-06-contratos-de-lectura.md](superpowers/plans/2026-09-06-contratos-de-lectura.md)
+
+- Extender los contratos a las lecturas de listas (`entities`, `quotes`, `relationships`, `momentos`, `notes`) con esquemas parciales de fila; hoy siguen sin verificación.
+- Los contratos son del cliente; las funciones de Netlify no los importan. Compartirlos (que `home.mts` valide su salida con el mismo esquema) cerraría el borde desde los dos lados.
 
 ## 2026-09-06 · Fotos a Imprenta también desde el Álbum
 

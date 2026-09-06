@@ -2,7 +2,7 @@
  * Cliente de consultas guardadas (Fase 4). Persisten un AST de query (el mismo
  * shape de `queryApi`) con nombre, para reusarlas y embeberlas como bloques.
  */
-import { request } from './request'
+import { request, requestContract } from './request'
 import type { QueryInput } from './query'
 
 export type SavedQuery = {
@@ -31,7 +31,13 @@ export type SavedQueryPatch = {
 
 export const savedQueriesApi = {
   listSavedQueries(): Promise<{ items: SavedQuery[] }> {
-    return request<{ items: SavedQuery[] }>('/api/saved-queries', { method: 'GET' })
+    return requestContract<{ items: SavedQuery[] }>(
+      'savedQueries',
+      '/api/saved-queries',
+      {
+        method: 'GET',
+      },
+    )
   },
 
   createSavedQuery(input: SavedQueryCreate): Promise<SavedQuery> {
