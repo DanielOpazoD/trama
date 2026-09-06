@@ -19,9 +19,7 @@ const PNG_1x1 = Buffer.from(
   'base64',
 )
 
-test('desde Momentos, «Fotos a Imprenta» abre Imprenta con las fotos del momento', async ({
-  page,
-}) => {
+async function abrirMomentosConDosFotos(page: import('@playwright/test').Page) {
   await page.addInitScript(() => {
     window.sessionStorage.setItem('trama:splash-seen', '1')
   })
@@ -54,6 +52,22 @@ test('desde Momentos, «Fotos a Imprenta» abre Imprenta con las fotos del momen
   await expect(page.getByRole('heading', { name: 'Momentos', level: 2 })).toBeVisible({
     timeout: 15_000,
   })
+}
+
+async function esperarImprentaConDosHojas(page: import('@playwright/test').Page) {
+  // Cruzó de mundo: Imprenta abierta y las dos fotos ya son hojas.
+  await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible({
+    timeout: 20_000,
+  })
+  await expect(page.getByAltText('Página 1').first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByAltText('Página 2').first()).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText(/2 imágenes enviadas a Imprenta/)).toBeVisible()
+}
+
+test('desde la Línea de Momentos, «Fotos a Imprenta» abre Imprenta con las fotos del momento', async ({
+  page,
+}) => {
+  await abrirMomentosConDosFotos(page)
   // Si la vista abre en Álbum, la acción vive en las entradas de la Línea.
   const linea = page.getByRole('button', { name: 'Línea' })
   if (await linea.count()) await linea.click()
@@ -64,12 +78,20 @@ test('desde Momentos, «Fotos a Imprenta» abre Imprenta con las fotos del momen
     .first()
     .click({ force: true })
   await page.getByRole('menuitem', { name: 'Fotos a Imprenta' }).click()
+  await esperarImprentaConDosHojas(page)
+})
 
-  // Cruzó de mundo: Imprenta abierta y las dos fotos ya son hojas.
-  await expect(page.getByRole('heading', { name: 'Imprenta' })).toBeVisible({
-    timeout: 20_000,
-  })
-  await expect(page.getByAltText('Página 1').first()).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByAltText('Página 2').first()).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByText(/2 imágenes enviadas a Imprenta/)).toBeVisible()
+test('desde el Álbum de Momentos, la misma acción vive en «Opciones de foto»', async ({
+  page,
+}) => {
+  await abrirMomentosConDosFotos(page)
+  const album = page.getByRole('button', { name: 'Álbum' })
+  if (await album.count()) await album.click()
+
+  await page
+    .getByRole('button', { name: 'Opciones de foto' })
+    .first()
+    .click({ force: true })
+  await page.getByRole('menuitem', { name: 'Fotos a Imprenta' }).click()
+  await esperarImprentaConDosHojas(page)
 })

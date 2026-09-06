@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Entity, Momento } from '../../types'
 import { AlbumGrid } from './AlbumGrid'
+import { takeHandedOffImprentaFiles } from '../../lib/imprentaHandoff'
 
 vi.mock('./MomentoEditModal', () => ({
   MomentoEditModal: ({
@@ -134,6 +135,26 @@ describe('<AlbumGrid />', () => {
     await user.click(screen.getByRole('menuitem', { name: /eliminar/i }))
 
     expect(onDelete).toHaveBeenCalledWith('foto-1')
+  })
+
+  it('«Fotos a Imprenta» desde el Álbum deja las fotos del momento en la cola del puente', async () => {
+    const user = userEvent.setup()
+    takeHandedOffImprentaFiles()
+    render(
+      <AlbumGrid
+        size="medium"
+        items={[photoMomento]}
+        entitiesById={new Map([['e1', entity]])}
+        onDelete={() => {}}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /opciones de foto/i }))
+    await user.click(screen.getByRole('menuitem', { name: /fotos a imprenta/i }))
+
+    await waitFor(() => expect(takeHandedOffImprentaFiles()).toHaveLength(2))
+    // El menú se cerró al elegir la acción.
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
   it('permite editar una foto desde el menú', async () => {
