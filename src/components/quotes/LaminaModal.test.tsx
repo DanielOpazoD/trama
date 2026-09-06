@@ -63,9 +63,10 @@ describe('<LaminaModal />', () => {
       </div>,
     )
 
-    expect(screen.getByRole('dialog', { name: 'Lámina' }).parentElement).toBe(
-      document.body,
-    )
+    const root = screen
+      .getByRole('dialog', { name: 'Lámina' })
+      .closest('[data-modal-root]')
+    expect(root?.parentElement).toBe(document.body)
   })
 
   it('cierra con Escape', () => {

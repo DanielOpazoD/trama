@@ -52,7 +52,8 @@ issue quedó abierto sin criterio de cierre.
 
 ## Pendiente
 
-- Migrar los cuatro PENDIENTES del gate a `ModalShell`: `PromoteModal`,
-  `LibroModal`, `LaminaModal`, `BibliotecaLinkPicker`.
+- Resuelto (pack `2026-09-06-modal-shell-pr-c`): tres PENDIENTES migraron y
+  `BibliotecaLinkPicker` quedó exento con motivo (se apila sobre un visor en
+  `z-[100]`).
 - `ModalShell` no expone `aria-labelledby`; `ConfirmDestroy` pasa el título
   como `aria-label`, que para un `alertdialog` de una línea es equivalente.
