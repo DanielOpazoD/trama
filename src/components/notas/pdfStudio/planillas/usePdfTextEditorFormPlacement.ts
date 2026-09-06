@@ -1,8 +1,10 @@
 import {
-  useState,
   type Dispatch,
   type PointerEvent as ReactPointerEvent,
   type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
 } from 'react'
 import type {
   PdfFormFieldDraft,
@@ -113,6 +115,14 @@ export function usePdfTextEditorFormPlacement({
 
   /** Shift+clic: crea un casillero de texto centrado en el punto clicado, sin
    *  pasar por el modo de colocación. Devuelve true si lo creó. */
+  const focusTimerRef = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current)
+    },
+    [],
+  )
+
   function quickPlaceFormField(
     point: { xRatio: number; yRatio: number },
     targetPage: PdfPage | undefined,
@@ -138,8 +148,14 @@ export function usePdfTextEditorFormPlacement({
     setEditingId(null)
     setSelectedId(null)
     // Escribir al tiro: cuando el casillero ya está pintado, el foco cae en
-    // su input sin pasar por el panel.
-    window.setTimeout(() => focusFormFieldControl(field.id, { select: true }), 60)
+    // su input sin pasar por el panel. El temporizador se guarda para
+    // cancelarlo si el editor se desmonta antes: un foco tardío sobre un DOM
+    // que ya no existe reventaba (`document is not defined` en la suite).
+    if (focusTimerRef.current !== null) window.clearTimeout(focusTimerRef.current)
+    focusTimerRef.current = window.setTimeout(() => {
+      focusTimerRef.current = null
+      focusFormFieldControl(field.id, { select: true })
+    }, 60)
     return true
   }
 

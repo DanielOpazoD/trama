@@ -69,6 +69,13 @@ de la última evaluación: «formas validadas en runtime en el borde».
   comparaba la fixture con el contrato; con `requestContract` en desarrollo
   el desvío rechaza la lectura y el test cayó en CI. Se completó la fixture.
 
+- El CI cayó una vez más sin relación con los contratos: bajo cobertura, un
+  `setTimeout` de `usePdfTextEditorFormPlacement` (el foco tardío al crear un
+  casillero) disparaba después de desmontar el test y tocaba un `document` ya
+  destruido: «1 error» no capturado, suite en verde y job en rojo. El
+  temporizador se guarda y se cancela al desmontar; un test con relojes
+  falsos lo fija y falla sin la limpieza.
+
 ## Pendiente
 
 - Extender los contratos a las lecturas de listas (`entities`, `quotes`,
