@@ -6,7 +6,7 @@ import type { Entity } from '../../types'
 import type { Recorte, RecorteTarget } from '../../api'
 import { CloseIcon } from '../Icons'
 import { IconButton } from '../IconButton'
-import { useModalOverlay } from '../../hooks/useModalOverlay'
+import { ModalShell } from '../ModalShell'
 import { EntityCombobox } from '../EntityCombobox'
 
 export type PromoteSeed = {
@@ -67,10 +67,11 @@ export function PromoteModal({
   // álbum. El resto sigue siendo un momento «recorte» de texto/enlace.
   const isImageCaptura = !!recorte.imageKey
   const textRef = useRef<HTMLTextAreaElement>(null)
-  // Modal auto-gestionado: el overlay aporta focus-trap, scroll-lock y Escape
-  // (consciente del stack). Mientras promueve (busy) no se puede cerrar con
-  // Escape, igual que el backdrop y los botones quedan deshabilitados.
-  const overlay = useModalOverlay({ open: true, onClose, closeOnEscape: !busy })
+  // Mientras promueve (busy) no se puede cerrar: ni Escape, ni backdrop, ni
+  // los botones. ModalShell aporta portal, backdrop, focus-trap y scroll-lock.
+  const close = () => {
+    if (!busy) onClose()
+  }
 
   useEffect(() => {
     textRef.current?.focus()
@@ -175,20 +176,14 @@ export function PromoteModal({
     (target === 'entity' && entityName.trim().length === 0)
 
   return (
-    <>
-      <button
-        onClick={() => !busy && onClose()}
-        aria-label="Cerrar"
-        className="fixed inset-0 z-40 bg-ink-900/30 backdrop-blur-sm cursor-default"
-        tabIndex={-1}
-      />
-      <div
-        ref={overlay.dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Promover a ${TARGET_LABEL[target]}`}
-        className="fixed inset-x-4 top-16 md:inset-x-0 md:mx-auto md:w-[480px] z-50 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up"
-      >
+    <ModalShell
+      ariaLabel={`Promover a ${TARGET_LABEL[target]}`}
+      size="sm"
+      closeOnEscape={!busy}
+      backdropLabel="Cerrar sin promover"
+      onClose={close}
+    >
+      <div className="flex flex-col">
         <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
           <div>
             <p className="text-micro uppercase tracking-eyebrow text-ink-300">
@@ -311,6 +306,6 @@ export function PromoteModal({
           </button>
         </footer>
       </div>
-    </>
+    </ModalShell>
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useModalOverlay } from '../../hooks/useModalOverlay'
+import { ModalShell } from '../ModalShell'
 import { useEntitiesQuery, useQuotesQuery } from '../../state'
 import { useToast } from '../../state/toast'
 import { downloadBlob } from '../../lib/downloadBlob'
@@ -31,15 +31,11 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
   const [previewPages, setPreviewPages] = useState<string[] | null>(null)
   const cacheRef = useRef<{ key: string; bytes: Uint8Array } | null>(null)
 
-  // Escape + focus trap + scroll-lock + restaurar foco al trigger, vía el
-  // primitivo canónico. Mientras se compone (busy) Escape no cierra —
-  // preserva el guard `!busy` que tenía el handler manual. El backdrop y los
-  // botones de cierre mantienen su propio guard `busy` más abajo.
-  const overlay = useModalOverlay({
-    open: true,
-    onClose,
-    closeOnEscape: !busy,
-  })
+  // Mientras se compone (busy) no se puede cerrar: ni Escape, ni backdrop,
+  // ni los botones. ModalShell aporta portal, backdrop, focus-trap y scroll-lock.
+  const close = () => {
+    if (!busy) onClose()
+  }
 
   const favoriteCount = quotes.filter((q) => q.pinnedAt).length
   const effectiveQuotes = onlyFavorites ? quotes.filter((q) => q.pinnedAt) : quotes
@@ -119,20 +115,14 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <>
-      <button
-        onClick={() => !busy && onClose()}
-        aria-label="Cerrar"
-        className="fixed inset-0 z-40 bg-ink-900/30 backdrop-blur-sm cursor-default"
-        tabIndex={-1}
-      />
-      <div
-        ref={overlay.dialogRef}
-        role="dialog"
-        aria-label="Mi libro"
-        aria-modal="true"
-        className="fixed inset-x-4 top-16 md:inset-x-0 md:mx-auto md:w-[560px] z-50 flex flex-col rounded-xl border border-ink-100/50 bg-paper-50/95 backdrop-blur-md shadow-lg shadow-ink-900/10 overflow-hidden animate-slide-up"
-      >
+    <ModalShell
+      ariaLabel="Mi libro"
+      size="md"
+      closeOnEscape={!busy}
+      backdropLabel="Cerrar sin componer"
+      onClose={close}
+    >
+      <div className="flex flex-col">
         <header className="px-5 py-4 border-b border-ink-100/60 flex items-baseline justify-between gap-3">
           <div>
             <p className="text-micro uppercase tracking-eyebrow text-ink-300 flex items-center gap-1.5">
@@ -330,6 +320,6 @@ export function LibroModal({ onClose }: { onClose: () => void }) {
           </button>
         </footer>
       </div>
-    </>
+    </ModalShell>
   )
 }

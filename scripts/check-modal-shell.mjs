@@ -24,6 +24,10 @@ import { scannedSourceFiles } from './lib/source-files.mjs'
 // reclama como STALE, para que la lista describa el repo de verdad.
 
 export const MODAL_SHELL_EXEMPT = new Map([
+  [
+    'src/components/biblioteca/BibliotecaLinkPicker.tsx',
+    'Se apila SOBRE BibliotecaViewer (z-[100], la capa max); ModalShell vive en z-modal (60) y quedaría detrás del visor.',
+  ],
   ['src/components/Atril.tsx', 'Lector a pantalla completa (cita del día), no una caja.'],
   ['src/components/Careo.tsx', 'Superficie a pantalla completa de dos columnas.'],
   ['src/components/EditorialReader.tsx', 'Lector inmersivo a pantalla completa.'],
@@ -96,13 +100,8 @@ export const MODAL_SHELL_EXEMPT = new Map([
 // candidata directa a ModalShell; se migran de a pocas para no mezclar
 // riesgo visual en un solo PR.
 export const MODAL_SHELL_PENDING = new Map([
-  ['src/components/recortes/PromoteModal.tsx', 'Caja estándar con formulario largo.'],
-  ['src/components/quotes/LibroModal.tsx', 'Caja estándar con dos pasos.'],
-  ['src/components/quotes/LaminaModal.tsx', 'Caja estándar con vista previa.'],
-  [
-    'src/components/biblioteca/BibliotecaLinkPicker.tsx',
-    'Caja estándar con buscador interno.',
-  ],
+  // Vacío hoy: los cuatro que quedaban migraron en el PR C. Un modal nuevo
+  // que no pueda migrar de inmediato entra acá con su motivo.
 ])
 
 const DIALOG_ROLE_RE = /\brole=(["'])(?:dialog|alertdialog)\1/
