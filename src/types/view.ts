@@ -11,15 +11,18 @@
  * lazy en ViewRouter, agregar entry en NAV_ITEMS de Sidebar, y
  * autocompletar el switch del CommandPalette.
  */
-export type ViewMode =
-  | 'inicio'
-  | 'grafo'
-  | 'entidades'
-  | 'citas'
-  | 'escuchas'
-  | 'twitter'
-  | 'momentos'
-  | 'cronologia'
-  | 'atlas'
-  | 'chat'
-  | 'sugerencias'
+export const VIEW_MODES = [
+  'inicio',
+  'grafo',
+  'entidades',
+  'citas',
+  'escuchas',
+  'twitter',
+  'momentos',
+  'cronologia',
+  'atlas',
+  'chat',
+  'sugerencias',
+] as const
+
+export type ViewMode = (typeof VIEW_MODES)[number]

@@ -36,7 +36,7 @@ describe('<ChatView />', () => {
     )
     await waitFor(() => {
       expect(
-        screen.getByRole('heading', { level: 3, name: /conversaciones/i }),
+        screen.getByRole('heading', { level: 2, name: /conversaciones/i }),
       ).toBeInTheDocument()
     })
   })

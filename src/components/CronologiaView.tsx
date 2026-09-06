@@ -90,7 +90,9 @@ export function CronologiaView({
     const seen = new Set<string>()
     const out: CronologiaEntrada[] = []
     for (const page of query.data?.pages ?? []) {
-      for (const e of page.entradas) {
+      // Una página sin `entradas` (respuesta malformada o un mock viejo) no
+      // puede tumbar la vista entera: se trata como vacía.
+      for (const e of page.entradas ?? []) {
         const k = `${e.kind}-${e.id}`
         if (seen.has(k)) continue
         seen.add(k)

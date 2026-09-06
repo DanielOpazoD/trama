@@ -183,7 +183,9 @@ export function ChatView({
       {/* Left rail: thread list */}
       <aside className="w-64 shrink-0 border-r border-ink-100/50 flex flex-col">
         <div className="px-4 py-3 border-b border-ink-100/50 flex items-baseline justify-between">
-          <h3 className="section-eyebrow">conversaciones</h3>
+          {/* h2, no h3: el h1 es «Chat» y el título del hilo también es h2; un
+              h3 antes del primer h2 rompe el orden de encabezados (axe). */}
+          <h2 className="section-eyebrow">conversaciones</h2>
           <button
             onClick={handleNewThread}
             disabled={createThread.isPending}
@@ -306,7 +308,14 @@ export function ChatView({
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        {/* Región scrolleable con acceso por teclado: sin hilo activo no hay
+            nada enfocable dentro y axe la marca (scrollable-region-focusable). */}
+        <div
+          className="flex-1 overflow-y-auto px-6 py-6 focus-ring"
+          role="region"
+          aria-label="Mensajes del hilo"
+          tabIndex={0}
+        >
           {!activeId ? (
             <EmptyChatHint />
           ) : messagesLoading ? (
