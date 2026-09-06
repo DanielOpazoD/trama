@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**27 pendientes** en 17 planes. Del más reciente al más viejo.
+**28 pendientes** en 18 planes. Del más reciente al más viejo.
 
 ## 2026-09-05 · Una aguja para el sensor: web vitals en el panel de salud
 
@@ -25,6 +25,12 @@ Plan: [2026-09-05-registro-de-pendientes.md](superpowers/plans/2026-09-05-regist
 Plan: [2026-09-05-prettier-3-9-y-grupo-tooling.md](superpowers/plans/2026-09-05-prettier-3-9-y-grupo-tooling.md)
 
 - ESLint 10.4 → 10.9 y typescript-eslint 8.60 → 8.68 siguen dentro de #417. El CI nunca llegó a ejecutar `lint` con esas versiones porque `format:check` cortaba antes; si traen una regla nueva, se verá en el rebase.
+
+## 2026-09-05 · Un merge queue en vez de rebasar a mano
+
+Plan: [2026-09-05-merge-queue.md](superpowers/plans/2026-09-05-merge-queue.md)
+
+- `pdf-visual.yml` no escucha `merge_group`. No es requerido, así que no bloquea; si algún día lo fuera, hay que añadirle el disparador.
 
 ## 2026-09-05 · Imprenta: elegir hojas sin apuntar, y un OCR que vuelve
 

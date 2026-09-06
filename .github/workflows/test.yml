@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main, 'codex/trama-pr*']
+  # Merge queue: GitHub construye un commit temporal con main + el PR y pide
+  # los mismos checks requeridos antes de fusionar. Sin este disparador el
+  # queue espera checks que nunca llegan y ningún PR entra.
+  merge_group:
+    branches: [main]
 
 # R1: el workflow se dividió en jobs paralelos:
 #
