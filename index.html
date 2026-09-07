@@ -86,6 +86,11 @@
   </head>
   <body class="paper-grain">
     <div id="root"></div>
+    <!-- Vigía de arranque: si #root sigue vacío a los 10 s, explica el fallo en
+         vez de dejar una página blanca. Va ANTES del bundle y fuera de él (se
+         sirve desde public/), para sobrevivir a un fallo del propio bundle:
+         producción estuvo blanca por un ciclo entre chunks y nadie pudo avisar. -->
+    <script type="module" src="/arranque-vigia.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

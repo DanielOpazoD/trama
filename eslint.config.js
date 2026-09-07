@@ -232,6 +232,23 @@ export default tseslint.config(
     },
   },
   // Extensión de Chrome (MV3): ES modules de browser con la API chrome.*.
+  // Scripts servidos tal cual desde public/ (no pasan por el bundler): JS de
+  // navegador, sin imports. Hoy solo el vigía de arranque, que existe
+  // precisamente para sobrevivir a un fallo del bundle.
+  {
+    files: ['public/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        document: 'readonly',
+        window: 'readonly',
+        navigator: 'readonly',
+        Blob: 'readonly',
+        MutationObserver: 'readonly',
+      },
+    },
+  },
   // El SW usa `"type": "module"` y los módulos viven en extension/lib/.
   {
     files: ['extension/**/*.js'],
