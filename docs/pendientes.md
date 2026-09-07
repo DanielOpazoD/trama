@@ -4,7 +4,13 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**36 pendientes** en 25 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**37 pendientes** en 26 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+
+## 2026-09-06 · Producción en blanco con el CI en verde
+
+Plan: [2026-09-06-produccion-en-blanco.md](superpowers/plans/2026-09-06-produccion-en-blanco.md)
+
+- El humo carga `/` sin backend y sin Clerk; no navega. Cubrir Inicio en demo sobre el bundle (con `trama-demo` en localStorage) daría una segunda pantalla real por el mismo precio.
 
 ## 2026-09-06 · Fotos de Momentos a Imprenta: el puente entre mundos
 

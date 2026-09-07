@@ -97,6 +97,15 @@ const SCRIPT_ENTRIES = [
     summary: 'Falla si chunks gzip o familias agregadas exceden budgets explícitos.',
   },
   {
+    file: 'scripts/check-chunk-graph.mjs',
+    domain: 'bundle',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:chunk-graph'],
+    summary:
+      'Falla si dos chunks del build se importan en ciclo (evaluación con `var` sin asignar: producción en blanco).',
+  },
+  {
     file: 'scripts/lighthouse-report-summary.mjs',
     domain: 'frontend',
     kind: 'report',
@@ -1010,6 +1019,28 @@ export const QUALITY_GATES = [
     phase: 'bundle',
     required: true,
     summary: 'Budgets gzip por chunk y familias PDF.',
+  },
+  {
+    command: 'npm run build',
+    job: 'e2e',
+    phase: 'build',
+    required: true,
+    summary: 'Build real para el humo del bundle de producción.',
+  },
+  {
+    command: 'npm run e2e:preview',
+    job: 'e2e',
+    phase: 'e2e',
+    required: true,
+    summary:
+      'El bundle de producción monta en un navegador real sin errores no capturados.',
+  },
+  {
+    command: 'npm run check:chunk-graph',
+    job: 'unit',
+    phase: 'bundle',
+    required: true,
+    summary: 'Sin ciclos de import estático entre chunks del build.',
   },
   {
     command: 'npm run check:pdf-lazy-entrypoints',

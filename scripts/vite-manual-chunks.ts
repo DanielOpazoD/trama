@@ -8,7 +8,14 @@ export function manualVendorChunks(id: string) {
     return 'vite-runtime'
   }
   if (!id.includes('node_modules')) return undefined
-  if (id.includes('react-dom') || id.match(/[\\/]react[\\/]/)) {
+  // Solo los paquetes `react`, `react-dom` y `scheduler`: el segmento anterior
+  // tiene que ser `node_modules`. Con `/react/` a secas, `@clerk/react` caía
+  // acá, y como importa `@clerk/shared` (→ query-core, en `vendor-query`) y
+  // react-query importa React, los dos chunks se importaban mutuamente.
+  // Producción quedó en blanco («t is not a function» en vendor-query): en un
+  // ciclo, el segundo en evaluarse ve los `var` del primero sin asignar.
+  // `check:chunk-graph` vigila que no vuelva a pasar.
+  if (/[\\/]node_modules[\\/](?:react|react-dom|scheduler)[\\/]/.test(id)) {
     return 'vendor-react'
   }
   if (id.includes('@tanstack')) {
@@ -16,7 +23,14 @@ export function manualVendorChunks(id: string) {
   }
   // sigma y graphology van juntas; si Vite las arrastra al principal, el bundle
   // inicial crece aunque el grafo grande sea una vista lazy.
-  if (id.includes('sigma') || id.includes('graphology')) {
+  // `events` es la dependencia de sigma (EventEmitter para el navegador). Sin
+  // nombrarla caía en el chunk de la vista que la usa (GraphCanvasSigma) y
+  // vendor-graph la importaba de vuelta: otro ciclo, mismo riesgo.
+  if (
+    id.includes('sigma') ||
+    id.includes('graphology') ||
+    /[\\/]node_modules[\\/]events[\\/]/.test(id)
+  ) {
     return 'vendor-graph'
   }
   // pdf-lib y fontkit son bordes lazy de Imprenta/Libro. Nombrarlos evita que
@@ -72,12 +86,17 @@ export const VENDOR_CHUNK_NAMES = [
  */
 export function advancedVendorChunks() {
   return {
-    // Rollup asignaba por id y nada más. Rolldown, por defecto, arrastra al
-    // grupo también las dependencias de cada módulo capturado
-    // (`includeDependenciesRecursively: true`): así `@clerk/react` se llevaba
-    // `@tanstack/query-core` a `vendor-react` (+12 KB) en vez de dejarlo en
-    // `vendor-query`. Apagado, cada módulo cae donde su propio id dice.
-    includeDependenciesRecursively: false,
+    // Rolldown arrastra al grupo las dependencias de cada módulo capturado
+    // (salvo las que capture un grupo de mayor prioridad). Estuvo en `false`
+    // para que `@clerk/react` no se llevara `@tanstack/query-core` a
+    // `vendor-react`; pero eso dejaba a las dependencias no nombradas (`events`
+    // de sigma, las de mammoth) en el chunk de la vista que las usa, y el
+    // vendor las importaba de vuelta: tres ciclos chunk ↔ chunk, y uno
+    // (vendor-react ↔ vendor-query, con clerk dentro de vendor-react) dejó
+    // producción en blanco. Con `vendor-react` acotado a React de verdad, el
+    // valor por defecto es el correcto: cada vendor se lleva lo suyo y el
+    // grafo queda acíclico. `check:chunk-graph` lo comprueba en cada build.
+    includeDependenciesRecursively: true,
     groups: VENDOR_CHUNK_NAMES.map((name, index) => ({
       name,
       test: (id: string) => manualVendorChunks(id) === name,
