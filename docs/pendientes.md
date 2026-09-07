@@ -4,7 +4,13 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**37 pendientes** en 26 planes. Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**38 pendientes** en 27 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+
+## 2026-09-07 · El vigía de arranque: una pantalla en blanco que se explica
+
+Plan: [2026-09-07-vigia-de-arranque.md](superpowers/plans/2026-09-07-vigia-de-arranque.md)
+
+- [alto] En `tramadaod.netlify.app` y en los deploy previews, Clerk rechaza la clave de producción por dominio: la sesión no arranca y ahora se ve el panel del vigía en vez del blanco. Es configuración, no código —hace falta una clave de test para esos contextos, o aceptar que el único dominio válido es `tramahub.app`—. Decidirlo, y si toca, poner la clave por contexto de deploy.
 
 ## 2026-09-06 · Producción en blanco con el CI en verde
 
