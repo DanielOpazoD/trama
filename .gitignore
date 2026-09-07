@@ -46,6 +46,10 @@ coverage
 .claude/*
 # …excepto las skills versionadas del repo (proceso compartido con el equipo/Codex).
 !.claude/skills/
+# Espejo local de esas mismas skills que crea el tooling de agentes: la copia
+# versionada es .claude/skills/, y dos copias divergen (la de acá venía
+# reformateada por Prettier).
+.agents/
 
 # Playwright
 test-results/

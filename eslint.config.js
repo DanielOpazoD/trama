@@ -225,7 +225,7 @@ export default tseslint.config(
   },
   // E2E: jsx-a11y no aplica a especificaciones de Playwright.
   {
-    files: ['e2e/**/*.{ts,tsx}'],
+    files: ['e2e/**/*.{ts,tsx}', 'e2e-preview/**/*.{ts,tsx}'],
     plugins: {},
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

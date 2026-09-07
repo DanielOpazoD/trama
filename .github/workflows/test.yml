@@ -236,6 +236,11 @@ jobs:
       - name: Bundle size budget
         run: node scripts/check-bundle-size.mjs
 
+      # Producción quedó en blanco con el CI en verde: vendor-react y
+      # vendor-query se importaban en ciclo. El budget mide bytes; esto, el grafo.
+      - name: Chunk graph check
+        run: npm run check:chunk-graph
+
       # PDF Studio debe seguir lazy: el shell inicial no puede pre-cargar
       # pdf-lib, pdf.js, OCR ni workers PDF por accidente.
       - name: PDF lazy entrypoints check
@@ -261,6 +266,13 @@ jobs:
 
       - name: Run E2E tests
         run: npm run e2e
+
+      # Humo sobre el BUILD real: el dev server no trocea módulos, así que un
+      # ciclo entre chunks (producción en blanco, CI verde) solo se ve acá.
+      - name: Build for preview smoke
+        run: npm run build
+      - name: Production bundle smoke
+        run: npm run e2e:preview
 
       - name: Upload Playwright report
         if: always()
