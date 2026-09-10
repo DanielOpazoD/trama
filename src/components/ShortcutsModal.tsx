@@ -47,7 +47,11 @@ const GROUPS: Group[] = [
         label: 'Empezar con > busca solo comandos: vistas, acciones y secciones',
       },
       { keys: ['@'], label: 'Empezar con @ busca solo entidades' },
-      { keys: ['#'], label: 'Empezar con # busca solo secciones de Notas' },
+      {
+        keys: ['#'],
+        label:
+          'Empezar con # busca solo secciones: vistas y secciones de Notas, por nombre o alias',
+      },
       { keys: ['↑', '↓', 'Enter'], label: 'Recorrer los resultados y abrir' },
       { keys: [CMD, 'Enter'], label: 'Preguntar lo escrito, sin elegir fila' },
     ],

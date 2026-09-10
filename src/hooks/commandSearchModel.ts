@@ -167,7 +167,7 @@ const SCOPE_GROUPS: Record<CommandSearchScope, readonly CommandSearchGroup[]> = 
   preguntar: ['ask', 'savedQuery'],
   comandos: ['view', 'action', 'reveal'],
   entidades: ['entity'],
-  secciones: ['reveal'],
+  secciones: ['reveal', 'view'],
 }
 
 export function buildCommandSearchItems({

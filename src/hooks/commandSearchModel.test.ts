@@ -317,9 +317,21 @@ describe('commandSearchModel', () => {
     it('un sigilo solo enseña todo su alcance', () => {
       const secciones = buildCommandSearchItems({ ...base, query: '#' })
       expect(secciones.length).toBeGreaterThan(3)
-      expect(secciones.every((item) => item.kind === 'reveal')).toBe(true)
+      expect(kinds('#')).toEqual(['reveal', 'view'])
       expect(kinds('>')).toEqual(['view', 'action'])
       expect(kinds('?')).toEqual(['savedQuery'])
+    })
+
+    it('«#» encuentra una vista por su alias, y los alias de Notas siguen primero', () => {
+      const conAlias = { ...base, sectionAliases: { grafo: 'mapa' } }
+      expect(buildCommandSearchItems({ ...conAlias, query: '#mapa' })[0]).toMatchObject({
+        kind: 'view',
+        view: 'grafo',
+      })
+      expect(buildCommandSearchItems({ ...conAlias, query: '#pass' })[0]).toMatchObject({
+        kind: 'reveal',
+        moduleId: 'claves',
+      })
     })
   })
 })
