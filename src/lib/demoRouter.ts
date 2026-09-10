@@ -12,6 +12,7 @@ import {
   type DemoUploadFile,
 } from './demoBiblioteca'
 import { extractPromptVariables, parseTags, weekStartAgo } from './demoUtils'
+import { demoQueryResponse } from './demoQuery'
 
 function uid(): string {
   return crypto.randomUUID()
@@ -199,6 +200,12 @@ export function routeDemoRequest(
 ): unknown {
   const seg = path.replace(/^\/api\//, '').split('/')
   const resource = seg[0] ?? ''
+  // «Pregúntale a tu Trama» en la demo, sin IA: el mismo fallback de texto que da
+  // producción con la IA apagada. Sin este caso el POST caía en el `default`
+  // ({ ok: true }) y preguntar desde la paleta tumbaba la app entera (medido).
+  if (resource === 'query' && method === 'POST') {
+    return demoQueryResponse(store, seg[1] === 'nl', body)
+  }
   const id = seg[1]
   const action = seg[2]
 

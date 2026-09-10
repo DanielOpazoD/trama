@@ -76,4 +76,20 @@ describe('useGlobalShortcuts', () => {
     expect(onToggleShortcuts).not.toHaveBeenCalled()
     expect(onToggleFocusMode).not.toHaveBeenCalled()
   })
+
+  test('⌘K funciona con Bloq Mayús y una tecla ya reclamada no abre la paleta', () => {
+    const onTogglePalette = vi.fn()
+    const onOpenPalette = vi.fn()
+    render(<Harness onTogglePalette={onTogglePalette} onOpenPalette={onOpenPalette} />)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'K', metaKey: true }))
+    expect(onTogglePalette).toHaveBeenCalledOnce()
+
+    // Como el buscador del grafo: reclama «/» en captura antes de que llegue al atajo.
+    const reclamar = (e: KeyboardEvent) => e.preventDefault()
+    window.addEventListener('keydown', reclamar, true)
+    fireEvent.keyDown(document.body, { key: '/' })
+    window.removeEventListener('keydown', reclamar, true)
+    expect(onOpenPalette).not.toHaveBeenCalled()
+  })
 })

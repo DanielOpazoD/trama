@@ -276,4 +276,50 @@ describe('commandSearchModel', () => {
     expect(descriptions.some((item) => item.kind === 'savedQuery')).toBe(true)
     expect(descriptions.some((item) => item.kind === 'chat')).toBe(true)
   })
+
+  describe('gramática', () => {
+    const base = {
+      actionsEnabled: true,
+      localSearchEnabled: true,
+      entities: [entity({ id: 'e-borges', name: 'Borges' })],
+      quotes: [quote({ id: 'q-1', entityId: 'e-borges', text: 'Borges soñaba tigres' })],
+      savedQueries: [savedQuery('Borges y compañía')],
+      serverResults: server({
+        momentos: [
+          { id: 'm-1', kind: 'nota', text: 'Releí a Borges', score: 1 },
+        ] as unknown as SearchResponse['momentos'],
+      }),
+      sectionAliases: {},
+      visibility: DEFAULT_VISIBILITY,
+    }
+    const kinds = (query: string) => [
+      ...new Set(buildCommandSearchItems({ ...base, query }).map((item) => item.kind)),
+    ]
+
+    it('un sigilo acota los grupos; sin sigilo se busca en todo', () => {
+      expect(kinds('borges')).toEqual(['savedQuery', 'entity', 'quote', 'momento', 'ask'])
+      expect(kinds('@borges')).toEqual(['entity'])
+      expect(kinds('?borges')).toEqual(['ask', 'savedQuery'])
+      expect(kinds('>nueva')).toEqual(['action'])
+      expect(kinds('#claves')).toEqual(['reveal'])
+    })
+
+    it('con «?» la pregunta va primera y basta un carácter; sin sigilo, al final y desde tres', () => {
+      expect(buildCommandSearchItems({ ...base, query: '?x' })[0]).toEqual({
+        kind: 'ask',
+        q: 'x',
+      })
+      const libre = buildCommandSearchItems({ ...base, query: 'borges' })
+      expect(libre[libre.length - 1]).toEqual({ kind: 'ask', q: 'borges' })
+      expect(kinds('bo')).not.toContain('ask')
+    })
+
+    it('un sigilo solo enseña todo su alcance', () => {
+      const secciones = buildCommandSearchItems({ ...base, query: '#' })
+      expect(secciones.length).toBeGreaterThan(3)
+      expect(secciones.every((item) => item.kind === 'reveal')).toBe(true)
+      expect(kinds('>')).toEqual(['view', 'action'])
+      expect(kinds('?')).toEqual(['savedQuery'])
+    })
+  })
 })

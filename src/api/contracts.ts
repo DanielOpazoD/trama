@@ -125,6 +125,19 @@ export const CONTRACTS = {
       items: z.array(z.object({ id: z.string(), name: z.string(), pinned: z.boolean() })),
     }),
   },
+  // La paleta recorre los cinco grupos sin defensas: un grupo que no viajaba
+  // (el mock de e2e solo mandaba entidades y citas) tumbaba la app entera al
+  // teclear dos letras, porque la paleta vive fuera de los ErrorBoundary.
+  search: {
+    path: '/api/search?q=borges&limit=8&mode=lexical',
+    schema: z.object({
+      entities: z.array(row),
+      quotes: z.array(row),
+      momentos: z.array(row),
+      cronicas: z.array(row),
+      chat: z.array(row),
+    }),
+  },
   shareInvitations: {
     path: '/api/momentos-share-invitations',
     schema: z.object({

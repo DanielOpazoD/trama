@@ -2,6 +2,10 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { Item } from '../../hooks/useCommandSearch'
 import { ItemRow, PeekPanel } from '../CommandPaletteItems'
 import {
+  describeCommandPaletteHints,
+  describeCommandPaletteScope,
+} from './commandPaletteKeys'
+import {
   commandPaletteItemKey,
   describeCommandPaletteEmptyState,
 } from './commandPaletteModel'
@@ -25,8 +29,14 @@ export function CommandPaletteSearchMode({
   onFocusIdx: Dispatch<SetStateAction<number>>
   onSelectItem: (item: Item) => void
 }) {
+  const scope = describeCommandPaletteScope(query)
   return (
     <>
+      {scope && (
+        <p className="px-5 pt-2 text-micro uppercase tracking-eyebrow text-ink-300">
+          {scope}
+        </p>
+      )}
       <div className="flex">
         <ul className="max-h-[50vh] overflow-y-auto flex-1 min-w-0">
           {items.length === 0 && (
@@ -57,9 +67,11 @@ export function CommandPaletteSearchMode({
           </aside>
         )}
       </div>
-      <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">
-        <span>↑↓ navegar · enter abrir · esc cerrar</span>
-        <span>{items.length} resultados</span>
+      <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between gap-3">
+        <span className="truncate">{describeCommandPaletteHints(query)}</span>
+        <span role="status" className="shrink-0">
+          {running ? 'consultando tu trama…' : `${items.length} resultados`}
+        </span>
       </div>
     </>
   )

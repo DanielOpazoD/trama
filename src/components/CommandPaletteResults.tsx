@@ -29,6 +29,7 @@ export function CommandPaletteResults({
   onBack,
   onSave,
   saving,
+  savedQueryId,
 }: {
   hits: QueryHit[]
   ast: QueryInput | null
@@ -38,18 +39,20 @@ export function CommandPaletteResults({
   onFocusIdx: (idx: number) => void
   onSelectHit: (hit: QueryHit) => void
   onBack: () => void
-  /** Guardar la consulta con un nombre. Solo se ofrece si hay AST. */
-  onSave: (name: string) => void
+  /** Guardar con un nombre; resuelve si se guardó. Solo se ofrece si hay AST. */
+  onSave: (name: string) => Promise<boolean>
   saving: boolean
+  /** Resultados de una consulta guardada: no se ofrece guardarla otra vez. */
+  savedQueryId?: string
 }) {
   const [saveName, setSaveName] = useState('')
 
-  function submitSave(e: FormEvent) {
+  async function submitSave(e: FormEvent) {
     e.preventDefault()
     const name = saveName.trim()
     if (!name || !ast) return
-    onSave(name)
-    setSaveName('')
+    // El nombre se borra solo si se guardó: un fallo deja lo escrito para reintentar.
+    if (await onSave(name)) setSaveName('')
   }
 
   return (
@@ -71,7 +74,7 @@ export function CommandPaletteResults({
             interpretado como…
             {source === 'fallback' && (
               <span className="ml-2 normal-case tracking-normal text-ink-400 italic">
-                búsqueda de texto (la IA no estaba disponible)
+                búsqueda de texto: no se pudo interpretar como consulta
               </span>
             )}
           </summary>
@@ -116,7 +119,11 @@ export function CommandPaletteResults({
         </ul>
       )}
 
-      {ast && (
+      {ast && savedQueryId ? (
+        <p className="mx-5 my-3 text-micro uppercase tracking-eyebrow text-ink-300">
+          consulta guardada
+        </p>
+      ) : ast ? (
         <form
           onSubmit={submitSave}
           className="mx-5 my-3 flex flex-wrap items-center gap-2"
@@ -137,7 +144,7 @@ export function CommandPaletteResults({
             Guardar consulta
           </button>
         </form>
-      )}
+      ) : null}
     </div>
   )
 }

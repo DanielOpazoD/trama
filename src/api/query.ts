@@ -1,58 +1,13 @@
 /**
  * Motor de queries componibles (Fase 1). Envía un AST a `POST /api/query` y
  * recibe hits cross-tipo (entity/quote/momento/note) con paginación keyset.
- *
- * El AST se mantiene como estructura serializable: el día de mañana, el bloque
- * de query embebible y el traductor lenguaje-natural→AST producen este mismo
- * shape.
+ * La forma del AST y de los hits vive en `queryTypes.ts`.
  */
 
 import { request } from './request'
+import type { NlQueryResult, QueryInput, QueryResult } from './queryTypes'
 
-export type ObjectKind = 'entity' | 'quote' | 'momento' | 'note'
-
-export type Predicate =
-  | {
-      // campos del registry o `prop:<key>` (propiedad de usuario)
-      field: string
-      op: 'eq' | 'neq' | 'lt' | 'lte' | 'gt' | 'gte' | 'contains'
-      value: string | number | boolean
-    }
-  | { field: string; op: 'between'; value: [string | number, string | number] }
-  | { field: string; op: 'in'; value: Array<string | number | boolean> }
-  | { field: 'tags'; op: 'has_any' | 'has_all'; value: string[] }
-  | { op: 'matches'; value: string }
-  | { field: string; op: 'exists' }
-  | { op: 'linked_to'; id: string }
-
-export type Condition =
-  { and: Condition[] } | { or: Condition[] } | { not: Condition } | Predicate
-
-export type QueryInput = {
-  from: ObjectKind[]
-  where?: Condition
-  sort?: { field: 'created_at' | 'occurred_at'; dir: 'asc' | 'desc' }
-  limit?: number
-  cursor?: string
-}
-
-export type QueryHit = {
-  kind: ObjectKind
-  id: string
-  title: string | null
-  snippet: string | null
-  createdAt: string
-  tags: string[]
-}
-
-export type QueryResult = { items: QueryHit[]; nextCursor: string | null }
-
-/** Respuesta de NL→query: incluye el AST interpretado (para mostrar/editar). */
-export type NlQueryResult = QueryResult & {
-  query: QueryInput
-  /** 'llm' si el modelo tradujo; 'fallback' si cayó a búsqueda de texto libre. */
-  source: 'llm' | 'fallback'
-}
+export type { NlQueryResult, QueryHit, QueryInput, QueryResult } from './queryTypes'
 
 export const queryApi = {
   run(input: QueryInput): Promise<QueryResult> {

@@ -48,8 +48,8 @@ export const DEMO_GET_EXEMPT = new Map<string, string>([
   ['/api/momentos-uploads-complete', 'Solo POST.'],
   ['/api/momentos-uploads-presign', 'Solo POST.'],
   ['/api/notas-attachments-upload', 'Solo POST.'],
-  ['/api/query', 'Solo POST.'],
-  ['/api/query/nl', 'Solo POST.'],
+  ['/api/query', 'Solo POST; la demo lo responde con demoQuery.ts.'],
+  ['/api/query/nl', 'Solo POST; la demo lo responde con demoQuery.ts.'],
   ['/api/recortes-image-upload', 'Solo POST.'],
 ])
 

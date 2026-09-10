@@ -97,6 +97,7 @@ describe('commandPaletteSelectionModel', () => {
       kind: 'runAst',
       query: { from: ['entity'] },
       heading: 'Guardada',
+      savedQueryId: 'sq-1',
     })
   })
 })

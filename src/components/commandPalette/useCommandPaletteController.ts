@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { QueryHit, QueryInput } from '../../api/query'
+import { useCallback, useEffect, useState } from 'react'
+import type { QueryHit } from '../../api/query'
+import { parseCommandQuery } from '../../hooks/commandSearchGrammar'
 import type { CommandAction, Item } from '../../hooks/useCommandSearch'
-import { useAskQuery, useRunQuery, useSaveQuery } from '../../state/useSavedQueries'
-import { useToast } from '../../state/toast'
 import type { NotasSection } from '../../types/notas'
 import type { ViewMode } from '../../types/view'
 import type { CommandPaletteResultsState } from './CommandPaletteDialog'
@@ -15,6 +14,7 @@ import {
   getCommandPaletteItemCommand,
   type CommandPaletteSelectionCommand,
 } from './commandPaletteSelectionModel'
+import { useCommandPaletteQueries } from './useCommandPaletteQueries'
 
 function isInlineCommand(command: CommandPaletteSelectionCommand) {
   return command.kind === 'runAsk' || command.kind === 'runAst'
@@ -44,79 +44,28 @@ export function useCommandPaletteController({
   const [focusIdx, setFocusIdx] = useState(0)
   const [mode, setMode] = useState<CommandPaletteMode>('search')
   const [results, setResults] = useState<CommandPaletteResultsState | null>(null)
-  const [running, setRunning] = useState(false)
-  const runningRef = useRef(false)
 
-  const ask = useAskQuery()
-  const run = useRunQuery()
-  const saveQuery = useSaveQuery()
-  const toast = useToast()
+  const showResults = useCallback((next: CommandPaletteResultsState) => {
+    setResults(next)
+    setMode('results')
+    setFocusIdx(0)
+  }, [])
+  const { invalidate, running, runAsk, runAst, saveQuery, saving } =
+    useCommandPaletteQueries({ query, onResults: showResults })
 
   useEffect(() => {
     if (!open) return
     setMode('search')
     setResults(null)
-    runningRef.current = false
-    setRunning(false)
+    invalidate()
     setFocusIdx(0)
-  }, [open])
+  }, [invalidate, open])
 
   useEffect(() => {
     setFocusIdx(0)
     setMode('search')
     setResults(null)
   }, [query])
-
-  const runAst = useCallback(
-    (queryInput: QueryInput, heading: string) => {
-      if (runningRef.current) return
-      runningRef.current = true
-      setRunning(true)
-      run
-        .mutateAsync(queryInput)
-        .then((res) => {
-          setResults({ hits: res.items, ast: queryInput, heading })
-          setMode('results')
-          setFocusIdx(0)
-        })
-        .catch(() => {
-          toast.show({ message: 'No se pudo ejecutar la consulta.', tone: 'error' })
-        })
-        .finally(() => {
-          runningRef.current = false
-          setRunning(false)
-        })
-    },
-    [run, toast],
-  )
-
-  const runAsk = useCallback(
-    (q: string) => {
-      if (runningRef.current) return
-      runningRef.current = true
-      setRunning(true)
-      ask
-        .mutateAsync(q)
-        .then((res) => {
-          setResults({
-            hits: res.items,
-            ast: res.query,
-            source: res.source,
-            heading: `«${q}»`,
-          })
-          setMode('results')
-          setFocusIdx(0)
-        })
-        .catch(() => {
-          toast.show({ message: 'No se pudo interpretar la pregunta.', tone: 'error' })
-        })
-        .finally(() => {
-          runningRef.current = false
-          setRunning(false)
-        })
-    },
-    [ask, toast],
-  )
 
   const dispatchCommand = useCallback(
     (command: CommandPaletteSelectionCommand) => {
@@ -140,7 +89,7 @@ export function useCommandPaletteController({
           runAsk(command.q)
           return
         case 'runAst':
-          runAst(command.query, command.heading)
+          runAst(command.query, command.heading, command.savedQueryId)
           return
       }
       if (!isInlineCommand(command)) onClose()
@@ -173,11 +122,18 @@ export function useCommandPaletteController({
     [dispatchCommand, onOpenThread],
   )
 
+  /** ⌘Enter: pregunta lo escrito, sin depender de qué fila está enfocada. */
+  const askCurrent = useCallback(() => {
+    const { text } = parseCommandQuery(query)
+    if (text) runAsk(text)
+  }, [query, runAsk])
+
   const backToSearch = useCallback(() => {
+    invalidate()
     setMode('search')
     setResults(null)
     setFocusIdx(0)
-  }, [])
+  }, [invalidate])
 
   const handleEscape = useCallback(() => {
     if (mode === 'results') {
@@ -188,9 +144,8 @@ export function useCommandPaletteController({
   }, [backToSearch, mode, onClose])
 
   const saveCurrentQuery = useCallback(
-    (name: string) => {
-      if (results?.ast) saveQuery.mutate({ name, query: results.ast })
-    },
+    (name: string) =>
+      results?.ast ? saveQuery(name, results.ast) : Promise.resolve(false),
     [results?.ast, saveQuery],
   )
 
@@ -202,6 +157,7 @@ export function useCommandPaletteController({
 
   return {
     activeLen,
+    askCurrent,
     backToSearch,
     focusIdx,
     handleEscape,
@@ -209,7 +165,7 @@ export function useCommandPaletteController({
     results,
     running,
     saveCurrentQuery,
-    saving: saveQuery.isPending,
+    saving,
     selectHit,
     selectItem,
     setFocusIdx,

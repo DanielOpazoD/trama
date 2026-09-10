@@ -24,7 +24,9 @@ describe('<ShortcutsModal />', () => {
 
     expect(screen.getByRole('dialog', { name: 'Atajos de teclado' })).toBeInTheDocument()
     expect(screen.getByText('Navegación')).toBeInTheDocument()
-    expect(screen.getByText('Buscar entidades, citas, ir a sección')).toBeInTheDocument()
+    expect(
+      screen.getByText('Buscar, preguntar o ejecutar un comando'),
+    ).toBeInTheDocument()
     expect(screen.getByText('Captura rápida')).toBeInTheDocument()
     expect(screen.getByText('Imprenta · páginas')).toBeInTheDocument()
     expect(screen.getByText('Copiar páginas marcadas')).toBeInTheDocument()

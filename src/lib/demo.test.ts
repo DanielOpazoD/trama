@@ -396,3 +396,34 @@ describe('enterDemoModeFromUrl', () => {
     expect(isDemoMode()).toBe(true)
   })
 })
+
+describe('demo — preguntar a tu trama', () => {
+  it('POST /api/query/nl responde el fallback de texto con la forma que lee la paleta', async () => {
+    const res = await demoRequest<{
+      items: Array<{ kind: string; id: string }>
+      query: { from: string[] }
+      source: string
+      nextCursor: null
+    }>('/api/query/nl', { method: 'POST', body: JSON.stringify({ q: 'borges' }) })
+    expect(res.source).toBe('fallback')
+    expect(res.query.from).toEqual(['entity', 'quote', 'momento', 'note'])
+    expect(res.nextCursor).toBeNull()
+    expect(res.items).toContainEqual(
+      expect.objectContaining({ kind: 'entity', id: 'e-borges' }),
+    )
+  })
+
+  it('POST /api/query corre un AST con «matches» sobre los tipos pedidos', async () => {
+    const res = await demoRequest<{ items: Array<{ kind: string; id: string }> }>(
+      '/api/query',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          from: ['entity'],
+          where: { op: 'matches', value: 'borges' },
+        }),
+      },
+    )
+    expect(res.items.map((hit) => hit.id)).toEqual(['e-borges'])
+  })
+})

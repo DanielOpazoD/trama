@@ -9,26 +9,26 @@ import {
 import type { QueryHit, QueryInput } from '../../api/query'
 import type { Item } from '../../hooks/useCommandSearch'
 import { CommandPaletteSearchMode } from './CommandPaletteSearchMode'
+import { COMMAND_PALETTE_MOD_KEY } from './commandPaletteKeys'
 
 const CommandPaletteResults = lazy(() =>
   import('../CommandPaletteResults').then((m) => ({ default: m.CommandPaletteResults })),
 )
-
-const IS_MAC =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 export type CommandPaletteResultsState = {
   hits: QueryHit[]
   ast: QueryInput | null
   source?: 'llm' | 'fallback'
   heading: string
+  /** La consulta guardada de la que salieron, si salieron de una. */
+  savedQueryId?: string
 }
 
 export function CommandPaletteDialog({
   dialogRef,
   entitiesForPeek,
   focusIdx,
+  inputRef,
   items,
   mode,
   onBackToSearch,
@@ -47,13 +47,14 @@ export function CommandPaletteDialog({
   dialogRef: Ref<HTMLDivElement>
   entitiesForPeek: ComponentProps<typeof CommandPaletteSearchMode>['entitiesForPeek']
   focusIdx: number
+  inputRef: Ref<HTMLInputElement>
   items: Item[]
   mode: 'search' | 'results'
   onBackToSearch: () => void
   onClose: () => void
   onFocusIdx: Dispatch<SetStateAction<number>>
   onQueryChange: (value: string) => void
-  onSaveQuery: (name: string) => void
+  onSaveQuery: (name: string) => Promise<boolean>
   onSelectHit: (hit: QueryHit) => void
   onSelectItem: (item: Item) => void
   query: string
@@ -81,6 +82,7 @@ export function CommandPaletteDialog({
           <div className="bg-paper-50 border border-ink-100/80 rounded-xl shadow-lg shadow-ink-900/15 overflow-hidden">
             <div className="relative">
               <input
+                ref={inputRef}
                 type="text"
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
@@ -93,7 +95,7 @@ export function CommandPaletteDialog({
                 aria-hidden
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-micro px-1.5 py-0.5 bg-paper-100 border border-ink-200/70 rounded text-ink-400 leading-none font-mono"
               >
-                {SHORTCUT_KEY} K
+                {COMMAND_PALETTE_MOD_KEY} K
               </kbd>
             </div>
             {mode === 'results' && results ? (
@@ -116,6 +118,7 @@ export function CommandPaletteDialog({
                     onBack={onBackToSearch}
                     onSave={onSaveQuery}
                     saving={saving}
+                    savedQueryId={results.savedQueryId}
                   />
                 </Suspense>
                 <div className="px-5 py-2 border-t border-ink-100/60 text-micro uppercase tracking-eyebrow text-ink-300 flex justify-between">

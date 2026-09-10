@@ -10,7 +10,9 @@ type GlobalShortcutsOptions = {
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   const tag = target.tagName
-  return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable
+  return (
+    tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable
+  )
 }
 
 export function useGlobalShortcuts({
@@ -21,12 +23,15 @@ export function useGlobalShortcuts({
 }: GlobalShortcutsOptions): void {
   useEffect(() => {
     function handler(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // `toLowerCase`: con Bloq Mayús la tecla llega como «K».
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         onTogglePalette()
         return
       }
-      if (isEditableTarget(e.target)) return
+      // Una tecla que ya reclamó alguien más cerca (el «/» del buscador del
+      // grafo, que escucha en captura) no se la lleva el atajo global.
+      if (e.defaultPrevented || isEditableTarget(e.target)) return
 
       if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault()

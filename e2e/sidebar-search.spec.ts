@@ -64,6 +64,13 @@ test('palette ⌘K muestra resultados y permite abrir una entidad', async ({ pag
 
   // El otro escritor NO debe estar en los resultados filtrados.
   await expect(palette.getByRole('button', { name: /Julio Cortázar/ })).not.toBeVisible()
+
+  // La búsqueda del servidor llega ~180 ms después. Con el mock sin momentos,
+  // crónicas ni chat tumbaba la app justo DESPUÉS de estas aserciones, y el
+  // test pasaba igual (medido): se espera la respuesta y se comprueba que siga.
+  await page.waitForTimeout(600)
+  await expect(page.getByText(/La trama se rompió/)).toHaveCount(0)
+  await expect(palette.getByRole('button', { name: /Jorge Luis Borges/ })).toBeVisible()
 })
 
 test('palette ⌘K se cierra con Escape', async ({ page }) => {

@@ -1,3 +1,4 @@
+import { parseCommandQuery } from '../../hooks/commandSearchGrammar'
 import type { Item } from '../../hooks/useCommandSearch'
 
 export type CommandPaletteMode = 'search' | 'results'
@@ -36,6 +37,8 @@ export function describeCommandPaletteEmptyState({
 }): string {
   if (running) return 'consultando tu trama…'
   if (searching) return 'buscando en tu trama…'
+  const { scope, text } = parseCommandQuery(query)
+  if (scope === 'preguntar' && !text) return 'escribe tu pregunta, en lenguaje natural'
   return query.trim() ? 'nada coincide' : 'empieza a escribir para buscar'
 }
 

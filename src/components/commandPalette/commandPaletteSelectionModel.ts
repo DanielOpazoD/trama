@@ -10,7 +10,7 @@ export type CommandPaletteSelectionCommand =
   | { kind: 'openThread'; threadId: string }
   | { kind: 'revealNotasModule'; moduleId: NotasSection }
   | { kind: 'runAsk'; q: string }
-  | { kind: 'runAst'; query: QueryInput; heading: string }
+  | { kind: 'runAst'; query: QueryInput; heading: string; savedQueryId?: string }
 
 export function getCommandPaletteHitTarget(
   hit: QueryHit,
@@ -56,6 +56,11 @@ export function getCommandPaletteItemCommand(
     case 'ask':
       return { kind: 'runAsk', q: item.q }
     case 'savedQuery':
-      return { kind: 'runAst', query: item.query, heading: item.name }
+      return {
+        kind: 'runAst',
+        query: item.query,
+        heading: item.name,
+        savedQueryId: item.id,
+      }
   }
 }

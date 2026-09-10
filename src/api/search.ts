@@ -3,7 +3,7 @@
  * rerank opcional). Modos: 'hybrid' (default), 'lexical', 'semantic'.
  */
 
-import { request } from './request'
+import { requestContract } from './request'
 
 export type SearchEntityHit = {
   id: string
@@ -73,6 +73,6 @@ export const searchApi = {
     const params = new URLSearchParams({ q })
     if (options?.limit) params.set('limit', String(options.limit))
     if (options?.mode) params.set('mode', options.mode)
-    return request<SearchResponse>(`/api/search?${params.toString()}`)
+    return requestContract<SearchResponse>('search', `/api/search?${params.toString()}`)
   },
 }
