@@ -89,3 +89,21 @@ describe('useSaveUserPrefs — optimista con rollback', () => {
     expect(toastShow).toHaveBeenCalled()
   })
 })
+
+describe('useSaveUserPrefs — sin las prefs del servidor', () => {
+  it('no deja un parche suelto en la caché, ni al guardar ni si el guardado falla', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    let reject!: (e: unknown) => void
+    saveMock.mockImplementationOnce(() => new Promise((_, r) => (reject = r)))
+    const { result } = renderHook(() => useSaveUserPrefs(), { wrapper: wrapper(qc) })
+
+    result.current.mutate({ defaultWorld: 'notas' })
+    await waitFor(() => expect(saveMock).toHaveBeenCalled())
+    // Un `{ defaultWorld }` sin `pinnedSections` abriría lo protegido por PIN.
+    expect(qc.getQueryData(['user-prefs'])).toBeUndefined()
+
+    reject(new Error('500'))
+    await waitFor(() => expect(toastShow).toHaveBeenCalled())
+    expect(qc.getQueryData(['user-prefs'])).toBeUndefined()
+  })
+})
