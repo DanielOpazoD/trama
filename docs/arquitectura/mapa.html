@@ -378,12 +378,12 @@
     "project": "Trama",
     "description": "Mapa cognitivo personal: dos mundos (Trama y Notas) sobre React + Vite en el cliente y Netlify Functions + Neon Postgres en el servidor, con media en Netlify Blobs y Cloudflare R2, auth Clerk, captura por WhatsApp y varios proveedores de LLM.",
     "generatedAt": "2026-08-05",
-    "commit": "490013a5",
+    "commit": "abeb6a11",
     "stats": {
       "endpoints": 104,
       "migraciones": 96,
       "archivosDeTest": 778,
-      "specsE2E": 37,
+      "specsE2E": 41,
       "scriptsOperacionales": 74,
       "lineasSrc": 163211,
       "lineasFunctions": 74233
@@ -492,11 +492,12 @@
       "y": 160,
       "w": 168,
       "h": 56,
-      "purpose": "Monta un mundo u otro a pantalla completa, enruta las vistas (cada una en su propio ErrorBoundary) y aloja la paleta de comandos, que es hoy el buscador global.",
+      "purpose": "Monta un mundo u otro a pantalla completa, enruta las vistas (cada una en su propio ErrorBoundary) y aloja el buscador ⌘K, el mismo en los dos mundos.",
       "files": [
         "src/App.tsx",
         "src/components/ViewRouter.tsx",
         "src/components/CommandPalette.tsx",
+        "src/components/commandPalette/CommandPaletteHost.tsx",
         "src/lib/navigation.ts"
       ]
     },

@@ -126,7 +126,8 @@ Y dos que destaparon los tests nuevos:
 - «Buscar en Notas» sigue siendo otro diálogo: en ese mundo no hay ⌘K, el
   diálogo no tiene teclado ni consulta el servidor, y no respeta el PIN de
   secciones. Además, «Sin resultados.» nunca aparece y el diálogo pide todas
-  las notas al abrirse. Es el PR siguiente.
+  las notas al abrirse. Es el PR siguiente (resuelto: un solo buscador en los
+  dos mundos).
 - «Preguntar» significa tres cosas sin puente entre ellas: la paleta devuelve
   una lista (`/api/query/nl`), y el AskBar y el Chat responden prosa. Además,
   `DescriptionEditor` usa `/api/ask` como LLM genérico y crea hilos que nadie
@@ -137,11 +138,14 @@ Y dos que destaparon los tests nuevos:
 - La paleta no tiene semántica de combobox (`role="combobox"`, `listbox`,
   `aria-activedescendant`): las filas son botones y el foco activo es una clase.
 - En Trama, en móvil, no hay ningún disparador del buscador: sin teclado
-  físico, la paleta queda inaccesible.
+  físico, la paleta queda inaccesible (resuelto: el TopBar móvil ofrece
+  «Buscar»).
 - `useCommandServerSearch` descarta respuestas viejas pero no aborta el fetch.
 - Hipótesis sin probar: en teclados ES/LatAm, `\` necesita AltGr, y la guarda
   `!e.altKey` de los atajos globales lo bloquearía.
 - `useCommandSearch.ts` quedó a una línea de su tope (119 de 120): el próximo
-  cambio ahí tiene que empezar extrayendo.
+  cambio ahí tiene que empezar extrayendo (resuelto: la visibilidad salió a su
+  propio hook).
 - El chunk de la paleta quedó en 7,9 KB gzip de 8: llevar el omnibox a Notas
-  exige traer sus proveedores en otro chunk antes de sumar código.
+  exige traer sus proveedores en otro chunk antes de sumar código (resuelto: la
+  ficha salió a su propio chunk y el contenido de Notas viaja con Notas).

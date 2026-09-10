@@ -72,16 +72,23 @@ export function useSaveUserPrefs() {
     mutationFn: (patch: UserPrefs) => api.userPrefs.save(patch),
     onMutate: async (patch) => {
       await qc.cancelQueries({ queryKey: queryKeys.userPrefs })
-      const prev = qc.getQueryData<UserPrefs>(queryKeys.userPrefs) ?? {}
+      // Sin las prefs del servidor no hay con qué fusionar: escribir el parche solo
+      // dejaría la caché sin `pinnedSections` y abriría lo protegido por PIN hasta
+      // que respondiera. Se espera a la respuesta del PUT.
+      const prev = qc.getQueryData<UserPrefs>(queryKeys.userPrefs)
+      if (prev === undefined) return { prev }
       const next: UserPrefs = { ...prev, ...patch }
       qc.setQueryData(queryKeys.userPrefs, next)
       writeMirror(next)
       return { prev }
     },
     onError: (_e, _patch, ctx) => {
-      if (ctx?.prev) {
+      if (ctx?.prev !== undefined) {
         qc.setQueryData(queryKeys.userPrefs, ctx.prev)
         writeMirror(ctx.prev)
+      } else {
+        // La cancelación dejó la lectura sin nadie que la pida: se vuelve a pedir.
+        void qc.invalidateQueries({ queryKey: queryKeys.userPrefs })
       }
       toast.show({ message: 'No se pudo guardar la preferencia.', tone: 'error' })
     },

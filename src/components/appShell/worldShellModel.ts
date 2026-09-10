@@ -1,6 +1,15 @@
 import { readNotasSectionDeepLinkFromSearch } from '../../lib/worldShellRouting'
 import type { NotasSection } from '../../types/notas'
+import type { ViewMode } from '../../types/view'
+import type { CommandAction } from '../../hooks/useCommandSearch'
 import { DEFAULT_WORLD, type World } from '../../types/world'
+
+/** Adónde lleva el buscador usado desde otro mundo: Trama monta ahí. */
+export type TramaTarget =
+  | { kind: 'view'; view: ViewMode }
+  | { kind: 'entity'; id: string }
+  | { kind: 'thread'; threadId: string }
+  | { kind: 'action'; action: CommandAction }
 
 export type InitialWorldInput = {
   initialWorldFromUrl: World | null

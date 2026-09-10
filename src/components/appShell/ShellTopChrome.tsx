@@ -23,6 +23,7 @@ export function ShellTopChrome({
   onWorldIntent,
   onChangeView,
   onOpenSortes,
+  onOpenSearch,
   onClearSelectedEntity,
   onEntitiesTabChange,
 }: {
@@ -38,6 +39,8 @@ export function ShellTopChrome({
   onWorldIntent?: (world: World) => void
   onChangeView: (view: ViewMode) => void
   onOpenSortes: () => void
+  /** Abre el buscador desde el TopBar, que en móvil es el único disparador. */
+  onOpenSearch?: () => void
   onClearSelectedEntity: () => void
   onEntitiesTabChange: (tab: EntityTab) => void
 }) {
@@ -52,6 +55,7 @@ export function ShellTopChrome({
             onChangeWorld={onChangeWorld}
             onWorldIntent={onWorldIntent}
             onSortes={onOpenSortes}
+            onSearch={onOpenSearch}
             actions={actions}
             breadcrumb={
               showDetail && selectedEntityId

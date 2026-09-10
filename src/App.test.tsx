@@ -56,7 +56,7 @@ vi.mock('./hooks/useIsMobile', () => ({
 vi.mock('./hooks/useInitialView', async () => {
   const React = await import('react')
   return {
-    useInitialView: () => React.useState<ViewMode>('inicio'),
+    useInitialView: (initial?: ViewMode) => React.useState<ViewMode>(initial ?? 'inicio'),
   }
 })
 
@@ -164,17 +164,20 @@ vi.mock('./components/TopBar', () => ({
   TopBar: ({
     view,
     onSortes,
+    onSearch,
     breadcrumb,
     tabs,
   }: {
     view: ViewMode
     onSortes: () => void
+    onSearch?: () => void
     breadcrumb: { label: string; onClickRoot: () => void } | null
     tabs: null | { onChange: (value: string) => void }
   }) => (
     <header>
       topbar {view} {breadcrumb?.label}
       <button onClick={onSortes}>abrir sortes</button>
+      {onSearch && <button onClick={onSearch}>buscar móvil</button>}
       {tabs && <button onClick={() => tabs.onChange('vinculos')}>tab vínculos</button>}
     </header>
   ),
@@ -434,14 +437,22 @@ vi.mock('./components/notas/NotasWorld', () => ({
     world,
     onChangeWorld,
     initialSection,
+    onGoToTrama,
   }: {
     world: World
     onChangeWorld: (world: World) => void
     initialSection?: string
+    onGoToTrama?: (target: { kind: string; view?: string; id?: string }) => void
   }) => (
     <section>
       notas world {world} section:{initialSection ?? 'none'}
       <button onClick={() => onChangeWorld('trama')}>volver trama</button>
+      <button onClick={() => onGoToTrama?.({ kind: 'view', view: 'momentos' })}>
+        notas a momentos
+      </button>
+      <button onClick={() => onGoToTrama?.({ kind: 'entity', id: 'e1' })}>
+        notas a entidad
+      </button>
     </section>
   ),
 }))
@@ -695,5 +706,25 @@ describe('<App />', () => {
     const source = readFileSync(join(process.cwd(), 'src/App.tsx'), 'utf8')
 
     expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
+  })
+
+  it('desde el buscador de Notas cruza a Trama, en la vista o con la entidad elegidas', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(screen.getByRole('button', { name: 'mundo notas' }))
+    await user.click(await screen.findByRole('button', { name: 'notas a momentos' }))
+    expect(await screen.findByText(/view:momentos/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'mundo notas' }))
+    await user.click(await screen.findByRole('button', { name: 'notas a entidad' }))
+    expect(await screen.findByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
+  })
+
+  it('el TopBar abre el buscador, que en móvil no tiene otro disparador', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'buscar móvil' }))
+    expect(await screen.findByText('palette open')).toBeInTheDocument()
   })
 })

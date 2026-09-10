@@ -1,7 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useInitialView } from './hooks/useInitialView'
-import { useGlobalShortcuts } from './hooks/useGlobalShortcuts'
 import { clearOAuthReturn } from './lib/oauthReturn'
 import {
   Provider,
@@ -32,9 +31,11 @@ import { MomentoNotificationsCenter } from './components/momentos/MomentoNotific
 import { ShellTopChrome } from './components/appShell/ShellTopChrome'
 import { ShellAttentionLayer } from './components/appShell/ShellAttentionLayer'
 import { buildShellVisibility } from './components/appShell/appShellModel'
-import { resolveShellPaletteAction } from './components/appShell/shellPaletteModel'
 import { WorldLoadingFallback } from './components/appShell/WorldLoadingFallback'
 import { useWorldShellController } from './components/appShell/useWorldShellController'
+import { useShellOmnibox } from './components/appShell/useShellOmnibox'
+import { initialViewForTarget } from './components/appShell/shellPaletteModel'
+import type { TramaTarget } from './components/appShell/worldShellModel'
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
@@ -42,7 +43,6 @@ const loadNotasWorld = () =>
   import('./components/notas/NotasWorld').then((m) => ({ default: m.NotasWorld }))
 const NotasWorld = lazy(loadNotasWorld)
 import { type NotasSection } from './types/notas'
-import type { CommandAction } from './components/CommandPalette'
 
 import { type World } from './types/world'
 
@@ -68,11 +68,14 @@ function Shell({
   world,
   onChangeWorld,
   onRevealNotasModule,
+  initialTarget,
 }: {
   world: World
   onChangeWorld: (w: World) => void
   /** Revelar/abrir un módulo del mundo Notas desde el ⌘K (cruza de mundo). */
   onRevealNotasModule: (moduleId: NotasSection) => void
+  /** Destino que pidió el buscador desde el mundo Notas. */
+  initialTarget?: TramaTarget | null
 }) {
   const countsQuery = useCountsQuery()
   const shareInvitationsQuery = useMomentoShareInvitationsQuery()
@@ -96,7 +99,7 @@ function Shell({
   // τ-mobile-bridge: vive en useInitialView — lee `?view=` al primer
   // render (deep-links externos como el QR de Momentos) y envuelve el
   // setter con la View Transitions API. Ver el hook para detalles.
-  const [view, setView] = useInitialView()
+  const [view, setView] = useInitialView(initialViewForTarget(initialTarget))
   const handleWorldIntent = useCallback((targetWorld: World) => {
     preloadWorldBundle(targetWorld)
   }, [])
@@ -153,11 +156,17 @@ function Shell({
     }
   }, [oauthReturn, openModal])
 
-  useGlobalShortcuts({
-    onTogglePalette: () => modals.toggleModal('palette'),
-    onOpenPalette: () => modals.openModal('palette'),
-    onToggleShortcuts: () => modals.toggleModal('shortcuts'),
-    onToggleFocusMode: toggleFocusMode,
+  const omnibox = useShellOmnibox({
+    paletteOpen: modals.palette,
+    openModal,
+    closeModal: modals.closeModal,
+    toggleModal: modals.toggleModal,
+    setView,
+    setSelectedEntityId,
+    setPendingChatThreadId,
+    toggleFocusMode,
+    onRevealNotasModule,
+    initialTarget,
   })
 
   const shareInvitations = shareInvitationsQuery.data?.items ?? []
@@ -185,17 +194,6 @@ function Shell({
       })
     }
   }
-  const handlePaletteAction = useCallback(
-    (action: CommandAction) => {
-      const intent = resolveShellPaletteAction(action)
-      if (intent.kind === 'modal') modals.openModal(intent.modal)
-      else {
-        if (intent.view !== 'grafo') setSelectedEntityId(null)
-        setView(intent.view)
-      }
-    },
-    [modals, setSelectedEntityId, setView],
-  )
 
   return (
     // τ-worlds: el Shell del mundo Trama llena su columna dentro de WorldShell
@@ -226,7 +224,7 @@ function Shell({
             onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
             offline={offline}
             onOpenSettings={() => modals.openModal('settings')}
-            onOpenPalette={() => modals.openModal('palette')}
+            onOpenPalette={omnibox.openPalette}
           />
         </div>
       )}
@@ -254,6 +252,7 @@ function Shell({
             if (v !== 'grafo') setSelectedEntityId(null)
           }}
           onOpenSortes={() => modals.openModal('sortes')}
+          onOpenSearch={omnibox.openPalette}
           onClearSelectedEntity={() => setSelectedEntityId(null)}
           onEntitiesTabChange={setEntitiesTab}
         />
@@ -303,16 +302,7 @@ function Shell({
         onSetTheme={setTheme}
         oauthReturn={oauthReturn}
         settingsSection={modals.settingsSection}
-        paletteOpen={modals.palette}
-        onClosePalette={() => modals.closeModal('palette')}
-        onNavigate={(v) => setView(v)}
-        onSelectEntity={(id) => setSelectedEntityId(id)}
-        onOpenThread={(threadId) => {
-          setPendingChatThreadId(threadId)
-          setView('chat')
-        }}
-        onRevealNotasModule={onRevealNotasModule}
-        onPaletteAction={handlePaletteAction}
+        {...omnibox.paletteProps}
         shortcutsOpen={modals.shortcuts}
         onCloseShortcuts={() => modals.closeModal('shortcuts')}
         sortesOpen={modals.sortes}
@@ -368,8 +358,14 @@ function Shell({
  * encima del Shell — todo lo de la Trama sigue intacto adentro de Shell.
  */
 function WorldShell() {
-  const { world, changeWorld, pendingNotasSection, revealNotasModule } =
-    useWorldShellController({ preloadWorldBundle })
+  const {
+    world,
+    changeWorld,
+    pendingNotasSection,
+    pendingTramaTarget,
+    goToTrama,
+    revealNotasModule,
+  } = useWorldShellController({ preloadWorldBundle })
 
   // El conmutador de mundos vive en el logo (WorldSwitcher), dentro del header
   // de cada mundo — por eso acá no hay riel: se monta el mundo activo a pantalla
@@ -382,6 +378,7 @@ function WorldShell() {
             world={world}
             onChangeWorld={changeWorld}
             onRevealNotasModule={revealNotasModule}
+            initialTarget={pendingTramaTarget}
           />
         ) : (
           <Suspense fallback={<WorldLoadingFallback />}>
@@ -389,6 +386,7 @@ function WorldShell() {
               world={world}
               onChangeWorld={changeWorld}
               initialSection={pendingNotasSection ?? undefined}
+              onGoToTrama={goToTrama}
             />
           </Suspense>
         )}

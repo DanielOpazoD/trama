@@ -1,7 +1,7 @@
 import { useGlobalStatus, type GlobalStatus } from '../state'
 import type { ViewMode } from '../types/view'
 import type { World } from '../types/world'
-import { ReadingIcon } from './Icons'
+import { ReadingIcon, SearchIcon } from './Icons'
 import { IconButton } from './IconButton'
 import { UserMenu } from './UserMenu'
 import { WorldSwitcher } from './WorldSwitcher'
@@ -44,6 +44,7 @@ export function TopBar({
   breadcrumb,
   tabs,
   onSortes,
+  onSearch,
   titleOverride,
   world,
   onChangeWorld,
@@ -60,6 +61,9 @@ export function TopBar({
       handler conserva el de Sortes, su antecesor. Si se omite, el botón
       no se muestra. */
   onSortes?: () => void
+  /** Abre el buscador. Solo en móvil: en escritorio el disparador vive en el
+      Sidebar, que en móvil no se monta. Si se omite, el botón no aparece. */
+  onSearch?: () => void
   /** Segundo nivel del breadcrumb — se muestra como "View › crumb"
       cuando hay un detalle abierto. Si está, reemplaza el subtitle. */
   breadcrumb?: { label: string; onClickRoot?: () => void } | null
@@ -127,6 +131,16 @@ export function TopBar({
         </div>
       </div>
       <div className="shrink-0 flex items-center gap-3">
+        {onSearch && (
+          <IconButton
+            onClick={onSearch}
+            label="Buscar"
+            title="Buscar"
+            className="md:hidden touch-target p-1.5 text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded transition-colors"
+          >
+            <SearchIcon size={16} />
+          </IconButton>
+        )}
         <StatusPill status={status} />
         {onSortes && (
           <IconButton

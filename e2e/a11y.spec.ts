@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { NOTAS_SECTIONS, type NotasSection } from '../src/types/notas'
 import { VIEW_MODES, type ViewMode } from '../src/types/view'
-import { emptyState, mockBackend } from './fixtures'
+import { emptyState, enableDemoMode, mockBackend } from './fixtures'
 
 /**
  * ε5: A11y gate — corre axe-core contra las vistas principales de Trama
@@ -290,6 +290,40 @@ test('a11y: Settings Estado sin violaciones', async ({ page }) => {
   expect(results.violations).toEqual([])
 })
 
+test('a11y: buscador en Notas con filas y sus acciones sin violaciones', async ({
+  page,
+}) => {
+  await skipSplash(page)
+  await mockBackend(page, emptyState())
+  await enableDemoMode(page, { world: 'notas' })
+  await page.goto('/?world=notas&section=inicio')
+  await page
+    .getByRole('button', { name: /^Buscar \(/ })
+    .first()
+    .click({ timeout: 15_000 })
+  const dialogo = page.getByRole('dialog', { name: 'Buscar', exact: true })
+  await dialogo.getByPlaceholder('Buscar o preguntar…').fill('tinta')
+  await dialogo
+    .getByRole('button', { name: /^Marcar hecha:/ })
+    .first()
+    .waitFor()
+  await page.waitForTimeout(400)
+
+  // Las acciones de fila son botones hermanos: axe vigila que no queden anidados
+  // y que su nombre contenga el texto visible.
+  const results = await new AxeBuilder({ page })
+    .include('[role="dialog"][aria-label="Buscar"]')
+    .withTags(A11Y_TAGS)
+    .analyze()
+  if (results.violations.length > 0) {
+    console.log('Violaciones en el buscador de Notas:')
+    for (const v of results.violations) {
+      console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+    }
+  }
+  expect(results.violations).toEqual([])
+})
+
 test('a11y: palette ⌘K abierto sin violaciones', async ({ page }) => {
   const state = emptyState()
   state.entities.push(SAMPLE_ENTITY)
@@ -462,4 +496,27 @@ test.describe('a11y en móvil', () => {
       await auditar(page, `móvil · Notas · ${titulo}`)
     })
   }
+
+  test('a11y móvil: buscador abierto desde el TopBar de Trama', async ({ page }) => {
+    await skipSplash(page)
+    await mockBackend(page, emptyState())
+    await enableDemoMode(page, { world: 'trama' })
+    await page.goto('/')
+    await page
+      .getByRole('button', { name: 'Buscar', exact: true })
+      .tap({ timeout: 15_000 })
+    await page.getByRole('dialog', { name: 'Buscar', exact: true }).waitFor()
+    await page.waitForTimeout(400)
+    const results = await new AxeBuilder({ page })
+      .include('[role="dialog"][aria-label="Buscar"]')
+      .withTags(A11Y_TAGS)
+      .analyze()
+    if (results.violations.length > 0) {
+      console.log('Violaciones en el buscador móvil:')
+      for (const v of results.violations) {
+        console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+      }
+    }
+    expect(results.violations).toEqual([])
+  })
 })

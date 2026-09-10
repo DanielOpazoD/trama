@@ -7,6 +7,7 @@ import type { World } from '../../types/world'
 import type { NotasSection } from '../../types/notas'
 import { NOTAS_SECTION_TITLES, type NotasSectionMeta } from './notasSections'
 import { NavButton } from '../sidebar/NavButton'
+import { MOD_KEY } from '../../lib/platformKeys'
 import { useScrollRailWithActive } from '../../hooks/useScrollRail'
 import {
   SidebarBrandLine,
@@ -87,8 +88,8 @@ export function NotasSidebar({
         />
         <IconButton
           onClick={onOpenSearch}
-          label="Buscar en Notas"
-          title="Buscar en Notas"
+          label={`Buscar (${MOD_KEY} K)`}
+          title={`Buscar (${MOD_KEY} K)`}
           className="touch-target flex size-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-700 hover:bg-ink-100/70 transition-colors"
         >
           <SearchIcon size={14} />
@@ -146,7 +147,10 @@ export function NotasSidebar({
         />
       </header>
       <div className="px-2 mb-1.5">
-        <SidebarSearchTrigger ariaLabel="Buscar en Notas" onClick={onOpenSearch} />
+        <SidebarSearchTrigger
+          ariaLabel={`Buscar (${MOD_KEY} K)`}
+          onClick={onOpenSearch}
+        />
       </div>
       <nav className="flex flex-col px-2 gap-px flex-1 min-h-0 overflow-y-auto">
         {sections.map((s) => (

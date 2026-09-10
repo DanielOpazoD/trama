@@ -19,6 +19,16 @@ export function rawTaskWeek(task: Pick<Task, 'weekStart' | 'createdAt'>): string
   return weekStartLocal(Number.isNaN(d.getTime()) ? new Date() : d)
 }
 
+/** El patch que marca hecha una tarea. Un pendiente arrastrado queda registrado en
+ *  la semana donde se resolvió (`week`), no en la vieja. Lo usan Tareas y el
+ *  buscador de Notas. */
+export function completionPatch(
+  task: Pick<Task, 'weekStart' | 'createdAt'>,
+  week: string,
+): { done: true; weekStart?: string } {
+  return rawTaskWeek(task) < week ? { done: true, weekStart: week } : { done: true }
+}
+
 /** Semana EFECTIVA: un pendiente de una semana anterior se arrastra al anchor
  * visible (`anchorWeek`) hasta completarse; las hechas quedan en su semana. */
 export function effectiveWeek(task: Task, anchorWeek: string): string {

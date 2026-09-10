@@ -109,19 +109,23 @@ describe('structure ratchets', () => {
     )
     const maxFor = (file) => entries.find((entry) => entry.file === file)?.maxLines
 
-    expect(maxFor('src/App.tsx')).toBeLessThanOrEqual(430)
+    expect(maxFor('src/App.tsx')).toBeLessThanOrEqual(429)
+    expect(maxFor('src/components/notas/NotasWorld.tsx')).toBeLessThanOrEqual(377)
     expect(maxFor('src/components/notas/NotasFeedView.tsx')).toBeLessThanOrEqual(700)
     expect(maxFor('src/components/notas/NotasFeedControls.tsx')).toBeLessThanOrEqual(160)
     expect(maxFor('src/components/recortes/RecorteCard.tsx')).toBeLessThanOrEqual(285)
     expect(maxFor('src/components/CommandPalette.tsx')).toBeLessThanOrEqual(135)
     expect(
       maxFor('src/components/commandPalette/useCommandPaletteController.ts'),
-    ).toBeLessThanOrEqual(180)
+    ).toBeLessThanOrEqual(179)
     expect(
       maxFor('src/components/commandPalette/commandPaletteSelectionModel.ts'),
-    ).toBeLessThanOrEqual(80)
-    expect(maxFor('src/hooks/useCommandSearch.ts')).toBeLessThanOrEqual(120)
-    expect(maxFor('src/hooks/commandSearchModel.ts')).toBeLessThanOrEqual(500)
+    ).toBeLessThanOrEqual(74)
+    expect(
+      maxFor('src/components/commandPalette/CommandPaletteSearchMode.tsx'),
+    ).toBeLessThanOrEqual(64)
+    expect(maxFor('src/hooks/useCommandSearch.ts')).toBeLessThanOrEqual(118)
+    expect(maxFor('src/hooks/commandSearchModel.ts')).toBeLessThanOrEqual(471)
     expect(maxFor('src/hooks/useCommandServerSearch.ts')).toBeLessThanOrEqual(65)
     expect(maxFor('src/components/MomentosView.tsx')).toBeLessThanOrEqual(300)
     expect(maxFor('src/components/Settings.tsx')).toBeLessThanOrEqual(125)

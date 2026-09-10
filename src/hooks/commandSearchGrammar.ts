@@ -55,3 +55,9 @@ export function serverQueryFor(raw: string): string {
   const { scope, text } = parseCommandQuery(raw)
   return scope === 'todo' || scope === 'entidades' ? text : ''
 }
+
+/** El texto con que el anfitrión busca su contenido: solo sin sigilo. */
+export function contentTextFor(raw: string): string {
+  const { scope, text } = parseCommandQuery(raw)
+  return scope === 'todo' ? text : ''
+}

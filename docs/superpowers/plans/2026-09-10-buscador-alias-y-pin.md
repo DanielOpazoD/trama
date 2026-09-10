@@ -80,7 +80,7 @@ la sección sola.
 
 - «Buscar en Notas» sigue siendo otro diálogo: no respeta el PIN, no tiene
   teclado ni ⌘K, y no encuentra «edición» si se escribe «edicion». Es el PR
-  siguiente, el buscador único de los dos mundos.
+  siguiente, el buscador único de los dos mundos (resuelto en ese PR).
 - El PIN de las vistas de Trama no esconde entidades, citas, momentos ni chat
   en la paleta: solo las notas, y solo al preguntar.
 - `SectionPinGate` no espera las preferencias del servidor, e Inicio de Notas

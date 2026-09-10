@@ -4,6 +4,7 @@ import type { QueryInput } from '../api/query'
 import {
   buildCommandSearchItems,
   describeCommandSearchItem,
+  type CommandSearchContentItem,
   type CommandSearchEntity,
   type CommandSearchQuote,
   type CommandSearchSavedQuery,
@@ -320,6 +321,28 @@ describe('commandSearchModel', () => {
       expect(kinds('#')).toEqual(['reveal', 'view'])
       expect(kinds('>')).toEqual(['view', 'action'])
       expect(kinds('?')).toEqual(['savedQuery'])
+    })
+
+    it('el contenido del anfitrión va tras las secciones, y solo sin sigilo', () => {
+      const nota: CommandSearchContentItem = {
+        kind: 'content',
+        id: 'note:n1',
+        icon: 'note',
+        section: 'notas',
+        label: 'Borges en la feria',
+      }
+      const tipos = (query: string) => [
+        ...new Set(
+          buildCommandSearchItems({ ...base, contentItems: [nota], query }).map(
+            (item) => item.kind,
+          ),
+        ),
+      ]
+      expect(tipos('borges')[0]).toBe('content')
+      for (const conSigilo of ['?borges', '>borges', '@borges', '#borges']) {
+        expect(tipos(conSigilo)).not.toContain('content')
+      }
+      expect(describeCommandSearchItem(nota).key).toBe('content:note:n1')
     })
 
     it('«#» encuentra una vista por su alias, y los alias de Notas siguen primero', () => {

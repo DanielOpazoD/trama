@@ -2,21 +2,37 @@ import type { SearchResponse } from '../api'
 import type { QueryInput } from '../api/query'
 import type { NotasSection } from '../types/notas'
 import type { ViewMode } from '../types/view'
-import { NAV_GROUPS } from '../lib/navigation'
 import { SECTIONS } from '../components/notas/notasSections'
 import { MODULE_ALIASES } from '../components/notas/moduleAliases'
 import { parseCommandQuery, type CommandSearchScope } from './commandSearchGrammar'
 import { normalizeQuery, rankMatches } from './commandSearchRanking'
+import { ACTIONS, VIEWS, type CommandAction } from './commandSearchCatalog'
 
-export type CommandAction =
-  | 'open-settings'
-  | 'open-shortcuts'
-  | 'open-sortes'
-  | 'open-espejo'
-  | 'open-careo'
-  | 'new-entity'
-  | 'new-quote'
-  | 'new-momento'
+export type { CommandAction }
+
+/**
+ * Un resultado que aporta quien monta la paleta (hoy, el mundo Notas). La paleta
+ * lo pinta y lo abre, pero no sabe qué es una nota o una tarea.
+ */
+export type CommandSearchContentItem = {
+  kind: 'content'
+  id: string
+  icon: 'note' | 'task' | 'prompt'
+  section: NotasSection
+  label: string
+  hint?: string
+  preview?: string
+  /** Acción de la fila sin abrirla (⇧Enter): marcar hecha, copiar. */
+  secondary?: { label: string; ariaLabel: string; run: () => void }
+}
+
+/** Lo que aporta una fuente: sus filas, y si le falta alguna lista (`pending`). */
+export type CommandSearchContent = { items: CommandSearchContentItem[]; pending: boolean }
+
+/** La fuente de contenido de un anfitrión: un hook que corre en el mismo render. */
+export type CommandSearchContentSource = {
+  useItems: (args: { open: boolean; text: string }) => CommandSearchContent
+}
 
 export type CommandSearchItem =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
@@ -35,6 +51,7 @@ export type CommandSearchItem =
       threadTitle: string | null
       text: string
     }
+  | CommandSearchContentItem
 
 export type CommandSearchEntity = {
   id: string
@@ -75,69 +92,15 @@ export type CommandSearchBuildInput = {
   serverResults: SearchResponse | null
   sectionAliases: Record<string, string | undefined>
   visibility: CommandSearchVisibility
+  contentItems?: CommandSearchContentItem[]
 }
-
-const VIEW_HINTS: Record<ViewMode, string> = {
-  inicio: 'entrada a la trama',
-  entidades: 'personas, obras y conceptos',
-  citas: 'fragmentos guardados',
-  momentos: 'notas y escenas del tiempo',
-  escuchas: 'música reciente',
-  twitter: 'bookmarks de X/Twitter',
-  grafo: 'mapa de relaciones',
-  cronologia: 'lectura temporal',
-  atlas: 'constelaciones temáticas',
-  chat: 'conversación con tu archivo',
-  sugerencias: 'ronda proactiva de IA',
-}
-
-const VIEWS: Array<{ view: ViewMode; label: string; hint: string }> = NAV_GROUPS.flatMap(
-  (group) =>
-    group.items.map((item) => ({
-      view: item.value,
-      label: item.label,
-      hint: group.label
-        ? `${group.label} · ${VIEW_HINTS[item.value]}`
-        : VIEW_HINTS[item.value],
-    })),
-)
-
-const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
-  {
-    action: 'new-entity',
-    label: 'Nueva entidad',
-    hint: 'crear persona, libro, canción, concepto',
-  },
-  { action: 'new-quote', label: 'Nueva cita', hint: 'guardar un fragmento' },
-  { action: 'new-momento', label: 'Nuevo momento', hint: 'nota, recorte o foto del día' },
-  {
-    action: 'open-sortes',
-    label: 'Atril',
-    hint: 'releer el archivo · cita del día · sortes · al azar',
-  },
-  {
-    action: 'open-espejo',
-    label: 'Espejo',
-    hint: 'la composición de tu trama · tipos, épocas, lo más cruzado',
-  },
-  {
-    action: 'open-careo',
-    label: 'Careo',
-    hint: 'dos voces frente a frente · citas en doble página',
-  },
-  {
-    action: 'open-settings',
-    label: 'Configuración',
-    hint: 'preferencias, tema, IA, datos',
-  },
-  { action: 'open-shortcuts', label: 'Atajos de teclado', hint: 'lista de shortcuts' },
-]
 
 const LOCAL_ENTITY_LIMIT = 20
 const LOCAL_QUOTE_LIMIT = 12
 
 type CommandSearchGroup =
   | 'reveal'
+  | 'content'
   | 'view'
   | 'action'
   | 'savedQuery'
@@ -150,10 +113,12 @@ type CommandSearchGroup =
 
 // Qué grupos entran en cada alcance de la gramática, y en qué orden. Sin
 // sigilo, `ask` va al final para no tapar hits concretos; con `?` la pregunta
-// es la intención y va primero.
+// es la intención y va primero. El contenido del anfitrión va tras las secciones,
+// y solo sin sigilo.
 const SCOPE_GROUPS: Record<CommandSearchScope, readonly CommandSearchGroup[]> = {
   todo: [
     'reveal',
+    'content',
     'view',
     'action',
     'savedQuery',
@@ -180,6 +145,7 @@ export function buildCommandSearchItems({
   serverResults,
   sectionAliases,
   visibility,
+  contentItems = [],
 }: CommandSearchBuildInput): CommandSearchItem[] {
   const { scope, text } = parseCommandQuery(query)
   const q = normalizeQuery(text)
@@ -265,6 +231,7 @@ export function buildCommandSearchItems({
 
   const groups: Record<CommandSearchGroup, CommandSearchItem[]> = {
     reveal: revealItems,
+    content: contentItems,
     view: viewItems,
     action: actionItems,
     savedQuery: savedQueryItems,
@@ -344,6 +311,13 @@ export function describeCommandSearchItem(item: CommandSearchItem): {
         kind: item.kind,
         label: item.text,
         hint: item.threadTitle ?? 'chat',
+      }
+    case 'content':
+      return {
+        key: `content:${item.id}`,
+        kind: item.kind,
+        label: item.label,
+        hint: item.hint,
       }
   }
 }

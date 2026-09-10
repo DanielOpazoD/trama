@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { Task } from '../../api'
 import {
   rawTaskWeek,
+  completionPatch,
   effectiveWeek,
   groupTasksByWeek,
   splitByStatus,
@@ -211,5 +212,26 @@ describe('weekModel', () => {
       ]
       expect(countPendingByCategory(items)).toEqual({ trabajo: 1, personal: 2 })
     })
+  })
+})
+
+describe('completionPatch', () => {
+  it('un pendiente de una semana anterior queda hecho en la semana donde se resolvió', () => {
+    const task = makeTask({ id: 't', weekStart: '2026-05-25' })
+    expect(completionPatch(task, TODAY_WEEK)).toEqual({
+      done: true,
+      weekStart: TODAY_WEEK,
+    })
+  })
+
+  it('uno de la misma semana o de una posterior solo se marca hecho', () => {
+    expect(
+      completionPatch(makeTask({ id: 'a', weekStart: TODAY_WEEK }), TODAY_WEEK),
+    ).toEqual({
+      done: true,
+    })
+    expect(
+      completionPatch(makeTask({ id: 'b', weekStart: '2026-06-08' }), TODAY_WEEK),
+    ).toEqual({ done: true })
   })
 })

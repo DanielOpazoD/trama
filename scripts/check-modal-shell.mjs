@@ -62,10 +62,6 @@ export const MODAL_SHELL_EXEMPT = new Map([
   ['src/components/notas/AttachmentLightbox.tsx', 'Lightbox a pantalla completa.'],
   ['src/components/notas/FocusedWriting.tsx', 'Modo de escritura a pantalla completa.'],
   [
-    'src/components/notas/NotasWorld.tsx',
-    'Buscador global: caja anclada arriba con backdrop propio del mundo.',
-  ],
-  [
     'src/components/notas/pdfStudio/PdfStudioTextEditorOverlay.tsx',
     'Overlay del editor de PDF a pantalla completa.',
   ],

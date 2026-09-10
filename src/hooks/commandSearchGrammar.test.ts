@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCommandQuery, serverQueryFor } from './commandSearchGrammar'
+import { contentTextFor, parseCommandQuery, serverQueryFor } from './commandSearchGrammar'
 
 describe('parseCommandQuery', () => {
   it.each([
@@ -24,5 +24,14 @@ describe('serverQueryFor', () => {
     expect(serverQueryFor('?borges')).toBe('')
     expect(serverQueryFor('>ajustes')).toBe('')
     expect(serverQueryFor('#pass')).toBe('')
+  })
+})
+
+describe('contentTextFor', () => {
+  it('el anfitrión solo busca su contenido sin sigilo', () => {
+    expect(contentTextFor(' tinta ')).toBe('tinta')
+    for (const conSigilo of ['?tinta', '>tinta', '@tinta', '#tinta']) {
+      expect(contentTextFor(conSigilo)).toBe('')
+    }
   })
 })

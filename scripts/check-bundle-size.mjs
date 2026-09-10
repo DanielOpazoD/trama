@@ -66,6 +66,8 @@ const BUDGETS = {
   // arrastre dependencias pesadas sin aparecer en el bundle inicial.
   ChatView: 10,
   CommandPalette: 8,
+  // La ficha del resultado, en su propio chunk desde el buscador de los dos mundos.
+  CommandPalettePeek: 2,
   EntitiesWorkbench: 14,
   GraphView: 18,
   ListeningView: 10,

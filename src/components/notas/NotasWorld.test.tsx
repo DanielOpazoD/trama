@@ -53,6 +53,38 @@ vi.mock('./NotasFeedView', () => ({
   ),
 }))
 
+vi.mock('../CommandPalette', () => ({
+  CommandPalette: ({
+    onClose,
+    onNavigate,
+    onRevealNotasModule,
+    onAction,
+    contentSource,
+  }: {
+    onClose: () => void
+    onNavigate: (view: string) => void
+    onRevealNotasModule?: (section: string) => void
+    onAction?: (action: string) => void
+    contentSource?: unknown
+  }) => (
+    <section aria-label="paleta mock">
+      {contentSource ? 'con contenido de Notas' : 'sin contenido'}
+      <button type="button" onClick={() => onRevealNotasModule?.('tareas')}>
+        paleta tareas
+      </button>
+      <button type="button" onClick={() => onAction?.('open-settings')}>
+        paleta configuración
+      </button>
+      <button type="button" onClick={() => onNavigate('grafo')}>
+        paleta grafo
+      </button>
+      <button type="button" onClick={onClose}>
+        cerrar paleta
+      </button>
+    </section>
+  ),
+}))
+
 vi.mock('../Settings', () => ({
   Settings: ({
     open,
@@ -191,26 +223,52 @@ describe('<NotasWorld />', () => {
     ).toBeInTheDocument()
   })
 
-  it('abre el buscador global como diálogo modal y lo cierra con Escape', async () => {
-    // El buscador global usa useModalOverlay: rol de diálogo + cierre por el
-    // stack de overlays (Escape). Antes el Escape era un listener propio; ahora
-    // lo delega al hook, que además atrapa el foco y restaura al cerrar.
+  it('el buscador es la paleta de los dos mundos, con el contenido de Notas', async () => {
+    const onGoToTrama = vi.fn()
+    renderWithProviders(
+      <NotasWorld world="notas" onChangeWorld={() => {}} onGoToTrama={onGoToTrama} />,
+    )
+    expect(screen.queryByRole('button', { name: 'Buscar en Notas' })).toBeNull()
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Buscar \(/ })[0]!)
+    const paleta = await screen.findByRole('region', { name: 'paleta mock' })
+    expect(paleta).toHaveTextContent('con contenido de Notas')
+
+    fireEvent.click(screen.getByRole('button', { name: 'paleta grafo' }))
+    expect(onGoToTrama).toHaveBeenCalledWith({ kind: 'view', view: 'grafo' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'paleta tareas' }))
+    expect(screen.getAllByRole('button', { name: 'Tareas' })[0]).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'paleta configuración' }))
+    expect(
+      await screen.findByRole('region', { name: 'settings mock' }),
+    ).toBeInTheDocument()
+  })
+
+  it('abierto con Configuración a la vista, el buscador queda encima', async () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+    fireEvent.click(screen.getAllByRole('button', { name: /Configuración/i })[0]!)
+    const settings = await screen.findByRole('region', { name: 'settings mock' })
 
-    expect(screen.queryByRole('dialog', { name: 'Buscar en Notas' })).toBeNull()
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    const paleta = await screen.findByRole('region', { name: 'paleta mock' })
+    // Comparten capa (z-40): queda encima el que va después en el DOM.
+    expect(
+      settings.compareDocumentPosition(paleta) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
 
-    // El trigger por defecto es el botón "Buscar…" del sidebar expandido; el
-    // diálogo (aria-label "Buscar en Notas") es lo que abre. El icon-button
-    // "Buscar en Notas" solo existe con el sidebar colapsado.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Buscar en Notas' })[0]!)
-
-    const dialog = await screen.findByRole('dialog', { name: 'Buscar en Notas' })
-    expect(dialog).toHaveAttribute('aria-modal', 'true')
-
-    fireEvent.keyDown(document, { key: 'Escape' })
-
+  it('⌘K abre y cierra el buscador fuera de los campos', async () => {
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    expect(await screen.findByRole('region', { name: 'paleta mock' })).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Buscar en Notas' })).toBeNull(),
+      expect(screen.queryByRole('region', { name: 'paleta mock' })).toBeNull(),
     )
   })
 

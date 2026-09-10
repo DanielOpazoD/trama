@@ -100,4 +100,16 @@ describe('commandPaletteSelectionModel', () => {
       savedQueryId: 'sq-1',
     })
   })
+
+  it('el contenido del anfitrión abre su sección de Notas', () => {
+    expect(
+      getCommandPaletteItemCommand({
+        kind: 'content',
+        id: 'task:t1',
+        icon: 'task',
+        section: 'tareas',
+        label: 'Comprar tinta',
+      } as Item),
+    ).toEqual({ kind: 'revealNotasModule', moduleId: 'tareas' })
+  })
 })

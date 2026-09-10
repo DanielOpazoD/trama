@@ -59,8 +59,8 @@ export const MODAL_OVERLAY_ADOPTED_BY_PARENT = new Map([
 // Modales todavía hand-rolled, diferidos por riesgo. RATCHET: esta lista solo
 // puede ENCOGER. Migrar a useModalOverlay y removerlos de acá; nunca agregar.
 export const MODAL_OVERLAY_PENDING = new Map([
-  // Vacío: todos los modales hand-rolled migraron a useModalOverlay (Settings,
-  // el buscador embebido de NotasWorld) o se reclasificaron como EXEMPT
+  // Vacío: todos los modales hand-rolled migraron a useModalOverlay (Settings, y
+  // el buscador de NotasWorld, que hoy es la paleta) o se reclasificaron como EXEMPT
   // (PdfTextEditor). El ratchet ahora exige el hook para todo role=dialog nuevo
   // que no sea un EXEMPT justificado.
 ])

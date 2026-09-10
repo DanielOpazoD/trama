@@ -48,6 +48,13 @@ describe('<TopBar />', () => {
     expect(screen.queryByLabelText(/^Buscar/)).toBeNull()
   })
 
+  it('con onSearch ofrece «Buscar» para móvil, donde no hay sidebar', async () => {
+    const onSearch = vi.fn()
+    renderWithProviders(<TopBar view="inicio" onSearch={onSearch} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+    expect(onSearch).toHaveBeenCalledOnce()
+  })
+
   it('renderiza tabs contextuales cuando se pasan en tabs prop', async () => {
     const onChange = vi.fn()
     renderWithProviders(

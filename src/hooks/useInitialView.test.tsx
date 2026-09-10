@@ -98,4 +98,10 @@ describe('useInitialView', () => {
     const setView2 = result.current[1]
     expect(setView1).toBe(setView2)
   })
+
+  it('una vista inicial pedida gana a ?view=', () => {
+    window.location.search = '?view=momentos'
+    const { result } = renderHook(() => useInitialView('grafo'))
+    expect(result.current[0]).toBe('grafo')
+  })
 })

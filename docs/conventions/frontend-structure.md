@@ -75,16 +75,16 @@ Las superficies adelgazadas mantienen una frontera simple: la vista conserva
 hooks y efectos; los modelos concentran decisiones puras; los componentes nuevos
 solo renderizan una sección con props explícitas.
 
-| Superficie           | Frontera extraída                                        | Contrato                                                            |
-| -------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| `App.tsx`            | `appShell/*`                                             | Visibilidad del shell, chrome superior y capa de atención.          |
-| `NotasFeedView.tsx`  | `NotasFeedVirtualList` + `notasFeedViewModel`            | Render virtualizado y metadata de fila sin duplicar mutaciones.     |
-| `NotasFeedControls`  | `NotasFeedControlSections`                               | Toolbar, busqueda, calendario y triage como secciones con props.    |
-| `MomentosView.tsx`   | `MomentosViewSections` + `momentosViewModel`             | URL/filtros puros y timeline/empty/toolbar fuera de la vista.       |
-| `RecorteCard.tsx`    | `RecorteCardBody`, `RecorteCardMenu`, `recorteCardModel` | Media flags, cuerpo colapsable y acciones de triage aisladas.       |
-| `CommandPalette.tsx` | `CommandPaletteSearchMode` + `commandPaletteModel`       | Modo búsqueda separado del modo resultados, keys y conteos puros.   |
-| `Settings.tsx`       | `SettingsNav`, `SettingsPanelContent`, `settingsModel`   | Índice declarativo de secciones y retorno OAuth por provider.       |
-| `Settings/*Panel`    | panel sections/models por dominio                        | Paneles como orquestadores; filas, preview y diagnostico testeable. |
+| Superficie           | Frontera extraída                                                            | Contrato                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `App.tsx`            | `appShell/*`                                                                 | Visibilidad del shell, chrome superior, capa de atención y buscador (`useShellOmnibox`).         |
+| `NotasFeedView.tsx`  | `NotasFeedVirtualList` + `notasFeedViewModel`                                | Render virtualizado y metadata de fila sin duplicar mutaciones.                                  |
+| `NotasFeedControls`  | `NotasFeedControlSections`                                                   | Toolbar, busqueda, calendario y triage como secciones con props.                                 |
+| `MomentosView.tsx`   | `MomentosViewSections` + `momentosViewModel`                                 | URL/filtros puros y timeline/empty/toolbar fuera de la vista.                                    |
+| `RecorteCard.tsx`    | `RecorteCardBody`, `RecorteCardMenu`, `recorteCardModel`                     | Media flags, cuerpo colapsable y acciones de triage aisladas.                                    |
+| `CommandPalette.tsx` | `CommandPaletteSearchMode` (`ItemList` + `PeekSlot`) + `commandPaletteModel` | Modo búsqueda separado del modo resultados, keys y conteos puros; la monta `CommandPaletteHost`. |
+| `Settings.tsx`       | `SettingsNav`, `SettingsPanelContent`, `settingsModel`                       | Índice declarativo de secciones y retorno OAuth por provider.                                    |
+| `Settings/*Panel`    | panel sections/models por dominio                                            | Paneles como orquestadores; filas, preview y diagnostico testeable.                              |
 
 Regla para futuros PR: si una de estas superficies necesita crecer, primero
 pregunta si la nueva lógica pertenece al modelo, a un componente presentacional
