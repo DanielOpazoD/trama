@@ -34,6 +34,9 @@ export function useSaveQuery() {
       qc.invalidateQueries({ queryKey: queryKeys.savedQueries })
       toast.show({ message: 'Consulta guardada', tone: 'success' })
     },
+    onError: () => {
+      toast.show({ message: 'No se pudo guardar la consulta.', tone: 'error' })
+    },
   })
 }
 

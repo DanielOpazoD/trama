@@ -51,8 +51,10 @@ export function GraphSearch({
       e.preventDefault()
       inputRef.current?.focus()
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    // En captura: reclama «/» (preventDefault) antes de que lo vea el atajo
+    // global, que se registró antes y escucha en burbuja para abrir la paleta.
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [])
 
   function choose(id: string) {

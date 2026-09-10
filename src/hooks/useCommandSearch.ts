@@ -12,6 +12,7 @@ import {
   type CommandSearchItem,
 } from './commandSearchModel'
 import { useCommandServerSearch } from './useCommandServerSearch'
+import { serverQueryFor } from './commandSearchGrammar'
 
 /**
  * Lógica de búsqueda del command palette (Cmd+K), extraída de
@@ -43,6 +44,7 @@ export function useCommandSearch({
   setQuery: (q: string) => void
   items: Item[]
   searching: boolean
+  settled: boolean // la lista ya corresponde a lo escrito
   entitiesForPeek:
     | {
         id: string
@@ -70,7 +72,7 @@ export function useCommandSearch({
   const deferredQuery = useDeferredValue(query)
   const { serverResults, searching } = useCommandServerSearch({
     open,
-    query: deferredQuery,
+    query: serverQueryFor(deferredQuery),
   })
 
   // Reset del estado de búsqueda al abrir el palette. El foco del input y
@@ -111,5 +113,6 @@ export function useCommandSearch({
     serverResults,
   ])
 
-  return { query, setQuery, items, searching, entitiesForPeek: entities }
+  const settled = deferredQuery === query
+  return { query, setQuery, items, searching, settled, entitiesForPeek: entities }
 }

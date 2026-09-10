@@ -4,6 +4,7 @@ import { CONTRACTS, verifyContract, type ContractOutput } from './contracts'
 import type { MomentoShareInvitation, MomentoUrlPreview } from './momentos'
 import { requestContract } from './request'
 import type { SavedQuery } from './savedQueries'
+import type { SearchResponse } from './search'
 import type { XStatus } from './x'
 
 // ---- El esquema no puede pedir algo que el tipo del cliente no promete. Si
@@ -17,6 +18,7 @@ void (true satisfies Satisfies<HealthResponse, ContractOutput<'health'>>)
 void (true satisfies Satisfies<XStatus, ContractOutput<'xStatus'>>)
 void (true satisfies Satisfies<MomentoUrlPreview, ContractOutput<'urlPreview'>>)
 void (true satisfies Satisfies<{ items: SavedQuery[] }, ContractOutput<'savedQueries'>>)
+void (true satisfies Satisfies<SearchResponse, ContractOutput<'search'>>)
 void (true satisfies Satisfies<
   { items: MomentoShareInvitation[] },
   ContractOutput<'shareInvitations'>
@@ -66,5 +68,27 @@ describe('requestContract', () => {
     for (const [key, contract] of Object.entries(CONTRACTS)) {
       expect(contract.path, key).toMatch(/^\/api\//)
     }
+  })
+
+  it('search exige los cinco grupos que la paleta recorre sin defensas', () => {
+    // El mock de e2e solo mandaba entidades y citas, y teclear dos letras tumbaba
+    // la app entera: el modelo recorre los cinco grupos.
+    const incompleto = verifyContract('search', {
+      entities: [],
+      quotes: [],
+      mode: 'hybrid',
+    })
+    expect(incompleto.join(' ')).toMatch(/momentos/)
+    expect(incompleto.join(' ')).toMatch(/cronicas/)
+    expect(incompleto.join(' ')).toMatch(/chat/)
+    expect(
+      verifyContract('search', {
+        entities: [],
+        quotes: [],
+        momentos: [],
+        cronicas: [],
+        chat: [],
+      }),
+    ).toEqual([])
   })
 })

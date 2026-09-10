@@ -88,5 +88,5 @@ solo renderizan una sección con props explícitas.
 
 Regla para futuros PR: si una de estas superficies necesita crecer, primero
 pregunta si la nueva lógica pertenece al modelo, a un componente presentacional
-o a la vista. Solo sube el ratchet si el crecimiento es una responsabilidad real
-de orquestación.
+o a la vista. Si aun así no cabe, se extrae otra frontera: el ratchet no se sube
+(ADR-0016).

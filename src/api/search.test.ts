@@ -1,20 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const requestMock = vi.hoisted(() => vi.fn())
+const requestContractMock = vi.hoisted(() => vi.fn())
 
+// La búsqueda pasa por el contrato de lectura `search` (verifica los cinco grupos).
 vi.mock('./request', () => ({
-  request: requestMock,
+  requestContract: requestContractMock,
 }))
 
 import { searchApi } from './search'
 
 beforeEach(() => {
-  requestMock.mockReset()
+  requestContractMock.mockReset()
 })
 
 describe('searchApi client contract', () => {
   it('codifica query, limit y mode en el endpoint privado de búsqueda', async () => {
-    requestMock.mockResolvedValueOnce({
+    requestContractMock.mockResolvedValueOnce({
       entities: [],
       quotes: [],
       momentos: [],
@@ -27,13 +28,14 @@ describe('searchApi client contract', () => {
       searchApi.search('Borges & Bioy', { limit: 12, mode: 'semantic' }),
     ).resolves.toMatchObject({ mode: 'semantic' })
 
-    expect(requestMock).toHaveBeenCalledWith(
+    expect(requestContractMock).toHaveBeenCalledWith(
+      'search',
       '/api/search?q=Borges+%26+Bioy&limit=12&mode=semantic',
     )
   })
 
   it('usa hybrid por contrato del servidor cuando no se envía mode', async () => {
-    requestMock.mockResolvedValueOnce({
+    requestContractMock.mockResolvedValueOnce({
       entities: [{ id: 'e1', name: 'Borges', type: 'persona', score: 0.9 }],
       quotes: [],
       momentos: [],
@@ -44,6 +46,6 @@ describe('searchApi client contract', () => {
 
     await searchApi.search('borges')
 
-    expect(requestMock).toHaveBeenCalledWith('/api/search?q=borges')
+    expect(requestContractMock).toHaveBeenCalledWith('search', '/api/search?q=borges')
   })
 })

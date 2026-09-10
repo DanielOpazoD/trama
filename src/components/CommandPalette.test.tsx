@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { screen, fireEvent, waitFor } from '@testing-library/react'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CommandPalette } from './CommandPalette'
 import { renderWithProviders } from '../test-utils'
@@ -54,7 +54,7 @@ const NL_RESPONSE = {
 function stubFetch(
   search: SearchResponse = EMPTY_SEARCH,
   counts = { entities: 1, quotes: 0, relationships: 0, momentos: 0 },
-  opts: { savedQueries?: unknown[]; nl?: unknown } = {},
+  opts: { savedQueries?: unknown[]; nl?: unknown; run?: unknown } = {},
 ) {
   vi.stubGlobal(
     'fetch',
@@ -65,6 +65,9 @@ function stubFetch(
       }
       if (url.includes('/api/saved-queries')) {
         return jsonResp({ items: opts.savedQueries ?? [] })
+      }
+      if (url.endsWith('/api/query')) {
+        return jsonResp(opts.run ?? { items: NL_RESPONSE.items, nextCursor: null })
       }
       if (url.includes('/api/query/nl')) {
         return jsonResp(opts.nl ?? NL_RESPONSE)
@@ -90,6 +93,21 @@ function stubFetch(
       return jsonResp([])
     }),
   )
+}
+
+/** El ítem «Preguntar a tu trama», que aparece con la query de tres caracteres o más. */
+function askButton(container: HTMLElement) {
+  return waitFor(() => {
+    const button = [...container.querySelectorAll('button')].find((btn) =>
+      btn.textContent?.includes('Preguntar a tu trama'),
+    )
+    if (!button) throw new Error('ask item not found')
+    return button
+  })
+}
+
+function isSavePost([url, init]: Parameters<typeof fetch>) {
+  return String(url).includes('/api/saved-queries') && init?.method === 'POST'
 }
 
 beforeEach(() => {
@@ -300,12 +318,22 @@ describe('<CommandPalette />', () => {
     expect(currentOnClose).toHaveBeenCalledOnce()
   })
 
-  it('no oculta dependencias del listener global con suppressions de exhaustive-deps', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'src/components/CommandPalette.tsx'),
-      'utf8',
-    )
-    expect(source).not.toContain('eslint-disable-next-line react-hooks/exhaustive-deps')
+  it('no oculta dependencias de sus listeners con suppressions de exhaustive-deps', () => {
+    // Los listeners ya no viven en CommandPalette.tsx sino en commandPalette/:
+    // leer solo el componente dejaba este test verde sin vigilar nada.
+    const carpeta = 'src/components/commandPalette'
+    const archivos = [
+      'src/components/CommandPalette.tsx',
+      ...readdirSync(join(process.cwd(), carpeta))
+        .filter((nombre) => !nombre.includes('.test.'))
+        .map((nombre) => `${carpeta}/${nombre}`),
+    ]
+    expect(archivos).toContain(`${carpeta}/useCommandPaletteKeyboard.ts`)
+    for (const archivo of archivos) {
+      expect(readFileSync(join(process.cwd(), archivo), 'utf8'), archivo).not.toContain(
+        'eslint-disable-next-line react-hooks/exhaustive-deps',
+      )
+    }
   })
 
   it('merges server results (momento + crónica + chat) for queries ≥2', async () => {
@@ -497,7 +525,7 @@ describe('<CommandPalette />', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
-  it('expone consultas guardadas y las corre', async () => {
+  it('expone consultas guardadas, las corre y no ofrece guardarlas otra vez', async () => {
     stubFetch(EMPTY_SEARCH, undefined, {
       savedQueries: [
         {
@@ -510,6 +538,7 @@ describe('<CommandPalette />', () => {
           updatedAt: '2026-01-01',
         },
       ],
+      run: { items: NL_RESPONSE.items, nextCursor: null },
     })
     renderWithProviders(
       <CommandPalette
@@ -519,6 +548,174 @@ describe('<CommandPalette />', () => {
         onSelectEntity={() => {}}
       />,
     )
-    expect(await screen.findByText('Mis filósofos')).toBeInTheDocument()
+    fireEvent.click(await screen.findByText('Mis filósofos'))
+
+    expect(await screen.findByText('Sócrates')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mis filósofos' })).toBeInTheDocument()
+    // Salió de una consulta guardada: guardarla otra vez solo la duplicaba.
+    expect(screen.queryByLabelText('Nombre de la consulta')).not.toBeInTheDocument()
+    expect(screen.getByText('consulta guardada')).toBeInTheDocument()
+  })
+
+  it('⌘Enter pregunta lo escrito aunque la fila enfocada sea otra', async () => {
+    const onSelectEntity = vi.fn()
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={onSelectEntity}
+      />,
+    )
+    const input = screen.getByPlaceholderText(/buscar o preguntar/i)
+    fireEvent.change(input, { target: { value: 'borges' } })
+    await waitFor(() => expect(container.textContent).toContain('Borges'))
+
+    fireEvent.keyDown(input, { key: 'Enter', metaKey: true })
+
+    expect(await screen.findByRole('heading', { name: '«borges»' })).toBeInTheDocument()
+    expect(onSelectEntity).not.toHaveBeenCalled()
+  })
+
+  it('Enter en «Nombre de la consulta» no abre el resultado enfocado, y guardar borra el nombre', async () => {
+    const onSelectEntity = vi.fn()
+    const onClose = vi.fn()
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={onClose}
+        onNavigate={() => {}}
+        onSelectEntity={onSelectEntity}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText(/buscar o preguntar/i), {
+      target: { value: 'filósofos' },
+    })
+    fireEvent.click(await askButton(container))
+    const nombre = await screen.findByLabelText('Nombre de la consulta')
+    fireEvent.change(nombre, { target: { value: 'Mis filósofos' } })
+
+    // Antes, este Enter abría «Sócrates» y cerraba la paleta sin guardar (medido).
+    fireEvent.keyDown(nombre, { key: 'Enter' })
+    expect(onSelectEntity).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.submit(nombre.closest('form') as HTMLFormElement)
+    await waitFor(() => expect(nombre).toHaveValue(''))
+    expect(vi.mocked(fetch).mock.calls.some(isSavePost)).toBe(true)
+  })
+
+  it('si guardar falla, el nombre escrito se queda para reintentar', async () => {
+    const base = vi.mocked(fetch).getMockImplementation()
+    vi.mocked(fetch).mockImplementation(async (input, init) =>
+      isSavePost([input, init])
+        ? new Response(JSON.stringify({ error: { code: 'INTERNAL', message: 'boom' } }), {
+            status: 500,
+          })
+        : base!(input, init),
+    )
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText(/buscar o preguntar/i), {
+      target: { value: 'filósofos' },
+    })
+    fireEvent.click(await askButton(container))
+    const nombre = await screen.findByLabelText('Nombre de la consulta')
+    fireEvent.change(nombre, { target: { value: 'Mis filósofos' } })
+
+    fireEvent.submit(nombre.closest('form') as HTMLFormElement)
+    await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(isSavePost)).toBe(true))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(nombre).toHaveValue('Mis filósofos')
+  })
+
+  it('con «?» Enter pregunta, y mientras consulta la paleta lo anuncia', async () => {
+    let soltar: ((response: Response) => void) | undefined
+    const base = vi.mocked(fetch).getMockImplementation()
+    vi.mocked(fetch).mockImplementation((input, init) =>
+      String(input).includes('/api/query/nl')
+        ? new Promise<Response>((resolve) => {
+            soltar = resolve
+          })
+        : base!(input, init),
+    )
+    renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    const input = screen.getByPlaceholderText(/buscar o preguntar/i)
+    fireEvent.change(input, { target: { value: '?filósofos griegos' } })
+    expect(
+      await screen.findByText(/Preguntar a tu trama: «filósofos griegos»/),
+    ).toBeInTheDocument()
+    // El alcance se anuncia sobre la lista.
+    expect(screen.getByText('pregunta en lenguaje natural')).toBeInTheDocument()
+
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('consultando tu trama…'),
+    )
+    soltar?.(jsonResp(NL_RESPONSE))
+    expect(await screen.findByText('Sócrates')).toBeInTheDocument()
+  })
+
+  it('una respuesta sin items no tumba la paleta: avisa y sigue buscando', async () => {
+    stubFetch(EMPTY_SEARCH, undefined, { nl: { ok: true } })
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText(/buscar o preguntar/i), {
+      target: { value: 'filósofos' },
+    })
+    fireEvent.click(await askButton(container))
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.some(([url]) => String(url).includes('/api/query/nl')),
+      ).toBe(true),
+    )
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.queryByText(/volver a buscar/i)).not.toBeInTheDocument()
+  })
+
+  it('al abrir resultados con el ratón, el foco vuelve al campo para seguir con el teclado', async () => {
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+      />,
+    )
+    const input = screen.getByPlaceholderText(/buscar o preguntar/i)
+    fireEvent.change(input, { target: { value: 'filósofos' } })
+    const preguntar = await askButton(container)
+
+    // Como un clic real: el foco pasa a la fila, que se desmonta al abrir resultados.
+    preguntar.focus()
+    fireEvent.click(preguntar)
+
+    expect(await screen.findByText('Sócrates')).toBeInTheDocument()
+    await waitFor(() => expect(input).toHaveFocus())
   })
 })

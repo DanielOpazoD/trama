@@ -319,7 +319,7 @@ export function AskBar({
             disabled={disabled}
             aria-label="Enviar"
             className="self-end mb-1 mr-1 size-9 rounded-full bg-ink-700 text-paper-50 hover:bg-ink-600 active:scale-90 disabled:bg-ink-100 disabled:text-ink-300 disabled:active:scale-100 transition-all duration-150 ease-out flex items-center justify-center"
-            title="Enviar (⌘/Ctrl+Enter)"
+            title="Enviar (Enter; Shift+Enter hace un salto de línea)"
           >
             {ask.isPending ? (
               <Spinner size={15} variant="ai" tone="inverse" decorative />

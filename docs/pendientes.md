@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**50 pendientes** en 32 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**59 pendientes** en 33 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-10 · Diez avisos de @xmldom/xmldom bloqueaban el CI, y dos eran explotables de verdad
 
@@ -36,6 +36,20 @@ Plan: [2026-09-10-columna-router-y-notas.md](superpowers/plans/2026-09-10-column
 - Pasar el ritmo de Inicio (`space-y-12`, 48 px) a la escala. Con los márgenes muertos ya borrados, pasar a `gap` no resucita nada, pero hay que medir el vector de huecos de cada sección.
 - El espacio muerto bajo las listas cortas (Cronología, Atlas, Momentos, Claves) y su cierre: ninguna de las tres vistas de lista lo marca con el `EndMark` que sí usan Entidades y Citas.
 - `scripts/pendientes.mjs` solo acepta como continuación de un ítem las líneas con sangría, pero Markdown también admite continuaciones sin sangría. Pasó en esta misma nota: Prettier dejó sin sangría una línea que partía un código en línea, y el registro truncó el pendiente en silencio. Lo delató `format:check` solo porque el trozo perdido llevaba un acento grave; sin él no lo habría visto nadie. No hay más casos en el repo (recorrido completo), pero el generador debería tratar esas líneas como continuación, con su test.
+
+## 2026-09-10 · El buscador aprende gramática de teclado, y deja de tumbar la app al preguntar
+
+Plan: [2026-09-10-buscador-gramatica-teclado.md](superpowers/plans/2026-09-10-buscador-gramatica-teclado.md)
+
+- «Buscar en Notas» sigue siendo otro diálogo: en ese mundo no hay ⌘K, el diálogo no tiene teclado ni consulta el servidor, y no respeta el PIN de secciones. Además, «Sin resultados.» nunca aparece y el diálogo pide todas las notas al abrirse. Es el PR siguiente.
+- «Preguntar» significa tres cosas sin puente entre ellas: la paleta devuelve una lista (`/api/query/nl`), y el AskBar y el Chat responden prosa. Además, `DescriptionEditor` usa `/api/ask` como LLM genérico y crea hilos que nadie abrió, y `VALID_VIEWS` deja fuera cinco vistas. Es una decisión de producto antes que de código.
+- `/api/search` y `/api/query` cubren tipos distintos: las notas solo aparecen al preguntar, y las crónicas y el chat solo al teclear.
+- La paleta no tiene semántica de combobox (`role="combobox"`, `listbox`, `aria-activedescendant`): las filas son botones y el foco activo es una clase.
+- En Trama, en móvil, no hay ningún disparador del buscador: sin teclado físico, la paleta queda inaccesible.
+- `useCommandServerSearch` descarta respuestas viejas pero no aborta el fetch.
+- Hipótesis sin probar: en teclados ES/LatAm, `\` necesita AltGr, y la guarda `!e.altKey` de los atajos globales lo bloquearía.
+- `useCommandSearch.ts` quedó a una línea de su tope (119 de 120): el próximo cambio ahí tiene que empezar extrayendo.
+- El chunk de la paleta quedó en 7,9 KB gzip de 8: llevar el omnibox a Notas exige traer sus proveedores en otro chunk antes de sumar código.
 
 ## 2026-09-09 · El grafo encuadraba contra una caja más chica que el dibujo
 

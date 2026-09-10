@@ -263,7 +263,8 @@ export async function mockBackend(page: Page, state: MockState) {
     }),
   )
 
-  // /api/search (hybrid). Devuelve hits que coincidan por substring en nombre.
+  // /api/search. Hits de entidades que coincidan por substring en el nombre, con
+  // la forma completa del contrato `search`: los grupos vacíos también viajan.
   await page.route(apiPath('search', { prefix: true }), (route) => {
     const url = new URL(route.request().url())
     const q = (url.searchParams.get('q') ?? '').toLowerCase()
@@ -282,8 +283,23 @@ export async function mockBackend(page: Page, state: MockState) {
         lexical: 0,
         semantic: 0,
       }))
-    return jsonResp(route, { entities: hits, quotes: [], mode: 'hybrid' })
+    return jsonResp(route, {
+      entities: hits,
+      quotes: [],
+      momentos: [],
+      cronicas: [],
+      chat: [],
+      mode: 'lexical',
+    })
   })
+
+  // /api/saved-queries: el catch-all devuelve `[]`, que incumple el contrato
+  // `{ items }`; con eso ningún e2e veía consultas guardadas.
+  await page.route(apiPath('saved-queries'), (route) =>
+    route.request().method() === 'GET'
+      ? jsonResp(route, { items: [] })
+      : jsonResp(route, { ok: true }),
+  )
 
   // /api/entities-lookup (devuelve por prefix matching)
   await page.route(apiPath('entities-lookup', { prefix: true }), (route) => {

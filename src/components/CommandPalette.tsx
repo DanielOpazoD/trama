@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { ViewMode } from '../types/view'
 import { useCommandSearch, type CommandAction } from '../hooks/useCommandSearch'
 import { useModalOverlay } from '../hooks/useModalOverlay'
@@ -12,7 +13,8 @@ export type { CommandAction }
 
 /**
  * Cmd+K palette. Search-as-you-type across views + entities + quotes.
- * Arrows navigate, Enter selects, Escape closes.
+ * ↑↓ recorren, Enter abre, ⌘Enter pregunta lo escrito y Esc cierra. Un sigilo al
+ * principio acota la búsqueda (ver `hooks/commandSearchGrammar.ts`).
  *
  * La búsqueda (query, filtro local + servidor, items) vive en
  * `useCommandSearch`. Este componente se queda con la presentación y la
@@ -42,12 +44,14 @@ export function CommandPalette({
       "#pass" → Claves desde el ⌘K del mundo principal. */
   onRevealNotasModule?: (moduleId: NotasSection) => void
 }) {
-  const { query, setQuery, items, searching, entitiesForPeek } = useCommandSearch({
-    open,
-    actionsEnabled: Boolean(onAction),
-  })
+  const { query, setQuery, items, searching, settled, entitiesForPeek } =
+    useCommandSearch({
+      open,
+      actionsEnabled: Boolean(onAction),
+    })
   const {
     activeLen,
+    askCurrent,
     backToSearch,
     focusIdx,
     handleEscape,
@@ -73,8 +77,18 @@ export function CommandPalette({
 
   const overlay = useModalOverlay({ open, onClose: handleEscape })
 
+  const inputRef = useRef<HTMLInputElement>(null)
+  // Al pasar a resultados (o volver), la fila elegida se desmonta y el foco caería
+  // en el body: vuelve al campo, que es quien gobierna la lista.
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+  }, [mode, open])
+
   useCommandPaletteKeyboard({
     open,
+    inputRef,
+    askCurrent,
+    settled,
     activeLen,
     focusIdx,
     setFocusIdx,
@@ -92,6 +106,7 @@ export function CommandPalette({
       dialogRef={overlay.dialogRef}
       entitiesForPeek={entitiesForPeek}
       focusIdx={focusIdx}
+      inputRef={inputRef}
       items={items}
       mode={mode}
       onBackToSearch={backToSearch}

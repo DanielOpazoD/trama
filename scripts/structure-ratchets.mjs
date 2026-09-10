@@ -31,7 +31,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'command-palette-search',
-    maxLines: 520,
+    maxLines: 500,
     files: ['src/hooks/commandSearchModel.ts'],
   },
   {
@@ -59,7 +59,7 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'command-palette-components',
-    maxLines: 220,
+    maxLines: 180,
     files: ['src/components/commandPalette/useCommandPaletteController.ts'],
   },
   {

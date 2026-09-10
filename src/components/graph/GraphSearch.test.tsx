@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { GraphSearch, searchEntities } from './GraphSearch'
 import { buildTypeLegend } from './GraphTypeLegend'
 import type { Entity } from '../../types'
+import { useGlobalShortcuts } from '../../hooks/useGlobalShortcuts'
 
 function ent(id: string, name: string, type = 'escritor'): Entity {
   return {
@@ -34,6 +35,25 @@ describe('searchEntities', () => {
   })
 })
 
+const NOOP = () => {}
+
+/** El grafo dentro de un shell con el atajo global, como en la app. */
+function GrafoConAtajoGlobal({
+  grafo,
+  onOpenPalette,
+}: {
+  grafo: boolean
+  onOpenPalette: () => void
+}) {
+  useGlobalShortcuts({
+    onTogglePalette: NOOP,
+    onOpenPalette,
+    onToggleShortcuts: NOOP,
+    onToggleFocusMode: NOOP,
+  })
+  return grafo ? <GraphSearch entities={ENTITIES} onSelect={NOOP} /> : null
+}
+
 describe('<GraphSearch />', () => {
   it('filtra al escribir y selecciona con Enter', () => {
     const onSelect = vi.fn()
@@ -49,6 +69,21 @@ describe('<GraphSearch />', () => {
     render(<GraphSearch entities={ENTITIES} onSelect={() => {}} />)
     fireEvent.keyDown(window, { key: '/' })
     expect(screen.getByLabelText('Buscar nodo en el grafo')).toHaveFocus()
+  })
+
+  it('«/» gana al atajo global aunque este escuchara antes de montar el grafo', () => {
+    const onOpenPalette = vi.fn()
+    // En la app el atajo global vive en el shell y ya escucha cuando el grafo
+    // monta: el orden de registro es el que antes le daba «/» a la paleta.
+    const { rerender } = render(
+      <GrafoConAtajoGlobal grafo={false} onOpenPalette={onOpenPalette} />,
+    )
+    rerender(<GrafoConAtajoGlobal grafo onOpenPalette={onOpenPalette} />)
+
+    fireEvent.keyDown(document.body, { key: '/' })
+
+    expect(screen.getByLabelText('Buscar nodo en el grafo')).toHaveFocus()
+    expect(onOpenPalette).not.toHaveBeenCalled()
   })
 })
 

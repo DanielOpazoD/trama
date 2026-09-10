@@ -116,12 +116,12 @@ describe('structure ratchets', () => {
     expect(maxFor('src/components/CommandPalette.tsx')).toBeLessThanOrEqual(135)
     expect(
       maxFor('src/components/commandPalette/useCommandPaletteController.ts'),
-    ).toBeLessThanOrEqual(220)
+    ).toBeLessThanOrEqual(180)
     expect(
       maxFor('src/components/commandPalette/commandPaletteSelectionModel.ts'),
     ).toBeLessThanOrEqual(80)
     expect(maxFor('src/hooks/useCommandSearch.ts')).toBeLessThanOrEqual(120)
-    expect(maxFor('src/hooks/commandSearchModel.ts')).toBeLessThanOrEqual(520)
+    expect(maxFor('src/hooks/commandSearchModel.ts')).toBeLessThanOrEqual(500)
     expect(maxFor('src/hooks/useCommandServerSearch.ts')).toBeLessThanOrEqual(65)
     expect(maxFor('src/components/MomentosView.tsx')).toBeLessThanOrEqual(300)
     expect(maxFor('src/components/Settings.tsx')).toBeLessThanOrEqual(125)

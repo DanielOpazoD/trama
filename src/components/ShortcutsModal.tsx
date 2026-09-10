@@ -31,10 +31,25 @@ const GROUPS: Group[] = [
   {
     title: 'Navegación',
     shortcuts: [
-      { keys: [CMD, 'K'], label: 'Buscar entidades, citas, ir a sección' },
+      { keys: [CMD, 'K'], label: 'Buscar, preguntar o ejecutar un comando' },
+      { keys: ['/'], label: 'Abrir el buscador (fuera de un campo de texto)' },
       { keys: ['?'], label: 'Ver este menú de atajos' },
       { keys: ['\\'], label: 'Modo focus — ocultar sidebar + topbar' },
       { keys: ['Esc'], label: 'Cerrar modal o panel activo' },
+    ],
+  },
+  {
+    title: 'Buscador',
+    shortcuts: [
+      { keys: ['?'], label: 'Empezar con ? pregunta a tu trama en lenguaje natural' },
+      {
+        keys: ['>'],
+        label: 'Empezar con > busca solo comandos: vistas, acciones y secciones',
+      },
+      { keys: ['@'], label: 'Empezar con @ busca solo entidades' },
+      { keys: ['#'], label: 'Empezar con # busca solo secciones de Notas' },
+      { keys: ['↑', '↓', 'Enter'], label: 'Recorrer los resultados y abrir' },
+      { keys: [CMD, 'Enter'], label: 'Preguntar lo escrito, sin elegir fila' },
     ],
   },
   {
@@ -42,7 +57,6 @@ const GROUPS: Group[] = [
     shortcuts: [
       { keys: ['Enter'], label: 'Enviar al chat / preguntar a la IA' },
       { keys: ['Shift', 'Enter'], label: 'Nueva línea sin enviar' },
-      { keys: [CMD, 'Enter'], label: 'Enviar desde el AskBar' },
     ],
   },
   {

@@ -5,6 +5,8 @@ import type { ViewMode } from '../types/view'
 import { NAV_GROUPS } from '../lib/navigation'
 import { SECTIONS } from '../components/notas/notasSections'
 import { MODULE_ALIASES } from '../components/notas/moduleAliases'
+import { parseCommandQuery, type CommandSearchScope } from './commandSearchGrammar'
+import { normalizeQuery, rankMatches } from './commandSearchRanking'
 
 export type CommandAction =
   | 'open-settings'
@@ -134,10 +136,38 @@ const ACTIONS: Array<{ action: CommandAction; label: string; hint: string }> = [
 const LOCAL_ENTITY_LIMIT = 20
 const LOCAL_QUOTE_LIMIT = 12
 
-type Ranked<T> = {
-  item: T
-  score: number
-  index: number
+type CommandSearchGroup =
+  | 'reveal'
+  | 'view'
+  | 'action'
+  | 'savedQuery'
+  | 'entity'
+  | 'quote'
+  | 'momento'
+  | 'cronica'
+  | 'chat'
+  | 'ask'
+
+// Qué grupos entran en cada alcance de la gramática, y en qué orden. Sin
+// sigilo, `ask` va al final para no tapar hits concretos; con `?` la pregunta
+// es la intención y va primero.
+const SCOPE_GROUPS: Record<CommandSearchScope, readonly CommandSearchGroup[]> = {
+  todo: [
+    'reveal',
+    'view',
+    'action',
+    'savedQuery',
+    'entity',
+    'quote',
+    'momento',
+    'cronica',
+    'chat',
+    'ask',
+  ],
+  preguntar: ['ask', 'savedQuery'],
+  comandos: ['view', 'action', 'reveal'],
+  entidades: ['entity'],
+  secciones: ['reveal'],
 }
 
 export function buildCommandSearchItems({
@@ -151,8 +181,14 @@ export function buildCommandSearchItems({
   sectionAliases,
   visibility,
 }: CommandSearchBuildInput): CommandSearchItem[] {
-  const q = normalizeQuery(query)
-  const revealItems = buildRevealItems(q, sectionAliases, visibility)
+  const { scope, text } = parseCommandQuery(query)
+  const q = normalizeQuery(text)
+  const revealItems = buildRevealItems(
+    q,
+    sectionAliases,
+    visibility,
+    scope === 'secciones',
+  )
   const viewItems = buildViewItems(q, sectionAliases, visibility)
   const actionItems = actionsEnabled ? buildActionItems(q) : []
   const savedQueryItems = buildSavedQueryItems(q, savedQueries)
@@ -222,23 +258,24 @@ export function buildCommandSearchItems({
       }))
     : []
 
-  const rawQ = query.trim()
-  const askItems: CommandSearchItem[] = rawQ.length >= 3 ? [{ kind: 'ask', q: rawQ }] : []
+  // Con `?` basta un carácter: la intención de preguntar ya es explícita.
+  const askMin = scope === 'preguntar' ? 1 : 3
+  const askItems: CommandSearchItem[] =
+    text.length >= askMin ? [{ kind: 'ask', q: text }] : []
 
-  return [
-    ...revealItems,
-    ...viewItems,
-    ...actionItems,
-    ...savedQueryItems,
-    ...entityItems,
-    ...serverEntityItems,
-    ...quoteItems,
-    ...serverQuoteItems,
-    ...momentoItems,
-    ...cronicaItems,
-    ...chatItems,
-    ...askItems,
-  ]
+  const groups: Record<CommandSearchGroup, CommandSearchItem[]> = {
+    reveal: revealItems,
+    view: viewItems,
+    action: actionItems,
+    savedQuery: savedQueryItems,
+    entity: [...entityItems, ...serverEntityItems],
+    quote: [...quoteItems, ...serverQuoteItems],
+    momento: momentoItems,
+    cronica: cronicaItems,
+    chat: chatItems,
+    ask: askItems,
+  }
+  return SCOPE_GROUPS[scope].flatMap((group) => groups[group])
 }
 
 export function describeCommandSearchItem(item: CommandSearchItem): {
@@ -360,8 +397,10 @@ function buildRevealItems(
   q: string,
   sectionAliases: Record<string, string | undefined>,
   visibility: CommandSearchVisibility,
+  /** Con `#` solo se listan todas: el sigilo pide ver las secciones. */
+  listAll: boolean,
 ): CommandSearchItem[] {
-  if (!q) return []
+  if (!q && !listAll) return []
 
   return rankMatches(
     SECTIONS,
@@ -439,57 +478,6 @@ function rankLocalQuotes(q: string, quotes: CommandSearchQuote[]): CommandSearch
     (quote) => [{ text: quote.text, weight: 75 }],
     (quote) => quote,
   )
-}
-
-function rankMatches<T, R>(
-  records: T[],
-  q: string,
-  fields: (record: T) => Array<{ text: string; weight: number }>,
-  map: (record: T) => R,
-): R[] {
-  if (!q) return records.map(map)
-
-  return records
-    .map<Ranked<T>>((record, index) => ({
-      item: record,
-      index,
-      score: Math.max(
-        ...fields(record).map((field) => scoreField(q, field.text, field.weight)),
-      ),
-    }))
-    .filter((ranked) => ranked.score >= 0)
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .map((ranked) => map(ranked.item))
-}
-
-function scoreField(q: string, text: string, weight: number): number {
-  const normalizedText = normalizeQuery(text)
-  if (!normalizedText) return -1
-
-  const cleanQ = q.startsWith('#') ? q.slice(1) : q
-  const cleanText = normalizedText.startsWith('#')
-    ? normalizedText.slice(1)
-    : normalizedText
-  if (normalizedText === q || cleanText === cleanQ) return weight + 100
-  if (normalizedText.startsWith(q) || cleanText.startsWith(cleanQ)) return weight + 75
-  if (hasWordPrefix(normalizedText, q) || hasWordPrefix(cleanText, cleanQ)) {
-    return weight + 60
-  }
-  if (normalizedText.includes(q) || cleanText.includes(cleanQ)) return weight + 35
-  return -1
-}
-
-function hasWordPrefix(text: string, q: string): boolean {
-  if (!q) return false
-  return text.split(/\s+/).some((word) => word.startsWith(q))
-}
-
-function normalizeQuery(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
 }
 
 function describeVisibilityStatus({
