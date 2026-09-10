@@ -6,9 +6,10 @@ import { useToast } from './toast'
 
 const PROMPTS_KEY = queryKeys.prompts
 
-export function usePromptsQuery() {
+export function usePromptsQuery(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: PROMPTS_KEY,
+    enabled: options.enabled ?? true,
     queryFn: () => api.prompts.list(),
   })
 }
