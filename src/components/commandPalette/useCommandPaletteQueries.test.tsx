@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { NlQueryResult } from '../../api/query'
+import type { NlQueryResult, QueryHit } from '../../api/query'
 import { useCommandPaletteQueries } from './useCommandPaletteQueries'
 
 const m = vi.hoisted(() => ({
@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   run: vi.fn(),
   save: vi.fn(),
   toast: vi.fn(),
+  hidden: new Set<string>(),
 }))
 
 vi.mock('../../state/useSavedQueries', () => ({
@@ -16,6 +17,9 @@ vi.mock('../../state/useSavedQueries', () => ({
   useSaveQuery: () => ({ mutateAsync: m.save, isPending: false }),
 }))
 vi.mock('../../state/toast', () => ({ useToast: () => ({ show: m.toast }) }))
+vi.mock('../../hooks/useSectionPin', () => ({
+  useSectionPin: () => ({ isContentHidden: (id: string) => m.hidden.has(id) }),
+}))
 
 function respuesta(title: string): NlQueryResult {
   return {
@@ -43,10 +47,27 @@ function diferida<T>() {
   return { promise, resolve }
 }
 
+function conNota(): NlQueryResult {
+  const base = respuesta('Borges')
+  const nota: QueryHit = {
+    kind: 'note',
+    id: 'n-1',
+    title: null,
+    snippet: 'comprar pan',
+    createdAt: '2026-01-01',
+    tags: [],
+  }
+  return { ...base, items: [...base.items, nota] }
+}
+
+const tiposDe = (call: unknown[] | undefined) =>
+  (call?.[0] as { hits: QueryHit[] }).hits.map((hit) => hit.kind)
+
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 beforeEach(() => {
   vi.clearAllMocks()
+  m.hidden.clear()
 })
 
 describe('useCommandPaletteQueries', () => {
@@ -106,6 +127,42 @@ describe('useCommandPaletteQueries', () => {
       }),
     )
     expect(onResults).not.toHaveBeenCalled()
+  })
+
+  it('con Notas protegida, una pregunta no enseña notas; sin PIN, sí', async () => {
+    m.hidden.add('notas:notas')
+    m.ask.mockResolvedValue(conNota())
+    const onResults = vi.fn()
+    const { result, rerender } = renderHook(() =>
+      useCommandPaletteQueries({ query: 'x', onResults }),
+    )
+
+    act(() => result.current.runAsk('pan'))
+    await waitFor(() => expect(onResults).toHaveBeenCalledTimes(1))
+    expect(tiposDe(onResults.mock.calls[0])).toEqual(['entity'])
+
+    m.hidden.clear()
+    rerender()
+    act(() => result.current.runAsk('pan'))
+    await waitFor(() => expect(onResults).toHaveBeenCalledTimes(2))
+    expect(tiposDe(onResults.mock.calls[1])).toEqual(['entity', 'note'])
+  })
+
+  it('una consulta guardada tampoco enseña notas protegidas', async () => {
+    m.hidden.add('notas:notas')
+    m.run.mockResolvedValueOnce({ items: conNota().items, nextCursor: null })
+    const onResults = vi.fn()
+    const { result } = renderHook(() =>
+      useCommandPaletteQueries({ query: 'x', onResults }),
+    )
+
+    act(() => result.current.runAst({ from: ['note'] }, 'Guardada', 'sq-1'))
+    await waitFor(() => expect(onResults).toHaveBeenCalled())
+    expect(onResults.mock.calls[0]?.[0]).toMatchObject({
+      heading: 'Guardada',
+      savedQueryId: 'sq-1',
+    })
+    expect(tiposDe(onResults.mock.calls[0])).toEqual(['entity'])
   })
 
   it('guardar resuelve si se guardó, y un fallo no se propaga', async () => {

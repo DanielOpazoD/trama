@@ -69,6 +69,27 @@ describe('useFeedKeyboardNav', () => {
     input.remove()
   })
 
+  it('NO se lleva las teclas que nacen dentro de un diálogo modal', () => {
+    const { onFocusComposer, onActivate } = setup()
+    const modal = document.createElement('div')
+    modal.setAttribute('aria-modal', 'true')
+    const dentro = document.createElement('button')
+    modal.appendChild(dentro)
+    const fuera = document.createElement('button')
+    document.body.append(modal, fuera)
+
+    act(() => void press('j'))
+    act(() => void press('n', dentro))
+    act(() => void press('Enter', dentro))
+    expect(onFocusComposer).not.toHaveBeenCalled()
+    expect(onActivate).not.toHaveBeenCalled()
+
+    act(() => void press('n', fuera))
+    expect(onFocusComposer).toHaveBeenCalledTimes(1)
+    modal.remove()
+    fuera.remove()
+  })
+
   it('NO dispara con modificadores (Ⓒ/⌘/⎇)', () => {
     const { onFocusComposer } = setup()
     const ev = new KeyboardEvent('keydown', { key: 'n', metaKey: true })

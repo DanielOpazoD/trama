@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**59 pendientes** en 33 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**63 pendientes** en 34 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-10 · Diez avisos de @xmldom/xmldom bloqueaban el CI, y dos eran explotables de verdad
 
@@ -50,6 +50,15 @@ Plan: [2026-09-10-buscador-gramatica-teclado.md](superpowers/plans/2026-09-10-bu
 - Hipótesis sin probar: en teclados ES/LatAm, `\` necesita AltGr, y la guarda `!e.altKey` de los atajos globales lo bloquearía.
 - `useCommandSearch.ts` quedó a una línea de su tope (119 de 120): el próximo cambio ahí tiene que empezar extrayendo.
 - El chunk de la paleta quedó en 7,9 KB gzip de 8: llevar el omnibox a Notas exige traer sus proveedores en otro chunk antes de sumar código.
+
+## 2026-09-10 · «#» vuelve a encontrar vistas por su alias, y preguntar respeta el PIN de Notas
+
+Plan: [2026-09-10-buscador-alias-y-pin.md](superpowers/plans/2026-09-10-buscador-alias-y-pin.md)
+
+- «Buscar en Notas» sigue siendo otro diálogo: no respeta el PIN, no tiene teclado ni ⌘K, y no encuentra «edición» si se escribe «edicion». Es el PR siguiente, el buscador único de los dos mundos.
+- El PIN de las vistas de Trama no esconde entidades, citas, momentos ni chat en la paleta: solo las notas, y solo al preguntar.
+- `SectionPinGate` no espera las preferencias del servidor, e Inicio de Notas enseña notas sin mirar `notas:notas` (leído en `NotasHomeView.tsx`, sin medir).
+- El listener de teclado de Imprenta ignora los campos de texto pero no los diálogos: con el foco en un botón del buscador, Backspace podría borrar las páginas seleccionadas. Hipótesis sin medir.
 
 ## 2026-09-09 · El grafo encuadraba contra una caja más chica que el dibujo
 

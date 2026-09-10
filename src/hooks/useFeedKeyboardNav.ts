@@ -28,7 +28,8 @@ type FeedKeyboardNavOptions = {
 
 /**
  * Navegación por teclado scopeada al feed de Notas. Atajos de una tecla cuando
- * el feed está activo y el foco NO está en un input/textarea/contenteditable:
+ * el feed está activo y el foco NO está en un input/textarea/contenteditable
+ * ni dentro de un diálogo modal:
  *
  *   n   → enfoca el composer
  *   /   → abre/enfoca el buscador
@@ -61,6 +62,9 @@ export function useFeedKeyboardNav({
   const handler = useCallback((e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return
     if (isTypingTarget(e.target)) return
+    // Una tecla nacida dentro de un diálogo modal es de ese diálogo: con el
+    // buscador abierto, «n» sacaba el foco al compositor (medido en demo).
+    if (e.target instanceof Element && e.target.closest('[aria-modal="true"]')) return
     const { itemCount, onFocusComposer, onOpenSearch, onActivate } = stable.current
 
     switch (e.key) {

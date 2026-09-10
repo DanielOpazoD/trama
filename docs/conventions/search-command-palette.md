@@ -16,7 +16,7 @@ Un sigilo como primer carácter acota la búsqueda
 | `?`       | preguntar | «Preguntar» primero (desde un carácter) y las consultas guardadas.                                                                           |
 | `>`       | comandos  | Vistas, acciones y secciones de Notas.                                                                                                       |
 | `@`       | entidades | Entidades, locales y del servidor.                                                                                                           |
-| `#`       | secciones | Secciones de Notas; `#` solo las lista todas.                                                                                                |
+| `#`       | secciones | Vistas y secciones de Notas, por nombre o alias; primero las de Notas. `#` solo las lista todas.                                             |
 
 Con un espacio delante, el sigilo es texto. Solo `todo` y `entidades` consultan
 `/api/search`: preguntar va por `/api/query/nl`, y comandos y secciones son
@@ -34,6 +34,9 @@ locales.
 - Un atajo local reclama una tecla global escuchando en captura y llamando a
   `preventDefault`; el atajo global respeta `defaultPrevented`. Así «/» enfoca
   el buscador del grafo en vez de abrir la paleta.
+- El feed de Notas ignora las teclas que nacen dentro de un diálogo modal
+  (`[aria-modal="true"]`): con el buscador abierto, «n» no saca el foco al
+  compositor.
 
 ## Fronteras
 
@@ -71,7 +74,13 @@ No agrega IA ni motor nuevo. El server sigue usando `/api/search` en modo
 - Los resultados locales y remotos se dedupean por id antes de renderizar.
 - Sin sigilo, `ask` va al final y no debe tapar hits concretos; con `?` va
   primero.
-- Los alias con `#` tienen prioridad al revelar secciones de Notas.
+- Con `#`, las secciones de Notas van antes que las vistas, y un alias
+  personalizado encuentra su vista o su sección.
+- El contenido de una sección protegida con PIN no sale de ella. Una pregunta o
+  una consulta guardada no enseña hits de nota si `notas:notas` está protegida:
+  `useSectionPin().isContentHidden` esconde también mientras las preferencias
+  sean las del espejo local, que puede estar viejo. `isPinRequired` es la de
+  `SectionPinGate`.
 - `/api/search` pasa por el contrato de lectura `search`. La paleta recorre los
   cinco grupos sin defensas, así que quien produce la respuesta (backend, demo o
   mock de e2e) entrega todos.

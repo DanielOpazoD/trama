@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { QueryHit, QueryInput } from '../../api/query'
+import { useSectionPin } from '../../hooks/useSectionPin'
 import { useAskQuery, useRunQuery, useSaveQuery } from '../../state/useSavedQueries'
 import { useToast } from '../../state/toast'
 import type { CommandPaletteResultsState } from './CommandPaletteDialog'
+import { withoutHiddenNoteHits } from './commandPaletteModel'
 
 // Las respuestas de /api/query y /api/query/nl no pasan por un contrato de
 // runtime (esos son de lectura). Una forma equivocada llegaba hasta el render y
@@ -22,6 +24,9 @@ function withHits<T extends { items: QueryHit[] }>(res: T): T {
  * Cada consulta abre un turno, y cambiar la búsqueda o volver abre otro: la
  * respuesta que llega con su turno ya pasado se descarta. Sin eso, una pregunta
  * lenta reabría sus resultados encima de lo que se estaba escribiendo.
+ *
+ * Las notas de una sección protegida con PIN no llegan a los resultados: medido
+ * en demo, «?comprar pan» enseñaba la nota que la sección Notas pedía desbloquear.
  */
 export function useCommandPaletteQueries({
   query,
@@ -36,6 +41,7 @@ export function useCommandPaletteQueries({
   const { mutateAsync: run } = useRunQuery()
   const { mutateAsync: save, isPending: saving } = useSaveQuery()
   const toast = useToast()
+  const notesHidden = useSectionPin().isContentHidden('notas:notas')
 
   const invalidate = useCallback(() => {
     turn.current += 1
@@ -70,24 +76,30 @@ export function useCommandPaletteQueries({
         () => ask(q).then(withHits),
         (res) =>
           onResults({
-            hits: res.items,
+            hits: withoutHiddenNoteHits(res.items, notesHidden),
             ast: res.query,
             source: res.source,
             heading: `«${q}»`,
           }),
         'No se pudo interpretar la pregunta.',
       ),
-    [ask, launch, onResults],
+    [ask, launch, notesHidden, onResults],
   )
 
   const runAst = useCallback(
     (input: QueryInput, heading: string, savedQueryId?: string) =>
       launch(
         () => run(input).then(withHits),
-        (res) => onResults({ hits: res.items, ast: input, heading, savedQueryId }),
+        (res) =>
+          onResults({
+            hits: withoutHiddenNoteHits(res.items, notesHidden),
+            ast: input,
+            heading,
+            savedQueryId,
+          }),
         'No se pudo ejecutar la consulta.',
       ),
-    [launch, onResults, run],
+    [launch, notesHidden, onResults, run],
   )
 
   /** Resuelve si se guardó: quien llama solo borra el nombre cuando es cierto. */

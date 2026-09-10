@@ -5,6 +5,7 @@ import {
   commandPaletteItemKey,
   describeCommandPaletteEmptyState,
   getCommandPaletteActiveLength,
+  withoutHiddenNoteHits,
 } from './commandPaletteModel'
 
 describe('commandPaletteModel', () => {
@@ -77,5 +78,20 @@ describe('commandPaletteModel', () => {
         searching: false,
       }),
     ).toBe('empieza a escribir para buscar')
+  })
+})
+
+describe('withoutHiddenNoteHits', () => {
+  const hits = [{ kind: 'entity' }, { kind: 'note' }, { kind: 'quote' }]
+
+  it('con Notas protegida quita solo las notas', () => {
+    expect(withoutHiddenNoteHits(hits, true)).toEqual([
+      { kind: 'entity' },
+      { kind: 'quote' },
+    ])
+  })
+
+  it('sin PIN deja los hits como vienen', () => {
+    expect(withoutHiddenNoteHits(hits, false)).toBe(hits)
   })
 })

@@ -5,7 +5,7 @@
  *   ?  preguntar a tu trama en lenguaje natural (y tus consultas guardadas)
  *   >  comandos: vistas, acciones y secciones de Notas
  *   @  entidades
- *   #  secciones de Notas (el alias `#pass` ya funcionaba así)
+ *   #  secciones: las vistas y las secciones de Notas, por nombre o alias
  *
  * Sin sigilo se busca en todo, como siempre. El sigilo tiene que ser el primer
  * carácter: con un espacio delante se busca el texto tal cual.
@@ -33,7 +33,7 @@ export const COMMAND_SEARCH_SIGILS: ReadonlyArray<{
     sigil: '#',
     scope: 'secciones',
     label: 'secciones',
-    heading: 'solo secciones de Notas',
+    heading: 'solo secciones',
   },
 ]
 

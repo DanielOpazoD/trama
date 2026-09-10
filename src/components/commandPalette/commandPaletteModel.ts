@@ -42,6 +42,14 @@ export function describeCommandPaletteEmptyState({
   return query.trim() ? 'nada coincide' : 'empieza a escribir para buscar'
 }
 
+/** Una pregunta no enseña notas de una sección protegida con PIN. */
+export function withoutHiddenNoteHits<T extends { kind: string }>(
+  hits: T[],
+  notesHidden: boolean,
+): T[] {
+  return notesHidden ? hits.filter((hit) => hit.kind !== 'note') : hits
+}
+
 export function commandPaletteItemKey(item: Item): string {
   if (item.kind === 'view') return item.view
   if (item.kind === 'action') return item.action
