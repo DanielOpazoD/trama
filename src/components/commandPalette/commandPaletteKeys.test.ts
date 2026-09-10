@@ -39,6 +39,13 @@ describe('commandPaletteKeys', () => {
     expect(tecla('Enter', { isComposing: true })).toBeNull()
   })
 
+  it('⇧Enter es la acción de la fila; con ⌘ o Ctrl sigue preguntando', () => {
+    expect(tecla('Enter', { shiftKey: true })).toBe('act')
+    expect(tecla('Enter', { shiftKey: true, metaKey: true })).toBe('ask')
+    expect(tecla('Enter', { shiftKey: true, ctrlKey: true })).toBe('ask')
+    expect(tecla('Enter', { shiftKey: true, target: 'control' })).toBeNull()
+  })
+
   it('el pie enseña la gramática con la búsqueda vacía y las teclas al escribir', () => {
     expect(describeCommandPaletteHints('')).toBe(
       '? preguntar · > comandos · @ entidades · # secciones',

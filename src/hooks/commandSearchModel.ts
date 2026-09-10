@@ -10,6 +10,27 @@ import { ACTIONS, VIEWS, type CommandAction } from './commandSearchCatalog'
 
 export type { CommandAction }
 
+/**
+ * Un resultado que aporta quien monta la paleta (hoy, el mundo Notas). La paleta
+ * lo pinta y lo abre, pero no sabe qué es una nota o una tarea.
+ */
+export type CommandSearchContentItem = {
+  kind: 'content'
+  id: string
+  icon: 'note' | 'task' | 'prompt'
+  section: NotasSection
+  label: string
+  hint?: string
+  preview?: string
+  /** Acción de la fila sin abrirla (⇧Enter): marcar hecha, copiar. */
+  secondary?: { label: string; ariaLabel: string; run: () => void }
+}
+
+/** La fuente de contenido de un anfitrión: un hook que corre en el mismo render. */
+export type CommandSearchContentSource = {
+  useItems: (args: { open: boolean; text: string }) => CommandSearchContentItem[]
+}
+
 export type CommandSearchItem =
   | { kind: 'view'; view: ViewMode; label: string; hint?: string }
   | { kind: 'action'; action: CommandAction; label: string; hint?: string }
@@ -27,6 +48,7 @@ export type CommandSearchItem =
       threadTitle: string | null
       text: string
     }
+  | CommandSearchContentItem
 
 export type CommandSearchEntity = {
   id: string
@@ -67,6 +89,7 @@ export type CommandSearchBuildInput = {
   serverResults: SearchResponse | null
   sectionAliases: Record<string, string | undefined>
   visibility: CommandSearchVisibility
+  contentItems?: CommandSearchContentItem[]
 }
 
 const LOCAL_ENTITY_LIMIT = 20
@@ -74,6 +97,7 @@ const LOCAL_QUOTE_LIMIT = 12
 
 type CommandSearchGroup =
   | 'reveal'
+  | 'content'
   | 'view'
   | 'action'
   | 'savedQuery'
@@ -86,10 +110,12 @@ type CommandSearchGroup =
 
 // Qué grupos entran en cada alcance de la gramática, y en qué orden. Sin
 // sigilo, `ask` va al final para no tapar hits concretos; con `?` la pregunta
-// es la intención y va primero.
+// es la intención y va primero. El contenido del anfitrión va tras las secciones,
+// y solo sin sigilo.
 const SCOPE_GROUPS: Record<CommandSearchScope, readonly CommandSearchGroup[]> = {
   todo: [
     'reveal',
+    'content',
     'view',
     'action',
     'savedQuery',
@@ -116,6 +142,7 @@ export function buildCommandSearchItems({
   serverResults,
   sectionAliases,
   visibility,
+  contentItems = [],
 }: CommandSearchBuildInput): CommandSearchItem[] {
   const { scope, text } = parseCommandQuery(query)
   const q = normalizeQuery(text)
@@ -201,6 +228,7 @@ export function buildCommandSearchItems({
 
   const groups: Record<CommandSearchGroup, CommandSearchItem[]> = {
     reveal: revealItems,
+    content: contentItems,
     view: viewItems,
     action: actionItems,
     savedQuery: savedQueryItems,
@@ -280,6 +308,13 @@ export function describeCommandSearchItem(item: CommandSearchItem): {
         kind: item.kind,
         label: item.text,
         hint: item.threadTitle ?? 'chat',
+      }
+    case 'content':
+      return {
+        key: `content:${item.id}`,
+        kind: item.kind,
+        label: item.label,
+        hint: item.hint,
       }
   }
 }

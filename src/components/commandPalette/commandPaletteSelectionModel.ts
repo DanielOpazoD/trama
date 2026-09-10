@@ -53,6 +53,8 @@ export function getCommandPaletteItemCommand(
         : { kind: 'navigate', view: 'chat' }
     case 'reveal':
       return { kind: 'revealNotasModule', moduleId: item.moduleId }
+    case 'content':
+      return { kind: 'revealNotasModule', moduleId: item.section }
     case 'ask':
       return { kind: 'runAsk', q: item.q }
     case 'savedQuery':

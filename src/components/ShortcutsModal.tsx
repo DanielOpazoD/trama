@@ -54,6 +54,10 @@ const GROUPS: Group[] = [
       },
       { keys: ['↑', '↓', 'Enter'], label: 'Recorrer los resultados y abrir' },
       { keys: [CMD, 'Enter'], label: 'Preguntar lo escrito, sin elegir fila' },
+      {
+        keys: ['⇧', 'Enter'],
+        label: 'Acción de la fila: marcar la tarea hecha o copiar el prompt',
+      },
     ],
   },
   {

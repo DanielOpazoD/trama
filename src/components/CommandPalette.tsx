@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ViewMode } from '../types/view'
+import type { CommandSearchContentSource } from '../hooks/commandSearchModel'
 import { useCommandSearch, type CommandAction } from '../hooks/useCommandSearch'
 import { useModalOverlay } from '../hooks/useModalOverlay'
 import type { NotasSection } from '../types/notas'
@@ -29,6 +30,7 @@ export function CommandPalette({
   onAction,
   onOpenThread,
   onRevealNotasModule,
+  contentSource,
 }: {
   open: boolean
   onClose: () => void
@@ -43,11 +45,14 @@ export function CommandPalette({
   /** Revelar/abrir un módulo del mundo Notas (cruza de mundo). Para el comando
       "#pass" → Claves desde el ⌘K del mundo principal. */
   onRevealNotasModule?: (moduleId: NotasSection) => void
+  /** Contenido que aporta el anfitrión (el mundo Notas): notas, tareas y prompts. */
+  contentSource?: CommandSearchContentSource
 }) {
   const { query, setQuery, items, searching, settled, entitiesForPeek } =
     useCommandSearch({
       open,
       actionsEnabled: Boolean(onAction),
+      contentSource,
     })
   const {
     activeLen,

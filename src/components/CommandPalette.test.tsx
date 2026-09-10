@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { CommandPalette } from './CommandPalette'
 import { renderWithProviders } from '../test-utils'
 import type { SearchResponse } from '../api'
+import type { CommandSearchContentSource } from '../hooks/commandSearchModel'
 
 /**
  * Smoke tests para CommandPalette: verifica navegación + filtrado +
@@ -717,5 +718,79 @@ describe('<CommandPalette />', () => {
 
     expect(await screen.findByText('Sócrates')).toBeInTheDocument()
     await waitFor(() => expect(input).toHaveFocus())
+  })
+})
+
+describe('<CommandPalette /> con contenido del anfitrión', () => {
+  const run = vi.fn()
+  const fuente: CommandSearchContentSource = {
+    useItems: ({ text }) =>
+      text.length >= 2
+        ? [
+            {
+              kind: 'content',
+              id: 'task:t1',
+              icon: 'task',
+              section: 'tareas',
+              label: 'Comprar tinta',
+              hint: 'tarea',
+              secondary: {
+                label: 'hecha',
+                ariaLabel: 'Marcar hecha: Comprar tinta',
+                run,
+              },
+            },
+          ]
+        : [],
+  }
+
+  it('pinta sus filas sin sigilo; la acción no cierra y la fila lleva a su sección', async () => {
+    run.mockClear()
+    const onClose = vi.fn()
+    const onRevealNotasModule = vi.fn()
+    const { container } = renderWithProviders(
+      <CommandPalette
+        open
+        onClose={onClose}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+        onRevealNotasModule={onRevealNotasModule}
+        contentSource={fuente}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText('Buscar o preguntar…'), {
+      target: { value: 'tinta' },
+    })
+    const hecha = await screen.findByRole('button', {
+      name: 'Marcar hecha: Comprar tinta',
+    })
+    expect(container.querySelector('button button')).toBeNull()
+
+    fireEvent.click(hecha)
+    expect(run).toHaveBeenCalledOnce()
+    expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Comprar tinta/ }))
+    expect(onRevealNotasModule).toHaveBeenCalledWith('tareas')
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('con un sigilo, el anfitrión no aporta filas', async () => {
+    renderWithProviders(
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+        contentSource={fuente}
+      />,
+    )
+    fireEvent.change(screen.getByPlaceholderText('Buscar o preguntar…'), {
+      target: { value: '>tinta' },
+    })
+    expect(await screen.findByText('solo comandos')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Marcar hecha: Comprar tinta' }),
+    ).toBeNull()
   })
 })

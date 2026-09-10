@@ -12,8 +12,11 @@ import {
   KeyIcon,
   MomentosIcon,
   MusicIcon,
+  NotesIcon,
+  PromptIcon,
   QuoteIcon,
   SparkleIcon,
+  TasksIcon,
 } from './Icons'
 
 // Mínimo para construir el sublabel de una crónica ("crónica · marzo 2026").
@@ -80,6 +83,8 @@ function ViewIcon({ view }: { view: ViewMode }) {
       return <SparkleIcon {...props} />
   }
 }
+
+const CONTENT_ICONS = { note: NotesIcon, task: TasksIcon, prompt: PromptIcon } as const
 
 export function ItemRow({ item, query }: { item: Item; query: string }) {
   if (item.kind === 'view') {
@@ -216,6 +221,22 @@ export function ItemRow({ item, query }: { item: Item; query: string }) {
         <span className="text-micro uppercase tracking-eyebrow text-ink-300 ml-2 shrink-0">
           crónica · {MONTH_NAMES[item.month - 1]} {item.year}
         </span>
+      </>
+    )
+  }
+  if (item.kind === 'content') {
+    const Icon = CONTENT_ICONS[item.icon]
+    return (
+      <>
+        <Icon size={14} className="text-ink-400 shrink-0" />
+        <span className="text-ink-700 truncate flex-1">
+          <HighlightedText text={item.label} query={query} />
+        </span>
+        {item.hint && (
+          <span className="text-micro uppercase tracking-eyebrow text-ink-300 ml-2 shrink-0">
+            {item.hint}
+          </span>
+        )}
       </>
     )
   }

@@ -86,6 +86,22 @@ export function PeekPanel({
       </div>
     )
   }
+  if (item.kind === 'content') {
+    return (
+      <div className="p-4 stack-2">
+        <p className="text-micro uppercase tracking-eyebrow text-ink-400">
+          {item.hint ?? item.section}
+        </p>
+        <p className="text-caption text-ink-600 leading-relaxed line-clamp-[8] whitespace-pre-line">
+          {item.preview ?? item.label}
+        </p>
+        <p className="text-micro text-ink-300 pt-1">
+          enter abre la sección
+          {item.secondary ? ` · ⇧ enter ${item.secondary.label}` : ''}
+        </p>
+      </div>
+    )
+  }
   if (item.kind === 'savedQuery') {
     return (
       <div className="p-4 stack-2">

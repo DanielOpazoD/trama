@@ -5,11 +5,13 @@ import { useCommandSearchVisibility } from './useCommandSearchVisibility'
 import {
   buildCommandSearchItems,
   type CommandAction,
+  type CommandSearchContentItem,
+  type CommandSearchContentSource,
   type CommandSearchEntity,
   type CommandSearchItem,
 } from './commandSearchModel'
 import { useCommandServerSearch } from './useCommandServerSearch'
-import { serverQueryFor } from './commandSearchGrammar'
+import { contentTextFor, serverQueryFor } from './commandSearchGrammar'
 
 /**
  * Lógica de búsqueda del command palette (Cmd+K), extraída de
@@ -28,11 +30,19 @@ export type Item = CommandSearchItem
 
 const LOCAL_SEARCH_MAX_ITEMS = 1000
 
+const NO_CONTENT: CommandSearchContentItem[] = []
+function useNoContentItems(): CommandSearchContentItem[] {
+  return NO_CONTENT
+}
+
 export function useCommandSearch({
   open,
   actionsEnabled,
+  contentSource,
 }: {
   open: boolean
+  /** Contenido que aporta el anfitrión (el mundo Notas). Fijo por anfitrión. */
+  contentSource?: CommandSearchContentSource
   /** Incluir las acciones rápidas en los resultados (true si el padre pasó
    *  un `onAction`). */
   actionsEnabled: boolean
@@ -59,6 +69,11 @@ export function useCommandSearch({
     open,
     query: serverQueryFor(deferredQuery),
   })
+  // Una fuente fija por anfitrión: el hook se llama siempre, y en el mismo render
+  // que la lista, así `settled` sigue diciendo la verdad.
+  const useContentItems: CommandSearchContentSource['useItems'] =
+    contentSource?.useItems ?? useNoContentItems
+  const contentItems = useContentItems({ open, text: contentTextFor(deferredQuery) })
 
   // Reset del estado de búsqueda al abrir el palette. El foco del input y
   // el índice resaltado los maneja el componente.
@@ -77,9 +92,11 @@ export function useCommandSearch({
       serverResults,
       sectionAliases,
       visibility,
+      contentItems,
     })
   }, [
     actionsEnabled,
+    contentItems,
     deferredQuery,
     entities,
     localSearchEnabled,

@@ -75,6 +75,7 @@ export function useCommandPaletteKeyboard({
         key: e.key,
         metaKey: e.metaKey,
         ctrlKey: e.ctrlKey,
+        shiftKey: e.shiftKey,
         isComposing: e.isComposing,
         target: keyTarget(e.target, inputRef.current),
       })
@@ -91,10 +92,14 @@ export function useCommandPaletteKeyboard({
         const hit = results?.hits[focusIdx]
         if (hit) selectHit(hit)
       } else if (!settled) {
-        pendingSelect.current = true
+        // Solo se recuerda abrir: una acción sobre una fila que aún no se ve, no.
+        if (intent === 'select') pendingSelect.current = true
       } else {
         const item = items[focusIdx]
-        if (item) selectItem(item)
+        if (!item) return
+        if (intent === 'act' && item.kind === 'content' && item.secondary)
+          item.secondary.run()
+        else selectItem(item)
       }
     }
     window.addEventListener('keydown', handler)

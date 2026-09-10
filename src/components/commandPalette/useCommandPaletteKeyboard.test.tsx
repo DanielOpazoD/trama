@@ -6,6 +6,17 @@ import { useCommandPaletteKeyboard } from './useCommandPaletteKeyboard'
 const INICIO = { kind: 'view', view: 'inicio', label: 'Inicio' } as Item
 const MOMENTOS = { kind: 'view', view: 'momentos', label: 'Momentos' } as Item
 
+function tareaCon(run: () => void) {
+  return {
+    kind: 'content',
+    id: 'task:t1',
+    icon: 'task',
+    section: 'tareas',
+    label: 'Comprar tinta',
+    secondary: { label: 'hecha', ariaLabel: 'Marcar hecha: Comprar tinta', run },
+  } as Item
+}
+
 type Props = { items: Item[]; settled: boolean }
 
 function montar(initialProps: Props) {
@@ -60,6 +71,31 @@ describe('useCommandPaletteKeyboard', () => {
     const boton = document.createElement('button')
     document.body.appendChild(boton)
     fireEvent.keyDown(boton, { key: 'Enter' })
+    expect(selectItem).not.toHaveBeenCalled()
+  })
+
+  it('⇧Enter sobre una fila con acción la hace sin abrirla; sobre otra fila, abre', () => {
+    const run = vi.fn()
+    const { rerender, input, selectItem } = montar({
+      items: [tareaCon(run)],
+      settled: true,
+    })
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+    expect(run).toHaveBeenCalledOnce()
+    expect(selectItem).not.toHaveBeenCalled()
+
+    rerender({ items: [MOMENTOS], settled: true })
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+    expect(selectItem).toHaveBeenCalledWith(MOMENTOS)
+  })
+
+  it('⇧Enter con la lista atrasada no actúa, ni cuando la lista llega', () => {
+    const run = vi.fn()
+    const tarea = tareaCon(run)
+    const { rerender, input, selectItem } = montar({ items: [tarea], settled: false })
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true })
+    rerender({ items: [tarea], settled: true })
+    expect(run).not.toHaveBeenCalled()
     expect(selectItem).not.toHaveBeenCalled()
   })
 })
