@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**63 pendientes** en 34 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**62 pendientes** en 35 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-10 · Diez avisos de @xmldom/xmldom bloqueaban el CI, y dos eran explotables de verdad
 
@@ -17,6 +17,15 @@ Plan: [2026-09-10-xmldom-0815.md](superpowers/plans/2026-09-10-xmldom-0815.md)
 Plan: [2026-09-10-primitiva-page.md](superpowers/plans/2026-09-10-primitiva-page.md)
 
 - El ornamento de Inicio queda huérfano cuando Efemérides y WeeklyActivity devuelven null (el caso del modo prueba): 48 px de aire, un glifo de 12 px y otros 48. Pide un separador que se anule solo cuando le falta un vecino, en vez de una guardia local que ya murió una vez.
+
+## 2026-09-10 · Un solo buscador en los dos mundos
+
+Plan: [2026-09-10-omnibox-dos-mundos.md](superpowers/plans/2026-09-10-omnibox-dos-mundos.md)
+
+- Renombrar y borrar consultas guardadas: la API existe, pero faltan la interfaz, los casos de la demo y margen en el chunk de la paleta.
+- Buscar notas, tareas y prompts desde Trama exige LIMIT y búsqueda sin tildes en el servidor, o un motor unificado: hoy ese contenido solo llega desde Notas.
+- Abrir la nota, la tarea o el prompt concreto, no solo su sección: las vistas todavía no aceptan un id de foco.
+- ⌘K con otro overlay abierto (Configuración, un lightbox, la escritura enfocada): la paleta queda debajo. Hay que medirlo y decidir un bloqueo común a los dos mundos.
 
 ## 2026-09-10 · Estados vacíos que enseñan: cada vacío ofrece una salida real
 
@@ -41,21 +50,16 @@ Plan: [2026-09-10-columna-router-y-notas.md](superpowers/plans/2026-09-10-column
 
 Plan: [2026-09-10-buscador-gramatica-teclado.md](superpowers/plans/2026-09-10-buscador-gramatica-teclado.md)
 
-- «Buscar en Notas» sigue siendo otro diálogo: en ese mundo no hay ⌘K, el diálogo no tiene teclado ni consulta el servidor, y no respeta el PIN de secciones. Además, «Sin resultados.» nunca aparece y el diálogo pide todas las notas al abrirse. Es el PR siguiente.
 - «Preguntar» significa tres cosas sin puente entre ellas: la paleta devuelve una lista (`/api/query/nl`), y el AskBar y el Chat responden prosa. Además, `DescriptionEditor` usa `/api/ask` como LLM genérico y crea hilos que nadie abrió, y `VALID_VIEWS` deja fuera cinco vistas. Es una decisión de producto antes que de código.
 - `/api/search` y `/api/query` cubren tipos distintos: las notas solo aparecen al preguntar, y las crónicas y el chat solo al teclear.
 - La paleta no tiene semántica de combobox (`role="combobox"`, `listbox`, `aria-activedescendant`): las filas son botones y el foco activo es una clase.
-- En Trama, en móvil, no hay ningún disparador del buscador: sin teclado físico, la paleta queda inaccesible.
 - `useCommandServerSearch` descarta respuestas viejas pero no aborta el fetch.
 - Hipótesis sin probar: en teclados ES/LatAm, `\` necesita AltGr, y la guarda `!e.altKey` de los atajos globales lo bloquearía.
-- `useCommandSearch.ts` quedó a una línea de su tope (119 de 120): el próximo cambio ahí tiene que empezar extrayendo.
-- El chunk de la paleta quedó en 7,9 KB gzip de 8: llevar el omnibox a Notas exige traer sus proveedores en otro chunk antes de sumar código.
 
 ## 2026-09-10 · «#» vuelve a encontrar vistas por su alias, y preguntar respeta el PIN de Notas
 
 Plan: [2026-09-10-buscador-alias-y-pin.md](superpowers/plans/2026-09-10-buscador-alias-y-pin.md)
 
-- «Buscar en Notas» sigue siendo otro diálogo: no respeta el PIN, no tiene teclado ni ⌘K, y no encuentra «edición» si se escribe «edicion». Es el PR siguiente, el buscador único de los dos mundos.
 - El PIN de las vistas de Trama no esconde entidades, citas, momentos ni chat en la paleta: solo las notas, y solo al preguntar.
 - `SectionPinGate` no espera las preferencias del servidor, e Inicio de Notas enseña notas sin mirar `notas:notas` (leído en `NotasHomeView.tsx`, sin medir).
 - El listener de teclado de Imprenta ignora los campos de texto pero no los diálogos: con el foco en un botón del buscador, Backspace podría borrar las páginas seleccionadas. Hipótesis sin medir.
