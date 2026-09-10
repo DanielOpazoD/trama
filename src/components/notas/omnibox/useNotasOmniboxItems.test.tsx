@@ -2,7 +2,7 @@ import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ToastProvider } from '../../../state/toast'
+import { ToastProvider, useToast } from '../../../state/toast'
 import { makeQueryClient } from '../../../test-utils'
 import { useNotasOmniboxItems } from './useNotasOmniboxItems'
 
@@ -25,6 +25,7 @@ const NOTE_ROW = {
   created_at: FECHA,
   updated_at: FECHA,
 }
+// Un pendiente de la semana anterior: Tareas lo arrastra a la actual.
 const TASK_ROW = {
   id: 't1',
   title: 'Comprar tinta',
@@ -57,8 +58,19 @@ const PROMPT_ROW = {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
 const ruta = (url: unknown) => new URL(String(url), 'http://localhost').pathname
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+type Respuesta = (
+  method: string,
+  path: string,
+) => Response | Promise<Response> | undefined
 
 let fetchMock: ReturnType<typeof vi.fn>
+let especial: Respuesta = () => undefined
 
 function llamadas(method: string, path: string) {
   return fetchMock.mock.calls.filter(
@@ -75,24 +87,22 @@ function montar(text: string, queryClient: QueryClient = makeQueryClient()) {
     </QueryClientProvider>
   )
   return renderHook(
-    (props: { text: string }) => useNotasOmniboxItems({ open: true, ...props }),
-    {
-      initialProps: { text },
-      wrapper,
-    },
+    (props: { text: string }) => ({
+      ...useNotasOmniboxItems({ open: true, ...props }),
+      aviso: useToast().current,
+    }),
+    { initialProps: { text }, wrapper },
   )
 }
 
 beforeEach(() => {
   m.hidden.clear()
+  especial = () => undefined
   fetchMock = vi.fn(async (url: unknown, init?: RequestInit) => {
-    const json = (body: unknown) =>
-      new Response(JSON.stringify(body), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
     const method = init?.method ?? 'GET'
     const path = ruta(url)
+    const propia = especial(method, path)
+    if (propia) return propia
     if (method === 'GET' && path === '/api/notes') return json([NOTE_ROW])
     if (method === 'GET' && path === '/api/tasks') return json([TASK_ROW])
     if (method === 'GET' && path === '/api/prompts') return json([PROMPT_ROW])
@@ -107,6 +117,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
   Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
 })
 
@@ -126,18 +137,19 @@ describe('useNotasOmniboxItems', () => {
     m.hidden.add('notas:notas')
     const { result } = montar('tinta')
     await waitFor(() =>
-      expect(result.current.map((item) => item.id)).toContain('task:t1'),
+      expect(result.current.items.map((item) => item.id)).toContain('task:t1'),
     )
     expect(llamadas('GET', '/api/notes')).toHaveLength(0)
-    expect(result.current.some((item) => item.icon === 'note')).toBe(false)
+    expect(result.current.items.some((item) => item.icon === 'note')).toBe(false)
   })
 
-  it('mientras no lleguen las preferencias, no pide nada ni enseña nada', async () => {
+  it('mientras no lleguen las preferencias, no pide nada, no enseña nada ni espera', async () => {
     m.hidden.add('*')
     const { result } = montar('tinta')
     await act(tick)
     expect(fetchMock).not.toHaveBeenCalled()
-    expect(result.current).toEqual([])
+    expect(result.current.items).toEqual([])
+    expect(result.current.pending).toBe(false)
   })
 
   it('con la caché de notas llena y Notas protegida, no enseña notas', async () => {
@@ -163,20 +175,82 @@ describe('useNotasOmniboxItems', () => {
     m.hidden.add('notas:notas')
     const { result } = montar('tinta', queryClient)
     await waitFor(() =>
-      expect(result.current.map((item) => item.id)).toContain('prompt:p1'),
+      expect(result.current.items.map((item) => item.id)).toContain('prompt:p1'),
     )
-    expect(result.current.some((item) => item.id === 'note:n1')).toBe(false)
+    expect(result.current.items.some((item) => item.id === 'note:n1')).toBe(false)
   })
 
-  it('«hecha» manda el PATCH de la tarea con done', async () => {
+  it('está pendiente mientras falta una lista, y deja de estarlo cuando llega', async () => {
+    let soltar: () => void = () => {}
+    especial = (method, path) =>
+      method === 'GET' && path === '/api/tasks'
+        ? new Promise<Response>((resolve) => {
+            soltar = () => resolve(json([TASK_ROW]))
+          })
+        : undefined
     const { result } = montar('tinta')
     await waitFor(() =>
-      expect(result.current.find((item) => item.id === 'task:t1')).toBeDefined(),
+      expect(result.current.items.map((item) => item.id)).toContain('prompt:p1'),
     )
-    act(() => result.current.find((item) => item.id === 'task:t1')?.secondary?.run())
+    expect(result.current.pending).toBe(true)
+
+    act(() => soltar())
+    await waitFor(() => expect(result.current.pending).toBe(false))
+    expect(result.current.items.map((item) => item.id)).toContain('task:t1')
+  })
+
+  it('una lista que falla avisa, en vez de leerse como «nada coincide»', async () => {
+    especial = (method, path) =>
+      method === 'GET' && path === '/api/tasks'
+        ? json({ error: 'caído' }, 500)
+        : undefined
+    const { result } = montar('tinta')
+    await waitFor(() =>
+      expect(result.current.aviso?.message).toBe('No se pudo buscar en Notas.'),
+    )
+  })
+
+  it('«hecha» aplica la regla de arrastre de Tareas y lo avisa', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 10, 12))
+    const { result } = montar('tinta')
+    await waitFor(() =>
+      expect(result.current.items.find((item) => item.id === 'task:t1')).toBeDefined(),
+    )
+    act(() =>
+      result.current.items.find((item) => item.id === 'task:t1')?.secondary?.run(),
+    )
     await waitFor(() => expect(llamadas('PATCH', '/api/tasks/t1')).toHaveLength(1))
     const [, init] = llamadas('PATCH', '/api/tasks/t1')[0]!
-    expect(JSON.parse(String((init as RequestInit).body))).toMatchObject({ done: true })
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({
+      done: true,
+      weekStart: '2026-09-07',
+    })
+    await waitFor(() =>
+      expect(result.current.aviso?.message).toBe('Tarea marcada como hecha.'),
+    )
+  })
+
+  it('si «hecha» falla, lo avisa y la tarea vuelve a ofrecer su acción', async () => {
+    especial = (method, path) =>
+      method === 'PATCH' && path === '/api/tasks/t1'
+        ? json({ error: 'caído' }, 500)
+        : undefined
+    const { result } = montar('tinta')
+    await waitFor(() =>
+      expect(result.current.items.find((item) => item.id === 'task:t1')).toBeDefined(),
+    )
+    act(() =>
+      result.current.items.find((item) => item.id === 'task:t1')?.secondary?.run(),
+    )
+    await waitFor(() =>
+      expect(result.current.aviso?.message).toBe('No se pudo marcar la tarea.'),
+    )
+    await waitFor(() =>
+      expect(
+        result.current.items.find((item) => item.id === 'task:t1')?.secondary?.label,
+      ).toBe('hecha'),
+    )
   })
 
   it('«copiar» marca el prompt como usado solo si la copia llegó al portapapeles', async () => {
@@ -190,10 +264,10 @@ describe('useNotasOmniboxItems', () => {
     })
     const { result } = montar('tinta')
     await waitFor(() =>
-      expect(result.current.find((item) => item.id === 'prompt:p1')).toBeDefined(),
+      expect(result.current.items.find((item) => item.id === 'prompt:p1')).toBeDefined(),
     )
     const copiar = () =>
-      result.current.find((item) => item.id === 'prompt:p1')?.secondary?.run()
+      result.current.items.find((item) => item.id === 'prompt:p1')?.secondary?.run()
 
     act(copiar)
     await waitFor(() => expect(llamadas('POST', '/api/prompts/p1/use')).toHaveLength(1))

@@ -85,8 +85,13 @@ test.describe('el buscador de los dos mundos, desde Notas', () => {
     const hecha = dialogo.getByRole('button', {
       name: 'Marcar hecha: Comprar tinta para la #pluma',
     })
-    await hecha.click()
+    // Con el teclado, Tab hasta la acción y Enter: el botón se desmonta al marcar la
+    // tarea, y el foco tiene que volver al campo en vez de caer detrás del diálogo.
+    await hecha.focus()
+    await page.keyboard.press('Enter')
     await expect(hecha).toHaveCount(0)
+    await expect(campo).toBeFocused()
+    await expect(page.getByText('Tarea marcada como hecha.')).toBeVisible()
     await expect(dialogo).toBeVisible()
 
     await campo.fill('correo de la editorial')

@@ -30,8 +30,8 @@ export type Item = CommandSearchItem
 
 const LOCAL_SEARCH_MAX_ITEMS = 1000
 
-const NO_CONTENT: CommandSearchContentItem[] = []
-function useNoContentItems(): CommandSearchContentItem[] {
+const NO_CONTENT = { items: [] as CommandSearchContentItem[], pending: false }
+function useNoContentItems() {
   return NO_CONTENT
 }
 
@@ -65,15 +65,16 @@ export function useCommandSearch({
   // N5: useDeferredValue mantiene el input snappy mientras la lista filtrada
   // se re-computa con un tick de retraso en tramas grandes.
   const deferredQuery = useDeferredValue(query)
-  const { serverResults, searching } = useCommandServerSearch({
+  const { serverResults, searching: serverSearching } = useCommandServerSearch({
     open,
     query: serverQueryFor(deferredQuery),
   })
-  // Una fuente fija por anfitrión: el hook se llama siempre, y en el mismo render
-  // que la lista, así `settled` sigue diciendo la verdad.
+  // Una fuente fija por anfitrión: el hook se llama siempre, en el mismo render que
+  // la lista, y `settled` espera también a que la fuente traiga sus listas.
   const useContentItems: CommandSearchContentSource['useItems'] =
     contentSource?.useItems ?? useNoContentItems
-  const contentItems = useContentItems({ open, text: contentTextFor(deferredQuery) })
+  const content = useContentItems({ open, text: contentTextFor(deferredQuery) })
+  const searching = serverSearching || content.pending
 
   // Reset del estado de búsqueda al abrir el palette. El foco del input y
   // el índice resaltado los maneja el componente.
@@ -92,11 +93,11 @@ export function useCommandSearch({
       serverResults,
       sectionAliases,
       visibility,
-      contentItems,
+      contentItems: content.items,
     })
   }, [
     actionsEnabled,
-    contentItems,
+    content.items,
     deferredQuery,
     entities,
     localSearchEnabled,
@@ -107,6 +108,6 @@ export function useCommandSearch({
     visibility,
   ])
 
-  const settled = deferredQuery === query
+  const settled = deferredQuery === query && !content.pending
   return { query, setQuery, items, searching, settled, entitiesForPeek: entities }
 }

@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { CommandPalette } from './CommandPalette'
 import { renderWithProviders } from '../test-utils'
 import type { SearchResponse } from '../api'
-import type { CommandSearchContentSource } from '../hooks/commandSearchModel'
+import type {
+  CommandSearchContentItem,
+  CommandSearchContentSource,
+} from '../hooks/commandSearchModel'
 
 /**
  * Smoke tests para CommandPalette: verifica navegación + filtrado +
@@ -723,28 +726,20 @@ describe('<CommandPalette />', () => {
 
 describe('<CommandPalette /> con contenido del anfitrión', () => {
   const run = vi.fn()
+  const TAREA: CommandSearchContentItem = {
+    kind: 'content',
+    id: 'task:t1',
+    icon: 'task',
+    section: 'tareas',
+    label: 'Comprar tinta',
+    hint: 'tarea',
+    secondary: { label: 'hecha', ariaLabel: 'Marcar hecha: Comprar tinta', run },
+  }
   const fuente: CommandSearchContentSource = {
-    useItems: ({ text }) =>
-      text.length >= 2
-        ? [
-            {
-              kind: 'content',
-              id: 'task:t1',
-              icon: 'task',
-              section: 'tareas',
-              label: 'Comprar tinta',
-              hint: 'tarea',
-              secondary: {
-                label: 'hecha',
-                ariaLabel: 'Marcar hecha: Comprar tinta',
-                run,
-              },
-            },
-          ]
-        : [],
+    useItems: ({ text }) => ({ items: text.length >= 2 ? [TAREA] : [], pending: false }),
   }
 
-  it('pinta sus filas sin sigilo; la acción no cierra y la fila lleva a su sección', async () => {
+  it('pinta sus filas sin sigilo; la acción no cierra ni se lleva el foco, y la fila lleva a su sección', async () => {
     run.mockClear()
     const onClose = vi.fn()
     const onRevealNotasModule = vi.fn()
@@ -758,17 +753,19 @@ describe('<CommandPalette /> con contenido del anfitrión', () => {
         contentSource={fuente}
       />,
     )
-    fireEvent.change(screen.getByPlaceholderText('Buscar o preguntar…'), {
-      target: { value: 'tinta' },
-    })
+    const campo = screen.getByPlaceholderText('Buscar o preguntar…')
+    fireEvent.change(campo, { target: { value: 'tinta' } })
     const hecha = await screen.findByRole('button', {
       name: 'Marcar hecha: Comprar tinta',
     })
     expect(container.querySelector('button button')).toBeNull()
 
+    // Con el teclado (Tab hasta la acción, y Enter) el foco estaba en el botón.
+    hecha.focus()
     fireEvent.click(hecha)
     expect(run).toHaveBeenCalledOnce()
     expect(onClose).not.toHaveBeenCalled()
+    expect(campo).toHaveFocus()
 
     fireEvent.click(screen.getByRole('button', { name: /^Comprar tinta/ }))
     expect(onRevealNotasModule).toHaveBeenCalledWith('tareas')
@@ -792,5 +789,35 @@ describe('<CommandPalette /> con contenido del anfitrión', () => {
     expect(
       screen.queryByRole('button', { name: 'Marcar hecha: Comprar tinta' }),
     ).toBeNull()
+  })
+
+  it('mientras la fuente está pendiente, Enter espera a su fila y no pregunta', async () => {
+    let estado: ReturnType<CommandSearchContentSource['useItems']> = {
+      items: [],
+      pending: true,
+    }
+    const pendiente: CommandSearchContentSource = { useItems: () => estado }
+    const onRevealNotasModule = vi.fn()
+    const paleta = () => (
+      <CommandPalette
+        open
+        onClose={() => {}}
+        onNavigate={() => {}}
+        onSelectEntity={() => {}}
+        onRevealNotasModule={onRevealNotasModule}
+        contentSource={pendiente}
+      />
+    )
+    const { rerender } = renderWithProviders(paleta())
+    const campo = screen.getByPlaceholderText('Buscar o preguntar…')
+    fireEvent.change(campo, { target: { value: 'tinta' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+    await act(async () => {})
+    expect(onRevealNotasModule).not.toHaveBeenCalled()
+
+    estado = { items: [TAREA], pending: false }
+    rerender(paleta())
+    await waitFor(() => expect(onRevealNotasModule).toHaveBeenCalledWith('tareas'))
+    expect(screen.queryByRole('heading', { name: '«tinta»' })).toBeNull()
   })
 })

@@ -341,15 +341,6 @@ export function NotasWorld({
         </div>
       </main>
 
-      {/* El buscador: la paleta ⌘K de los dos mundos, con el contenido de Notas. */}
-      <NotasOmnibox
-        open={omnibox.open}
-        onClose={omnibox.closeOmnibox}
-        onOpenSection={setSection}
-        onOpenSettings={openSettings}
-        onGoToTrama={onGoToTrama}
-      />
-
       {/* Configuración — el mismo panel del mundo principal, abierto desde el
           chrome de Notas (sidebar en escritorio, fila de tabs en móvil). */}
       {settingsOpen && (
@@ -366,6 +357,17 @@ export function NotasWorld({
           />
         </Suspense>
       )}
+
+      {/* El buscador va después de Configuración: comparten capa (z-40) y decide el
+          orden del DOM. Abierto con Configuración a la vista tiene que quedar
+          encima, como en Trama; antes quedaba debajo, con el foco y el teclado. */}
+      <NotasOmnibox
+        open={omnibox.open}
+        onClose={omnibox.closeOmnibox}
+        onOpenSection={setSection}
+        onOpenSettings={openSettings}
+        onGoToTrama={onGoToTrama}
+      />
     </div>
   )
 }

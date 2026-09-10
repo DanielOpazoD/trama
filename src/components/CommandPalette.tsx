@@ -89,8 +89,9 @@ export function CommandPalette({
     if (open) inputRef.current?.focus()
   }, [mode, open])
 
-  useCommandPaletteKeyboard({
+  const { focusAt } = useCommandPaletteKeyboard({
     open,
+    query,
     inputRef,
     askCurrent,
     settled,
@@ -116,7 +117,7 @@ export function CommandPalette({
       mode={mode}
       onBackToSearch={backToSearch}
       onClose={onClose}
-      onFocusIdx={setFocusIdx}
+      onFocusIdx={focusAt}
       onQueryChange={setQuery}
       onSaveQuery={saveCurrentQuery}
       onSelectHit={selectHit}

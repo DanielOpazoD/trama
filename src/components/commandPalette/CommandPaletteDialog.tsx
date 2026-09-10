@@ -1,11 +1,4 @@
-import {
-  lazy,
-  Suspense,
-  type ComponentProps,
-  type Dispatch,
-  type Ref,
-  type SetStateAction,
-} from 'react'
+import { lazy, Suspense, type ComponentProps, type Ref } from 'react'
 import type { QueryHit, QueryInput } from '../../api/query'
 import type { Item } from '../../hooks/useCommandSearch'
 import { CommandPaletteSearchMode } from './CommandPaletteSearchMode'
@@ -52,7 +45,7 @@ export function CommandPaletteDialog({
   mode: 'search' | 'results'
   onBackToSearch: () => void
   onClose: () => void
-  onFocusIdx: Dispatch<SetStateAction<number>>
+  onFocusIdx: (idx: number) => void
   onQueryChange: (value: string) => void
   onSaveQuery: (name: string) => Promise<boolean>
   onSelectHit: (hit: QueryHit) => void

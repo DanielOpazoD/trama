@@ -249,6 +249,19 @@ describe('<NotasWorld />', () => {
     ).toBeInTheDocument()
   })
 
+  it('abierto con Configuración a la vista, el buscador queda encima', async () => {
+    renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
+    fireEvent.click(screen.getAllByRole('button', { name: /Configuración/i })[0]!)
+    const settings = await screen.findByRole('region', { name: 'settings mock' })
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    const paleta = await screen.findByRole('region', { name: 'paleta mock' })
+    // Comparten capa (z-40): queda encima el que va después en el DOM.
+    expect(
+      settings.compareDocumentPosition(paleta) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
   it('⌘K abre y cierra el buscador fuera de los campos', async () => {
     renderWithProviders(<NotasWorld world="notas" onChangeWorld={() => {}} />)
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })

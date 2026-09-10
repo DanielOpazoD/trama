@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react'
+import type { CommandSearchContentItem } from '../../hooks/commandSearchModel'
 import type { Item } from '../../hooks/useCommandSearch'
 import { ItemRow } from '../CommandPaletteItems'
 import {
@@ -21,7 +21,7 @@ export function CommandPaletteItemList({
   running: boolean
   searching: boolean
   focusIdx: number
-  onFocusIdx: Dispatch<SetStateAction<number>>
+  onFocusIdx: (idx: number) => void
   onSelectItem: (item: Item) => void
 }) {
   return (
@@ -42,24 +42,53 @@ export function CommandPaletteItemList({
           >
             <ItemRow item={item} query={query} />
           </button>
-          {/* La acción es hermana de la fila, nunca anidada: un botón dentro de otro
-              no es accesible. ⇧Enter la dispara desde el campo. */}
           {item.kind === 'content' && item.secondary && (
-            <button
-              type="button"
-              onClick={item.secondary.run}
-              onMouseEnter={() => onFocusIdx(idx)}
-              aria-label={item.secondary.ariaLabel}
-              title="⇧ Enter"
-              className={`shrink-0 px-4 text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors ${
-                idx === focusIdx ? 'bg-paper-100/70' : ''
-              }`}
-            >
-              {item.secondary.label}
-            </button>
+            <RowAction
+              action={item.secondary}
+              highlighted={idx === focusIdx}
+              onHover={() => onFocusIdx(idx)}
+            />
           )}
         </li>
       ))}
     </ul>
+  )
+}
+
+/**
+ * La acción de la fila, hermana del botón que la abre: un botón dentro de otro no
+ * es accesible. No se queda con el foco: al ejecutarse puede desmontarse («hecha»
+ * desaparece) y el foco caería detrás del diálogo, donde el feed de Notas o
+ * Imprenta se llevan las teclas. Vuelve al campo, que gobierna la lista.
+ */
+function RowAction({
+  action,
+  highlighted,
+  onHover,
+}: {
+  action: NonNullable<CommandSearchContentItem['secondary']>
+  highlighted: boolean
+  onHover: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={(event) => {
+        const campo = event.currentTarget
+          .closest('[aria-modal="true"]')
+          ?.querySelector('input')
+        action.run()
+        campo?.focus()
+      }}
+      onMouseEnter={onHover}
+      aria-label={action.ariaLabel}
+      title="⇧ Enter"
+      className={`shrink-0 px-4 text-micro uppercase tracking-eyebrow text-ink-400 hover:text-ink-700 transition-colors ${
+        highlighted ? 'bg-paper-100/70' : ''
+      }`}
+    >
+      {action.label}
+    </button>
   )
 }

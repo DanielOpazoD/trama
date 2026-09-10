@@ -26,9 +26,12 @@ export type CommandSearchContentItem = {
   secondary?: { label: string; ariaLabel: string; run: () => void }
 }
 
+/** Lo que aporta una fuente: sus filas, y si le falta alguna lista (`pending`). */
+export type CommandSearchContent = { items: CommandSearchContentItem[]; pending: boolean }
+
 /** La fuente de contenido de un anfitrión: un hook que corre en el mismo render. */
 export type CommandSearchContentSource = {
-  useItems: (args: { open: boolean; text: string }) => CommandSearchContentItem[]
+  useItems: (args: { open: boolean; text: string }) => CommandSearchContent
 }
 
 export type CommandSearchItem =

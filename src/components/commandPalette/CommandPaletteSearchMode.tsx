@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from 'react'
 import type { CommandSearchEntity } from '../../hooks/commandSearchModel'
 import type { Item } from '../../hooks/useCommandSearch'
 import { CommandPaletteItemList } from './CommandPaletteItemList'
@@ -24,7 +23,7 @@ export function CommandPaletteSearchMode({
   searching: boolean
   focusIdx: number
   entitiesForPeek: CommandSearchEntity[] | undefined
-  onFocusIdx: Dispatch<SetStateAction<number>>
+  onFocusIdx: (idx: number) => void
   onSelectItem: (item: Item) => void
 }) {
   const scope = describeCommandPaletteScope(query)

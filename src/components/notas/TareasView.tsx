@@ -29,12 +29,12 @@ import {
   groupTasksByWeek,
   splitByStatus,
   pendingMonthsForYear,
-  rawTaskWeek,
   filterByCategory,
   countPendingByCategory,
   rolloverAnchorForVisibleWeeks,
   DEFAULT_CATEGORY,
   type SortMode,
+  completionPatch,
 } from './weekModel'
 
 const ACCENT = 'var(--accent-sage)'
@@ -154,13 +154,9 @@ export function TareasView() {
         displayWeek={week}
         busy={busy}
         onToggle={() => {
-          const completing = !task.done
-          // Al completar un pendiente arrastrado, lo fijamos en la semana del
-          // cuadro visible (queda registrado como hecho donde se resolvió).
-          const patch =
-            completing && rawTaskWeek(task) < week
-              ? { done: true, weekStart: week }
-              : { done: !task.done }
+          // Al completar un pendiente arrastrado, queda en la semana del cuadro
+          // visible (`completionPatch`, la misma regla que el buscador de Notas).
+          const patch = task.done ? { done: false } : completionPatch(task, week)
           updateTask.mutate({ id: task.id, patch })
         }}
         onSave={(patch) => updateTask.mutate({ id: task.id, patch })}
