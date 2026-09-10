@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { useShellOmnibox } from './useShellOmnibox'
 import type { TramaTarget } from './worldShellModel'
@@ -26,7 +27,11 @@ function setup(initialTarget: TramaTarget | null = null) {
     toggleFocusMode: vi.fn(),
     onRevealNotasModule: vi.fn(),
   }
-  const { result, rerender } = renderHook(() => useShellOmnibox(deps))
+  // En StrictMode, como en main.tsx: los efectos corren dos veces al montar, y el
+  // destino tiene que aplicarse igual una sola vez.
+  const { result, rerender } = renderHook(() => useShellOmnibox(deps), {
+    wrapper: StrictMode,
+  })
   return { deps, result, rerender }
 }
 
