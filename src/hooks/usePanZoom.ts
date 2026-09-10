@@ -38,6 +38,50 @@ export type PanZoomControls = {
 }
 
 /**
+ * La aritmética de `fitToView`, sin DOM ni estado, para poder probarla.
+ *
+ * Se extrajo al subir el techo de zoom del grafo: cambiar un número que decide
+ * cuánto del lienzo ocupa el dibujo sin poder verificarlo con una tabla de
+ * casos es exactamente el cambio que vuelve dentro de tres meses.
+ */
+export function computeFitToView({
+  width: rawWidth,
+  height: rawHeight,
+  bbox,
+  padding = 80,
+  maxFitZoom,
+  minZoom,
+  maxZoom,
+}: {
+  width: number
+  height: number
+  bbox: { minX: number; minY: number; maxX: number; maxY: number }
+  padding?: number
+  maxFitZoom: number
+  minZoom: number
+  maxZoom: number
+}): { zoom: number; cx: number; cy: number } {
+  const width = Math.max(1, rawWidth)
+  const height = Math.max(1, rawHeight)
+  const bboxW = Math.max(1, bbox.maxX - bbox.minX)
+  const bboxH = Math.max(1, bbox.maxY - bbox.minY)
+  // El margen se pide en px absolutos, pero un valor pensado para escritorio
+  // se come el viewport en móvil: con 140px por lado, un ancho de 375 dejaba
+  // 95px útiles y el grafo se encuadraba al 38%, un racimo ilegible rodeado
+  // de vacío. Lo acotamos al 12% de cada eje, así el margen respira igual en
+  // cualquier pantalla y en escritorio no cambia nada (a 1440px de ancho el
+  // 12% ya supera los 140 pedidos).
+  const padX = Math.min(padding, width * 0.12)
+  const padY = Math.min(padding, height * 0.12)
+  const fitScale = Math.min((width - padX * 2) / bboxW, (height - padY * 2) / bboxH)
+  return {
+    zoom: Math.max(minZoom, Math.min(maxZoom, maxFitZoom, fitScale)),
+    cx: (bbox.minX + bbox.maxX) / 2,
+    cy: (bbox.minY + bbox.maxY) / 2,
+  }
+}
+
+/**
  * Drag-to-pan + wheel-to-zoom interactions for an SVG canvas.
  *
  * Caller wires these onto the outer <svg>. Inner content should be wrapped in
@@ -160,24 +204,20 @@ export function usePanZoom(
       const svg = svgRef.current
       if (!svg) return
       const rect = svg.getBoundingClientRect()
-      const width = Math.max(1, rect.width)
-      const height = Math.max(1, rect.height)
-      const bboxW = Math.max(1, bbox.maxX - bbox.minX)
-      const bboxH = Math.max(1, bbox.maxY - bbox.minY)
-      const cx = (bbox.minX + bbox.maxX) / 2
-      const cy = (bbox.minY + bbox.maxY) / 2
-      // El margen se pide en px absolutos, pero un valor pensado para
-      // escritorio se come el viewport en móvil: con 140px por lado, un ancho
-      // de 375 dejaba 95px útiles y el grafo se encuadraba al 38%, un racimo
-      // ilegible rodeado de vacío. Lo acotamos al 12% de cada eje, así el
-      // margen respira igual en cualquier pantalla y en escritorio no cambia
-      // nada (a 1440px de ancho el 12% ya supera los 140 pedidos).
-      const padX = Math.min(padding, width * 0.12)
-      const padY = Math.min(padding, height * 0.12)
-      const scaleX = (width - padX * 2) / bboxW
-      const scaleY = (height - padY * 2) / bboxH
-      const fitScale = Math.min(scaleX, scaleY)
-      setZoom(Math.max(minZoom, Math.min(maxZoom, maxFitZoom, fitScale)))
+      const {
+        zoom: nextZoom,
+        cx,
+        cy,
+      } = computeFitToView({
+        width: rect.width,
+        height: rect.height,
+        bbox,
+        padding,
+        maxFitZoom,
+        minZoom,
+        maxZoom,
+      })
+      setZoom(nextZoom)
       // pan = -centro del bbox (porque la SVG group hace
       // translate(50%, 50%) scale(zoom) translate(pan)).
       setPan({ x: -cx, y: -cy })

@@ -47,8 +47,20 @@ export function selectGraphDataset({
   }
 }
 
+/** Extensión de la tinta alrededor del centro de un nodo (ver GRAPH_NODE_INK). */
+export type InkExtent = { up: number; down: number; side: number }
+
+const SIN_TINTA: InkExtent = { up: 0, down: 0, side: 0 }
+
 export function computePositionBounds(
   positions: ReadonlyMap<string, Position>,
+  /**
+   * Cuánto pinta cada nodo alrededor de su centro. Por defecto cero: la caja
+   * de centros pelada, que es lo que quiere quien solo necesita saber dónde
+   * están los nodos. Quien vaya a ENCUADRAR debe pasar la tinta, o encuadrará
+   * contra una caja más chica que el dibujo.
+   */
+  ink: InkExtent = SIN_TINTA,
 ): PositionBounds | null {
   if (positions.size === 0) return null
 
@@ -63,7 +75,15 @@ export function computePositionBounds(
     if (p.y > maxY) maxY = p.y
   }
   if (!Number.isFinite(minX)) return null
-  return { minX, minY, maxX, maxY }
+  // La inflación vertical es ASIMÉTRICA (las etiquetas cuelgan abajo), así que
+  // además de agrandar la caja corre su centro hacia abajo. Eso es lo correcto:
+  // el centro del dibujo no es el centro de los centros.
+  return {
+    minX: minX - ink.side,
+    minY: minY - ink.up,
+    maxX: maxX + ink.side,
+    maxY: maxY + ink.down,
+  }
 }
 
 export function computeConnectionCount(

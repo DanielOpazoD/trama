@@ -8,6 +8,7 @@ import {
 } from 'react'
 import type { PanZoomControls } from '../../hooks/usePanZoom'
 import type { LayoutMode } from '../../hooks/layouts/types'
+import { GRAPH_NODE_INK } from './GraphNode'
 import { computePositionBounds } from './graphViewModel'
 
 type SvgSize = { width: number; height: number }
@@ -77,6 +78,24 @@ export function useGraphSvgMeasure(svgRef: MutableRefObject<SVGSVGElement | null
   return { svgSize, setGraphSvgRef }
 }
 
+/** Techo de zoom al encuadrar. Exportado para que el test lo afirme. */
+export const FIT_MAX_ZOOM = 2
+
+/**
+ * La caja contra la que se encuadra: los centros MÁS la tinta que cada nodo
+ * pinta a su alrededor.
+ *
+ * Vive acá, y no en el cuerpo del efecto, para que la sonda pueda afirmar la
+ * decisión en vez de reimplementarla: cuando el test llamaba por su cuenta a
+ * `computePositionBounds(pos, GRAPH_NODE_INK)`, quitar la tinta del sitio de
+ * producción no rompía nada. Una sola fuente, y la mutación cae.
+ */
+export function graphFitBounds(
+  positions: PositionMap | ReadonlyMap<string, { x: number; y: number }>,
+) {
+  return computePositionBounds(positions, GRAPH_NODE_INK)
+}
+
 export function useGraphViewportFit({
   mode,
   svgSize,
@@ -107,9 +126,16 @@ export function useGraphViewportFit({
     })
     if (!fitKey) return
     if (lastFittedViewportRef.current === fitKey) return
-    const bounds = computePositionBounds(positions)
+    const bounds = graphFitBounds(positions)
     if (!bounds) return
-    panZoom.fitToView(bounds, 140, 1.15)
+    // El techo era 1.15 y dejaba los grafos chicos como un racimo perdido:
+    // medido con el seed de prueba, seis nodos ocupaban 360×336 sobre un
+    // lienzo de 1184×851, el 12 % del área, idéntico a 1440×900 y a 1280×720
+    // (el encuadre recentraba pero no reescalaba). Con la caja ya inflada por
+    // la tinta, 2 deja ese caso en ~62 % del ancho y ~76 % del alto. Para
+    // grafos grandes el techo es indiferente: ahí `fitScale` cae por debajo
+    // incluso del piso, y `Math.max`/`Math.min` lo eligen igual.
+    panZoom.fitToView(bounds, 140, FIT_MAX_ZOOM)
     lastFittedViewportRef.current = fitKey
   }, [mode, positions, panZoom, svgSize, entityCount, relationshipCount])
 }
