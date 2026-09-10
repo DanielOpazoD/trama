@@ -19,6 +19,32 @@ function hashToUnit(id: string): number {
   return (h % 10_000) / 10_000
 }
 
+/** Radio máximo de un nodo: `9 + sqrt(conexiones) * 4.5`, con tope. */
+const MAX_RADIUS = 28
+
+/**
+ * Cuánto se extiende la TINTA de un nodo alrededor de su centro, en unidades
+ * de mundo.
+ *
+ * POR QUÉ EXISTE: `computePositionBounds` solo conoce los CENTROS. Encuadrar
+ * con esa caja subestima lo que de verdad se pinta —el disco, el halo y las
+ * dos etiquetas que cuelgan debajo— y el grafo queda pequeño en el lienzo.
+ * Medido con el seed de prueba: la caja de centros mide 247×235 y la tinta
+ * real 360×336.
+ *
+ * Se toma el caso MÁXIMO a propósito. Sobreestimar la caja encoge el zoom, y
+ * ése es el error seguro: nunca recorta. El máximo además es cerrado, porque
+ * el radio tiene tope y las etiquetas cuelgan de él.
+ */
+export const GRAPH_NODE_INK = {
+  /** El halo de foco se pinta en `radius + 4`. */
+  up: MAX_RADIUS + 4,
+  /** Hasta la línea de tipo: `radius + 14 + 10`, más su descendente. */
+  down: MAX_RADIUS + 14 + 10 + 3,
+  /** Media etiqueta: un nombre largo («Jorge Luis Borges») ronda 120px a 12,5px serif. */
+  side: 60,
+} as const
+
 function GraphNodeInternal({
   entity,
   x,
@@ -50,7 +76,7 @@ function GraphNodeInternal({
   onHoverEnd?: () => void
 }) {
   const accent = typeAccent(entity.type)
-  const radius = Math.min(9 + Math.sqrt(connectionCount) * 4.5, 28)
+  const radius = Math.min(9 + Math.sqrt(connectionCount) * 4.5, MAX_RADIUS)
   const opacity = isDimmed ? 0.28 : 1
   const typeLabel = ENTITY_TYPES.find((t) => t.value === entity.type)?.label
   const labelY = radius + 14
