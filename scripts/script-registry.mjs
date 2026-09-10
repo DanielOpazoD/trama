@@ -233,6 +233,15 @@ const SCRIPT_ENTRIES = [
       'Ratchet de adopción de ModalShell: las cajas de diálogo estándar no recopian portal, backdrop y cromo a mano.',
   },
   {
+    file: 'scripts/check-page-shell.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:page-shell'],
+    summary:
+      'Trinquete de la columna de página: toda columna centrada de vista usa Page, o se declara exenta con motivo.',
+  },
+  {
     file: 'scripts/check-form-control-labels.mjs',
     domain: 'frontend',
     kind: 'check',
@@ -948,6 +957,13 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Ratchet de adopción de ModalShell en las cajas de diálogo estándar.',
+  },
+  {
+    command: 'npm run check:page-shell',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary: 'Columnas de página: adoptadas, exentas con motivo o pendientes declaradas.',
   },
   {
     command: 'npm run check:form-control-labels',
