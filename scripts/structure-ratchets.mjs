@@ -6,8 +6,13 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'app-large-surfaces',
-    maxLines: 430,
+    maxLines: 429,
     files: ['src/App.tsx'],
+  },
+  {
+    group: 'app-large-surfaces',
+    maxLines: 377,
+    files: ['src/components/notas/NotasWorld.tsx'],
   },
   {
     group: 'app-shell-components',
@@ -26,12 +31,12 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'command-palette-search',
-    maxLines: 120,
+    maxLines: 118,
     files: ['src/hooks/useCommandSearch.ts'],
   },
   {
     group: 'command-palette-search',
-    maxLines: 500,
+    maxLines: 471,
     files: ['src/hooks/commandSearchModel.ts'],
   },
   {
@@ -50,16 +55,20 @@ export const STRUCTURE_RATCHETS = [
   },
   {
     group: 'command-palette-components',
-    maxLines: 80,
+    maxLines: 64,
+    files: ['src/components/commandPalette/CommandPaletteSearchMode.tsx'],
+  },
+  {
+    group: 'command-palette-components',
+    maxLines: 74,
     files: [
-      'src/components/commandPalette/CommandPaletteSearchMode.tsx',
       'src/components/commandPalette/commandPaletteModel.ts',
       'src/components/commandPalette/commandPaletteSelectionModel.ts',
     ],
   },
   {
     group: 'command-palette-components',
-    maxLines: 180,
+    maxLines: 179,
     files: ['src/components/commandPalette/useCommandPaletteController.ts'],
   },
   {
