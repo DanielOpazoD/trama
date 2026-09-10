@@ -362,6 +362,7 @@ function WorldShell() {
     changeWorld,
     pendingNotasSection,
     pendingTramaTarget,
+    goToTrama,
     revealNotasModule,
   } = useWorldShellController({ preloadWorldBundle })
 
@@ -384,6 +385,7 @@ function WorldShell() {
               world={world}
               onChangeWorld={changeWorld}
               initialSection={pendingNotasSection ?? undefined}
+              onGoToTrama={goToTrama}
             />
           </Suspense>
         )}

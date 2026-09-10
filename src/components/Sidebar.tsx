@@ -1,3 +1,4 @@
+import { MOD_KEY } from '../lib/platformKeys'
 import {
   acknowledgeHealthAlerts,
   useCountsQuery,
@@ -25,13 +26,6 @@ import { Tooltip } from './Tooltip'
 import { SECTION_ACCENT } from '../lib/sectionAccent'
 import { WorldSwitcher } from './WorldSwitcher'
 import type { World } from '../types/world'
-
-// El símbolo del modificador de atajos depende de la plataforma. En Mac
-// es ⌘, en el resto es "Ctrl". El check vive en módulo para no recalcular
-// en cada render. SSR-safe (devuelve false si no hay navigator).
-const IS_MAC =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-const SHORTCUT_KEY = IS_MAC ? '⌘' : 'Ctrl'
 
 // ο1: 'relaciones' se eliminó del top-level. Ahora vive como tab interna
 // "Vínculos" dentro de Entidades — refleja la dependencia conceptual real
@@ -168,10 +162,10 @@ export function Sidebar({
           onClick={onToggleCollapsed}
         />
 
-        <Tooltip content={`Buscar (${SHORTCUT_KEY} K)`} side="bottom">
+        <Tooltip content={`Buscar (${MOD_KEY} K)`} side="bottom">
           <IconButton
             onClick={onOpenPalette}
-            label={`Buscar (${SHORTCUT_KEY} K)`}
+            label={`Buscar (${MOD_KEY} K)`}
             className="touch-target flex size-7 items-center justify-center rounded-md text-ink-400 hover:text-ink-700 hover:bg-ink-100/70 transition-colors"
           >
             <SearchIcon size={14} />
@@ -284,7 +278,7 @@ export function Sidebar({
           (la herramienta abierta), no en el trigger. */}
         <div className="px-2 mb-1.5">
           <SidebarSearchTrigger
-            ariaLabel={`Buscar (${SHORTCUT_KEY} K)`}
+            ariaLabel={`Buscar (${MOD_KEY} K)`}
             onClick={onOpenPalette}
           />
         </div>

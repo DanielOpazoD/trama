@@ -1,3 +1,4 @@
+import { IS_MAC, MOD_KEY } from '../lib/platformKeys'
 import { getPdfShortcutGroups } from '../lib/pdfStudio/model/commands'
 import { ModalShell } from './ModalShell'
 import { OrnamentBreak } from './Icons'
@@ -23,9 +24,7 @@ type Group = {
   shortcuts: Shortcut[]
 }
 
-const IS_MAC =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-const CMD = IS_MAC ? '⌘' : 'Ctrl'
+const CMD = MOD_KEY
 
 const GROUPS: Group[] = [
   {

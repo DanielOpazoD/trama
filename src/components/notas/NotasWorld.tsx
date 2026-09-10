@@ -3,8 +3,8 @@ import { Page } from '../Page'
 import { initHistory, type History } from '../../lib/pdfStudio/model/history'
 import { emptyDoc } from '../../lib/pdfStudio/model/model'
 import type { PdfDoc } from '../../lib/pdfStudio/model/modelTypes'
-import { NotasGlobalSearch } from './NotasGlobalSearch'
 import { NotasHomeView } from './NotasHomeView'
+import { NotasOmnibox, useNotasOmnibox } from './NotasOmnibox'
 import { NotasMobileTabs, NotasSidebar, NotasTopBar } from './NotasWorldChrome'
 import { SECTIONS } from './notasSections'
 import { PromptsView } from './PromptsView'
@@ -15,12 +15,12 @@ import {
   IMPRENTA_HANDOFF_EVENT,
   takeHandedOffImprentaFiles,
 } from '../../lib/imprentaHandoff'
-import { useModalOverlay } from '../../hooks/useModalOverlay'
 import { useTheme } from '../../hooks/useTheme'
 import { FeedSkeleton } from './FeedSkeleton'
 import { SectionSkeleton } from './SectionSkeleton'
 import { SectionPinGate } from '../SectionPinGate'
 import type { World } from '../../types/world'
+import type { TramaTarget } from '../appShell/worldShellModel'
 import type { NotasSection } from '../../types/notas'
 import type { CaptureItem, Note, Recorte } from '../../api'
 import { requestBlob } from '../../api/request'
@@ -85,22 +85,24 @@ const Settings = lazy(() => import('../Settings').then((m) => ({ default: m.Sett
  * promover una nota a Momento, en una fase posterior).
  *
  * Arma la sub-barra del mundo y sus secciones funcionales: inicio, notas,
- * tareas, prompts y claves. La búsqueda global se abre desde el chrome (igual
- * que el ⌘K del mundo principal): un acceso en el sidebar/cabecera despliega un
- * overlay, en vez de ocupar una barra fija sobre el contenido.
+ * tareas, prompts y claves. El buscador es la misma paleta ⌘K del mundo
+ * principal, con notas, tareas y prompts (`NotasOmnibox`).
  */
 export function NotasWorld({
   world,
   onChangeWorld,
   initialSection,
+  onGoToTrama,
 }: {
   world: World
   onChangeWorld: (w: World) => void
   /** Sección con la que abrir (p. ej. al revelar un módulo desde el otro mundo). */
   initialSection?: NotasSection
+  /** Cruza a Trama con lo que se eligió en el buscador. */
+  onGoToTrama?: (target: TramaTarget) => void
 }) {
   const toast = useToast()
-  const [searchOpen, setSearchOpen] = useState(false)
+  const omnibox = useNotasOmnibox()
   const [settingsOpen, setSettingsOpen] = useState(false)
   // La sección con que se abre Configuración (Favoritos lleva a «Extensión»).
   const [settingsSection, setSettingsSection] = useState<SettingsSectionId | null>(null)
@@ -129,13 +131,7 @@ export function NotasWorld({
   // alguna sección oculta, evalúa `s.id === section` (TDZ si viene después).
   const visibleSections = SECTIONS.filter((s) => isVisible(s.id) || s.id === section)
 
-  // El buscador global es un diálogo modal: foco atrapado en el panel, Escape
-  // por el stack de overlays (compone con nidos y restaura el foco) y
-  // scroll-lock del shell de fondo. Mismo patrón que el ⌘K del mundo principal.
-  const searchOverlay = useModalOverlay({
-    open: searchOpen,
-    onClose: () => setSearchOpen(false),
-  })
+  const openSettings = useCallback(() => setSettingsOpen(true), [])
 
   // Cola común de entrega a Imprenta: recortes, una nota o una selección
   // mixta llegan por adaptadores distintos y desembocan acá con el mismo
@@ -232,8 +228,8 @@ export function NotasWorld({
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
         onSectionIntent={preloadNotasSection}
-        onOpenSearch={() => setSearchOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSearch={omnibox.openOmnibox}
+        onOpenSettings={openSettings}
         collapsed={sidebarCollapsed}
         onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
       />
@@ -245,8 +241,8 @@ export function NotasWorld({
         onChangeWorld={onChangeWorld}
         onChangeSection={setSection}
         onSectionIntent={preloadNotasSection}
-        onOpenSearch={() => setSearchOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSearch={omnibox.openOmnibox}
+        onOpenSettings={openSettings}
       />
 
       {/* Contenido */}
@@ -345,32 +341,14 @@ export function NotasWorld({
         </div>
       </main>
 
-      {/* Buscador global — diálogo modal abierto desde el chrome. El backdrop
-          cierra al clic; el panel atrapa el foco (useModalOverlay) y recaptura
-          el clic. */}
-      {searchOpen && (
-        <div
-          onClick={() => setSearchOpen(false)}
-          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[12vh] bg-ink-900/20 backdrop-blur-sm"
-        >
-          <div
-            ref={searchOverlay.dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Buscar en Notas"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl rounded-xl border border-ink-100 bg-paper-50 shadow-xl shadow-ink-900/15 p-3 animate-fade-up"
-          >
-            <NotasGlobalSearch
-              autoFocus
-              onNavigate={(s) => {
-                setSection(s)
-                setSearchOpen(false)
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {/* El buscador: la paleta ⌘K de los dos mundos, con el contenido de Notas. */}
+      <NotasOmnibox
+        open={omnibox.open}
+        onClose={omnibox.closeOmnibox}
+        onOpenSection={setSection}
+        onOpenSettings={openSettings}
+        onGoToTrama={onGoToTrama}
+      />
 
       {/* Configuración — el mismo panel del mundo principal, abierto desde el
           chrome de Notas (sidebar en escritorio, fila de tabs en móvil). */}

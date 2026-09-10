@@ -2,12 +2,10 @@ import {
   COMMAND_SEARCH_SIGILS,
   parseCommandQuery,
 } from '../../hooks/commandSearchGrammar'
-
-const IS_MAC =
-  typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+import { MOD_KEY } from '../../lib/platformKeys'
 
 /** La tecla de acción de la plataforma, como se muestra en la paleta. */
-export const COMMAND_PALETTE_MOD_KEY = IS_MAC ? '⌘' : 'Ctrl'
+export const COMMAND_PALETTE_MOD_KEY = MOD_KEY
 
 export type CommandPaletteKeyTarget = 'search' | 'control' | 'none'
 export type CommandPaletteKeyIntent = 'next' | 'previous' | 'select' | 'ask' | 'act'
