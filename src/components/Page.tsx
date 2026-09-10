@@ -52,16 +52,24 @@ export function Page({
   align = 'top',
   /** El hueco entre hijos directos. Ver RHYTHM_CLASS. */
   rhythm = 'section',
-  /** Padding inferior extra, para barras flotantes que tapan el cierre. */
+  /**
+   * Padding inferior, en línea. Por defecto `var(--space-6)`. Pasar `null`
+   * cuando el cierre tiene que ser RESPONSIVE: un estilo en línea no admite
+   * breakpoints, así que con `null` no se pone ninguno y lo decide
+   * `className` (el caso de Notas: 96 px en móvil y 40 en escritorio).
+   */
   paddingBottom,
   className = '',
+  /** `data-testid` de la columna, para tests y e2e que ya se anclaban a ella. */
+  testId,
   children,
 }: {
   width?: PageWidth
   align?: 'top' | 'fill'
   rhythm?: PageRhythm
-  paddingBottom?: string
+  paddingBottom?: string | null
   className?: string
+  testId?: string
   children: ReactNode
 }) {
   return (
@@ -69,8 +77,16 @@ export function Page({
       // Ancla estable para los e2e y para el spec que mide el vector de huecos.
       data-page=""
       data-page-align={align}
+      data-testid={testId}
       className={[
-        'mx-auto flex w-full flex-col pt-ritmo-seccion',
+        'mx-auto w-full pt-ritmo-seccion',
+        // Flex SOLO cuando hace falta. Un contenedor flex no colapsa los
+        // márgenes verticales de sus hijos y uno de bloque sí: medido en
+        // Cronología y Atlas, el encabezado (mb 24) y el contenido (mt 32)
+        // colapsan hoy a 32 px, y en flex pasarían a 56. Las vistas del router
+        // se espacian con márgenes, así que con `rhythm="none"` y `align="top"`
+        // la columna sigue siendo un bloque.
+        rhythm !== 'none' || align === 'fill' ? 'flex flex-col' : '',
         WIDTH_CLASS[width],
         RHYTHM_CLASS[rhythm],
         align === 'fill' ? 'flex-1' : '',
@@ -78,7 +94,11 @@ export function Page({
       ]
         .filter(Boolean)
         .join(' ')}
-      style={paddingBottom ? { paddingBottom } : { paddingBottom: 'var(--space-6)' }}
+      style={
+        paddingBottom === null
+          ? undefined
+          : { paddingBottom: paddingBottom ?? 'var(--space-6)' }
+      }
     >
       {children}
     </div>

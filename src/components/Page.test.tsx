@@ -60,6 +60,70 @@ describe('<Page />', () => {
   })
 })
 
+describe('<Page /> · bloque o flex', () => {
+  it('con rhythm="none" y align="top" es un BLOQUE: los márgenes de sus hijos colapsan', () => {
+    render(
+      <Page rhythm="none">
+        <p>c</p>
+      </Page>,
+    )
+    const clases = screen.getByText('c').parentElement?.className ?? ''
+    expect(clases).not.toContain('flex')
+  })
+
+  it('se vuelve flex cuando reparte ritmo', () => {
+    render(
+      <Page rhythm="block">
+        <p>c</p>
+      </Page>,
+    )
+    expect(screen.getByText('c').parentElement?.className).toContain('flex-col')
+  })
+
+  it('se vuelve flex cuando reparte alto, aunque no reparta ritmo', () => {
+    render(
+      <Page rhythm="none" align="fill">
+        <p>c</p>
+      </Page>,
+    )
+    const clases = screen.getByText('c').parentElement?.className ?? ''
+    expect(clases).toContain('flex-col')
+    expect(clases).toContain('flex-1')
+  })
+
+  it('paddingBottom={null} no pone estilo en línea: el cierre lo deciden las clases', () => {
+    render(
+      <Page rhythm="none" paddingBottom={null} className="pb-24 md:pb-10">
+        <p>c</p>
+      </Page>,
+    )
+    const col = screen.getByText('c').parentElement
+    expect(col?.style.paddingBottom).toBe('')
+    expect(col?.className).toContain('pb-24')
+    expect(col?.className).toContain('md:pb-10')
+  })
+
+  it('sin paddingBottom cierra con --space-6 en línea', () => {
+    render(
+      <Page rhythm="none">
+        <p>c</p>
+      </Page>,
+    )
+    expect(screen.getByText('c').parentElement?.style.paddingBottom).toBe(
+      'var(--space-6)',
+    )
+  })
+
+  it('pasa el data-testid a la columna', () => {
+    render(
+      <Page testId="columna-x">
+        <p>c</p>
+      </Page>,
+    )
+    expect(screen.getByTestId('columna-x')).toContainElement(screen.getByText('c'))
+  })
+})
+
 describe('<PageFill />', () => {
   it('crece con flex-1 A SECAS: con min-h-0 el caso vacío colapsaría', () => {
     render(

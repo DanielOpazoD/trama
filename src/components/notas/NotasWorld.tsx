@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { Page } from '../Page'
 import { initHistory, type History } from '../../lib/pdfStudio/model/history'
 import { emptyDoc } from '../../lib/pdfStudio/model/model'
 import type { PdfDoc } from '../../lib/pdfStudio/model/modelTypes'
@@ -235,10 +236,18 @@ export function NotasWorld({
         {/* Imprenta/Planillas son layouts tipo app de ANCHO COMPLETO: reciben el
             topbar como prop y lo montan DENTRO del área de trabajo, para que su
             panel lateral llegue hasta el borde superior. */}
-        <div key={section} className="h-full animate-view-fade">
+        <div key={section} className="flex h-full flex-col animate-view-fade">
           <SectionPinGate sectionId={`notas:${section}`}>
             {section === 'pdf' || section === 'planillas' ? (
-              <Suspense fallback={<SectionSkeleton variant="grid" />}>
+              <Suspense
+                fallback={
+                  // Imprenta es el único uso del esqueleto FUERA de la columna:
+                  // acá la columna se la da quien lo monta.
+                  <Page width="workbench" rhythm="none">
+                    <SectionSkeleton variant="grid" />
+                  </Page>
+                }
+              >
                 <PdfStudioView
                   externalFiles={section === 'pdf' ? pendingPdfFiles : []}
                   onExternalFilesConsumed={() => setPendingPdfFiles([])}
@@ -256,11 +265,23 @@ export function NotasWorld({
                 <NotasTopBar section={section} />
                 {/* id="main-scroll": el feed virtualizado (useMainScrollVirtualizer)
                   se ata a este contenedor. El mundo trama y el mundo notas son
-                  mutuamente excluyentes, así que solo existe un #main-scroll. */}
-                <div id="main-scroll" className="h-full overflow-y-auto">
-                  <div
-                    data-testid="notas-world-content"
-                    className="px-5 md:px-8 pb-24 mx-auto py-8 md:py-10 max-w-5xl"
+                  mutuamente excluyentes, así que solo existe un #main-scroll.
+                  Es `flex-1`, no `h-full`: con la barra superior como hermana
+                  dentro de un padre de bloque, `h-full` lo hacía medir el alto
+                  entero empezando 43 px más abajo, y sus últimos 43 px quedaban
+                  fuera del recorte de <main> (medido: scroller hasta y=943 con
+                  main hasta 900, en las seis secciones). */}
+                <div id="main-scroll" className="min-h-0 flex-1 overflow-y-auto">
+                  <Page
+                    width="workbench"
+                    rhythm="none"
+                    // Responsive, así que en clases y no en línea. Es el cierre
+                    // que había de hecho: `pb-24` ganaba en móvil (96 px) y el
+                    // `md:py-10` lo pisaba en escritorio (40 px), comprobado
+                    // compilando esas clases con el Tailwind del repo.
+                    paddingBottom={null}
+                    className="pb-24 md:pb-10"
+                    testId="notas-world-content"
                   >
                     {section === 'inicio' && <NotasHomeView onNavigate={setSection} />}
                     {section === 'notas' && (
@@ -293,7 +314,7 @@ export function NotasWorld({
                         />
                       </Suspense>
                     )}
-                  </div>
+                  </Page>
                 </div>
               </>
             )}

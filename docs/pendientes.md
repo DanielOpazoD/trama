@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**42 pendientes** en 30 planes, 2 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**45 pendientes** en 31 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-10 · Diez avisos de @xmldom/xmldom bloqueaban el CI, y dos eran explotables de verdad
 
@@ -16,8 +16,16 @@ Plan: [2026-09-10-xmldom-0815.md](superpowers/plans/2026-09-10-xmldom-0815.md)
 
 Plan: [2026-09-10-primitiva-page.md](superpowers/plans/2026-09-10-primitiva-page.md)
 
-- [alto] Migrar `ViewRouter` (la columna de las once vistas del mundo Trama) y `NotasWorld` (las siete de Notas), con sus dos esqueletos. Es donde están los 487 px de Cronología y los 327 de Atlas. Hay que borrar en el mismo commit las cuatro reglas muertas por especificidad, o al pasar a `gap` vuelven a aplicar y se suman.
 - El ornamento de Inicio queda huérfano cuando Efemérides y WeeklyActivity devuelven null (el caso del modo prueba): 48 px de aire, un glifo de 12 px y otros 48. Pide un separador que se anule solo cuando le falta un vecino, en vez de una guardia local que ya murió una vez.
+
+## 2026-09-10 · La columna de las vistas pasa a Page, y la medición destapa tres defectos
+
+Plan: [2026-09-10-columna-router-y-notas.md](superpowers/plans/2026-09-10-columna-router-y-notas.md)
+
+- La barra de selección de Notas (`NotasImprentaSelectionBar`, que es `fixed bottom-6`) probablemente tapa la última fila en escritorio cuando hay una selección activa: el cierre de la columna ahí es de 40 px. Todo apunta a que el `pb-24` existía para dejarle sitio y el `md:py-10` lo anulaba sin querer. Es hipótesis: medirlo con una selección activa y, si se confirma, reservar su alto como hace el AskBar con `--askbar-h`.
+- Pasar el ritmo de Inicio (`space-y-12`, 48 px) a la escala. Con los márgenes muertos ya borrados, pasar a `gap` no resucita nada, pero hay que medir el vector de huecos de cada sección.
+- El espacio muerto bajo las listas cortas (Cronología, Atlas, Momentos, Claves) y su cierre: ninguna de las tres vistas de lista lo marca con el `EndMark` que sí usan Entidades y Citas.
+- `scripts/pendientes.mjs` solo acepta como continuación de un ítem las líneas con sangría, pero Markdown también admite continuaciones sin sangría. Pasó en esta misma nota: Prettier dejó sin sangría una línea que partía un código en línea, y el registro truncó el pendiente en silencio. Lo delató `format:check` solo porque el trozo perdido llevaba un acento grave; sin él no lo habría visto nadie. No hay más casos en el repo (recorrido completo), pero el generador debería tratar esas líneas como continuación, con su test.
 
 ## 2026-09-09 · El grafo encuadraba contra una caja más chica que el dibujo
 

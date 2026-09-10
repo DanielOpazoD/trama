@@ -43,7 +43,7 @@ export function CronicasSection() {
   // (la home queda más limpia el primer mes).
   if (cronicas.length === 0 && !hasPrevMonth) {
     return (
-      <section className="mt-16" aria-labelledby="cronicas-heading">
+      <section aria-labelledby="cronicas-heading">
         <header className="mb-4">
           <p
             className="section-eyebrow-serif mb-1"
@@ -84,7 +84,7 @@ export function CronicasSection() {
   }
 
   return (
-    <section className="mt-16" aria-labelledby="cronicas-heading">
+    <section aria-labelledby="cronicas-heading">
       <header className="mb-6">
         <p className="section-eyebrow-serif mb-1" style={{ color: 'var(--accent-gold)' }}>
           crónica del mes

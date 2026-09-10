@@ -65,19 +65,10 @@ export const PAGE_SHELL_EXEMPT = new Map([
 
 /** Columnas de vista que todavía no migraron. Cada PR debería bajar esta lista. */
 export const PAGE_SHELL_PENDING = new Map([
-  ['src/components/ViewRouter.tsx', 'La columna de las once vistas del mundo Trama.'],
-  [
-    'src/components/HomeSkeleton.tsx',
-    'El esqueleto de Inicio; migra con ViewRouter o el ritmo salta al cargar.',
-  ],
-  [
-    'src/components/notas/NotasWorld.tsx',
-    'La columna de las siete secciones del mundo Notas.',
-  ],
-  [
-    'src/components/notas/SectionSkeleton.tsx',
-    'El esqueleto de Notas; migra con NotasWorld.',
-  ],
+  // Vacío. ViewRouter, NotasWorld y HomeSkeleton adoptaron Page, y
+  // SectionSkeleton dejó de declarar columna (se la da quien lo monta). Una
+  // columna de vista nueva que no pueda migrar de inmediato entra acá con su
+  // motivo; el trinquete impide que la lista vuelva a crecer en silencio.
 ])
 
 const CLASSNAME_RE = /className=(?:"([^"]*)"|\{`([^`]*)`\})/g
