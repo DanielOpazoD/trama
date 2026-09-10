@@ -39,7 +39,11 @@ locales. El contenido del anfitrión se busca solo sin sigilo (`contentTextFor`)
   (`[aria-modal="true"]`): con el buscador abierto, «n» no saca el foco al
   compositor.
 - ⇧Enter hace la acción de la fila (marcar la tarea hecha, copiar el prompt) sin
-  abrirla y sin cerrar el buscador; con la lista atrasada no hace nada.
+  abrirla y sin cerrar el buscador; con la lista atrasada no hace nada. La acción
+  no se queda con el foco: vuelve al campo, y el fondo no toma las teclas.
+- La fila que el usuario eligió (flechas, ratón o su acción) se sigue por su clave
+  si la lista cambia debajo, como al reordenarse tras marcar una tarea. Sin
+  elegir, el foco es la primera fila de lo que hay.
 - En Notas, ⌘K y «/» abren el buscador fuera de los campos. En el feed, «/» es de
   su filtro: su listener escucha antes y el atajo global respeta
   `defaultPrevented`.
@@ -67,8 +71,9 @@ locales. El contenido del anfitrión se busca solo sin sigilo (`contentTextFor`)
 - `src/hooks/useCommandSearch.ts` orquesta estado React y queries de datos. No
   debe volver a construir items inline.
 - El contenido de un anfitrión llega por `CommandSearchContentSource`: un hook
-  fijo por anfitrión que corre en el mismo render que la lista, así `settled`
-  sigue diciendo la verdad. La paleta no conoce sus tipos: la fuente de Notas
+  fijo por anfitrión que corre en el mismo render que la lista y devuelve
+  `{ items, pending }`. Mientras le falta alguna lista, `settled` es falso y un
+  Enter espera a la fila en vez de preguntar. La paleta no conoce sus tipos: la fuente de Notas
   vive en `notas/omnibox/`.
 - `useCommandSearchVisibility.ts` lee visibilidad, PIN y alias, y
   `commandSearchCatalog.ts` guarda las vistas y las acciones.
@@ -108,6 +113,8 @@ No agrega IA ni motor nuevo. El server sigue usando `/api/search` en modo
   caché.
 - Desde Notas, lo que vive en Trama (una vista, una entidad, un hilo o una
   acción) cruza de mundo con `goToTrama`; «Configuración» abre la de Notas.
+- Guardar una preferencia antes de tener las del servidor no escribe un parche
+  suelto en la caché: dejaría `pinnedSections` fuera y abriría lo protegido.
 - `/api/search` pasa por el contrato de lectura `search`. La paleta recorre los
   cinco grupos sin defensas, así que quien produce la respuesta (backend, demo o
   mock de e2e) entrega todos.

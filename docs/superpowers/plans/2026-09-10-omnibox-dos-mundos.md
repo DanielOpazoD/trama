@@ -79,8 +79,42 @@ contenido de Notas sin sacar algo antes.
   creado con `useState` en un montaje que suspende se recrea en cada reintento:
   colgó `App.test.tsx` más de 240 s.
 
+## Revisión adversarial
+
+Con CI en verde y antes de fusionar, tres revisores de solo lectura (conducta,
+privacidad y accesibilidad) propusieron defectos, y un escéptico por hallazgo
+intentó refutarlos leyendo el código. Se confirmaron nueve y ninguno se
+descartó:
+
+1. **En Notas, ⌘K con Configuración abierta abría la paleta debajo del panel**,
+   con el foco y el teclado. Comparten capa y decide el orden del DOM: el
+   buscador va ahora después, como en Trama.
+2. **La acción de la fila se quedaba con el foco** y, al desmontarse «hecha», el
+   foco caía detrás del diálogo: la «n» del feed escribía en una nota. La acción
+   ya no toma el foco y lo devuelve al campo.
+3. **⇧Enter actuaba sobre un índice, no sobre una fila:** marcar una tarea la
+   reordena al refrescarse y la siguiente acción caía en otra. La fila elegida
+   se sigue por su clave.
+4. **Un Enter rápido en Notas preguntaba a la IA** mientras llegaban las listas.
+   La fuente devuelve `pending` y el Enter espera a la fila; una lista que falla
+   avisa.
+5. **Guardar una preferencia antes de tener las del servidor abría el PIN:** el
+   guardado optimista dejaba en la caché un parche sin `pinnedSections`. Ahora
+   espera a la respuesta.
+6. **«hecha» desde el buscador no aplicaba el arrastre de Tareas.** La regla vive
+   en `completionPatch`, que usan las dos.
+7. **Marcar hecha era mudo:** avisa al acertar y al fallar, como «copiar».
+
+Los dos restantes eran variantes de 2 y de 4. Uno queda pendiente: tras un fallo
+de descarga, el reintento renueva la paleta pero no sus lazies internos.
+
 ## Validación
 
+- **Sobre los arreglos de la revisión, 13 sondas más**, dos de ellas sobre e2e:
+  caen todas. Una sobrevivió en la primera corrida: el e2e de «hecha» pulsaba con
+  el ratón, y el `mousedown` ya impide que el botón tome el foco. Ahora activa la
+  acción con el teclado, que es donde importa devolver el foco al campo, y la
+  sonda cae.
 - **Mutaciones: 27 sondas.** Las 25 que deben caer caen, cada una en el test
   pensado para ella, y los dos controles (el peso de la colección y el largo de
   la vista previa) sobreviven. Cinco son de e2e: sin ⇧Enter, sin el contenido de
@@ -114,3 +148,5 @@ contenido de Notas sin sacar algo antes.
 - ⌘K con otro overlay abierto (Configuración, un lightbox, la escritura
   enfocada): la paleta queda debajo. Hay que medirlo y decidir un bloqueo común
   a los dos mundos.
+- Tras un fallo de descarga, el reintento renueva la paleta pero no sus lazies
+  internos: los resultados y la ficha siguen rechazados hasta recargar.

@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**62 pendientes** en 35 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**63 pendientes** en 35 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-10 · Diez avisos de @xmldom/xmldom bloqueaban el CI, y dos eran explotables de verdad
 
@@ -26,6 +26,7 @@ Plan: [2026-09-10-omnibox-dos-mundos.md](superpowers/plans/2026-09-10-omnibox-do
 - Buscar notas, tareas y prompts desde Trama exige LIMIT y búsqueda sin tildes en el servidor, o un motor unificado: hoy ese contenido solo llega desde Notas.
 - Abrir la nota, la tarea o el prompt concreto, no solo su sección: las vistas todavía no aceptan un id de foco.
 - ⌘K con otro overlay abierto (Configuración, un lightbox, la escritura enfocada): la paleta queda debajo. Hay que medirlo y decidir un bloqueo común a los dos mundos.
+- Tras un fallo de descarga, el reintento renueva la paleta pero no sus lazies internos: los resultados y la ficha siguen rechazados hasta recargar.
 
 ## 2026-09-10 · Estados vacíos que enseñan: cada vacío ofrece una salida real
 
