@@ -15,7 +15,7 @@ import { XFilterPanels } from './twitter/XFilterPanels'
 import { useScrollRail } from '../hooks/useScrollRail'
 import { IconButton } from './IconButton'
 import { CloseButton } from './CloseButton'
-import { EmptyMessage } from './EmptyMessage'
+import { EmptyAction, EmptyMessage } from './EmptyMessage'
 import { LoadingHint } from './LoadingHint'
 import {
   useClassifyBookmarks,
@@ -38,6 +38,7 @@ import {
   filterTwitterBookmarks,
   monthName,
 } from './twitterViewModel'
+import type { SettingsSectionId } from './settings/settingsModel'
 
 /**
  * Vista Twitter — los tweets que marcaste como bookmark en X. Espejo de
@@ -48,8 +49,11 @@ import {
  */
 export function TwitterView({
   onProposal,
+  onOpenSettings,
 }: {
   onProposal?: (title: string, proposal: ExtractionProposal) => void
+  /** Abre Configuración en su panel: «X no está conectado» ofrece conectarla. */
+  onOpenSettings?: (section: SettingsSectionId) => void
 }) {
   const queryClient = useQueryClient()
   const status = useXStatusQuery()
@@ -256,6 +260,11 @@ export function TwitterView({
           illustration="thread"
           title="X no está conectado"
           body="Conecta tu cuenta de X en Configuración → X (Twitter) para traer tus tweets marcados."
+          action={
+            onOpenSettings ? (
+              <EmptyAction onClick={() => onOpenSettings('x')}>Conectar X</EmptyAction>
+            ) : undefined
+          }
         />
       ) : items.length === 0 ? (
         <EmptyMessage

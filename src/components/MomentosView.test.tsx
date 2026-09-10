@@ -19,6 +19,19 @@ function jsonResp(body: unknown) {
   })
 }
 
+// Una nota sin fotos: el álbum queda vacío, pero la vista no.
+const NOTA_ROW = {
+  id: 'm-nota',
+  kind: 'nota',
+  captured_at: '2026-06-10T12:00:00.000Z',
+  payload: { bodyText: 'una nota del día' },
+  note: null,
+  origin: { kind: 'manual' },
+  entity_ids: [],
+  created_at: '2026-06-10T12:00:00.000Z',
+  updated_at: '2026-06-10T12:00:00.000Z',
+}
+
 beforeEach(() => {
   vi.stubGlobal(
     'fetch',
@@ -69,6 +82,42 @@ describe('<MomentosView />', () => {
     await waitFor(() => {
       expect(screen.getByText(/Todavía no hay momentos/i)).toBeInTheDocument()
     })
+  })
+
+  it('el vacío abre el compositor en vez de solo señalarlo', async () => {
+    renderWithProviders(<MomentosView />)
+
+    const escribir = await screen.findByRole('button', {
+      name: 'Escribir la primera entrada',
+    })
+    expect(screen.queryByRole('button', { name: /^Nota$/ })).not.toBeInTheDocument()
+    fireEvent.click(escribir)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Nota$/ })).toBeInTheDocument()
+    })
+  })
+
+  it('en el álbum sin fotos, «Subir la primera foto» abre el compositor en Foto', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | Request | URL) => {
+        const url = String(input)
+        if (url === '/api/momentos' || url.startsWith('/api/momentos?')) {
+          return jsonResp({ items: [NOTA_ROW], nextCursor: null })
+        }
+        if (url.includes('/api/momentos'))
+          return jsonResp({ items: [], nextCursor: null })
+        return jsonResp([])
+      }),
+    )
+    renderWithProviders(<MomentosView />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Subir la primera foto' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Una imagen del día' }),
+    ).toBeInTheDocument()
   })
 
   it('no muestra el bloque extra Diario vs Álbum', async () => {

@@ -17,7 +17,7 @@ import {
 } from '../state'
 import { EndMark, SparkleIcon } from './Icons'
 import { CloseButton } from './CloseButton'
-import { EmptyMessage } from './EmptyMessage'
+import { EmptyAction, EmptyMessage } from './EmptyMessage'
 import { ErrorState } from './ErrorState'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { EntityCombobox } from './EntityCombobox'
@@ -236,13 +236,7 @@ export function RelationshipsView({
           }
           action={
             onGoToEntities ? (
-              <button
-                type="button"
-                onClick={onGoToEntities}
-                className="btn-ink min-h-[44px] px-4 text-xs"
-              >
-                Ir a las entidades
-              </button>
+              <EmptyAction onClick={onGoToEntities}>Ir a las entidades</EmptyAction>
             ) : undefined
           }
         />

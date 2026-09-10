@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useDeleteFavorito, useFavoritosQuery, useUpdateFavorito } from '../../state'
 import type { Favorito } from '../../api'
-import { EmptyMessage } from '../EmptyMessage'
+import { EmptyAction, EmptyMessage } from '../EmptyMessage'
+import type { SettingsSectionId } from '../settings/settingsModel'
 import { ErrorState } from '../ErrorState'
 import { LoadingHint } from '../LoadingHint'
 import { PencilIcon } from '../Icons'
@@ -121,7 +122,12 @@ function FavoritoCard({ favorito: f }: { favorito: Favorito }) {
   )
 }
 
-export function FavoritosPanel() {
+export function FavoritosPanel({
+  onOpenSettings,
+}: {
+  /** Abre Configuración: marcar vive en la extensión, y su panel explica cómo. */
+  onOpenSettings?: (section: SettingsSectionId) => void
+}) {
   const {
     data: favoritos = [],
     isLoading,
@@ -157,6 +163,13 @@ export function FavoritosPanel() {
             favorito», o el botón «favorito» del popup. Aparecerán aquí para volver cuando
             quieras.
           </>
+        }
+        action={
+          onOpenSettings ? (
+            <EmptyAction onClick={() => onOpenSettings('extension')}>
+              Configurar la extensión
+            </EmptyAction>
+          ) : undefined
         }
       />
     )

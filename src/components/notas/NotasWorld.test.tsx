@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithProviders } from '../../test-utils'
@@ -13,20 +14,63 @@ const pdfStudioModule = vi.hoisted(() => ({
 
 vi.mock('./pdfStudio/PdfStudioView', () => {
   pdfStudioModule.loaded()
-  return { PdfStudioView: () => <div>PDF Studio mock</div> }
+  return {
+    // Pinta `topBar` como el estudio real: el título de la sección vive ahí, y
+    // «drena» lo afirma.
+    PdfStudioView: ({
+      onGoToSection,
+      topBar,
+    }: {
+      onGoToSection?: (section: string) => void
+      topBar?: ReactNode
+    }) => (
+      <>
+        {topBar}
+        <div>PDF Studio mock</div>
+        <button type="button" onClick={() => onGoToSection?.('biblioteca')}>
+          camino a biblioteca
+        </button>
+      </>
+    ),
+  }
 })
 
 vi.mock('./NotasFeedView', () => ({
-  NotasFeedView: () => (
-    <div role="tablist" aria-label="Feed mock">
-      <button type="button" role="tab">
-        Capturas
+  NotasFeedView: ({ onOpenSettings }: { onOpenSettings?: (section: string) => void }) => (
+    <>
+      <div role="tablist" aria-label="Feed mock">
+        <button type="button" role="tab">
+          Capturas
+        </button>
+        <button type="button" role="tab">
+          Favoritos
+        </button>
+      </div>
+      <button type="button" onClick={() => onOpenSettings?.('extension')}>
+        configurar extensión
       </button>
-      <button type="button" role="tab">
-        Favoritos
-      </button>
-    </div>
+    </>
   ),
+}))
+
+vi.mock('../Settings', () => ({
+  Settings: ({
+    open,
+    onClose,
+    initialSection,
+  }: {
+    open: boolean
+    onClose: () => void
+    initialSection?: string
+  }) =>
+    open ? (
+      <section aria-label="settings mock">
+        settings {initialSection ?? 'none'}
+        <button type="button" onClick={onClose}>
+          cerrar settings
+        </button>
+      </section>
+    ) : null,
 }))
 
 beforeEach(() => {
@@ -195,5 +239,32 @@ describe('<NotasWorld />', () => {
     )
     // La cola quedó vacía: un segundo montaje no reenvía lo mismo.
     expect(takeHandedOffImprentaFiles()).toEqual([])
+  })
+
+  it('los caminos del vacío de Imprenta llevan a su sección', async () => {
+    renderWithProviders(
+      <NotasWorld world="notas" initialSection="pdf" onChangeWorld={() => {}} />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'camino a biblioteca' }))
+
+    expect(screen.getAllByRole('button', { name: 'Biblioteca' })[0]).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  })
+
+  it('el vacío de Favoritos abre Configuración en «Extensión», y cerrarla la olvida', async () => {
+    renderWithProviders(
+      <NotasWorld world="notas" initialSection="notas" onChangeWorld={() => {}} />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'configurar extensión' }))
+    expect(await screen.findByText('settings extension')).toBeInTheDocument()
+
+    // Abrirla después desde la barra no debe caer en la sección que pidió el vacío.
+    fireEvent.click(screen.getByRole('button', { name: 'cerrar settings' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /^Configuración/ })[0]!)
+    expect(await screen.findByText('settings none')).toBeInTheDocument()
   })
 })

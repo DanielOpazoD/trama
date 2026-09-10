@@ -282,6 +282,24 @@ describe('<NotasFeedView />', () => {
     )
   })
 
+  it("el vacío de 'Favoritos' lleva a Configuración → Extensión", async () => {
+    const fetchMock = stubFeedFetch()
+    const base = fetchMock.getMockImplementation()!
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith('/api/favoritos') ? jsonResponse([]) : base(input, init),
+    )
+    const user = userEvent.setup()
+    const onOpenSettings = vi.fn()
+    renderWithProviders(<NotasFeedView onOpenSettings={onOpenSettings} />)
+
+    await user.click(screen.getByRole('tab', { name: /^Favoritos/ }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Configurar la extensión' }),
+    )
+
+    expect(onOpenSettings).toHaveBeenCalledWith('extension')
+  })
+
   it('el buscador es on-demand: la lupa lo expande y filtra el feed', async () => {
     const user = userEvent.setup()
     renderWithProviders(<NotasFeedView />)

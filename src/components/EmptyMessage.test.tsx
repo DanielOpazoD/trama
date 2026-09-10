@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { EmptyMessage } from './EmptyMessage'
+import { EmptyAction, EmptyMessage } from './EmptyMessage'
 
 describe('<EmptyMessage />', () => {
   it('renders the heading and body', () => {
@@ -41,5 +41,34 @@ describe('<EmptyMessage />', () => {
 
     expect(empty).toHaveClass('empty-message--plain')
     expect(empty).not.toHaveClass('empty-message--soft')
+  })
+})
+
+describe('<EmptyAction />', () => {
+  it('es un botón de tinta con alto táctil que no envía formularios', () => {
+    render(<EmptyAction onClick={() => {}}>Empezar</EmptyAction>)
+    const boton = screen.getByRole('button', { name: 'Empezar' })
+    expect(boton).toHaveAttribute('type', 'button')
+    expect(boton).toHaveClass('btn-ink', 'min-h-[44px]', 'text-caption')
+  })
+
+  it('mientras carga queda deshabilitado y lo anuncia', () => {
+    render(
+      <EmptyAction loading onClick={() => {}}>
+        Subir
+      </EmptyAction>,
+    )
+    const boton = screen.getByRole('button', { name: 'Subir' })
+    expect(boton).toBeDisabled()
+    expect(boton).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('suma clases locales sin perder las suyas', () => {
+    render(<EmptyAction className="max-w-full truncate">Retomar</EmptyAction>)
+    expect(screen.getByRole('button', { name: 'Retomar' })).toHaveClass(
+      'btn-ink',
+      'text-caption',
+      'truncate',
+    )
   })
 })

@@ -146,4 +146,14 @@ describe('<PromptsView />', () => {
       ),
     )
   })
+
+  it('vacía, «Escribir el primero» lleva el foco al título del compositor', async () => {
+    stubPromptsFetch([])
+    const user = userEvent.setup()
+
+    renderWithProviders(<PromptsView />)
+
+    await user.click(await screen.findByRole('button', { name: 'Escribir el primero' }))
+    expect(screen.getByLabelText('Título del prompt')).toHaveFocus()
+  })
 })

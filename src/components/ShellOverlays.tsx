@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import type { OAuthReturn } from '../lib/oauthReturn'
+import type { SettingsSectionId } from './settings/settingsModel'
 import type { Theme } from '../hooks/useTheme'
 import type { CommandAction } from './CommandPalette'
 import type { ViewMode } from '../types/view'
@@ -22,6 +23,7 @@ export function ShellOverlays({
   theme,
   onSetTheme,
   oauthReturn,
+  settingsSection = null,
   paletteOpen,
   onClosePalette,
   onNavigate,
@@ -43,6 +45,8 @@ export function ShellOverlays({
   theme: Theme
   onSetTheme: (theme: Theme) => void
   oauthReturn: OAuthReturn | null
+  /** Sección pedida al abrir (p. ej. 'x' desde su vacío). Gana a la del OAuth. */
+  settingsSection?: SettingsSectionId | null
   paletteOpen: boolean
   onClosePalette: () => void
   onNavigate: (view: ViewMode) => void
@@ -68,7 +72,7 @@ export function ShellOverlays({
             onClose={onCloseSettings}
             theme={theme}
             onSetTheme={onSetTheme}
-            initialSection={oauthReturn?.provider}
+            initialSection={settingsSection ?? oauthReturn?.provider}
             oauthReturn={oauthReturn}
           />
         </Suspense>

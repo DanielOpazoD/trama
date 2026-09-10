@@ -96,6 +96,17 @@ describe('<FavoritosPanel />', () => {
     expect(screen.getByText(/Guardar como/)).toBeInTheDocument()
   })
 
+  it('vacío, lleva a Configuración → Extensión, donde se explica cómo marcar', () => {
+    const onOpenSettings = vi.fn()
+    const qc = makeQueryClient()
+    qc.setQueryData(queryKeys.favoritos, [])
+    renderWithProviders(<FavoritosPanel onOpenSettings={onOpenSettings} />, {
+      queryClient: qc,
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Configurar la extensión' }))
+    expect(onOpenSettings).toHaveBeenCalledWith('extension')
+  })
+
   it('muestra estado de error (no el empty) cuando la carga falla', async () => {
     setupFailing()
 

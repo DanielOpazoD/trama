@@ -167,6 +167,31 @@ describe('<CapturasGalleryGrid />', () => {
     expect(screen.getByText(/sin imágenes/i)).toBeInTheDocument()
   })
 
+  it('vacía por un filtro, ofrece limpiarlo; sin filtro, volver a la lista', async () => {
+    const user = userEvent.setup()
+    const onClearFilters = vi.fn()
+    const onShowList = vi.fn()
+    const props = {
+      items: [items[0]!],
+      size: 'mediana' as const,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      onLoadMore: noop,
+      onClearFilters,
+      onShowList,
+    }
+    const { rerender } = render(<CapturasGalleryGrid {...props} hasContentFilter />)
+    await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(onClearFilters).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('button', { name: 'Volver a la lista' }),
+    ).not.toBeInTheDocument()
+
+    rerender(<CapturasGalleryGrid {...props} hasContentFilter={false} />)
+    await user.click(screen.getByRole('button', { name: 'Volver a la lista' }))
+    expect(onShowList).toHaveBeenCalledTimes(1)
+  })
+
   it('clic en una celda abre el visor', async () => {
     render(
       <CapturasGalleryGrid

@@ -82,6 +82,29 @@ describe('<ProactiveView />', () => {
     expect(screen.getByText(/serena/i)).toBeInTheDocument()
   })
 
+  it('vacía, «Pedir una ronda» pide sugerencias nuevas', async () => {
+    // Listar y generar comparten URL: solo el método los distingue.
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? jsonResponse({ inserted: 0, suggestions: [] })
+        : jsonResponse([]),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const qc = makeQueryClient()
+    qc.setQueryData(['proactive', 'pending'], [])
+    qc.setQueryData(queryKeys.entities, ENTITIES)
+    renderWithProviders(<ProactiveView />, { queryClient: qc })
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Pedir una ronda' }))
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/proactive-suggestions',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    )
+  })
+
   it('renders the description preview when present', () => {
     const items: ProactiveSuggestion[] = [
       {

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { NotasFeedSegment } from './notasFeedViewModel'
-import { EmptyMessage } from '../EmptyMessage'
+import { EmptyAction, EmptyMessage } from '../EmptyMessage'
 import { ErrorState } from '../ErrorState'
 import { InlineLoadingLabel } from '../InlineLoadingLabel'
 import { LoadingHint } from '../LoadingHint'
@@ -69,13 +69,7 @@ export function NotasFeedContent({
           title="Tu primer apunte, todavía sin escribir."
           body={<>Un apunte breve alcanza. Tus recortes también aparecerán aquí.</>}
           action={
-            <button
-              type="button"
-              onClick={onFocusComposer}
-              className="btn-ink min-h-[44px] px-4 text-xs"
-            >
-              Escribir primera nota
-            </button>
+            <EmptyAction onClick={onFocusComposer}>Escribir primera nota</EmptyAction>
           }
         />
       ) : itemCount === 0 ? (

@@ -47,42 +47,8 @@ export const COMPONENTES_CON_SALIDA = new Map([
  * queda con su motivo.
  */
 export const SIN_SALIDA_ADMITIDOS = new Map([
-  [
-    'src/components/BibliotecaView.tsx',
-    { n: 1, motivo: 'pendiente: la búsqueda sin resultados no ofrece «limpiar filtros»' },
-  ],
-  [
-    'src/components/CronologiaView.tsx',
-    { n: 1, motivo: 'pendiente: no lleva a donde se crea lo que la cronología teje' },
-  ],
-  [
-    'src/components/TwitterView.tsx',
-    { n: 1, motivo: 'pendiente: «X no está conectado» sin llevar a Configuración → X' },
-  ],
-  [
-    'src/components/momentos/AlbumGrid.tsx',
-    { n: 1, motivo: 'pendiente: remite al compositor de arriba sin ofrecerlo' },
-  ],
-  [
-    'src/components/momentos/MomentosViewSections.tsx',
-    { n: 1, motivo: 'pendiente: remite al compositor de arriba sin ofrecerlo' },
-  ],
-  [
-    'src/components/notas/PromptsView.tsx',
-    { n: 1, motivo: 'pendiente: biblioteca de prompts vacía sin «crear el primero»' },
-  ],
-  [
-    'src/components/recortes/CapturasGalleryGrid.tsx',
-    { n: 1, motivo: 'pendiente: galería filtrada sin «ver todas»' },
-  ],
-  [
-    'src/components/recortes/FavoritosPanel.tsx',
-    {
-      n: 1,
-      motivo:
-        'la acción vive en la extensión de Chrome; pendiente: llevar a Configuración → Extensión',
-    },
-  ],
+  // Vacío: los 11 vacíos sin salida que midió la primera corrida tienen hoy una
+  // acción real. Uno nuevo que no pueda ofrecerla entra aquí con su motivo.
 ])
 
 /**

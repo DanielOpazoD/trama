@@ -61,4 +61,17 @@ describe('<ShellOverlays />', () => {
 
     expect(await screen.findByText('settings x x')).toBeInTheDocument()
   })
+
+  it('una sección pedida (p. ej. desde el vacío de X) gana a la del OAuth', async () => {
+    render(
+      <ShellOverlays
+        {...defaultProps}
+        settingsOpen
+        settingsSection="x"
+        oauthReturn={{ provider: 'spotify', ok: true, code: null }}
+      />,
+    )
+
+    expect(await screen.findByText('settings x spotify')).toBeInTheDocument()
+  })
 })

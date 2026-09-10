@@ -24,7 +24,7 @@ import { BibliotecaListView } from './biblioteca/BibliotecaListView'
 import { BibliotecaListSkeleton } from './biblioteca/BibliotecaListSkeleton'
 import { BibliotecaGridView } from './biblioteca/BibliotecaGridView'
 import { BibliotecaGridSkeleton } from './biblioteca/BibliotecaGridSkeleton'
-import { EmptyMessage } from './EmptyMessage'
+import { EmptyAction, EmptyMessage } from './EmptyMessage'
 import { RenameModal } from './biblioteca/RenameModal'
 import { BibliotecaViewer } from './biblioteca/BibliotecaViewer'
 import { BibliotecaSelectionBar } from './biblioteca/BibliotecaSelectionBar'
@@ -138,6 +138,21 @@ export function BibliotecaView({
   const fuente = coerceFuente(fuenteParam)
   const vista = coerceVista(vistaParam)
   const incluyeEliminados = eliminadosParam === '1'
+  // Una biblioteca estrenada no es una búsqueda sin resultados: el mismo vacío
+  // le decía «prueba con otra búsqueda» a quien todavía no había subido nada.
+  const hayFiltros =
+    tab !== 'todo' ||
+    Boolean(qParam) ||
+    tipo !== '' ||
+    fuente !== '' ||
+    Boolean(etiquetaParam)
+  function limpiarFiltros() {
+    setTabParam(null)
+    setQParam(null)
+    setTipoParam(null)
+    setFuenteParam(null)
+    setEtiquetaParam(null)
+  }
   const q = qParam ?? ''
   // Filtro por etiqueta (PR-C): se setea al clickear un chip de etiqueta en una
   // card / fila, y se quita desde el indicador junto a la barra de controles.
@@ -424,12 +439,30 @@ export function BibliotecaView({
         <EmptyMessage
           icon={incluyeEliminados ? <TrashIcon size={22} /> : <SearchIcon size={22} />}
           title={
-            incluyeEliminados ? 'La papelera está vacía' : 'No se encontraron archivos'
+            incluyeEliminados
+              ? 'La papelera está vacía'
+              : hayFiltros
+                ? 'No se encontraron archivos'
+                : 'Tu biblioteca todavía está vacía'
           }
           body={
             incluyeEliminados
               ? 'Los archivos que elimines de la Biblioteca aparecerán aquí.'
-              : 'Prueba con otra búsqueda o cambiando los filtros.'
+              : hayFiltros
+                ? 'Prueba con otra búsqueda o cambiando los filtros.'
+                : 'Sube PDFs, imágenes o documentos para tenerlos a mano y enviarlos a Imprenta.'
+          }
+          action={
+            incluyeEliminados ? undefined : hayFiltros ? (
+              <EmptyAction onClick={limpiarFiltros}>Limpiar filtros</EmptyAction>
+            ) : (
+              <EmptyAction
+                onClick={() => fileInputRef.current?.click()}
+                loading={uploadFiles.isPending}
+              >
+                Subir archivos
+              </EmptyAction>
+            )
           }
         />
       ) : (

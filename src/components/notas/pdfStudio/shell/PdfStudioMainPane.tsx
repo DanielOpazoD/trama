@@ -1,7 +1,8 @@
-import type { DragEvent } from 'react'
+import type { ComponentProps, DragEvent } from 'react'
 import type { PdfDoc } from '../../../../lib/pdfStudio/model/model'
 import { PageGrid } from '../pages/PageGrid'
 import { PdfDropzone } from './PdfDropzone'
+import { PdfStudioEmptyPaths } from './PdfStudioEmptyPaths'
 import type { PageInteractionMode } from './pdfStudioPageInteractionMode'
 
 export function PdfStudioMainPane({
@@ -16,6 +17,7 @@ export function PdfStudioMainPane({
   onPickFiles,
   onReorder,
   onToggleSelect,
+  emptyPaths,
 }: {
   doc: PdfDoc
   interactionMode?: PageInteractionMode
@@ -28,24 +30,34 @@ export function PdfStudioMainPane({
   onPickFiles: () => void
   onReorder: (from: number, to: number) => void
   onToggleSelect: (index: number, shift: boolean) => void
+  /** Los caminos que ya llegan aquí, ofrecidos bajo la zona de arrastre del vacío. */
+  emptyPaths?: Omit<ComponentProps<typeof PdfStudioEmptyPaths>, 'mode'>
 }) {
   if (doc.pages.length === 0) {
     return (
-      <PdfDropzone
-        onClick={onPickFiles}
-        onDropFiles={onDropFiles}
-        eyebrow={isTemplates ? 'planillas' : 'imprenta'}
-        title={
-          isTemplates
-            ? 'Una planilla empieza con una hoja.'
-            : 'Trae un PDF o unas imágenes; aquí se componen.'
-        }
-        subtitle={
-          isTemplates
-            ? 'Trae el PDF o la imagen de base; después marcas sus casilleros y la guardas para rellenarla.'
-            : 'Arrastra archivos o haz clic para elegirlos. Todo queda en este dispositivo.'
-        }
-      />
+      <>
+        <PdfDropzone
+          onClick={onPickFiles}
+          onDropFiles={onDropFiles}
+          eyebrow={isTemplates ? 'planillas' : 'imprenta'}
+          title={
+            isTemplates
+              ? 'Una planilla empieza con una hoja.'
+              : 'Trae un PDF o unas imágenes; aquí se componen.'
+          }
+          subtitle={
+            isTemplates
+              ? 'Trae el PDF o la imagen de base; después marcas sus casilleros y la guardas para rellenarla.'
+              : 'Arrastra archivos o haz clic para elegirlos. Todo queda en este dispositivo.'
+          }
+        />
+        {emptyPaths && (
+          <PdfStudioEmptyPaths
+            mode={isTemplates ? 'templates' : 'editor'}
+            {...emptyPaths}
+          />
+        )}
+      </>
     )
   }
 

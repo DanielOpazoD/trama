@@ -6,6 +6,7 @@ import { CenteredPane } from './CenteredPane'
 import { SectionPinGate } from './SectionPinGate'
 import { Page } from './Page'
 import type { ViewMode } from '../types/view'
+import type { SettingsSectionId } from './settings/settingsModel'
 import type { ExtractionProposal } from '../types'
 
 /**
@@ -200,6 +201,7 @@ export function ViewRouter({
   onSelectEntity,
   onChangeView,
   onOpenCareo,
+  onOpenSettings,
   onProposal,
   onConsumedInitialThread,
 }: {
@@ -213,6 +215,8 @@ export function ViewRouter({
   onSelectEntity: (id: string | null) => void
   onChangeView: (v: ViewMode) => void
   onOpenCareo?: () => void
+  /** Abre Configuración en una sección: el vacío de X lleva a su panel. */
+  onOpenSettings?: (section: SettingsSectionId) => void
   onProposal: (text: string, proposal: ExtractionProposal) => void
   onConsumedInitialThread: () => void
 }) {
@@ -305,7 +309,7 @@ export function ViewRouter({
             )}
             {view === 'twitter' && (
               <ViewSlot scope="view:twitter">
-                <TwitterView onProposal={onProposal} />
+                <TwitterView onProposal={onProposal} onOpenSettings={onOpenSettings} />
               </ViewSlot>
             )}
             {view === 'momentos' && (
@@ -315,7 +319,10 @@ export function ViewRouter({
             )}
             {view === 'cronologia' && (
               <ViewSlot scope="view:cronologia">
-                <CronologiaView onSelectEntity={onSelectEntity} />
+                <CronologiaView
+                  onSelectEntity={onSelectEntity}
+                  onNavigate={onChangeView}
+                />
               </ViewSlot>
             )}
             {view === 'atlas' && (

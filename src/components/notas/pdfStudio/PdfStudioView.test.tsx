@@ -468,6 +468,67 @@ describe('<PdfStudioView />', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('vacío, enseña sus caminos: secciones, guardados y retomar el último', async () => {
+    const user = userEvent.setup()
+    const onGoToSection = vi.fn()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      {
+        id: 'c-1',
+        name: 'Informe viejo',
+        doc: addPdfSource(emptyDoc(), pdfFile('viejo.pdf'), 1),
+        savedAt: 1000,
+        kind: 'creation',
+      },
+      {
+        id: 'c-2',
+        name: 'Informe nuevo',
+        doc: addPdfSource(emptyDoc(), pdfFile('nuevo.pdf'), 1),
+        savedAt: 2000,
+        kind: 'creation',
+      },
+    ])
+    renderWithProviders(
+      <PdfStudioView studioMode="editor" onGoToSection={onGoToSection} />,
+    )
+
+    await screen.findByRole('button', { name: 'Retomar «Informe nuevo»' })
+    await user.click(screen.getByRole('button', { name: 'Desde la Biblioteca' }))
+    expect(onGoToSection).toHaveBeenCalledWith('biblioteca')
+
+    // Con guardados el panel se abre solo: ofrecer abrirlo sobraría. Plegado, sí.
+    expect(screen.getByText('mesa de trabajo')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Ver los/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ocultar el panel' }))
+    await user.click(await screen.findByRole('button', { name: 'Ver los 2 guardados' }))
+    expect(await screen.findByText('mesa de trabajo')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Retomar «Informe nuevo»' }))
+    await waitFor(() =>
+      expect(screen.queryByText(/Trae un PDF o unas imágenes/)).not.toBeInTheDocument(),
+    )
+  })
+
+  it('en Planillas, con el panel plegado, el vacío ofrece reabrir las planillas', async () => {
+    const user = userEvent.setup()
+    mocks.listSavedDocs.mockResolvedValueOnce([
+      { id: 'tpl-1', name: 'Ingreso paciente', doc: templateDoc(), savedAt: 1000 },
+    ])
+    renderWithProviders(<PdfStudioView studioMode="templates" />)
+
+    await screen.findByRole('button', { name: /Rellenar planilla Ingreso paciente/i })
+    expect(
+      screen.queryByRole('button', { name: 'Ver tu planilla guardada' }),
+    ).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Ocultar el panel' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Ver tu planilla guardada' }),
+    )
+
+    expect(
+      await screen.findByRole('button', { name: /Rellenar planilla Ingreso paciente/i }),
+    ).toBeInTheDocument()
+  })
+
   it('en modo editor PDF ignora el modo planilla aunque el borrador tenga casilleros', async () => {
     mocks.loadDraft.mockResolvedValueOnce({ doc: templateDoc(), library: [] })
     renderWithProviders(<PdfStudioView studioMode="editor" />)

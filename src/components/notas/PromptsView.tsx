@@ -9,7 +9,7 @@ import {
   useUpdatePrompt,
   useUploadNotasAttachment,
 } from '../../state'
-import { EmptyMessage } from '../EmptyMessage'
+import { EmptyAction, EmptyMessage } from '../EmptyMessage'
 import { SearchIcon } from '../Icons'
 import { LoadingHint } from '../LoadingHint'
 import { ViewHeader } from '../ViewHeader'
@@ -25,6 +25,8 @@ const ACCENT = 'var(--accent-sage)'
 export function PromptsView() {
   const promptsQuery = usePromptsQuery()
   const createPrompt = useCreatePrompt()
+  // El vacío de la biblioteca de prompts enfoca el título del compositor.
+  const titleInputRef = useRef<HTMLInputElement>(null)
   const updatePrompt = useUpdatePrompt()
   const duplicatePrompt = useDuplicatePrompt()
   const deletePrompt = useDeletePrompt()
@@ -123,6 +125,7 @@ export function PromptsView() {
         onContentChange={setContent}
         onPendingFilesChange={setPendingFiles}
         onSave={save}
+        titleInputRef={titleInputRef}
       />
 
       {prompts.length > 0 && (
@@ -179,6 +182,11 @@ export function PromptsView() {
           illustration="thread"
           title="Tu biblioteca de prompts está vacía."
           body={<>Guarda aquí instrucciones reutilizables.</>}
+          action={
+            <EmptyAction onClick={() => titleInputRef.current?.focus()}>
+              Escribir el primero
+            </EmptyAction>
+          }
         />
       ) : filtered.length === 0 ? (
         <EmptyMessage

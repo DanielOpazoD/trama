@@ -113,6 +113,24 @@ describe('<AlbumGrid />', () => {
     expect(screen.getByText('No hay fotos todavía')).toBeInTheDocument()
   })
 
+  it('vacío, «Subir la primera foto» abre el compositor', async () => {
+    const onCompose = vi.fn()
+    render(
+      <AlbumGrid
+        size="medium"
+        items={[noteMomento]}
+        entitiesById={new Map([['e1', entity]])}
+        onDelete={() => {}}
+        onCompose={onCompose}
+      />,
+    )
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Subir la primera foto' }))
+    expect(onCompose).toHaveBeenCalledTimes(1)
+  })
+
   it('renderiza fotos, ignora otros kinds y permite eliminar desde el menú', async () => {
     const onDelete = vi.fn()
     const user = userEvent.setup()

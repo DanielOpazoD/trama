@@ -105,6 +105,17 @@ describe('<CronologiaView />', () => {
     )
   })
 
+  it('vacía, lleva a donde se crea lo que teje: citas y momentos', async () => {
+    stubFetch({ entradas: [], nextCursor: null })
+    const onNavigate = vi.fn()
+    renderWithProviders(
+      <CronologiaView onSelectEntity={() => {}} onNavigate={onNavigate} />,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Guardar una cita' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear un momento' }))
+    expect(onNavigate.mock.calls).toEqual([['citas'], ['momentos']])
+  })
+
   it('una página sin `entradas` se trata como vacía en vez de tumbar la vista', async () => {
     // Lo que devolvía el mock de e2e (`[]`) y lo que devolvería un backend
     // roto: antes `page.entradas` no era iterable y la vista caía en el

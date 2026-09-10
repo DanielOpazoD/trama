@@ -28,10 +28,26 @@ import { useToast } from '../../state'
 import { recortesToPdfFiles } from '../../lib/pdfStudio/import/recortesToPdfFiles'
 import { notesToPdfFiles } from '../../lib/pdfStudio/import/notesToPdfFiles'
 import { captureItemsToPdfFiles } from '../../lib/pdfStudio/import/captureItemsToPdfFiles'
+import type { SettingsSectionId } from '../settings/settingsModel'
 
 // Lazy: pdf.js (~1MB) y pdf-lib sólo se bajan al entrar a la sección PDF.
-const loadPdfStudioView = () =>
+const importPdfStudioView = () =>
   import('./pdfStudio/PdfStudioView').then((m) => ({ default: m.PdfStudioView }))
+
+// Una sola importación en vuelo para la precarga y el `lazy`: al drenar archivos
+// se piden las dos en el mismo tick. El navegador ya las unifica en su mapa de
+// módulos, pero vitest no: con dos `import()` concurrentes de un módulo simulado
+// entregó el mock al primero y el módulo REAL al segundo (medido en
+// NotasWorld.test), y el test montaba el estudio de verdad. Si la importación
+// falla se olvida, para que el próximo intento vuelva a pedirla.
+let pdfStudioViewImport: ReturnType<typeof importPdfStudioView> | undefined
+function loadPdfStudioView() {
+  pdfStudioViewImport ??= importPdfStudioView().catch((error: unknown) => {
+    pdfStudioViewImport = undefined
+    throw error
+  })
+  return pdfStudioViewImport
+}
 
 export function preloadPdfStudioView(): void {
   void loadPdfStudioView()
@@ -86,6 +102,8 @@ export function NotasWorld({
   const toast = useToast()
   const [searchOpen, setSearchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // La sección con que se abre Configuración (Favoritos lleva a «Extensión»).
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionId | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [pendingPdfFiles, setPendingPdfFiles] = useState<File[]>([])
   // El documento de Imprenta vive AQUÍ, no dentro de PdfStudioView: el estudio
@@ -258,6 +276,7 @@ export function NotasWorld({
                   }
                   topBar={<NotasTopBar section={section} />}
                   studioMode={section === 'planillas' ? 'templates' : 'editor'}
+                  onGoToSection={setSection}
                 />
               </Suspense>
             ) : (
@@ -290,6 +309,10 @@ export function NotasWorld({
                           onSendImagesToPdf={sendImagesToPdf}
                           onSendNoteToImprenta={sendNoteToImprenta}
                           onSendItemsToImprenta={sendItemsToImprenta}
+                          onOpenSettings={(section) => {
+                            setSettingsSection(section)
+                            setSettingsOpen(true)
+                          }}
                         />
                       </Suspense>
                     )}
@@ -355,7 +378,11 @@ export function NotasWorld({
         <Suspense fallback={null}>
           <Settings
             open={settingsOpen}
-            onClose={() => setSettingsOpen(false)}
+            onClose={() => {
+              setSettingsOpen(false)
+              setSettingsSection(null)
+            }}
+            initialSection={settingsSection ?? undefined}
             theme={theme}
             onSetTheme={setTheme}
           />

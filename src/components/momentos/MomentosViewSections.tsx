@@ -1,6 +1,6 @@
 import type { Entity } from '../../types'
 import { Paginator } from '../Paginator'
-import { EmptyMessage } from '../EmptyMessage'
+import { EmptyAction, EmptyMessage } from '../EmptyMessage'
 import { ShareIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { SizeMenu, type TileSize } from './AlbumGrid'
@@ -117,12 +117,15 @@ export function MomentosEmptyState({
   dayFilter,
   loadingMore,
   onShowAll,
+  onCompose,
 }: {
   contentFilter: ContentFilter
   dayFilter: string | null
   /** El álbum/Videos todavía recoge páginas → aún no sabemos si está vacío. */
   loadingMore: boolean
   onShowAll: () => void
+  /** Abre el compositor de la vista: el vacío ofrece la acción, no la señala. */
+  onCompose?: () => void
 }) {
   // Vacío aparente durante el auto-load: en vez del mensaje "no hay…" (que
   // parpadearía en falso), un pie sereno hasta agotar las páginas.
@@ -168,6 +171,11 @@ export function MomentosEmptyState({
           Las entradas que crees aquí quedan en una línea de tiempo. Pega tweets, links,
           screenshots y fotos — o simplemente escribe una nota del día.
         </>
+      }
+      action={
+        onCompose ? (
+          <EmptyAction onClick={onCompose}>Escribir la primera entrada</EmptyAction>
+        ) : undefined
       }
     />
   )

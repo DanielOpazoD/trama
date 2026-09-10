@@ -162,6 +162,8 @@ export function MomentosView() {
     fetchNextPage,
   ])
 
+  // Controlado aquí: los vacíos (línea de tiempo y álbum) abren el compositor.
+  const [composerExpanded, setComposerExpanded] = useState(initialKind !== undefined)
   return (
     <>
       <ViewHeader
@@ -174,7 +176,11 @@ export function MomentosView() {
 
       {/* Si se llega por `?compose=` (QR/celular), el composer arranca expandido;
           en la vista normal arranca colapsado para no dominar el alto. */}
-      <MomentoComposer composer={composer} defaultExpanded={initialKind !== undefined} />
+      <MomentoComposer
+        composer={composer}
+        expanded={composerExpanded}
+        onExpandedChange={setComposerExpanded}
+      />
 
       {/* ω-D: banner del filtro por día cuando viene del heatmap. */}
       {dayFilter && (
@@ -219,6 +225,7 @@ export function MomentosView() {
           dayFilter={dayFilter}
           loadingMore={autoLoadsAllPages && (hasNextPage || isFetchingNextPage)}
           onShowAll={showAllMomentos}
+          onCompose={() => setComposerExpanded(true)}
         />
       ) : shouldUseAlbumView({ viewMode, filterKind: queryKind }) ? (
         // AA-D: álbum visible también en "Todos" — AlbumGrid filtra
@@ -230,6 +237,10 @@ export function MomentosView() {
             entitiesById={entitiesById}
             onDelete={handleDelete}
             size={tileSize}
+            onCompose={() => {
+              composer.setKind('foto')
+              setComposerExpanded(true)
+            }}
           />
           {/* ω-álbum: mientras se recogen las páginas anteriores (todos los
               años), un pie sereno para que no parezca que faltan fotos. */}

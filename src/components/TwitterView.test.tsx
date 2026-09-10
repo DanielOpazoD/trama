@@ -121,6 +121,16 @@ describe('<TwitterView />', () => {
     expect(screen.getByText(/Configuración → X/i)).toBeInTheDocument()
   })
 
+  it('desconectada, ofrece conectarla en su panel de Configuración', async () => {
+    setTwitterMocks({ connected: false, items: [] })
+    const onOpenSettings = vi.fn()
+
+    renderWithProviders(<TwitterView onOpenSettings={onOpenSettings} />)
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Conectar X' }))
+    expect(onOpenSettings).toHaveBeenCalledWith('x')
+  })
+
   it('usa el loading editorial al cargar estado o bookmarks', () => {
     setTwitterMocks()
     stateMocks.status.mockReturnValue({ isLoading: true, data: undefined })

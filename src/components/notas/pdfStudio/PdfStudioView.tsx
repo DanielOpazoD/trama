@@ -5,6 +5,7 @@ import { disposePdfStudio } from '../../../lib/pdfStudio/render/pdfRender'
 import { clearDraft } from '../../../lib/pdfStudio/render/persistence'
 import { buildPdfStudioPreflight } from '../../../lib/pdfStudio/preflight/pdfStudioPreflight'
 import { BulkBar } from './shell/BulkBar'
+import type { PdfStudioPathSection } from './shell/PdfStudioEmptyPaths'
 import { usePdfTextEditorLoader } from './editor/PdfTextEditorLazy'
 import { PdfStudioTextEditorOverlay } from './PdfStudioTextEditorOverlay'
 import { PdfStudioViewCanvas } from './PdfStudioViewCanvas'
@@ -50,12 +51,15 @@ type PdfStudioViewProps = {
    * siguiente recorte enviado empieza uno nuevo en vez de sumar páginas.
    */
   documentHistory?: ExternalDocumentHistory
+  /** Lleva a otra sección de Notas: el vacío enseña los caminos que llegan aquí. */
+  onGoToSection?: (section: PdfStudioPathSection) => void
 }
 export function PdfStudioView({
   externalFiles = [],
   onExternalFilesConsumed,
   topBar,
   studioMode = 'editor',
+  onGoToSection,
   documentHistory,
 }: PdfStudioViewProps) {
   const toast = useToast()
@@ -122,16 +126,7 @@ export function PdfStudioView({
   })
   const { applyForms, clearForms, formSummary, forms, inspectForms, updateFormValue } =
     usePdfStudioForms(doc, commit)
-  const {
-    cancelOcr,
-    language: ocrLanguage,
-    ocrOpen,
-    ocrRunning,
-    ocrStatus,
-    setLanguage: setOcrLanguage,
-    setOcrOpen,
-    startOcr,
-  } = usePdfStudioOcr({ compression: exportCompression, commit })
+  const ocr = usePdfStudioOcr({ compression: exportCompression, commit })
   const { printFilledTemplate, printMailMergeTemplate, saveFilledTemplateCopy } =
     usePdfStudioFilledTemplateActions({
       activeTemplateName,
@@ -212,18 +207,7 @@ export function PdfStudioView({
       onClear={clearSelection}
     />
   )
-  const {
-    footerText,
-    headerText,
-    imagesPerPage,
-    pageNumbers,
-    setFooter,
-    setHeader,
-    setImagesPerPage,
-    setPageNumbers,
-    setWatermark,
-    watermarkText,
-  } = usePdfStudioDocumentSettings(doc, updateSettings)
+  const documentSettings = usePdfStudioDocumentSettings(doc, updateSettings)
   return (
     // `h-full` y no `flex-1`: el padre es block y ahí `flex-1` no da altura.
     <section className="pdf-studio flex h-full min-h-0" aria-hidden={textPage !== null}>
@@ -263,17 +247,17 @@ export function PdfStudioView({
             exportStatus,
             exportCompression,
             formsEnabled: templatesEnabled,
-            footerText,
-            headerText,
-            imagesPerPage,
-            pageNumbers,
+            footerText: documentSettings.footerText,
+            headerText: documentSettings.headerText,
+            imagesPerPage: documentSettings.imagesPerPage,
+            pageNumbers: documentSettings.pageNumbers,
             redoable,
             saving,
             studioMode,
             templateMode: effectiveTemplateMode ?? 'design',
             total,
             undoable,
-            watermarkText,
+            watermarkText: documentSettings.watermarkText,
             onImport: () => fileInputRef.current?.click(),
             onUndo: () => setHistory((h) => undo(h)),
             onRedo: () => setHistory((h) => redo(h)),
@@ -281,17 +265,17 @@ export function PdfStudioView({
             onDownloadFillable: () => void openPreview(doc, 'rellenable'),
             onCancelExport: cancelExport,
             onNewDoc: newDoc,
-            onOpenOcr: () => setOcrOpen(true),
+            onOpenOcr: () => ocr.setOcrOpen(true),
             onInspectForms: () => void inspectForms(),
             onPrintTemplate: () =>
               void openPreview(doc, 'planilla', { flattenFormFields: true }),
             onStartSaveTemplate: startTemplateSave,
             onSetExportCompression: setExportCompression,
-            onSetFooter: setFooter,
-            onSetHeader: setHeader,
-            onSetImagesPerPage: setImagesPerPage,
-            onSetPageNumbers: setPageNumbers,
-            onSetWatermark: setWatermark,
+            onSetFooter: documentSettings.setFooter,
+            onSetHeader: documentSettings.setHeader,
+            onSetImagesPerPage: documentSettings.setImagesPerPage,
+            onSetPageNumbers: documentSettings.setPageNumbers,
+            onSetWatermark: documentSettings.setWatermark,
           },
         }}
         templateModeBanner={templateModeBanner}
@@ -306,17 +290,17 @@ export function PdfStudioView({
             : null
         }
         ocrPanelProps={
-          ocrOpen
+          ocr.ocrOpen
             ? {
                 disabled: empty || saving || busy,
                 doc,
-                language: ocrLanguage,
-                running: ocrRunning,
-                status: ocrStatus,
+                language: ocr.language,
+                running: ocr.ocrRunning,
+                status: ocr.ocrStatus,
                 totalPages: total,
-                onCancel: cancelOcr,
-                onChangeLanguage: setOcrLanguage,
-                onRun: () => void startOcr(doc),
+                onCancel: ocr.cancelOcr,
+                onChangeLanguage: ocr.setLanguage,
+                onRun: () => void ocr.startOcr(doc),
               }
             : null
         }
@@ -336,6 +320,14 @@ export function PdfStudioView({
           onPickFiles: () => fileInputRef.current?.click(),
           onReorder: reorder,
           onToggleSelect: toggleSelect,
+          emptyPaths: {
+            saved: workspace.saved,
+            onGoToSection,
+            onOpenSaved: openSavedWithMode,
+            onShowSaved: workspace.panelCollapsed
+              ? () => workspace.setPanelCollapsed(false)
+              : undefined,
+          },
         }}
       />
       <PdfStudioTextEditorOverlay
