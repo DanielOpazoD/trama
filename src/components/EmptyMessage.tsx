@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
+import { Button } from './Button'
 import { EmptyIllustration } from './Icons'
 
 /**
@@ -68,5 +69,25 @@ export function EmptyMessage({
       )}
       {action && <div className="mt-5 flex justify-center gap-2">{action}</div>}
     </div>
+  )
+}
+
+/**
+ * La salida de un vacío: el botón que convierte «aquí no hay nada» en «empieza
+ * por aquí». Todos los vacíos la dibujan igual (tinta, 44 px de alto táctil,
+ * cuerpo de leyenda) y heredan el contrato de `Button`: `type="button"` y
+ * `loading` con `aria-busy`. `check:empty-states` exige que cada vacío ofrezca
+ * una salida o justifique por qué no puede.
+ */
+export function EmptyAction({
+  className,
+  ...props
+}: Omit<ComponentProps<typeof Button>, 'variant'>) {
+  return (
+    <Button
+      variant="ink"
+      className={['min-h-[44px] px-4 text-caption', className].filter(Boolean).join(' ')}
+      {...props}
+    />
   )
 }

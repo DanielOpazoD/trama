@@ -5,7 +5,7 @@ import { useAuthenticatedMediaState } from '../momentos/AuthenticatedMedia'
 import { useMediaReveal } from '../../hooks/useMediaReveal'
 import type { RecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useMainScrollVirtualizer } from '../../hooks/useMainScrollVirtualizer'
-import { EmptyMessage } from '../EmptyMessage'
+import { EmptyAction, EmptyMessage } from '../EmptyMessage'
 import { GalleryIcon } from '../Icons'
 import { RecorteLightbox } from './RecorteLightbox'
 import { InlineLoadingLabel } from '../InlineLoadingLabel'
@@ -164,12 +164,19 @@ export function CapturasGalleryGrid({
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
+  hasContentFilter = false,
+  onClearFilters,
+  onShowList,
 }: {
   items: CaptureItem[]
   size: RecorteThumbSize
   hasNextPage: boolean
   isFetchingNextPage: boolean
   onLoadMore: () => void
+  /** Con filtros activos, el vacío ofrece limpiarlos; sin ellos, volver a la lista. */
+  hasContentFilter?: boolean
+  onClearFilters?: () => void
+  onShowList?: () => void
 }) {
   // Una celda por imagen: un recorte-evento aporta todas sus fotos.
   const cells = useMemo(() => flattenRecorteImages(items), [items])
@@ -218,6 +225,13 @@ export function CapturasGalleryGrid({
       <EmptyMessage
         title="Sin imágenes por aquí"
         body="No hay capturas con imagen en esta vista. Cuando guardes una foto o un recorte visual, aparecerá en la galería."
+        action={
+          hasContentFilter && onClearFilters ? (
+            <EmptyAction onClick={onClearFilters}>Limpiar filtros</EmptyAction>
+          ) : onShowList ? (
+            <EmptyAction onClick={onShowList}>Volver a la lista</EmptyAction>
+          ) : undefined
+        }
       />
     )
   }

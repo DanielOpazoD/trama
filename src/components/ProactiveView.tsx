@@ -11,7 +11,7 @@ import {
 import type { ProactiveSuggestion } from '../api'
 import { ENTITY_TYPES, RELATIONSHIP_TYPES } from '../types'
 import { EndMark, SparkleIcon } from './Icons'
-import { EmptyMessage } from './EmptyMessage'
+import { EmptyAction, EmptyMessage } from './EmptyMessage'
 import { AISourceTag } from './AISourceTag'
 import { ViewHeader } from './ViewHeader'
 import { ProactiveSuggestionSkeleton, SkeletonList } from './Skeleton'
@@ -133,6 +133,11 @@ export function ProactiveView() {
               aquí relaciones nuevas, tipos que podrían afinarse, descripciones que
               faltan.
             </>
+          }
+          action={
+            <EmptyAction onClick={() => generate.mutate()} loading={generate.isPending}>
+              {generate.isPending ? 'pidiendo…' : 'Pedir una ronda'}
+            </EmptyAction>
           }
         />
       ) : (

@@ -268,6 +268,7 @@ function Shell({
               onSelectEntity={setSelectedEntityId}
               onChangeView={setView}
               onOpenCareo={() => modals.openModal('careo')}
+              onOpenSettings={modals.openSettingsAt}
               onProposal={(text, proposal) => setPendingProposal({ text, proposal })}
               onConsumedInitialThread={() => setPendingChatThreadId(null)}
             />
@@ -301,6 +302,7 @@ function Shell({
         theme={theme}
         onSetTheme={setTheme}
         oauthReturn={oauthReturn}
+        settingsSection={modals.settingsSection}
         paletteOpen={modals.palette}
         onClosePalette={() => modals.closeModal('palette')}
         onNavigate={(v) => setView(v)}

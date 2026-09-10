@@ -46,6 +46,7 @@
     "check:modal-overlay": "node scripts/check-modal-overlay.mjs",
     "check:modal-shell": "node scripts/check-modal-shell.mjs",
     "check:page-shell": "node scripts/check-page-shell.mjs",
+    "check:empty-states": "node scripts/check-empty-states.mjs",
     "check:form-control-labels": "node scripts/check-form-control-labels.mjs",
     "check:icon-button": "node scripts/check-icon-button.mjs",
     "check:focus-ring": "node scripts/check-focus-ring.mjs",

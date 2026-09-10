@@ -54,10 +54,11 @@ describe('<EntitiesWorkbench />', () => {
   it('renderiza la vista de vínculos y propaga callbacks relevantes', () => {
     const onSelectEntity = vi.fn()
     const onProposal = vi.fn()
+    const onTabChange = vi.fn()
 
     renderWorkbench({
       tab: 'vinculos',
-      onTabChange: vi.fn(),
+      onTabChange,
       onSelectEntity,
       onProposal,
     })
@@ -67,7 +68,15 @@ describe('<EntitiesWorkbench />', () => {
     expect(viewMocks.relationshipsView).toHaveBeenCalledWith({
       onSelectEntity,
       onProposal,
+      onGoToEntities: expect.any(Function),
     })
+    // «Una relación necesita dos» lleva al listado por la misma pestaña.
+    const llamadas = viewMocks.relationshipsView.mock.calls
+    const props = llamadas[llamadas.length - 1]?.[0] as {
+      onGoToEntities: () => void
+    }
+    props.onGoToEntities()
+    expect(onTabChange).toHaveBeenCalledWith('listado')
     expect(viewMocks.entitiesView).not.toHaveBeenCalled()
   })
 })

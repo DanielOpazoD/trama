@@ -4,7 +4,7 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**45 pendientes** en 31 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**50 pendientes** en 32 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-10 · Diez avisos de @xmldom/xmldom bloqueaban el CI, y dos eran explotables de verdad
 
@@ -17,6 +17,16 @@ Plan: [2026-09-10-xmldom-0815.md](superpowers/plans/2026-09-10-xmldom-0815.md)
 Plan: [2026-09-10-primitiva-page.md](superpowers/plans/2026-09-10-primitiva-page.md)
 
 - El ornamento de Inicio queda huérfano cuando Efemérides y WeeklyActivity devuelven null (el caso del modo prueba): 48 px de aire, un glifo de 12 px y otros 48. Pide un separador que se anule solo cuando le falta un vecino, en vez de una guardia local que ya murió una vez.
+
+## 2026-09-10 · Estados vacíos que enseñan: cada vacío ofrece una salida real
+
+Plan: [2026-09-10-estados-vacios.md](superpowers/plans/2026-09-10-estados-vacios.md)
+
+- `NotasWorld` precarga Notas, Biblioteca y Claves con un `import()` suelto, además del de su `lazy`: el mismo patrón que destapó la carrera con los mocks. Hoy no falla, porque la precarga va por hover y el montaje llega después, pero conviene un cargador compartido por módulo.
+- «Fotos a Imprenta» se nombra en el vacío de Imprenta pero no se ofrece como acción: Momentos vive en el otro mundo, y cruzar exige cambiar de mundo y de sección desde el shell.
+- La salida secundaria de Inicio de Notas («Crear tarea») sigue con un contorno escrito a mano: `Button` no tiene variante secundaria con contorno, y `quiet` es un rótulo. Decidir la variante y migrarla.
+- `check:empty-states` reconoce una salida por texto (`action=`, `hint=`, `<button` u `onClick=`), así que no distingue un `hint` que es solo texto de uno interactivo.
+- `scripts/pendientes.mjs` descarta cualquier ítem que contenga una de sus palabras de cierre, aunque no hable de cerrar nada. Pasó en esta misma nota: el pendiente del contorno «a mano» llevaba esa palabra y desapareció del registro en silencio; solo lo delató contar los ítems. La marca de cierre debería ir al principio del ítem, con su test.
 
 ## 2026-09-10 · La columna de las vistas pasa a Page, y la medición destapa tres defectos
 

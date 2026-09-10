@@ -149,6 +149,8 @@ Componentes pequeños que centralizan un CONTRATO (a11y, comportamiento), no una
 
 **`<CountBadge count={n} />`** (`src/components/CountBadge.tsx`) — badge de conteo (notificaciones, filtros activos, ítems por día). No renderiza nada si `count <= 0` y capa el número en `max` (default 99 → `99+`). Es DECORATIVO (aria-hidden) a propósito: el conteo debe ir en el NOMBRE ACCESIBLE del control padre (p. ej. `aria-label={`Filtros, ${n} activos`}`), no duplicarse desde el badge (dentro de un botón, un `role=status` con aria-label le robaría el nombre).
 
+**`<EmptyMessage>` + `<EmptyAction>`** (`src/components/EmptyMessage.tsx`) — el estado vacío editorial y su salida. A diferencia de los primitivos de arriba, son COMPOSICIÓN: imponen su aspecto para que todos los vacíos se lean igual. La regla, gateada por `check:empty-states`: todo vacío ofrece una salida real (crear lo que falta, limpiar el filtro que lo vació, llevar a donde se conecta o se configura) o declara en el gate por qué no puede. La salida principal es `<EmptyAction>`: `Button` en variante `ink` con 44 px de alto táctil y `text-caption`, que hereda `type="button"` y `loading` (→ `aria-busy`); el `className` del call site se suma (p. ej. `truncate`). Las salidas secundarias van en `<Button variant="quiet">`, para no competir con la principal. Un fallo de carga NO es un vacío: va en `<ErrorState onRetry>`, porque pintar un error como «todavía no hay nada» le miente al usuario.
+
 ### Gates que gobiernan el design system
 
 Cinco ratchets (en `scripts/`, corren en el job `lint` de CI) congelan el estado actual y solo permiten MEJORARLO; nunca suben el baseline:

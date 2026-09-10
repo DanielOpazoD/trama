@@ -1,14 +1,5 @@
 import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
-import {
-  useNotasFeed,
-  useNotesQuery,
-  useUpdateNote,
-  useDeleteNote,
-  usePromoteNote,
-  useUpdateRecorte,
-  useDeleteRecorte,
-  useToast,
-} from '../../state'
+import { useNotasFeed, useNotesQuery } from '../../state'
 import type { CaptureItem, Note, Recorte, RecorteTarget } from '../../api'
 import { useRecorteThumbSize } from '../../hooks/useRecorteThumbSize'
 import { useRecorteFeedView } from '../../hooks/useRecorteFeedView'
@@ -25,6 +16,7 @@ import { NotasFeedComposer } from './NotasFeedComposer'
 import { NotasFeedVirtualList } from './NotasFeedVirtualList'
 import { useNotasComposer } from './useNotasComposer'
 import { useNotasFeedSelection } from './useNotasFeedSelection'
+import { useNotasFeedItemActions } from './useNotasFeedItemActions'
 import { useNotasFeedVirtualWindow } from './useNotasFeedVirtualWindow'
 import {
   buildAllNoteTags,
@@ -37,6 +29,7 @@ import {
   type NotasFeedSegment,
   type RecorteStatusFilter,
 } from './notasFeedViewModel'
+import type { SettingsSectionId } from '../settings/settingsModel'
 
 // Lazy: la escritura enfocada (overlay fullscreen) se baja solo al abrirla.
 const FocusedWriting = lazy(() =>
@@ -59,20 +52,22 @@ const ACCENT = 'var(--accent-sage)'
  * query crudos por separado): así la UI nunca ramifica nota-vs-recorte ad hoc.
  *
  * La lógica de captura del composer (nota · enlace · imagen, con sus mutaciones
- * y heurísticas) vive en `useNotasComposer`. Esta vista orquesta filtros, feed,
- * virtualización y el triage de recortes (promover / archivar / eliminar +
- * PromoteModal).
+ * y heurísticas) vive en `useNotasComposer`, y las acciones por ítem (fijar,
+ * editar, promover, archivar, eliminar) en `useNotasFeedItemActions`. Esta vista
+ * orquesta filtros, feed, virtualización y el PromoteModal.
  */
 export function NotasFeedView({
   onSendImagesToPdf,
   onSendNoteToImprenta,
   onSendItemsToImprenta,
+  onOpenSettings,
 }: {
   onSendImagesToPdf?: (selected: Recorte[]) => void
   onSendNoteToImprenta?: (note: Note) => void
   onSendItemsToImprenta?: (items: CaptureItem[]) => Promise<void>
+  /** Abre Configuración en una sección: el vacío de Favoritos lleva a «Extensión». */
+  onOpenSettings?: (section: SettingsSectionId) => void
 }) {
-  const toast = useToast()
   const reducedMotion = usePrefersReducedMotion()
 
   // --- Composer (captura unificada: nota · enlace · imagen) ---------------
@@ -111,8 +106,15 @@ export function NotasFeedView({
     [segment, search, activeTag, selectedDay, capturaStatus],
   )
 
-  const { items, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useNotasFeed(filter)
+  const {
+    items,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useNotasFeed(filter)
 
   // --- Triage en lote -----------------------------------------------------
   const {
@@ -169,19 +171,13 @@ export function NotasFeedView({
     capturaStatus,
   })
 
-  // --- Triage de recortes (mutaciones propias + PromoteModal) -------------
-  const updateRecorte = useUpdateRecorte()
-  const deleteRecorte = useDeleteRecorte()
+  // --- Acciones por ítem (fijar, editar, promover, archivar…) + PromoteModal
+  const itemActions = useNotasFeedItemActions()
   const [promoting, setPromoting] = useState<{
     recorte: Recorte
     target: RecorteTarget
     seed?: PromoteSeed
   } | null>(null)
-
-  // --- Mutaciones de notas ------------------------------------------------
-  const updateNote = useUpdateNote()
-  const deleteNote = useDeleteNote()
-  const promoteNote = usePromoteNote()
 
   function clearFilters() {
     setSearch('')
@@ -316,6 +312,7 @@ export function NotasFeedView({
         uploadingImages={composer.uploadingImages}
         isLoading={isLoading}
         isError={isError}
+        onRetry={() => void refetch()}
         everythingEmpty={everythingEmpty}
         itemCount={items.length}
         hasContentFilter={hasContentFilter}
@@ -323,7 +320,7 @@ export function NotasFeedView({
         isFetchingNextPage={isFetchingNextPage}
         onFocusComposer={composer.focusComposer}
         onClearFilters={clearFilters}
-        favoritosPanel={<FavoritosPanel />}
+        favoritosPanel={<FavoritosPanel onOpenSettings={onOpenSettings} />}
         gallery={
           <CapturasGalleryGrid
             items={items}
@@ -331,6 +328,9 @@ export function NotasFeedView({
             hasNextPage={!!hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             onLoadMore={() => fetchNextPage()}
+            hasContentFilter={hasContentFilter}
+            onClearFilters={clearFilters}
+            onShowList={() => setFeedView('list')}
           />
         }
         list={
@@ -344,47 +344,21 @@ export function NotasFeedView({
             recorteThumb={recorteThumb}
             selectionMode={selectionMode}
             selectedIds={selectedIds}
-            noteBusy={updateNote.isPending || deleteNote.isPending}
-            promotingNoteId={
-              promoteNote.isPending
-                ? (promoteNote.variables as string | undefined)
-                : undefined
-            }
+            noteBusy={itemActions.noteBusy}
+            promotingNoteId={itemActions.promotingNoteId}
             onSelectIndex={setSelected}
-            onToggleNotePin={(note) =>
-              updateNote.mutate({
-                id: note.id,
-                patch: { pinned: !note.pinned },
-              })
-            }
-            onEditNote={(id, patch) => updateNote.mutate({ id, patch })}
-            onDeleteNote={(id) => deleteNote.mutate(id)}
-            onPromoteNote={(id) =>
-              promoteNote.mutate(id, {
-                onSuccess: () =>
-                  toast.show({
-                    message: 'Nota promovida a Momento.',
-                    tone: 'success',
-                  }),
-                onError: (e) =>
-                  toast.show({
-                    message: e instanceof Error ? e.message : 'No se pudo promover',
-                    tone: 'error',
-                  }),
-              })
-            }
+            onToggleNotePin={itemActions.toggleNotePin}
+            onEditNote={itemActions.editNote}
+            onDeleteNote={itemActions.deleteNote}
+            onPromoteNote={itemActions.promoteNote}
             onToggleItemSelect={toggleSelect}
             onSendNoteToImprenta={onSendNoteToImprenta}
             onPromoteRecorte={(recorte, target, seed) =>
               setPromoting({ recorte, target, seed })
             }
-            onArchiveRecorte={(id) =>
-              updateRecorte.mutate({ id, patch: { status: 'archived' } })
-            }
-            onRestoreRecorte={(id) =>
-              updateRecorte.mutate({ id, patch: { status: 'pending' } })
-            }
-            onDeleteRecorte={(id) => deleteRecorte.mutate(id)}
+            onArchiveRecorte={itemActions.archiveRecorte}
+            onRestoreRecorte={itemActions.restoreRecorte}
+            onDeleteRecorte={itemActions.deleteRecorte}
             onSendImagesToPdf={onSendImagesToPdf}
           />
         }

@@ -4,9 +4,10 @@ import type { CronologiaEntrada } from '../api'
 import { seasonOf, seasonKeyString, formatSeason } from '../lib/season'
 import { ViewHeader } from './ViewHeader'
 import { Paginator } from './Paginator'
-import { EmptyMessage } from './EmptyMessage'
+import { EmptyAction, EmptyMessage } from './EmptyMessage'
 import { ErrorState } from './ErrorState'
 import { SkeletonList, TimelineRowSkeleton } from './Skeleton'
+import type { ViewMode } from '../types/view'
 
 /**
  * Cronología (Bloque #4) — la superficie de lectura del tiempo.
@@ -78,8 +79,11 @@ function groupBySeason(
 
 export function CronologiaView({
   onSelectEntity,
+  onNavigate,
 }: {
   onSelectEntity: (id: string) => void
+  /** Lleva a donde se crea lo que la cronología teje: citas y momentos. */
+  onNavigate?: (view: ViewMode) => void
 }) {
   const query = useInfiniteCronologiaQuery()
 
@@ -134,6 +138,18 @@ export function CronologiaView({
               A medida que guardes citas, momentos, escuchas y crónicas, esta página los
               va tejiendo en un solo hilo cronológico para releer.
             </>
+          }
+          action={
+            onNavigate ? (
+              <>
+                <EmptyAction onClick={() => onNavigate('citas')}>
+                  Guardar una cita
+                </EmptyAction>
+                <EmptyAction onClick={() => onNavigate('momentos')}>
+                  Crear un momento
+                </EmptyAction>
+              </>
+            ) : undefined
           }
         />
       ) : (

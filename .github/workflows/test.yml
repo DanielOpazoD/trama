@@ -182,6 +182,11 @@ jobs:
       - name: Page shell check
         run: npm run check:page-shell
 
+      # Estados vacíos: 11 de 28 eran callejones, y uno un error de carga
+      # pintado como vacío. Todo vacío ofrece salida o dice por qué no.
+      - name: Empty states check
+        run: npm run check:empty-states
+
       - name: Form control labels check
         run: npm run check:form-control-labels
 

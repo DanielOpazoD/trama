@@ -37,7 +37,8 @@ export const DESIGN_TOKEN_BASELINE = {
   // PDF a la escala semántica (text-caption); los otros quince ya no estaban
   // en main y el baseline había vuelto a quedarse viejo. Mismo criterio que
   // arriba: congelar el piso real es lo que mantiene el filo del gate.
-  legacy: 403,
+  // 403 → 402: los vacíos dibujan su salida con `EmptyAction` (text-caption).
+  legacy: 402,
 }
 
 // text-[<size>] con unidad px/rem/em, descartando text-[color:...].

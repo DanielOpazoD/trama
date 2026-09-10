@@ -14,6 +14,7 @@ describe('<NotasFeedContent />', () => {
         uploadingImages={0}
         isLoading={false}
         isError={false}
+        onRetry={vi.fn()}
         everythingEmpty
         itemCount={0}
         hasContentFilter={false}
@@ -41,6 +42,7 @@ describe('<NotasFeedContent />', () => {
         uploadingImages={0}
         isLoading={false}
         isError={false}
+        onRetry={vi.fn()}
         everythingEmpty={false}
         itemCount={0}
         hasContentFilter
@@ -56,5 +58,32 @@ describe('<NotasFeedContent />', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ver todo' }))
     expect(onClearFilters).toHaveBeenCalledTimes(1)
+  })
+
+  it('un fallo de carga ofrece reintentar en vez de pintarse como un vacío', () => {
+    // Antes era un EmptyMessage sin salida: se veía igual que «no hay nada».
+    const onRetry = vi.fn()
+    render(
+      <NotasFeedContent
+        segment="todo"
+        uploadingImages={0}
+        isLoading={false}
+        isError
+        onRetry={onRetry}
+        everythingEmpty
+        itemCount={0}
+        hasContentFilter={false}
+        galleryMode={false}
+        isFetchingNextPage={false}
+        onFocusComposer={vi.fn()}
+        onClearFilters={vi.fn()}
+        favoritosPanel={<div>favoritos</div>}
+        gallery={<div>galería</div>}
+        list={<div>lista</div>}
+      />,
+    )
+    const boton = screen.getByRole('button', { name: /reintentar/i })
+    boton.click()
+    expect(onRetry).toHaveBeenCalledTimes(1)
   })
 })

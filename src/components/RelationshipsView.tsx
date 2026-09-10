@@ -17,7 +17,7 @@ import {
 } from '../state'
 import { EndMark, SparkleIcon } from './Icons'
 import { CloseButton } from './CloseButton'
-import { EmptyMessage } from './EmptyMessage'
+import { EmptyAction, EmptyMessage } from './EmptyMessage'
 import { ErrorState } from './ErrorState'
 import { useMainScrollVirtualizer } from '../hooks/useMainScrollVirtualizer'
 import { EntityCombobox } from './EntityCombobox'
@@ -28,9 +28,12 @@ import { InlineLoadingLabel } from './InlineLoadingLabel'
 export function RelationshipsView({
   onSelectEntity,
   onProposal,
+  onGoToEntities,
 }: {
   onSelectEntity?: (id: string) => void
   onProposal?: (text: string, proposal: ExtractionProposal) => void
+  /** Lleva al listado: sin dos entidades no hay relación posible. */
+  onGoToEntities?: () => void
 }) {
   // Paginated relationships for the list; rows carry fromName/toName so this
   // view no longer needs the wholesale entities query just to paint names.
@@ -230,6 +233,11 @@ export function RelationshipsView({
               Una relación es una línea entre dos entidades — sin segundo extremo no hay
               línea. Vuelve cuando tengas al menos dos.
             </>
+          }
+          action={
+            onGoToEntities ? (
+              <EmptyAction onClick={onGoToEntities}>Ir a las entidades</EmptyAction>
+            ) : undefined
           }
         />
       ) : (

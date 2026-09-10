@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Entity, Momento } from '../../types'
-import { EmptyMessage } from '../EmptyMessage'
+import { EmptyAction, EmptyMessage } from '../EmptyMessage'
 import { PencilIcon, PrinterIcon, TrashIcon } from '../Icons'
 import { AuthenticatedMomentoImage, MomentoVideoThumb } from './AuthenticatedMedia'
 import {
@@ -52,6 +52,7 @@ export function AlbumGrid({
   entitiesById,
   onDelete,
   size,
+  onCompose,
 }: {
   items: Momento[]
   entitiesById: Map<string, Entity>
@@ -59,6 +60,8 @@ export function AlbumGrid({
   /** El control vive en la barra, junto a los demás de vista — antes se
       renderizaba aquí y se comía una fila entera para sí solo. */
   size: TileSize
+  /** Abre el compositor en modo foto: el vacío ofrece subir, no solo lo dice. */
+  onCompose?: () => void
 }) {
   const photoItems = useMemo(() => items.filter((m) => m.kind === 'foto'), [items])
   // Cronología fija: año primero, mes secundario. Evita otro control visible
@@ -71,6 +74,11 @@ export function AlbumGrid({
         illustration="pair"
         title="No hay fotos todavía"
         body={<>Sube una imagen desde el composer de arriba.</>}
+        action={
+          onCompose ? (
+            <EmptyAction onClick={onCompose}>Subir la primera foto</EmptyAction>
+          ) : undefined
+        }
       />
     )
   }

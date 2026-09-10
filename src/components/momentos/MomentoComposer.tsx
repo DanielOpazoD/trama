@@ -30,10 +30,19 @@ function mediaNoun(drafts: { isVideo: boolean }[]): string {
 export function MomentoComposer({
   composer,
   defaultExpanded = false,
+  expanded: expandedProp,
+  onExpandedChange,
 }: {
   composer: Composer
   /** Arrancar ya expandido (p. ej. tras una acción explícita de "nueva entrada"). */
   defaultExpanded?: boolean
+  /**
+   * Controlado desde fuera, opcional. Lo usa la vista para que su estado vacío
+   * pueda OFRECER «escribir la primera entrada» en vez de señalar el
+   * compositor. Sin estas props, el compositor gestiona su propio estado.
+   */
+  expanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
 }) {
   // τ-mobile-bridge: state local del modal QR. Vive acá adentro porque
   // el botón vive en este componente y no hay otro lugar que necesite
@@ -41,7 +50,12 @@ export function MomentoComposer({
   const [qrOpen, setQrOpen] = useState(false)
   // El composer arranca COLAPSADO (una línea) para no dominar el alto de la
   // vista: la línea de tiempo sube al primer pantallazo. Se expande al clickear.
-  const [expanded, setExpanded] = useState(defaultExpanded)
+  const [expandedLocal, setExpandedLocal] = useState(defaultExpanded)
+  const expanded = expandedProp ?? expandedLocal
+  function setExpanded(next: boolean) {
+    if (expandedProp === undefined) setExpandedLocal(next)
+    onExpandedChange?.(next)
+  }
 
   const question =
     composer.kind === 'nota'

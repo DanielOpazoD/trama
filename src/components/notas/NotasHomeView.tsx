@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useNotesQuery, usePromptsQuery, usePendingTasks } from '../../state'
 import { ViewHeader } from '../ViewHeader'
-import { EmptyMessage } from '../EmptyMessage'
+import { EmptyAction, EmptyMessage } from '../EmptyMessage'
 import { NotesIcon, PlusIcon, PromptIcon, TasksIcon } from '../Icons'
 import type { NotasSection } from '../../types/notas'
 import { PRIORITY_META } from './PriorityDots'
@@ -88,13 +88,7 @@ export function NotasHomeView({
           body={<>Elige una primera entrada para abrir el día.</>}
           action={
             <>
-              <button
-                type="button"
-                onClick={() => onNavigate('notas')}
-                className="btn-ink min-h-[44px] px-4 text-caption"
-              >
-                Crear nota
-              </button>
+              <EmptyAction onClick={() => onNavigate('notas')}>Crear nota</EmptyAction>
               <button
                 type="button"
                 onClick={() => onNavigate('tareas')}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { BibliotecaView } from './BibliotecaView'
 import { ToastHost } from './ToastHost'
 import { renderWithProviders } from '../test-utils'
@@ -130,11 +130,27 @@ describe('<BibliotecaView />', () => {
     expect(screen.getByRole('button', { name: /Nombre/i })).toBeInTheDocument()
   })
 
-  it('muestra el estado vacío cuando no hay items', async () => {
+  it('una biblioteca estrenada invita a subir, no a «probar otra búsqueda»', async () => {
     stubFetch([])
     renderWithProviders(<BibliotecaView />)
+    const titulo = await screen.findByText(/Tu biblioteca todavía está vacía/i)
+    // Acotado al propio vacío: la cabecera tiene otro control de subida.
+    const vacio = titulo.parentElement as HTMLElement
+    expect(
+      within(vacio).getByRole('button', { name: 'Subir archivos' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/No se encontraron archivos/i)).not.toBeInTheDocument()
+  })
+
+  it('una búsqueda sin resultados ofrece limpiar los filtros', async () => {
+    window.history.replaceState(null, '', '/?q=inexistente')
+    stubFetch([])
+    renderWithProviders(<BibliotecaView />)
+    const titulo = await screen.findByText(/No se encontraron archivos/i)
+    const vacio = titulo.parentElement as HTMLElement
+    fireEvent.click(within(vacio).getByRole('button', { name: 'Limpiar filtros' }))
     await waitFor(() => {
-      expect(screen.getByText(/No se encontraron archivos/i)).toBeInTheDocument()
+      expect(window.location.search).not.toContain('q=')
     })
   })
 

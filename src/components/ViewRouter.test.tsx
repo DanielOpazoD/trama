@@ -90,13 +90,27 @@ vi.mock('./ListeningView', () => ({
   ListeningView: () => <section>escuchas mock</section>,
 }))
 vi.mock('./TwitterView', () => ({
-  TwitterView: () => <section>twitter mock</section>,
+  TwitterView: ({ onOpenSettings }: { onOpenSettings?: (section: string) => void }) => (
+    <>
+      <section>twitter mock</section>
+      <button type="button" onClick={() => onOpenSettings?.('x')}>
+        conectar x
+      </button>
+    </>
+  ),
 }))
 vi.mock('./MomentosView', () => ({
   MomentosView: () => <section>momentos mock</section>,
 }))
 vi.mock('./CronologiaView', () => ({
-  CronologiaView: () => <section>cronología mock</section>,
+  CronologiaView: ({ onNavigate }: { onNavigate?: (view: string) => void }) => (
+    <>
+      <section>cronología mock</section>
+      <button type="button" onClick={() => onNavigate?.('momentos')}>
+        crear momento
+      </button>
+    </>
+  ),
 }))
 vi.mock('./AtlasView', () => ({
   AtlasView: () => <section>atlas mock</section>,
@@ -207,5 +221,24 @@ describe('<ViewRouter />', () => {
     renderRouter('recortes' as Parameters<typeof renderRouter>[0])
     expect(screen.queryByText(/recortes mock/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/flujo mock/i)).not.toBeInTheDocument()
+  })
+
+  it('cablea la salida del vacío de X: Configuración, en su panel', async () => {
+    const user = userEvent.setup()
+    const onOpenSettings = vi.fn()
+    renderRouter('twitter', { onOpenSettings })
+
+    await user.click(await screen.findByRole('button', { name: 'conectar x' }))
+
+    expect(onOpenSettings).toHaveBeenCalledWith('x')
+  })
+
+  it('cablea la salida del vacío de Cronología a la navegación del shell', async () => {
+    const user = userEvent.setup()
+    const props = renderRouter('cronologia')
+
+    await user.click(await screen.findByRole('button', { name: 'crear momento' }))
+
+    expect(props.onChangeView).toHaveBeenCalledWith('momentos')
   })
 })

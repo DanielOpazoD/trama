@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import { ArchiveIcon, UploadIcon } from '../Icons'
 import { IconButton } from '../IconButton'
 import { PendingAttachmentChips } from './PendingAttachmentsInput'
@@ -30,6 +30,7 @@ export function PromptComposer({
   onContentChange,
   onPendingFilesChange,
   onSave,
+  titleInputRef,
 }: {
   title: string
   collection: string
@@ -42,6 +43,8 @@ export function PromptComposer({
   onContentChange: (value: string) => void
   onPendingFilesChange: (files: File[]) => void
   onSave: () => void
+  /** Para enfocar el título desde fuera: el vacío de Prompts lo usa. */
+  titleInputRef?: RefObject<HTMLInputElement | null>
 }) {
   const [focused, setFocused] = useState(false)
   const attachInputRef = useRef<HTMLInputElement>(null)
@@ -63,6 +66,7 @@ export function PromptComposer({
       onBlurWithin={() => setFocused(false)}
     >
       <input
+        ref={titleInputRef}
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
         onKeyDown={(event) => {

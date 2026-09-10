@@ -18,7 +18,7 @@ import { EditorialProjectsContextStrip } from './editorial/EditorialProjectsCont
  */
 export function EntitiesWorkbench({
   tab,
-  onTabChange: _onTabChange,
+  onTabChange,
   onSelectEntity,
   onProposal,
 }: {
@@ -30,13 +30,16 @@ export function EntitiesWorkbench({
   // onTabChange se acepta para que App pueda escuchar (al hacer deep-link
   // desde el palette podríamos forzar 'vinculos'). Hoy no lo usamos
   // internamente porque las tabs viven arriba en TopBar.
-  void _onTabChange
   return (
     <>
       <EditorialProjectsContextStrip className="mb-6" />
       {tab === 'listado' && <EntitiesView onSelectEntity={onSelectEntity} />}
       {tab === 'vinculos' && (
-        <RelationshipsView onSelectEntity={onSelectEntity} onProposal={onProposal} />
+        <RelationshipsView
+          onSelectEntity={onSelectEntity}
+          onProposal={onProposal}
+          onGoToEntities={() => onTabChange('listado')}
+        />
       )}
     </>
   )

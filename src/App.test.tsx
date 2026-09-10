@@ -191,6 +191,7 @@ vi.mock('./components/ViewRouter', () => ({
     onConsumedInitialThread,
     onSortes,
     onEspejo,
+    onOpenSettings,
   }: {
     view: ViewMode
     entitiesTab: string
@@ -204,6 +205,7 @@ vi.mock('./components/ViewRouter', () => ({
     onConsumedInitialThread: () => void
     onSortes: () => void
     onEspejo: () => void
+    onOpenSettings?: (section: string) => void
   }) => (
     <section>
       view:{view} tab:{entitiesTab} thread:{pendingChatThreadId ?? 'none'}
@@ -219,6 +221,7 @@ vi.mock('./components/ViewRouter', () => ({
       <button onClick={onConsumedInitialThread}>consume thread</button>
       <button onClick={onSortes}>router sortes</button>
       <button onClick={onEspejo}>router espejo</button>
+      <button onClick={() => onOpenSettings?.('x')}>router conectar x</button>
     </section>
   ),
 }))
@@ -521,6 +524,20 @@ describe('<App />', () => {
 
     await user.click(screen.getByRole('button', { name: 'abrir sortes' }))
     expect(await screen.findByText('sortes open')).toBeInTheDocument()
+  })
+
+  it('el vacío de X abre Configuración en su panel, y cerrarla la olvida', async () => {
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: 'router conectar x' }))
+    expect(await screen.findByText(/settings paper x plain/i)).toBeInTheDocument()
+
+    // Abrirla después desde la barra lateral no debe caer en la sección del vacío.
+    await user.click(screen.getByRole('button', { name: 'cerrar settings' }))
+    await user.click(screen.getByRole('button', { name: 'abrir settings' }))
+    expect(await screen.findByText(/settings paper none plain/i)).toBeInTheDocument()
   })
 
   it('conecta command palette, shortcuts, detalle y threads', async () => {
