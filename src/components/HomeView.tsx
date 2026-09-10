@@ -157,7 +157,10 @@ export function HomeView({
         // es el dato secundario. Antes era al revés y el primer impacto
         // visual era una gráfica de barras — útil pero no característico.
         // Ahora arrancás con tipografía serif y atribución, como abrir
-        // un libro al azar. El ritmo total es --space-8 entre secciones.
+        // un libro al azar. El ritmo entre secciones es `space-y-12` (48 px), que
+        // no es un paso de la escala --space-N: migrarlo a Page va aparte,
+        // midiendo el vector de huecos. (Este comentario decía --space-8; la
+        // clase siempre puso 48.)
         <div className="space-y-12">
           {featuredQuote && (
             <FeaturedQuote
@@ -171,7 +174,7 @@ export function HomeView({
           )}
 
           {featuredQuote && (
-            <div className="flex justify-center -my-2">
+            <div className="flex justify-center">
               <OrnamentBreak className="ornament" />
             </div>
           )}
@@ -200,7 +203,7 @@ export function HomeView({
           />
 
           {timeline.length > 0 && (
-            <div className="flex justify-center -my-2">
+            <div className="flex justify-center">
               <OrnamentBreak className="ornament" />
             </div>
           )}

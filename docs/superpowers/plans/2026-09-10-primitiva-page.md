@@ -72,11 +72,9 @@ Tailwind. Había, además, una escala buena **ya escrita y sin usar**: los
 
 ## Pendiente
 
-- [alto] Migrar `ViewRouter` (la columna de las once vistas del mundo Trama) y
-  `NotasWorld` (las siete de Notas), con sus dos esqueletos. Es donde están
-  los 487 px de Cronología y los 327 de Atlas. Hay que borrar en el mismo
-  commit las cuatro reglas muertas por especificidad, o al pasar a `gap`
-  vuelven a aplicar y se suman.
+- Resuelto (pack `2026-09-10-columna-router-y-notas`): `ViewRouter`,
+  `NotasWorld` y sus esqueletos migraron a `Page`, y los cuatro márgenes
+  muertos se borraron en el mismo cambio.
 - El ornamento de Inicio queda huérfano cuando Efemérides y WeeklyActivity
   devuelven null (el caso del modo prueba): 48 px de aire, un glifo de 12 px y
   otros 48. Pide un separador que se anule solo cuando le falta un vecino, en

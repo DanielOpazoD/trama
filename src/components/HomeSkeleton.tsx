@@ -1,3 +1,5 @@
+import { Page } from './Page'
+
 /**
  * ω-C: skeleton dedicado del Inicio.
  *
@@ -18,7 +20,9 @@ export function HomeSkeleton() {
     // (full width) para que el trackpad capture en cualquier zona,
     // wrapper interior con max-w para limitar el ancho de lectura.
     <div id="main-scroll" className="h-full overflow-y-auto">
-      <div className="px-8 py-10 pb-32 max-w-3xl mx-auto">
+      {/* La misma columna que ViewRouter: si el esqueleto usara otra, el
+          Inicio saltaría al cargar, como pasaba con el de Notas. */}
+      <Page width="reading" rhythm="none" paddingBottom="8rem">
         <header
           className="pad-block-5 flex items-baseline justify-between gap-6 stack-3 relative"
           style={{
@@ -72,7 +76,7 @@ export function HomeSkeleton() {
             ))}
           </div>
         </div>
-      </div>
+      </Page>
     </div>
   )
 }

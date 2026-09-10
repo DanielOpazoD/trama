@@ -4,12 +4,18 @@
  * en vez de un spinner genérico. Mismo idioma que FeedSkeleton/HomeSkeleton:
  * «papel manchado» con shimmer sutil (el shimmer ya respeta
  * prefers-reduced-motion en index.css).
+ *
+ * NO declara columna: la pone quien lo monta. Antes traía la suya
+ * (`px-5 md:px-8 py-8 md:py-10 max-w-5xl`), y como dos de sus tres usos viven
+ * DENTRO de la columna de Notas, el padding se duplicaba. Medido en
+ * Biblioteca: el esqueleto arrancaba 32 px a la derecha y 40 px más abajo que
+ * el contenido que lo reemplaza, y la vista saltaba al terminar de cargar.
  */
 export function SectionSkeleton({ variant = 'cards' }: { variant?: 'cards' | 'grid' }) {
   return (
     // role=status: los lectores de pantalla SÍ reciben el «Cargando…» — las
     // siluetas visuales quedan ocultas en el subárbol aria-hidden.
-    <div className="px-5 md:px-8 mx-auto py-8 md:py-10 max-w-5xl" role="status">
+    <div role="status">
       <span className="sr-only">Cargando…</span>
       <div aria-hidden>
         {/* hero compacto: eyebrow + título */}

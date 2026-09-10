@@ -4,6 +4,7 @@ import { ErrorBoundary, type ErrorFallbackProps } from './ErrorBoundary'
 import { TramaMark } from './Icons'
 import { CenteredPane } from './CenteredPane'
 import { SectionPinGate } from './SectionPinGate'
+import { Page } from './Page'
 import type { ViewMode } from '../types/view'
 import type { ExtractionProposal } from '../types'
 
@@ -260,15 +261,19 @@ export function ViewRouter({
         aria-label="Contenido principal"
       >
         <ViewTransition view={view}>
-          <div
-            className="px-8 py-10 max-w-3xl mx-auto"
+          <Page
+            width="reading"
+            // Bloque, no flex: estas vistas se espacian con márgenes que hoy
+            // colapsan (ver Page.tsx). El ritmo entre secciones lo sigue
+            // decidiendo cada vista hasta que migre a `rhythm`.
+            rhythm="none"
             // El AskBar flota sobre este scroller y publica su alto real en
             // `--askbar-h` (ver AskBar.tsx). Reservarlo aquí es lo que
             // garantiza que el final de la vista siempre se pueda scrollear
             // por encima de la barra; el `pb-32` fijo que había antes se
             // quedaba corto en cuanto la barra crecía. Sin AskBar la variable
             // no existe y queda sólo el respiro de cierre.
-            style={{ paddingBottom: 'calc(var(--askbar-h, 0px) + 2.5rem)' }}
+            paddingBottom="calc(var(--askbar-h, 0px) + 2.5rem)"
           >
             {view === 'inicio' && (
               <ErrorBoundary
@@ -323,7 +328,7 @@ export function ViewRouter({
                 <ProactiveView />
               </ViewSlot>
             )}
-          </div>
+          </Page>
         </ViewTransition>
       </div>
     </SectionPinGate>
