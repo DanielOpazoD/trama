@@ -34,6 +34,8 @@ import { buildShellVisibility } from './components/appShell/appShellModel'
 import { WorldLoadingFallback } from './components/appShell/WorldLoadingFallback'
 import { useWorldShellController } from './components/appShell/useWorldShellController'
 import { useShellOmnibox } from './components/appShell/useShellOmnibox'
+import { initialViewForTarget } from './components/appShell/shellPaletteModel'
+import type { TramaTarget } from './components/appShell/worldShellModel'
 // NotasWorld es un mundo entero (feed unificado, PDF Studio, ajustes):
 // se carga con lazy para no inflar el bundle `index` del mundo Trama, que es la
 // primera pantalla. El usuario sólo lo descarga al conmutar al mundo Notas.
@@ -66,11 +68,14 @@ function Shell({
   world,
   onChangeWorld,
   onRevealNotasModule,
+  initialTarget,
 }: {
   world: World
   onChangeWorld: (w: World) => void
   /** Revelar/abrir un módulo del mundo Notas desde el ⌘K (cruza de mundo). */
   onRevealNotasModule: (moduleId: NotasSection) => void
+  /** Destino que pidió el buscador desde el mundo Notas. */
+  initialTarget?: TramaTarget | null
 }) {
   const countsQuery = useCountsQuery()
   const shareInvitationsQuery = useMomentoShareInvitationsQuery()
@@ -94,7 +99,7 @@ function Shell({
   // τ-mobile-bridge: vive en useInitialView — lee `?view=` al primer
   // render (deep-links externos como el QR de Momentos) y envuelve el
   // setter con la View Transitions API. Ver el hook para detalles.
-  const [view, setView] = useInitialView()
+  const [view, setView] = useInitialView(initialViewForTarget(initialTarget))
   const handleWorldIntent = useCallback((targetWorld: World) => {
     preloadWorldBundle(targetWorld)
   }, [])
@@ -161,6 +166,7 @@ function Shell({
     setPendingChatThreadId,
     toggleFocusMode,
     onRevealNotasModule,
+    initialTarget,
   })
 
   const shareInvitations = shareInvitationsQuery.data?.items ?? []
@@ -351,8 +357,13 @@ function Shell({
  * encima del Shell — todo lo de la Trama sigue intacto adentro de Shell.
  */
 function WorldShell() {
-  const { world, changeWorld, pendingNotasSection, revealNotasModule } =
-    useWorldShellController({ preloadWorldBundle })
+  const {
+    world,
+    changeWorld,
+    pendingNotasSection,
+    pendingTramaTarget,
+    revealNotasModule,
+  } = useWorldShellController({ preloadWorldBundle })
 
   // El conmutador de mundos vive en el logo (WorldSwitcher), dentro del header
   // de cada mundo — por eso acá no hay riel: se monta el mundo activo a pantalla
@@ -365,6 +376,7 @@ function WorldShell() {
             world={world}
             onChangeWorld={changeWorld}
             onRevealNotasModule={revealNotasModule}
+            initialTarget={pendingTramaTarget}
           />
         ) : (
           <Suspense fallback={<WorldLoadingFallback />}>

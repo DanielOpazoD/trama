@@ -1,6 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useShellOmnibox } from './useShellOmnibox'
+import type { TramaTarget } from './worldShellModel'
 
 const m = vi.hoisted(() => ({
   shortcuts: null as null | Record<string, (() => void) | undefined>,
@@ -12,8 +13,9 @@ vi.mock('../../hooks/useGlobalShortcuts', () => ({
   },
 }))
 
-function setup() {
+function setup(initialTarget: TramaTarget | null = null) {
   const deps = {
+    initialTarget,
     paletteOpen: true,
     openModal: vi.fn(),
     closeModal: vi.fn(),
@@ -24,8 +26,8 @@ function setup() {
     toggleFocusMode: vi.fn(),
     onRevealNotasModule: vi.fn(),
   }
-  const { result } = renderHook(() => useShellOmnibox(deps))
-  return { deps, result }
+  const { result, rerender } = renderHook(() => useShellOmnibox(deps))
+  return { deps, result, rerender }
 }
 
 describe('useShellOmnibox', () => {
@@ -56,5 +58,22 @@ describe('useShellOmnibox', () => {
     expect(deps.openModal).toHaveBeenCalledWith('palette')
     expect(deps.toggleModal).toHaveBeenCalledWith('shortcuts')
     expect(deps.toggleFocusMode).toHaveBeenCalledOnce()
+  })
+
+  it('al montar desde otro mundo aplica una sola vez la entidad, el hilo o el modal pedidos', () => {
+    const entidad = setup({ kind: 'entity', id: 'e1' })
+    expect(entidad.deps.setSelectedEntityId).toHaveBeenCalledWith('e1')
+    entidad.rerender()
+    expect(entidad.deps.setSelectedEntityId).toHaveBeenCalledTimes(1)
+
+    const hilo = setup({ kind: 'thread', threadId: 'h1' })
+    expect(hilo.deps.setPendingChatThreadId).toHaveBeenCalledWith('h1')
+
+    const modal = setup({ kind: 'action', action: 'open-settings' })
+    expect(modal.deps.openModal).toHaveBeenCalledWith('settings')
+
+    const vista = setup({ kind: 'view', view: 'grafo' })
+    expect(vista.deps.setView).not.toHaveBeenCalled()
+    expect(vista.deps.openModal).not.toHaveBeenCalled()
   })
 })

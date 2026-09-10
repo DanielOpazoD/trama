@@ -56,7 +56,7 @@ vi.mock('./hooks/useIsMobile', () => ({
 vi.mock('./hooks/useInitialView', async () => {
   const React = await import('react')
   return {
-    useInitialView: () => React.useState<ViewMode>('inicio'),
+    useInitialView: (initial?: ViewMode) => React.useState<ViewMode>(initial ?? 'inicio'),
   }
 })
 

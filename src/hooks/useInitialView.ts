@@ -20,6 +20,9 @@ import type { ViewMode } from '../types/view'
  * `useSearchParamState` (bidireccional). Decisión deliberada: cambiar
  * de sección no debe ensuciar la URL del usuario; los deep-links son
  * un caso de entrada, no de navegación interna.
+ *
+ * `initial` gana a `?view=`: Trama monta ahí cuando llega desde otro mundo por el
+ * buscador.
  */
 const VALID_VIEWS: ReadonlyArray<ViewMode> = [
   'inicio',
@@ -48,8 +51,8 @@ function readInitialView(): ViewMode {
   return 'inicio'
 }
 
-export function useInitialView(): [ViewMode, (next: ViewMode) => void] {
-  const [view, _setView] = useState<ViewMode>(() => readInitialView())
+export function useInitialView(initial?: ViewMode): [ViewMode, (next: ViewMode) => void] {
+  const [view, _setView] = useState<ViewMode>(() => initial ?? readInitialView())
   const setView = useCallback((next: ViewMode) => {
     startViewTransition(() => _setView(next))
   }, [])

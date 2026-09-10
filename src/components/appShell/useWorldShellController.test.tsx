@@ -31,4 +31,19 @@ describe('useWorldShellController', () => {
     expect(preloadWorldBundle).toHaveBeenCalledWith('notas')
     expect(window.localStorage.getItem('trama:world')).toBe('notas')
   })
+
+  it('el buscador lleva a Trama con su destino, y salir de Trama lo olvida', () => {
+    const { result } = renderHook(() =>
+      useWorldShellController({ preloadWorldBundle: vi.fn() }),
+    )
+    act(() => result.current.changeWorld('notas'))
+    expect(result.current.world).toBe('notas')
+
+    act(() => result.current.goToTrama({ kind: 'view', view: 'momentos' }))
+    expect(result.current.world).toBe('trama')
+    expect(result.current.pendingTramaTarget).toEqual({ kind: 'view', view: 'momentos' })
+
+    act(() => result.current.changeWorld('notas'))
+    expect(result.current.pendingTramaTarget).toBeNull()
+  })
 })

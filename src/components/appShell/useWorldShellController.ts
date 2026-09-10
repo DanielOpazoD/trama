@@ -14,6 +14,7 @@ import {
   resolveInitialNotasSection,
   resolveInitialWorld,
   resolveNextWorldForClientUser,
+  type TramaTarget,
 } from './worldShellModel'
 
 let recortesRedirectApplied = false
@@ -63,9 +64,13 @@ export function useWorldShellController({
   const [pendingNotasSection, setPendingNotasSection] = useState<NotasSection | null>(
     () => resolveInitialNotasSection({ initialWorldFromUrl, search: initialSearch }),
   )
+  // El destino en Trama que pidió el buscador desde otro mundo: espejo de
+  // `pendingNotasSection`, y se olvida al salir de Trama.
+  const [pendingTramaTarget, setPendingTramaTarget] = useState<TramaTarget | null>(null)
 
   const changeWorld = useCallback((w: World) => {
     if (w !== 'notas') setPendingNotasSection(null)
+    if (w !== 'trama') setPendingTramaTarget(null)
     startViewTransition(() => setWorld(w))
     try {
       window.localStorage.setItem(WORLD_STORAGE_KEY, w)
@@ -122,6 +127,7 @@ export function useWorldShellController({
         /* ignore */
       }
       setPendingNotasSection(null)
+      setPendingTramaTarget(null)
       setWorld(DEFAULT_WORLD)
     }
     try {
@@ -141,10 +147,20 @@ export function useWorldShellController({
     [changeWorld],
   )
 
+  const goToTrama = useCallback(
+    (target: TramaTarget) => {
+      setPendingTramaTarget(target)
+      changeWorld('trama')
+    },
+    [changeWorld],
+  )
+
   return {
     world,
     changeWorld,
     pendingNotasSection,
+    pendingTramaTarget,
     revealNotasModule,
+    goToTrama,
   }
 }

@@ -1,5 +1,6 @@
 import type { CommandAction } from '../../hooks/useCommandSearch'
 import type { ViewMode } from '../../types/view'
+import type { TramaTarget } from './worldShellModel'
 
 type ShellModalAction = 'settings' | 'shortcuts' | 'sortes' | 'espejo' | 'careo'
 export type ShellPaletteIntent =
@@ -23,5 +24,27 @@ export function resolveShellPaletteAction(action: CommandAction): ShellPaletteIn
       return { kind: 'view', view: 'citas' }
     case 'new-momento':
       return { kind: 'view', view: 'momentos' }
+  }
+}
+
+/**
+ * La vista con que Trama monta al llegar desde otro mundo. Una entidad o un modal
+ * no tienen vista propia: se abren sobre la de siempre.
+ */
+export function initialViewForTarget(
+  target: TramaTarget | null | undefined,
+): ViewMode | undefined {
+  if (!target) return undefined
+  switch (target.kind) {
+    case 'view':
+      return target.view
+    case 'thread':
+      return 'chat'
+    case 'action': {
+      const intent = resolveShellPaletteAction(target.action)
+      return intent.kind === 'view' ? intent.view : undefined
+    }
+    case 'entity':
+      return undefined
   }
 }
