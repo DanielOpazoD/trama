@@ -3,6 +3,7 @@ import { PdfStudioOcrPanel } from './ocr/PdfStudioOcrPanel'
 import { PdfStudioFormPanel } from './planillas/PdfStudioFormPanel'
 import { PdfStudioDocumentControls } from './shell/PdfStudioDocumentControls'
 import { PdfStudioMainPane } from './shell/PdfStudioMainPane'
+import { Page, PageFill } from '../../Page'
 
 export function PdfStudioViewCanvas({
   documentControlsProps,
@@ -26,18 +27,31 @@ export function PdfStudioViewCanvas({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {topBar}
+      {/* `flex flex-col` en el scroller es lo que hace que el `flex-1` de la
+          columna signifique algo: sin él, `align="fill"` no tiene contra qué
+          repartir y la columna vuelve a anclarse arriba. */}
       <div
         ref={setScrollRoot}
-        className="pdf-studio-canvas min-h-0 flex-1 overflow-y-auto"
+        className="pdf-studio-canvas flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
-        <div className="mx-auto max-w-5xl space-y-5 px-5 pb-24 pt-6 md:px-8">
+        <Page
+          width="workbench"
+          align="fill"
+          rhythm="block"
+          paddingBottom="var(--space-8)"
+        >
           <PdfStudioDocumentControls {...documentControlsProps} />
           {templateModeBanner}
           {formPanelProps && <PdfStudioFormPanel {...formPanelProps} />}
           {ocrPanelProps && <PdfStudioOcrPanel {...ocrPanelProps} />}
           {editBar}
-          <PdfStudioMainPane {...mainPaneProps} />
-        </div>
+          {/* El cromo se queda arriba y SOLO la hoja reparte el alto sobrante:
+              centrar la columna entera dejaría la barra de herramientas
+              flotando en mitad de la pantalla. */}
+          <PageFill center>
+            <PdfStudioMainPane {...mainPaneProps} />
+          </PageFill>
+        </Page>
       </div>
     </div>
   )

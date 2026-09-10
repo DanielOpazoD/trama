@@ -4,6 +4,26 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      // Ritmo vertical — CUATRO pasos con un ROL, no una escala numérica más.
+      //
+      // No es una escala nueva: son los `--space-N` que ya viven en
+      // src/index.css y que docs/conventions/design.md documenta desde δ1.
+      // Hasta hoy solo los podían consumir `.stack-2/.stack-3` y
+      // `.pad-block-4/5/8`, y ningún componente los usaba: el resto del repo
+      // espaciaba con la escala numérica de Tailwind. Por eso una medición de
+      // nueve superficies encontró DOCE valores verticales distintos (4, 6, 8,
+      // 10, 12, 16, 20, 24, 32, 40, 48 y un −8 recurrente) sin que ninguno
+      // fuera exclusivo de un rol. Eso no es una escala, es un surtido.
+      //
+      // Colgar de las custom properties y no de píxeles tiene una ventaja
+      // concreta: el bloque `@media (max-width: 640px)` de index.css ya aprieta
+      // --space-6 y --space-8 en móvil, así que estos nombres se adaptan solos.
+      spacing: {
+        'ritmo-dato': 'var(--space-2)', // 11px — metadata pegada a su dato
+        'ritmo-bloque': 'var(--space-4)', // 22px — entre bloques de una sección
+        'ritmo-seccion': 'var(--space-6)', // 44px — entre secciones de una vista
+        'ritmo-vista': 'var(--space-8)', // 66px — apertura y cierre de la vista
+      },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
         serif: ['Spectral', '"Iowan Old Style"', 'Palatino', 'Georgia', 'serif'],

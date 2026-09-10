@@ -4,13 +4,20 @@
 sección «## Pendiente» de cada plan en docs/superpowers/plans/. Para cerrar
 uno, edita el plan de origen (quítalo o márcalo como resuelto) y regenera. -->
 
-**40 pendientes** en 29 planes, 1 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
+**42 pendientes** en 30 planes, 2 marcados «[alto]». Del más reciente al más viejo; dentro de cada plan, los «[alto]» primero.
 
 ## 2026-09-10 · Diez avisos de @xmldom/xmldom bloqueaban el CI, y dos eran explotables de verdad
 
 Plan: [2026-09-10-xmldom-0815.md](superpowers/plans/2026-09-10-xmldom-0815.md)
 
 - La allowlist de MIME de la subida no es la puerta a `mammoth`: `helpers.ts` elige el visor con `baseMime === DOCX_MIME || ext === 'docx'`, y esa extensión sale del TÍTULO del item, que el usuario puede reescribir. No es una vulnerabilidad —el archivo es del propio dueño y el HTML se sanitiza con DOMPurify antes de pintarse— pero el enrutado por título es frágil y merece mirarse.
+
+## 2026-09-10 · La columna de página no tenía dónde declararse
+
+Plan: [2026-09-10-primitiva-page.md](superpowers/plans/2026-09-10-primitiva-page.md)
+
+- [alto] Migrar `ViewRouter` (la columna de las once vistas del mundo Trama) y `NotasWorld` (las siete de Notas), con sus dos esqueletos. Es donde están los 487 px de Cronología y los 327 de Atlas. Hay que borrar en el mismo commit las cuatro reglas muertas por especificidad, o al pasar a `gap` vuelven a aplicar y se suman.
+- El ornamento de Inicio queda huérfano cuando Efemérides y WeeklyActivity devuelven null (el caso del modo prueba): 48 px de aire, un glifo de 12 px y otros 48. Pide un separador que se anule solo cuando le falta un vecino, en vez de una guardia local que ya murió una vez.
 
 ## 2026-09-09 · El grafo encuadraba contra una caja más chica que el dibujo
 

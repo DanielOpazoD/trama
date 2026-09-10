@@ -177,6 +177,11 @@ jobs:
       - name: ModalShell adoption check
         run: npm run check:modal-shell
 
+      # Columnas de página: la medición encontró hasta 588px muertos por vista
+      # y doce ritmos verticales distintos. Page es el sitio donde se declara.
+      - name: Page shell check
+        run: npm run check:page-shell
+
       - name: Form control labels check
         run: npm run check:form-control-labels
 
