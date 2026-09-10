@@ -252,6 +252,7 @@ function Shell({
             if (v !== 'grafo') setSelectedEntityId(null)
           }}
           onOpenSortes={() => modals.openModal('sortes')}
+          onOpenSearch={omnibox.openPalette}
           onClearSelectedEntity={() => setSelectedEntityId(null)}
           onEntitiesTabChange={setEntitiesTab}
         />

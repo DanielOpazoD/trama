@@ -496,4 +496,27 @@ test.describe('a11y en móvil', () => {
       await auditar(page, `móvil · Notas · ${titulo}`)
     })
   }
+
+  test('a11y móvil: buscador abierto desde el TopBar de Trama', async ({ page }) => {
+    await skipSplash(page)
+    await mockBackend(page, emptyState())
+    await enableDemoMode(page, { world: 'trama' })
+    await page.goto('/')
+    await page
+      .getByRole('button', { name: 'Buscar', exact: true })
+      .tap({ timeout: 15_000 })
+    await page.getByRole('dialog', { name: 'Buscar', exact: true }).waitFor()
+    await page.waitForTimeout(400)
+    const results = await new AxeBuilder({ page })
+      .include('[role="dialog"][aria-label="Buscar"]')
+      .withTags(A11Y_TAGS)
+      .analyze()
+    if (results.violations.length > 0) {
+      console.log('Violaciones en el buscador móvil:')
+      for (const v of results.violations) {
+        console.log(`  - [${v.impact}] ${v.id}: ${v.help}`)
+      }
+    }
+    expect(results.violations).toEqual([])
+  })
 })

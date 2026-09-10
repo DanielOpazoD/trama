@@ -164,17 +164,20 @@ vi.mock('./components/TopBar', () => ({
   TopBar: ({
     view,
     onSortes,
+    onSearch,
     breadcrumb,
     tabs,
   }: {
     view: ViewMode
     onSortes: () => void
+    onSearch?: () => void
     breadcrumb: { label: string; onClickRoot: () => void } | null
     tabs: null | { onChange: (value: string) => void }
   }) => (
     <header>
       topbar {view} {breadcrumb?.label}
       <button onClick={onSortes}>abrir sortes</button>
+      {onSearch && <button onClick={onSearch}>buscar móvil</button>}
       {tabs && <button onClick={() => tabs.onChange('vinculos')}>tab vínculos</button>}
     </header>
   ),
@@ -716,5 +719,12 @@ describe('<App />', () => {
     await user.click(screen.getByRole('button', { name: 'mundo notas' }))
     await user.click(await screen.findByRole('button', { name: 'notas a entidad' }))
     expect(await screen.findByText(/right desktop no-proposal e1/i)).toBeInTheDocument()
+  })
+
+  it('el TopBar abre el buscador, que en móvil no tiene otro disparador', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'buscar móvil' }))
+    expect(await screen.findByText('palette open')).toBeInTheDocument()
   })
 })
