@@ -175,6 +175,8 @@ export type UseNotasFeedResult = {
   items: CaptureItem[]
   isLoading: boolean
   isError: boolean
+  /** Reintenta la carga: un error tiene que ofrecer salida, no quedar como vacío. */
+  refetch: () => Promise<unknown>
   fetchNextPage: () => void
   hasNextPage: boolean
   isFetchingNextPage: boolean
@@ -222,6 +224,8 @@ export function useNotasFeed(filter: NotasFeedFilter): UseNotasFeedResult {
     items,
     isLoading: serveable ? query.isLoading : false,
     isError: query.isError,
+    // Para que un fallo de carga ofrezca «reintentar» en vez de un vacío mudo.
+    refetch: query.refetch,
     fetchNextPage: query.fetchNextPage,
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,

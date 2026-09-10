@@ -242,6 +242,15 @@ const SCRIPT_ENTRIES = [
       'Trinquete de la columna de página: toda columna centrada de vista usa Page, o se declara exenta con motivo.',
   },
   {
+    file: 'scripts/check-empty-states.mjs',
+    domain: 'frontend',
+    kind: 'check',
+    critical: true,
+    packageScripts: ['check:empty-states'],
+    summary:
+      'Trinquete de estados vacíos: todo vacío ofrece acción o pista, o se admite por archivo con su motivo.',
+  },
+  {
     file: 'scripts/check-form-control-labels.mjs',
     domain: 'frontend',
     kind: 'check',
@@ -964,6 +973,14 @@ export const QUALITY_GATES = [
     phase: 'frontend',
     required: true,
     summary: 'Columnas de página: adoptadas, exentas con motivo o pendientes declaradas.',
+  },
+  {
+    command: 'npm run check:empty-states',
+    job: 'lint',
+    phase: 'frontend',
+    required: true,
+    summary:
+      'Estados vacíos con salida: acción, pista, o admitidos por archivo con motivo.',
   },
   {
     command: 'npm run check:form-control-labels',

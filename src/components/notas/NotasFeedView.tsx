@@ -111,8 +111,15 @@ export function NotasFeedView({
     [segment, search, activeTag, selectedDay, capturaStatus],
   )
 
-  const { items, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useNotasFeed(filter)
+  const {
+    items,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useNotasFeed(filter)
 
   // --- Triage en lote -----------------------------------------------------
   const {
@@ -316,6 +323,7 @@ export function NotasFeedView({
         uploadingImages={composer.uploadingImages}
         isLoading={isLoading}
         isError={isError}
+        onRetry={() => void refetch()}
         everythingEmpty={everythingEmpty}
         itemCount={items.length}
         hasContentFilter={hasContentFilter}

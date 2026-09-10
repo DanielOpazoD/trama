@@ -134,6 +134,16 @@ export function ProactiveView() {
               faltan.
             </>
           }
+          action={
+            <button
+              type="button"
+              onClick={() => generate.mutate()}
+              disabled={generate.isPending}
+              className="btn-ink min-h-[44px] px-4 text-xs"
+            >
+              {generate.isPending ? 'pidiendo…' : 'Pedir una ronda'}
+            </button>
+          }
         />
       ) : (
         <>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { NotasFeedSegment } from './notasFeedViewModel'
 import { EmptyMessage } from '../EmptyMessage'
+import { ErrorState } from '../ErrorState'
 import { InlineLoadingLabel } from '../InlineLoadingLabel'
 import { LoadingHint } from '../LoadingHint'
 import { FeedSkeleton } from './FeedSkeleton'
@@ -10,6 +11,7 @@ export function NotasFeedContent({
   uploadingImages,
   isLoading,
   isError,
+  onRetry,
   everythingEmpty,
   itemCount,
   hasContentFilter,
@@ -25,6 +27,8 @@ export function NotasFeedContent({
   uploadingImages: number
   isLoading: boolean
   isError: boolean
+  /** Reintenta la carga; sin esto el error se veía como un vacío mudo. */
+  onRetry: () => void
   everythingEmpty: boolean
   itemCount: number
   hasContentFilter: boolean
@@ -56,11 +60,9 @@ export function NotasFeedContent({
       {isLoading ? (
         <FeedSkeleton />
       ) : isError ? (
-        <EmptyMessage
-          illustration="thread"
-          title="No pudimos cargar tus notas y capturas."
-          body={<>Vuelve a intentarlo en unos segundos.</>}
-        />
+        // Un fallo de carga NO es un vacío: con EmptyMessage se veía igual que
+        // «no hay nada» y no ofrecía reintentar. ErrorState, como el resto.
+        <ErrorState title="No pudimos cargar tus notas y capturas." onRetry={onRetry} />
       ) : everythingEmpty ? (
         <EmptyMessage
           illustration="thread"
