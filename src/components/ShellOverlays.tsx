@@ -5,10 +5,8 @@ import type { Theme } from '../hooks/useTheme'
 import type { CommandAction } from './CommandPalette'
 import type { ViewMode } from '../types/view'
 import type { NotasSection } from '../types/notas'
+import { CommandPaletteHost } from './commandPalette/CommandPaletteHost'
 
-const CommandPalette = lazy(() =>
-  import('./CommandPalette').then((m) => ({ default: m.CommandPalette })),
-)
 const ShortcutsModal = lazy(() =>
   import('./ShortcutsModal').then((m) => ({ default: m.ShortcutsModal })),
 )
@@ -78,19 +76,15 @@ export function ShellOverlays({
         </Suspense>
       )}
 
-      {paletteOpen && (
-        <Suspense fallback={null}>
-          <CommandPalette
-            open={paletteOpen}
-            onClose={onClosePalette}
-            onNavigate={onNavigate}
-            onSelectEntity={onSelectEntity}
-            onOpenThread={onOpenThread}
-            onRevealNotasModule={onRevealNotasModule}
-            onAction={onPaletteAction}
-          />
-        </Suspense>
-      )}
+      <CommandPaletteHost
+        open={paletteOpen}
+        onClose={onClosePalette}
+        onNavigate={onNavigate}
+        onSelectEntity={onSelectEntity}
+        onOpenThread={onOpenThread}
+        onRevealNotasModule={onRevealNotasModule}
+        onAction={onPaletteAction}
+      />
 
       {shortcutsOpen && (
         <Suspense fallback={null}>

@@ -3,8 +3,10 @@ import { useEffect } from 'react'
 type GlobalShortcutsOptions = {
   onTogglePalette: () => void
   onOpenPalette: () => void
-  onToggleShortcuts: () => void
-  onToggleFocusMode: () => void
+  // Opcionales: el mundo Notas solo registra el buscador, y una tecla sin dueño
+  // no se reclama.
+  onToggleShortcuts?: () => void
+  onToggleFocusMode?: () => void
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -38,12 +40,12 @@ export function useGlobalShortcuts({
         onOpenPalette()
         return
       }
-      if (e.key === '?' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (e.key === '?' && onToggleShortcuts && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault()
         onToggleShortcuts()
         return
       }
-      if (e.key === '\\' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (e.key === '\\' && onToggleFocusMode && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault()
         onToggleFocusMode()
       }

@@ -92,4 +92,23 @@ describe('useGlobalShortcuts', () => {
     window.removeEventListener('keydown', reclamar, true)
     expect(onOpenPalette).not.toHaveBeenCalled()
   })
+
+  test('una tecla sin dueño no se reclama: sin manejador, «?» y «\\» siguen su camino', () => {
+    const onOpenPalette = vi.fn()
+    function SoloBuscador() {
+      useGlobalShortcuts({ onTogglePalette: () => {}, onOpenPalette })
+      return null
+    }
+    render(<SoloBuscador />)
+
+    const pregunta = new KeyboardEvent('keydown', { key: '?', cancelable: true })
+    const barra = new KeyboardEvent('keydown', { key: '\\', cancelable: true })
+    window.dispatchEvent(pregunta)
+    window.dispatchEvent(barra)
+    expect(pregunta.defaultPrevented).toBe(false)
+    expect(barra.defaultPrevented).toBe(false)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '/' }))
+    expect(onOpenPalette).toHaveBeenCalledOnce()
+  })
 })

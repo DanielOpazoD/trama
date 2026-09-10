@@ -1,14 +1,11 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useCountsQuery, useEntitiesQuery, useQuotesQuery } from '../state'
 import { useSavedQueries } from '../state/useSavedQueries'
-import { useSectionVisibility } from './useSectionVisibility'
-import { useSectionPin } from './useSectionPin'
-import { useSectionAlias } from './useSectionAlias'
-import { useModuleVisibility } from './useModuleVisibility'
-import { isPinEnabled } from '../components/AppPinGate'
+import { useCommandSearchVisibility } from './useCommandSearchVisibility'
 import {
   buildCommandSearchItems,
   type CommandAction,
+  type CommandSearchEntity,
   type CommandSearchItem,
 } from './commandSearchModel'
 import { useCommandServerSearch } from './useCommandServerSearch'
@@ -45,15 +42,7 @@ export function useCommandSearch({
   items: Item[]
   searching: boolean
   settled: boolean // la lista ya corresponde a lo escrito
-  entitiesForPeek:
-    | {
-        id: string
-        name: string
-        type: string
-        year?: number | null
-        description?: string | null
-      }[]
-    | undefined
+  entitiesForPeek: CommandSearchEntity[] | undefined
 } {
   const { data: counts } = useCountsQuery()
   const localSearchEnabled =
@@ -61,11 +50,7 @@ export function useCommandSearch({
   const { data: entities = [] } = useEntitiesQuery({ enabled: localSearchEnabled })
   const { data: quotes = [] } = useQuotesQuery({ enabled: localSearchEnabled })
   const { data: savedQueriesData } = useSavedQueries()
-  const sectionVis = useSectionVisibility()
-  const moduleVis = useModuleVisibility()
-  const { isPinRequired } = useSectionPin()
-  const { sectionAliases } = useSectionAlias()
-  const pinActive = isPinEnabled()
+  const { sectionAliases, visibility } = useCommandSearchVisibility()
   const [query, setQuery] = useState('')
   // N5: useDeferredValue mantiene el input snappy mientras la lista filtrada
   // se re-computa con un tick de retraso en tramas grandes.
@@ -91,26 +76,18 @@ export function useCommandSearch({
       savedQueries: savedQueriesData?.items ?? [],
       serverResults,
       sectionAliases,
-      visibility: {
-        isViewVisible: sectionVis.isVisible,
-        isModuleVisible: moduleVis.isVisible,
-        isPinRequired,
-        pinActive,
-      },
+      visibility,
     })
   }, [
     actionsEnabled,
     deferredQuery,
     entities,
-    isPinRequired,
     localSearchEnabled,
-    moduleVis.isVisible,
-    pinActive,
     quotes,
     savedQueriesData,
     sectionAliases,
-    sectionVis.isVisible,
     serverResults,
+    visibility,
   ])
 
   const settled = deferredQuery === query
