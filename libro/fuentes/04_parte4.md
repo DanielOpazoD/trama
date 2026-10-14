@@ -160,7 +160,7 @@ Sesenta segundos no producen una epistemología; producen algo más modesto y a 
 
 ### Uso en equipo
 
-En una ronda, cada integrante puede desafiar una capa distinta. Enfermería aporta evolución y respuesta; radiología delimita lo que la imagen muestra y lo que no; microbiología precisa relevancia y contaminación; cirugía integra anatomía y oportunidad; el paciente aporta síntomas, preferencias y desenlaces que valora. El método no centraliza el conocimiento en una sola voz.
+En una visita de sala, cada integrante puede desafiar una capa distinta. Enfermería aporta evolución y respuesta; radiología delimita lo que la imagen muestra y lo que no; microbiología precisa relevancia y contaminación; cirugía integra anatomía y oportunidad; el paciente aporta síntomas, preferencias y desenlaces que valora. El método no centraliza el conocimiento en una sola voz.
 
 También puede usarse para revisar una nota, un informe de alta o una respuesta de IA. La pregunta siempre es la misma: ¿la fuerza del lenguaje corresponde a la fuerza de la evidencia y la decisión corresponde a las consecuencias?
 
@@ -194,7 +194,7 @@ El valor del método depende de una actitud: aceptar que la claridad no consiste
 
 #### Taller 15. Su paciente, esta semana
 
-Elija el caso más incómodo de su lista actual —el que genera discusión en cada ronda o el que nadie discute hace días— y complete la plantilla condensada por escrito. Después compárela con la última evolución de la ficha: ¿qué contiene la plantilla que la ficha no registra?
+Elija el caso más incómodo de su lista actual —el que genera discusión en cada visita o el que nadie discute hace días— y complete la plantilla condensada por escrito. Después compárela con la última evolución de la ficha: ¿qué contiene la plantilla que la ficha no registra?
 
 *Solución comentada.* No hay solución única, pero hay un patrón casi universal al comparar: la ficha suele contener los hechos y la decisión, y omitir las dos capas intermedias —el grado de la inferencia ("neumonía" sin "probable/demostrada") y la incertidumbre crítica con su vigilancia—. Es decir: registra qué se piensa y qué se hace, pero no cuánto derecho hay a pensarlo ni qué lo haría cambiar. Si su plantilla y su ficha coinciden, este libro le debe una disculpa por las horas invertidas. Si no coinciden, la plantilla acaba de mostrarle qué escribir mañana.
 
@@ -225,7 +225,7 @@ Mujer de 61 años con hernia incisional y tres ingresos por suboclusión resuelt
 
 *Frase medular:* "Obstrucción recurrente por hernia incisional, por primera vez asociada a shock y bacteriemia, sin complicación anatómica aguda en tomografía; el cambio cualitativo de gravedad justifica priorizar resolución electiva tras recuperación fisiológica."
 
-*Epílogo.* Carmen fue operada seis semanas después, en forma programada. La cirugía encontró adherencias firmes y un anillo herniario estrecho; no hubo complicaciones mayores. En el control del mes, Carmen puso su propia frase medular: "Esta vez el dolor venía con explicación, y eso lo cambia todo". Nada de eso demuestra que la decisión fue correcta —un desenlace no valida un proceso—, pero el proceso era defendible antes de conocer el desenlace, que es lo único que puede pedírsele a una decisión clínica. La frase de su ingreso, "cuadro habitual, manejo habitual", quedó en la ficha como lo que era: la hipótesis rápida que el trabajo de tres semanas convirtió en otra cosa.
+*Epílogo.* Carmen fue operada seis semanas después, en forma programada. La cirugía encontró adherencias firmes y un anillo herniario estrecho; no hubo complicaciones mayores. En el control del mes, Carmen puso su propia frase medular: "Esta vez el dolor venía con explicación, y eso lo cambia todo". Nada de eso demuestra que la decisión fue correcta —un desenlace no valida un proceso—, pero el proceso era defendible antes de conocer el desenlace, que es lo único que puede pedírsele a una decisión clínica. La frase de su ingreso, "cuadro habitual, manejo habitual", quedó en la ficha como lo que era: la hipótesis rápida que el trabajo de una semana convirtió en otra cosa.
 
 ### Viñeta 2. Bacteriuria en paciente con sonda permanente
 
@@ -239,7 +239,7 @@ Un paciente con lesión medular completa, vejiga neurogénica, sonda Foley y neo
 
 *Decisión:* no tratar de inmediato; establecer criterios explícitos de reevaluación. El antecedente de BLEE no es argumento para tratar antes, sino una razón adicional para exigir umbral clínico suficiente.
 
-*Frase medular:* "Urocultivo positivo y piuria en usuario crónico de Foley, sin manifestaciones sistémicas nuevas que sostengan CAUTI; cuadro más compatible con bacteriuria asociada a catéter, con vigilancia reforzada por expresión sintomática limitada y antecedente de resistencia."
+*Frase medular:* "Urocultivo positivo y piuria en usuario crónico de Foley, sin manifestaciones sistémicas nuevas que sostengan una ITU asociada a sonda; cuadro más compatible con bacteriuria asociada a catéter, con vigilancia reforzada por expresión sintomática limitada y antecedente de resistencia."
 
 ### Viñeta 3. Tres de la mañana: decidir con el reloj en contra
 
@@ -297,11 +297,11 @@ Esta viñeta analiza un error completo, con la disciplina de los capítulos 7 y 
 
 *Reconstrucción por capas.* **Hechos disponibles la primera noche:** disnea súbita (relato, con inicio preciso); taquicardia de 118 al ingreso y de 112 al alta, una hora después de la benzodiacepina (dato medido, registrado y no interpretado); saturación 94% (medida; "normal para una paciente que hiperventila", se dijo en voz alta — pero la hiperventilación sube la saturación, no la baja); uso de anticonceptivos orales combinados y un viaje en bus de nueve horas tres días antes (dos hechos que existían y que nadie preguntó, porque la pregunta que los convoca —"¿qué más podría ser?"— no se formuló); y una etiqueta heredada del triage, "crisis de pánico conocida", que entró a la nota médica con estatus de diagnóstico antes de que el médico viera a la paciente. **Inferencia de la primera noche:** "crisis de pánico" — escrita como hecho; fuerza real: posible, apoyada en el antecedente y en la coincidencia de la queja con la etiqueta. **Incertidumbre nunca escrita:** ¿qué explica una taquicardia que persiste con la paciente ya tranquila, y una saturación que no corresponde a una crisis de ansiedad? Existe una regla de decisión creada exactamente para este momento —los criterios PERC: ocho condiciones que, si se cumplen todas, permiten no estudiar una embolia en pacientes de baja probabilidad (Kline et al., 2004)—, y la paciente incumplía tres: frecuencia cardiaca, saturación y uso de estrógenos. La regla no falló: no se aplicó, porque nadie creyó que hubiera algo que descartar. **Decisión de la primera noche:** ansiolisis y alta; defendible como tratamiento sintomático, indefendible como cierre: ninguna línea de la nota decía qué debía hacer volver a la paciente antes del "control en salud mental".
 
-*Dónde estuvo la oportunidad.* En el control de signos previo al alta. Una taquicardia de 112 en una paciente sedada y calmada era la discordancia informativa de la noche: el tratamiento correcto de la hipótesis correcta debía normalizar la frecuencia, no sólo la angustia. La pregunta de pase —"¿qué no explica el pánico?"— tenía ahí su máximo valor y su costo mínimo: dos preguntas de anamnesis, una regla de ocho ítems, quizá un dímero-D. A las 36 horas, la pregunta la respondió el síncope.
+*Dónde estuvo la oportunidad.* En el control de signos previo al alta. Una taquicardia de 112 en una paciente sedada y calmada era la discordancia informativa de la noche: el tratamiento correcto de la hipótesis correcta debía normalizar la frecuencia, no sólo la angustia. La pregunta de resistencia del capítulo 7 —"¿qué no explica el pánico?"— tenía ahí su máximo valor y su costo mínimo: dos preguntas de anamnesis, una regla de ocho ítems y el dímero-D que esa regla, incumplida, obligaba a pedir antes del alta. A las 36 horas, la pregunta la respondió el síncope.
 
 *Lo que no debe concluirse.* El desenlace no demuestra que toda disnea en una paciente con trastorno de pánico sea una embolia, ni que el médico fuera incompetente: con la información de la primera noche, la crisis de pánico era la explicación más frecuente. Lo indefendible era la arquitectura: una etiqueta de triage convertida en diagnóstico antes del examen, un dato medido —la taquicardia persistente— registrado sin que nadie le pidiera explicación, dos preguntas de anamnesis que la etiqueta volvió innecesarias y un alta sin condición de reapertura. El mismo proceso con desenlace benigno —una crisis de pánico real— habría dejado la misma vulnerabilidad instalada para la siguiente paciente a la que se le cree menos por su diagnóstico.
 
-*Frase medular (la que faltó la primera noche):* "Disnea súbita y taquicardia persistente (112 tras ansiolisis) en mujer de 29 años con trastorno de pánico y uso de anticonceptivos orales: crisis de pánico posible, pero la taquicardia y la saturación de 94% no están explicadas; PERC positivo — dímero-D antes de decidir el alta; si se difiere, reconsulta inmediata ante síncope, dolor torácico o disnea en reposo."
+*Frase medular (la que faltó la primera noche):* "Disnea súbita y taquicardia persistente (112 tras ansiolisis) en mujer de 29 años con trastorno de pánico y uso de anticonceptivos orales: crisis de pánico posible, pero la taquicardia y la saturación de 94% no están explicadas; PERC no cumplido (frecuencia cardiaca, saturación, estrógenos): no procede el alta sin estudiar embolia pulmonar — dímero-D ahora y, si resulta elevado o la probabilidad clínica es intermedia, angioTAC; indicaciones escritas de reconsulta inmediata ante síncope, dolor torácico o disnea en reposo."
 
 *Lectura metacognitiva.* La frase que faltó no requería más conocimiento del que cualquier médico de urgencias ya tiene: requería que el antecedente psiquiátrico no descontara el valor de dos signos medidos. Esta viñeta es el capítulo 14 en su forma más silenciosa —la injusticia testimonial no le dijo a la paciente que no le creía; simplemente dejó de preguntar— y es también el capítulo 10: la regla PERC es un umbral explícito, y los umbrales explícitos sólo protegen a quien recuerda que hay una hipótesis que someterles. La disciplina de escritura habría bastado: separar el hecho (taquicardia persistente no explicada) de la etiqueta (pánico), conservar la incertidumbre y programar la reapertura.
 
@@ -343,7 +343,7 @@ En cada caso, la buena formulación evita dos extremos: describir sin interpreta
 
 ## Capítulo 16. Enseñar y organizar la metacognición clínica
 
-Una jefa de servicio que quiera "instalar metacognición" en su equipo no puede indicarla como se indica un antibiótico. Puede, en cambio, cambiar tres cosas que ve todas las semanas: qué se pregunta en la ronda, qué estructura tiene la ficha y qué pasa después de un error. Este capítulo trata de esas palancas.
+Una jefa de servicio que quiera "instalar metacognición" en su equipo no puede indicarla como se indica un antibiótico. Puede, en cambio, cambiar tres cosas que ve todas las semanas: qué se pregunta en la visita de sala, qué estructura tiene la ficha y qué pasa después de un error. Este capítulo trata de esas palancas.
 
 ### De la virtud individual al diseño institucional
 
@@ -363,9 +363,9 @@ Este libro toma posición en una controversia real de la educación médica, y c
 
 La posición de este libro es intermedia, pero no equidistante. Con los escépticos: no existe una habilidad general de "pensar bien" que flote por encima del conocimiento; la representación rica del problema —illness scripts, experiencia con feedback— es la condición de todo lo demás, y ningún método, HII-D incluido, compensa no saber medicina. Contra el escepticismo total: de esa evidencia no se sigue que la única intervención posible sea enseñar más contenido. Lo que este libro propone no es vigilancia interna permanente ni listas universales —las versiones que la evidencia ha desinflado—, sino artefactos externos y selectivos: un lenguaje que obliga a graduar afirmaciones, una estructura de nota que conserva las capas, pausas activadas por disparadores definidos y circuitos de feedback que conviertan experiencia en calibración. Es una apuesta con compromisos observables (véase el capítulo 15): si estas herramientas no cambian conductas medibles, deben abandonarse como cualquier hipótesis mimada. Entre tanto, la controversia se enseña mejor de lo que se oculta: un residente que conoce el debate sabrá desconfiar por igual del catálogo de sesgos como solución universal y del nihilismo pedagógico como coartada.
 
-### Rondas y pases de turno
+### Visitas de sala y entregas de turno
 
-Una ronda puede incorporar una pausa breve en casos seleccionados:
+Una visita de sala puede incorporar una pausa breve en casos seleccionados:
 
 - ¿cuál es la pregunta operativa de hoy?;
 - ¿qué hecho nuevo cambió la representación?;
@@ -373,7 +373,7 @@ Una ronda puede incorporar una pausa breve en casos seleccionados:
 - ¿qué incertidumbre podría producir mayor daño?;
 - ¿quién verificará el resultado pendiente?
 
-El pase de turno debe transmitir tareas epistémicas, no sólo tratamientos. "Pendiente observar si…" y "si ocurre X, reabrir Y" son componentes de seguridad.
+La entrega de turno debe transmitir tareas epistémicas, no sólo tratamientos. "Pendiente observar si…" y "si ocurre X, reabrir Y" son componentes de seguridad.
 
 ### Conferencias de aprendizaje
 
@@ -403,18 +403,18 @@ La medicina del futuro necesitará profesionales capaces de trabajar con informa
 
 Enseñar metacognición es enseñar una relación con el conocimiento: suficiente confianza para actuar, suficiente humildad para revisar y suficiente precisión para explicar por qué.
 
-#### Taller 16. Rediseñar la ronda
+#### Taller 16. Rediseñar la visita de sala
 
-Describa por escrito la ronda de su servicio tal como ocurre de verdad: minutos por paciente, quién habla, qué se pregunta siempre y qué no se pregunta nunca. Luego rediséñela con tres cambios como máximo —un disparador objetivo de pausa, una pregunta obligatoria por paciente inestable o incierto, una regla de pase de turno— y estime el costo en minutos por ronda.
+Describa por escrito la visita de sala de su servicio tal como ocurre de verdad: minutos por paciente, quién habla, qué se pregunta siempre y qué no se pregunta nunca. Luego rediséñela con tres cambios como máximo —un disparador objetivo de pausa, una pregunta obligatoria por paciente inestable o incierto, una regla de entrega de turno— y estime el costo en minutos por visita.
 
-*Solución comentada.* A modo de ejemplo, una descripción honesta puede parecerse a esto: dos a cuatro minutos por paciente, habla quien presenta y decide quien dirige, se pregunta "¿cómo está?" y "¿qué le falta?", y casi nunca "¿qué nos haría cambiar?". El rediseño más barato es esa tercera pregunta, hecha sólo a los pacientes que cumplen un disparador (reconsulta, discordancia entre gravedad y diagnóstico, 72 horas sin discusión): cuesta alrededor de un minuto por caso seleccionado y produce, de inmediato, criterios de reapertura que antes no existían. Si el rediseño necesita más de tres cambios o más de diez minutos por ronda, probablemente está diseñando una reunión nueva en lugar de mejorar la que existe — y las reuniones nuevas mueren por inasistencia.
+*Solución comentada.* A modo de ejemplo, una descripción honesta puede parecerse a esto: dos a cuatro minutos por paciente, habla quien presenta y decide quien dirige, se pregunta "¿cómo está?" y "¿qué le falta?", y casi nunca "¿qué nos haría cambiar?". El rediseño más barato es esa tercera pregunta, hecha sólo a los pacientes que cumplen un disparador (reconsulta, discordancia entre gravedad y diagnóstico, 72 horas sin discusión): cuesta alrededor de un minuto por caso seleccionado y produce, de inmediato, criterios de reapertura que antes no existían. Si el rediseño necesita más de tres cambios o más de diez minutos por visita, probablemente está diseñando una reunión nueva en lugar de mejorar la que existe — y las reuniones nuevas mueren por inasistencia.
 
-**En una frase.** La metacognición clínica se enseña con representaciones y feedback, y se organiza con rondas, fichas y revisiones diseñadas para hacer visible el pensamiento — no se decreta.
+**En una frase.** La metacognición clínica se enseña con representaciones y feedback, y se organiza con visitas de sala, fichas y revisiones diseñadas para hacer visible el pensamiento — no se decreta.
 
 **Tres preguntas para la próxima visita.**
 1. La última vez que enseñé un caso, ¿pedí el diagnóstico o pedí primero la representación del problema?
 2. ¿Qué pasó con el último paciente que derivé o di de alta con diagnóstico incierto — y cómo podría enterarme sistemáticamente?
-3. Si mañana dirigiera mi servicio, ¿cuál de las tres palancas (ronda, ficha, revisión de errores) cambiaría primero, y qué costaría?
+3. Si mañana dirigiera mi servicio, ¿cuál de las tres palancas (visita de sala, ficha, revisión de errores) cambiaría primero, y qué costaría?
 
 ## Capítulo 17. La inteligencia artificial en el proceso clínico: roles, riesgos y defensas
 

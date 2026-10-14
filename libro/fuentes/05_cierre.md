@@ -96,7 +96,7 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 |---|---|---|---|
 | **Demostrado / documentado** | Evidencia directa pertinente y suficiente | "Bacteriemia por E. coli documentada (2/2 hemocultivos)" | "Neumonía aspirativa documentada" (nadie presenció aspiración; la imagen no distingue mecanismo) |
 | **Altamente probable** | Convergencia fuerte; alternativas relevantes poco plausibles | "Foco abdominal altamente probable: secuencia temporal, microbiología y ausencia de foco alternativo" | Usarlo como cortesía retórica para una hipótesis única no contrastada |
-| **Probable** | Explicación principal con soporte significativo, no concluyente | "CAUTI probable si aparece fiebre sin otro foco" | "Probable" para rellenar donde falta la explicación ("dolor probablemente multifactorial") |
+| **Probable** | Explicación principal con soporte significativo, no concluyente | "ITU asociada a CUP probable si aparece fiebre sin otro foco" | "Probable" para rellenar donde falta la explicación ("dolor probablemente multifactorial") |
 | **Compatible con** | Los hallazgos encajan; no expresa por sí solo probabilidad alta | "Imagen compatible con neumonía; también con congestión" | Leer "compatible con X" como "es X" en la nota siguiente |
 | **Posible** | Merece consideración; soporte limitado o inespecífico | "Contribución farmacológica posible; se retira exposición" | Listas de "posibles" sin consecuencia para estudio ni vigilancia |
 | **No demostrado** | Hipótesis razonable sin evidencia suficiente para afirmarla | "Estrangulación no demostrada en imagen ni cirugía" | Confundirlo con "descartado" (ausencia de prueba ≠ prueba de ausencia) |
@@ -123,7 +123,7 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 
 # Apéndice C. Guía de implementación en un servicio clínico
 
-Esta guía condensa el capítulo 16 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 15, "Límites"); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la ronda— es también la más poderosa.
+Esta guía condensa el capítulo 16 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 15, "Límites"); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la visita de sala— es también la más poderosa.
 
 ### Semana 1–2: instalar el lenguaje
 
@@ -131,11 +131,11 @@ Esta guía condensa el capítulo 16 en un plan concreto para un servicio que qui
 - Acordar tres reglas mínimas de escritura, no negociables y auditables: (1) "se descarta" sólo con método que excluya; (2) todo hallazgo negativo con su límite ("sin evidencia de X en Y"); (3) toda decisión relevante con criterio de reapertura ("reevaluar si...").
 - No pedir todavía cambios de estructura en las notas. El vocabulario primero; la arquitectura después.
 
-### Semana 3–4: la pausa en la ronda
+### Semana 3–4: la pausa en la visita de sala
 
 - Elegir un disparador objetivo para la pausa diagnóstica (no "cuando haya tiempo"): reconsulta, evolución discordante con el diagnóstico, traslado recibido de otro equipo, o caso sin discusión hace 72 horas.
-- Cuando se active, usar las cuatro preguntas de la versión de 60 segundos en voz alta. Duración objetivo: dos minutos por caso. El jefe de ronda modela; no interroga.
-- Pase de turno: agregar una línea obligatoria por paciente inestable o incierto: "qué vigilar, qué reabriría el caso, quién verifica el pendiente".
+- Cuando se active, usar las cuatro preguntas de la versión de 60 segundos en voz alta. Duración objetivo: dos minutos por caso. Quien dirige la visita modela; no interroga.
+- Entrega de turno: agregar una línea obligatoria por paciente inestable o incierto: "qué vigilar, qué reabriría el caso, quién verifica el pendiente".
 
 ### Mes 2: la ficha
 

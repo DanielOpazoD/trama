@@ -80,7 +80,7 @@ guardar(fig, "fig01_capas.png")
 fig, ax = plt.subplots(figsize=(7.2, 4.4))
 ax.set_xlim(0, 10); ax.set_ylim(0, 6.2); ax.axis("off")
 niveles = [
-    ("Dato medido y verificable", "«Lactato 6,0 mmol/L (7:15, arterial)»", 0.92),
+    ("Dato medido y verificable", "«Lactato 6,0 mmol/L (04:15, arterial)»", 0.92),
     ("Observación profesional reproducible", "«Relleno capilar 5 s, documentado por enfermería»", 0.74),
     ("Relato del paciente o de un tercero", "«Esta vez el dolor era otro»", 0.56),
     ("Dato heredado de una nota anterior", "«ITU a repetición» (origen no verificado)", 0.38),
