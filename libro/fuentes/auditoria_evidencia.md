@@ -4,9 +4,9 @@ Fecha de auditoría: 9 de agosto de 2026; ítems 27-29 agregados el 14 de octubr
 
 | # | Afirmación en el libro (cap.) | Fuente | Cotejo | Veredicto |
 |---|---|---|---|---|
-| 1 | ANDROMEDA-SHOCK: mortalidad 8,5 puntos absolutos menor con perfusión periférica; p=0,06; ensayo "negativo" (cap. 10) | Hernández et al., JAMA 2019;321(7):654-664 | 34,9% vs 43,4% = −8,5 pts; HR 0,75 (IC 0,55–1,02); p=0,06 | EXACTA |
-| 2 | Reanálisis bayesiano: probabilidad de superioridad >90% bajo cualquier prior razonable (cap. 10) | Zampieri et al., AJRCCM 2020;201(4):423-429 | Probabilidad posterior >90% a 28 días con los cuatro priors, incluido el pesimista | EXACTA |
-| 3 | ANDROMEDA-SHOCK-2: 86 centros, 19 países; estrategia personalizada superior (cap. 10) | Hernández et al., JAMA 2025;334(22):1988-1999 | 86 UCI, 19 países, 1.501 pacientes, mar 2022–abr 2025 | EXACTA |
+| 1 | ANDROMEDA-SHOCK: mortalidad 8,5 puntos absolutos menor con perfusión periférica; p=0,06; ensayo "negativo" (cap. 9) | Hernández et al., JAMA 2019;321(7):654-664 | 34,9% vs 43,4% = −8,5 pts; HR 0,75 (IC 0,55–1,02); p=0,06 | EXACTA |
+| 2 | Reanálisis bayesiano: probabilidad de superioridad >90% bajo cualquier prior razonable (cap. 9) | Zampieri et al., AJRCCM 2020;201(4):423-429 | Probabilidad posterior >90% a 28 días con los cuatro priors, incluido el pesimista | EXACTA |
+| 3 | ANDROMEDA-SHOCK-2: 86 centros, 19 países; estrategia personalizada superior (cap. 9) | Hernández et al., JAMA 2025;334(22):1988-1999 | 86 UCI, 19 países, 1.501 pacientes, mar 2022–abr 2025 | EXACTA |
 | 4 | Deskilling: endoscopistas detectaron 6 puntos absolutos menos de adenomas tras exposición a IA (cap. 17) | Budzyń et al., Lancet Gastroenterol Hepatol 2025;10:896-903 (+ corrección publicada, sin cambio de interpretación) | ADR 28,4% → 22,4% = −6,0 pts absolutos | EXACTA |
 | 5 | Sesgo de automatización: −14 puntos de exactitud con recomendaciones erróneas, pese a 20 h de alfabetización en IA (cap. 17) | Qazi et al., NEJM AI 2026;3(5):AIoa2501001 | 84,9% vs 73,3%; diferencia ajustada −14,0 pts; 44 médicos; 20 h de formación previa | EXACTA |
 | 6 | Médicos+LLM no superaron a médicos solos; el LLM solo superó a ambos (cap. 17) | Goh et al., JAMA Netw Open 2024;7(10):e2440969 | Sin diferencia significativa médicos±LLM; LLM solo con puntaje superior | EXACTA |

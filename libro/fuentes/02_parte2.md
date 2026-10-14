@@ -61,7 +61,7 @@ Durante dos semanas, anote para cada diagnóstico de trabajo relevante: (a) su h
 **Tres preguntas para la próxima visita.**
 1. En mi diagnóstico más firme de hoy, ¿mi confianza viene de la evidencia o de la fluidez con que reconocí el patrón?
 2. ¿Qué señal afectiva (prisa, irritación, alivio) está influyendo en mi evaluación de este caso?
-3. ¿Cuándo fue la última vez que supe el desenlace de un paciente que di de alta con diagnóstico incierto?
+3. ¿Cuál fue mi última predicción concreta —un cultivo, una imagen, una evolución— y la contrasté con el resultado cuando llegó, o sólo recuerdo las que acerté?
 
 ## Capítulo 6. Pericia, intuición y conocimiento tácito
 

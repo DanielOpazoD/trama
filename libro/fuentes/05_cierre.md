@@ -327,9 +327,9 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Injusticia epistémica — 14, CC (viñetas 6 y 8)
 - Inteligencia artificial: rol diagnóstico y terapéutico, catálogo de riesgos, defensas — 17
 - Intuición experta — 5, 6, Interludio II
-- Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 10
+- Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 9
 - Léxico de certeza — 4, Ap B
-- Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 10
+- Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 9
 - Medicina basada en evidencia — 9
 - Meta-d′ y medición de la metacognición — 5
 - Mente del principiante (Zen, shoshin) — 8

@@ -1,6 +1,6 @@
 # PARTE III. Decidir en el tiempo y con otros
 
-Las dos primeras partes examinaron el conocimiento y la mente que lo maneja. Esta parte los pone en movimiento: la evidencia poblacional que debe traducirse a una persona (capítulo 9), la decisión por umbrales donde los valores entran al cálculo y los ensayos se leen con su marco a la vista (capítulo 10), el tiempo que transforma el significado de los hechos (capítulo 11), la ficha que piensa o que fosiliza (capítulo 12) y el equipo donde el conocimiento circula, se degrada o se corrige, incluida la conversación con el paciente (capítulo 13). El interludio final encuentra a Carmen frente a una decisión de verdad.
+Las dos primeras partes examinaron el conocimiento y la mente que lo maneja. Esta parte los pone en movimiento: la evidencia poblacional que debe leerse con su marco a la vista y traducirse a una persona (capítulo 9), la decisión por umbrales donde los valores entran al cálculo y la bioética entra en la premisa (capítulo 10), el tiempo que transforma el significado de los hechos (capítulo 11), la ficha que piensa o que fosiliza (capítulo 12) y el equipo donde el conocimiento circula, se degrada o se corrige, incluida la conversación con el paciente (capítulo 13). El interludio final encuentra a Carmen frente a una decisión de verdad.
 
 ## Capítulo 9. La evidencia y el caso singular
 
@@ -24,6 +24,14 @@ La validez externa no es una propiedad binaria del estudio. Es una relación ent
 
 En términos HII, un resultado de investigación es un hecho acerca de una población estudiada. Su aplicabilidad al caso es una inferencia. El grado de transportabilidad permanece incierto. La conducta surge al integrar esa incertidumbre con la magnitud del beneficio esperado, el daño posible, la reversibilidad y las preferencias. Confundir esas capas produce frases como "está indicado por evidencia" cuando lo demostrado es más limitado: "en pacientes comparables, esta estrategia redujo cierto desenlace; en esta paciente el beneficio absoluto probablemente sea menor y debe ponderarse frente a un riesgo adverso mayor".
 
+### Una década sobre un mismo dato: la saga ANDROMEDA
+
+Antes de traducir un resultado al caso hay que leerlo, y leerlo ya es una decisión. Pocas historias recientes lo muestran mejor. En 2019, un ensayo multicéntrico conducido desde una red latinoamericana de investigación en medicina intensiva comparó dos blancos para reanimar el shock séptico: normalizar el lactato o normalizar el relleno capilar. El grupo guiado por la perfusión periférica tuvo una mortalidad absoluta 8,5 puntos menor; el valor p fue 0,06 y el ensayo quedó declarado "negativo" según la convención (Hernández et al., 2019). ¿Qué debía hacer un clínico con ese resultado? El umbral de significación que lo declaró negativo no es una ley de la naturaleza: es el riesgo inductivo que el capítulo siguiente desarrolla, institucionalizado en un número. Un reanálisis bayesiano lo hizo explícito: bajo cualquier prior razonable, la probabilidad de que la estrategia guiada por perfusión fuera superior excedía el 90% (Zampieri et al., 2020). El mismo dato, dos marcos de lectura, dos frases distintas para la ficha.
+
+La respuesta madura del propio grupo no fue proclamar victoria ni acatar el veredicto: fue refinar la hipótesis —fenotipos hemodinámicos, un algoritmo personalizado— y volver a someterla a una prueba más severa. Seis años después, el segundo ensayo, ahora en 86 centros de 19 países, mostró que la estrategia personalizada guiada por relleno capilar era superior al cuidado habitual (Hernández et al., 2025). La saga deja tres lecciones para este capítulo: un ensayo no se lee solo, porque el marco inferencial es parte de la lectura; "no significativo" no significa "sin efecto", y tratarlos como sinónimos es una decisión con costos; y la incertidumbre residual no se resuelve con retórica, sino con la siguiente pregunta bien diseñada. Hay una cuarta lección que excede la epistemología: esa ciencia de primera línea se hizo desde América Latina, coordinada desde Chile — el mismo continente clínico desde el que este libro escribe.
+
+[FIGURA: fig09_andromeda.png | Figura 10. Una década sobre un mismo dato: la saga ANDROMEDA. El mismo programa de investigación atraviesa un ensayo "negativo", su relectura bayesiana y una segunda prueba más severa — la trayectoria completa que este capítulo propone como modelo de lectura de la evidencia.]
+
 ### Singularidad sin arbitrariedad: evidencia externa, local y del propio caso
 
 La defensa del juicio clínico puede convertirse en excusa para ignorar datos incómodos. Que cada paciente sea singular no significa que toda decisión sea incomparable ni que la experiencia personal tenga igual fuerza que un estudio robusto. La singularidad clínica es una tarea de integración, no una licencia para abandonar estándares: debe explicitar qué rasgo del caso modifica la inferencia poblacional y por qué. Esa exigencia evita dos excesos simétricos: el positivismo ingenuo que cree que el estudio decide por sí solo y el particularismo romántico que presenta la intuición del médico como conocimiento inaccesible a examen.
@@ -34,16 +42,16 @@ Una deliberación bien formulada declara, por eso, qué proviene de estudios, qu
 
 > La evidencia no desciende intacta desde la población hacia el individuo: debe ser traducida, y esa traducción es una inferencia clínica sometida a incertidumbre.
 
-**En una frase.** Un resultado de investigación es un hecho sobre una población; su aplicabilidad a esta persona es una inferencia que debe hacerse explícita — traducir no es obedecer al estudio ni improvisar contra él.
+**En una frase.** Leer un ensayo es ya una decisión sobre su marco; traducirlo a esta persona es una inferencia que debe declararse — ni obedecer al estudio ni improvisar contra él.
 
 **Tres preguntas para la próxima visita.**
 1. Para mi indicación más importante de hoy: ¿qué demostró exactamente el estudio que la respalda, y en qué se parece mi paciente a esa población?
-2. ¿Qué rasgo concreto de este caso modifica la inferencia poblacional — y puedo nombrarlo, o sólo lo intuyo?
+2. El último ensayo "negativo" que cité: ¿mostró ausencia de efecto o ausencia de significación — y traté esa diferencia como si no existiera?
 3. ¿Qué conocimiento local (resistencias, tiempos, capacidad de seguimiento) está modificando mi decisión sin estar declarado en ninguna parte?
 
-## Capítulo 10. Decidir sin certeza: umbrales, valores y lectura de la evidencia
+## Capítulo 10. Decidir sin certeza: umbrales, valores y bioética
 
-Supongamos resuelto lo anterior: la evidencia está traducida, la probabilidad estimada, el caso representado. Queda la pregunta que ninguna estimación responde sola: ¿y ahora qué hacemos? Este capítulo trata del tramo final — donde la probabilidad se encuentra con las consecuencias, los valores entran al cálculo sin pedir permiso, la decisión técnica se cruza con la bioética, y hasta la lectura de un ensayo resulta ser una decisión.
+Supongamos resuelto lo anterior: la evidencia está traducida, la probabilidad estimada, el caso representado. Queda la pregunta que ninguna estimación responde sola: ¿y ahora qué hacemos? Este capítulo trata del tramo final — donde la probabilidad se encuentra con las consecuencias, los valores entran al cálculo sin pedir permiso y la decisión técnica se cruza con la bioética.
 
 ### De la verdad a la acción: el enfoque de umbrales
 
@@ -51,15 +59,15 @@ El diagnóstico pregunta qué explicación es más plausible. La decisión pregu
 
 Pauker y Kassirer formalizaron el enfoque de umbrales: bajo cierto nivel de probabilidad no se investiga o trata; en una zona intermedia se testea; sobre un umbral se actúa (Pauker & Kassirer, 1980). Los valores exactos rara vez se calculan al lado de la cama, pero la estructura es útil. El umbral depende de sensibilidad y especificidad de pruebas, beneficio y daño del tratamiento, urgencia, reversibilidad y preferencias.
 
-[FIGURA: fig06_umbrales.png | Figura 10. El enfoque de umbrales de Pauker y Kassirer: la probabilidad de enfermedad se divide en tres zonas de conducta. Los umbrales no son fijos: se desplazan según el daño de omitir, el riesgo de la intervención y el rendimiento de las pruebas disponibles.]
+[FIGURA: fig06_umbrales.png | Figura 11. El enfoque de umbrales de Pauker y Kassirer: la probabilidad de enfermedad se divide en tres zonas de conducta. Los umbrales no son fijos: se desplazan según el daño de omitir, el riesgo de la intervención y el rendimiento de las pruebas disponibles.]
 
 ### Errores asimétricos
 
 Falso positivo y falso negativo no tienen el mismo costo en todos los casos. En una condición letal y tratable, toleramos más falsos positivos para reducir omisiones. En un tratamiento tóxico o irreversible, exigimos mayor evidencia. La incertidumbre diagnóstica debe traducirse en una matriz de consecuencias.
 
-Ilustremos esta asimetría de costos con los dos momentos de Carmen. En la madrugada del ingreso, con la paciente en shock pero con una tomografía sin necrosis ni perforación libre, entrar a pabellón en plena inestabilidad hemodinámica conllevaba una mortalidad perioperatoria altísima; como el cuadro cedió rápidamente con descompresión nasogástrica y antibióticos, el umbral para una cirugía de rescate inmediato era muy alto y fue prudente no cruzarlo. Días después, con Carmen recuperada en sala, la matriz de consecuencias se invierte: el error más costoso ya no es operar a una paciente inestable, sino enviarla de alta con el anillo herniario intacto y que un quinto atascamiento reproduzca el shock séptico en su domicilio, lejos de una cama crítica. La anatomía radiológica es la misma; lo que desplazó el umbral terapéutico hacia la reparación electiva fue el nuevo peso pronóstico del error de omisión. La Figura 11 pone los dos momentos uno junto al otro.
+Ilustremos esta asimetría de costos con los dos momentos de Carmen. En la madrugada del ingreso, con la paciente en shock pero con una tomografía sin necrosis ni perforación libre, entrar a pabellón en plena inestabilidad hemodinámica conllevaba una mortalidad perioperatoria altísima; como el cuadro cedió rápidamente con descompresión nasogástrica y antibióticos, el umbral para una cirugía de rescate inmediato era muy alto y fue prudente no cruzarlo. Días después, con Carmen recuperada en sala, la matriz de consecuencias se invierte: el error más costoso ya no es operar a una paciente inestable, sino enviarla de alta con el anillo herniario intacto y que un quinto atascamiento reproduzca el shock séptico en su domicilio, lejos de una cama crítica. La anatomía radiológica es la misma; lo que desplazó el umbral terapéutico hacia la reparación electiva fue el nuevo peso pronóstico del error de omisión. La Figura 12 pone los dos momentos uno junto al otro.
 
-[FIGURA: fig13_carmen_umbral.png | Figura 11. La línea de tiempo de Carmen y el umbral que se mueve: en la madrugada, el daño esperado de operar en shock supera al de esperar; al día 7, el daño esperado de un alta sin operar supera al de una cirugía programada. Los hechos anatómicos no cambiaron; cambió el costo del error de omisión.]
+[FIGURA: fig13_carmen_umbral.png | Figura 12. La línea de tiempo de Carmen y el umbral que se mueve: en la madrugada, el daño esperado de operar en shock supera al de esperar; al día 7, el daño esperado de un alta sin operar supera al de una cirugía programada. Los hechos anatómicos no cambiaron; cambió el costo del error de omisión.]
 
 ### El umbral es un juicio de valor: el riesgo inductivo
 
@@ -68,14 +76,6 @@ La estructura de umbrales tiene una fundamentación filosófica precisa que rara
 La clínica es el caso extremo y más honesto de esta tesis. El umbral de Pauker y Kassirer es exactamente el riesgo inductivo vuelto aritmética: el punto donde "suficiente evidencia" queda definido por el costo de los dos errores posibles. Por eso "se descarta" nunca es una afirmación puramente epistémica: descartar una embolia con dímero negativo en un paciente de baja probabilidad no significa que la probabilidad sea cero, sino que el residuo de duda ya no justifica el daño esperado de seguir estudiando. Quien entiende esto deja de buscar un umbral "objetivo" escondido en las guías y empieza a hacer la pregunta correcta: ¿qué error estamos más dispuestos a tolerar en este paciente, y quién decidió eso?
 
 Esta fundamentación tiene una consecuencia liberadora. Reconocer que hay valores dentro del umbral no corrompe la objetividad clínica; la localiza. Los hechos y las probabilidades se estiman con toda la disciplina de la Parte I; el punto de corte se delibera —con el paciente cuando es posible— y se declara. Lo indefendible no es que haya valores en la decisión: es esconderlos detrás de una retórica de pura evidencia.
-
-### Una década sobre un mismo dato: la saga ANDROMEDA
-
-Pocas historias recientes muestran mejor cómo se lee —y se relee— la evidencia. En 2019, un ensayo multicéntrico conducido desde una red latinoamericana de investigación en medicina intensiva comparó dos blancos para reanimar el shock séptico: normalizar el lactato o normalizar el relleno capilar. El grupo guiado por la perfusión periférica tuvo una mortalidad absoluta 8,5 puntos menor; el valor p fue 0,06 y el ensayo quedó declarado "negativo" según la convención (Hernández et al., 2019). ¿Qué debía hacer un clínico con ese resultado? El umbral de significación que lo declaró negativo no es una ley de la naturaleza: es el riesgo inductivo de la sección anterior, institucionalizado en un número. Un reanálisis bayesiano lo hizo explícito: bajo cualquier prior razonable, la probabilidad de que la estrategia guiada por perfusión fuera superior excedía el 90% (Zampieri et al., 2020). El mismo dato, dos marcos de lectura, dos frases distintas para la ficha.
-
-La respuesta madura del propio grupo no fue proclamar victoria ni acatar el veredicto: fue refinar la hipótesis —fenotipos hemodinámicos, un algoritmo personalizado— y volver a someterla a una prueba más severa. Seis años después, el segundo ensayo, ahora en 86 centros de 19 países, mostró que la estrategia personalizada guiada por relleno capilar era superior al cuidado habitual (Hernández et al., 2025). La saga deja tres lecciones para este capítulo: un ensayo no se lee solo, porque el marco inferencial es parte de la lectura; "no significativo" no significa "sin efecto", y tratarlos como sinónimos es una decisión con costos; y la incertidumbre residual no se resuelve con retórica, sino con la siguiente pregunta bien diseñada. Hay una cuarta lección que excede la epistemología: esa ciencia de primera línea se hizo desde América Latina, coordinada desde Chile — el mismo continente clínico desde el que este libro escribe.
-
-[FIGURA: fig09_andromeda.png | Figura 12. Una década sobre un mismo dato: la saga ANDROMEDA. El mismo programa de investigación atraviesa un ensayo "negativo", su relectura bayesiana y una segunda prueba más severa — la trayectoria completa que este capítulo propone como modelo de lectura de la evidencia.]
 
 ### El cruce con la bioética: el contexto global del paciente como hecho clínico
 
@@ -90,12 +90,6 @@ La bioética clínica ofrece herramientas de trabajo para este cruce, y la más 
 Dos ideas del mundo hispanohablante completan la caja. La primera es la proporcionalidad terapéutica: la obligación moral de implementar sólo aquellas medidas que guarden debida proporción entre los medios empleados y el resultado previsible (Taboada, 2000). El juicio de proporcionalidad integra pronóstico, cargas de la intervención y fines del paciente — y por eso depende por completo de la calidad epistémica que este libro viene trabajando: un pronóstico inflado por certeza retórica no produce una decisión más esperanzadora; produce un juicio de proporcionalidad falso. La segunda es la deliberación como método (Gracia, 2001): cuando los valores entran en conflicto, la decisión no se calcula, se delibera — identificar qué valores chocan, enumerar los cursos de acción extremos, buscar los intermedios y elegir el curso prudente que pueda defenderse en público. La deliberación es a los valores lo que el diagnóstico diferencial a las hipótesis: un método para no quedarse con la primera respuesta disponible. Los cursos extremos — "hacer todo", "no hacer nada" — casi nunca son los prudentes, y suelen ser los que se eligen cuando nadie deliberó.
 
 El lector encontrará este cruce ejecutado dos veces en este libro sin la palabra "bioética": en la conversación donde la cirujana recomienda operar a Carmen y le devuelve la decisión (Interludio III), y en la viñeta del final de la vida, donde la incertidumbre que domina no es pronóstica sino de metas (Cuaderno de casos, viñeta 5). En ambas, lo decisivo no fue un principio abstracto: fue que la funcionalidad, la trayectoria y los fines del paciente estuvieran dentro del razonamiento desde el principio. Esa es la tesis de esta sección: la bioética no llega al final a ponerle límites a un razonamiento ya terminado — estaba en el principio, decidiendo qué se mira. Una decisión que ignoró la funcionalidad, el pronóstico de fondo y la red de apoyo no es más "objetiva" por haberse limitado a lo técnico: es más incompleta. Le faltan hechos, no sólo sensibilidad.
-
-### Certeza epistémica y compromiso práctico
-
-Puede existir alta incertidumbre epistémica y fuerte compromiso práctico. "No conocemos el foco con certeza, pero el cuadro exige antibióticos y control de fuente mientras se investiga." También puede existir alta certeza diagnóstica y decisión expectante. Confundir ambos planos lleva a tratar para demostrar convicción o a retrasar una acción porque el nombre no está completo.
-
-Reconocer incertidumbre no disminuye la responsabilidad; la hace más precisa. El médico responde por buscar la información razonablemente accesible, interpretar con competencia, comunicar límites y establecer una estrategia de reevaluación — no por volver determinista un mundo que no lo es.
 
 > La decisión clínica no exige convertir una probabilidad en certeza; exige justificar por qué, bajo esa probabilidad y esas consecuencias, actuar supera a no actuar.
 
@@ -113,12 +107,12 @@ Elija un paciente actual de su servicio con una decisión mayor pendiente —cir
 
 *Solución comentada.* El ejercicio suele revelar dos hallazgos. Primero: mientras la casilla de indicaciones biomédicas se llena sin esfuerzo, las otras tres exhiben lagunas que no corresponden a opiniones discutibles, sino a hechos clínicos nunca recabados: nadie preguntó con quién vive el paciente, la funcionalidad basal figura como "previamente autovalente" por simple arrastre documental sin evaluación objetiva, y las preferencias registradas son presunciones de la familia en lugar de la voz directa del enfermo. Segundo: completar las cuatro casillas rara vez cambia el aspecto técnico de la intervención, pero transforma de raíz la deliberación clínica: hace evidente con quién falta conversar, qué datos basales urge verificar y qué decisiones está tomando el equipo por pura inercia asistencial. Y cuando las cuatro casillas están completas y aun así persiste el desacuerdo, el ejercicio entrega un último diagnóstico crucial: el caso ya no requiere más exámenes; requiere deliberación estructurada y, a menudo, tiempo.
 
-**En una frase.** Decidir sin certeza no es un mal menor: es la forma normal del juicio clínico cuando trabaja bien — umbrales explícitos, valores declarados, el contexto global del paciente dentro del cálculo y ensayos leídos con su marco inferencial a la vista.
+**En una frase.** Decidir sin certeza no es un mal menor: es la forma normal del juicio clínico cuando trabaja bien — umbrales explícitos, valores declarados y el contexto global del paciente dentro del cálculo.
 
 **Tres preguntas para la próxima visita.**
 1. ¿Cuál es el umbral implícito de mi decisión: qué probabilidad de estar equivocado la haría cambiar?
 2. ¿Estoy exigiendo certeza diagnóstica donde bastaría compromiso práctico, o actuando para no tolerar una duda?
-3. El último ensayo "negativo" que cité: ¿mostró ausencia de efecto o ausencia de significación — y traté esa diferencia como si no existiera?
+3. De mi paciente más grave de hoy: ¿sé cómo funcionaba antes de enfermar, con quién vive y qué espera del tratamiento — y está escrito en alguna parte?
 
 ## Capítulo 11. Temporalidad, trayectoria y razonamiento contrafactual
 

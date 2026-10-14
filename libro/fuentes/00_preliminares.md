@@ -83,7 +83,7 @@ La incertidumbre, finalmente, no es una etapa transitoria que desaparecerá con 
 
 Este libro propone una disciplina de lucidez clínica. Lucidez no significa omnisciencia ni certeza permanente. Significa mantener separadas, pero comunicadas, las capas del conocimiento; reconocer los mecanismos propios de razonamiento; formular hipótesis con fuerza proporcional; decidir de acuerdo con las consecuencias; y establecer de antemano cómo se revisará la decisión. La meta no es pensar siempre más, sino saber cuándo el pensamiento automático es suficiente y cuándo debe ser interrumpido.
 
-**En una frase.** El conocimiento clínico tiene capas —hechos, inferencias, incertidumbre, decisión— que se mezclan con facilidad; la lucidez consiste en mantenerlas separadas pero comunicadas.
+**En una frase.** Una nota clínica comprime cuatro operaciones —observar, inferir, reconocer lo incierto, decidir— en un solo gesto; este libro enseña a separarlas cuando importa y a dejarlas juntas cuando no.
 
 **Tres preguntas para la próxima visita.**
 1. En la última nota que escribí, ¿qué afirmación era un dato y cuál era mi interpretación del dato?

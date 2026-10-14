@@ -210,6 +210,10 @@ Kassirer criticó la búsqueda obstinada de certeza diagnóstica porque puede ge
 
 Gadamer observó que la medicina es una praxis orientada a restablecer un equilibrio, no una mera aplicación técnica de conocimiento universal (Gadamer, 1996). La decisión se completa en la situación. Su racionalidad incluye aquello que todavía no puede saberse y la obligación de vigilar cómo evoluciona.
 
+Puede existir alta incertidumbre epistémica y fuerte compromiso práctico. "No conocemos el foco con certeza, pero el cuadro exige antibióticos y control de fuente mientras se investiga." También puede existir alta certeza diagnóstica y decisión expectante. Confundir ambos planos lleva a tratar para demostrar convicción o a retrasar una acción porque el nombre no está completo.
+
+Reconocer incertidumbre no disminuye la responsabilidad; la hace más precisa. El médico responde por buscar la información razonablemente accesible, interpretar con competencia, comunicar límites y establecer una estrategia de reevaluación — no por volver determinista un mundo que no lo es.
+
 > La incertidumbre no es el espacio vacío entre los hechos y la decisión; es una dimensión positiva del caso que debe describirse y gobernarse.
 
 #### Taller 3. El mapa de lo que no sabemos de Carmen
