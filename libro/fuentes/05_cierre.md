@@ -26,7 +26,7 @@ Una medicina científicamente seria y humanamente responsable no es la que nunca
 
 ### Una disciplina cotidiana
 
-La epistemología clínica puede parecer abstracta hasta que se traduce en hábitos: verificar la fuente del dato decisivo; reformular una etiqueta como una proposición; nombrar la principal explicación rival; separar la gravedad de la probabilidad; registrar qué hará cambiar la conducta; y revisar después si la confianza estuvo bien calibrada. Ningún hábito elimina el error. Juntos construyen condiciones para reconocerlo antes y aprender de él después.
+La epistemología clínica puede parecer abstracta hasta que se traduce en hábitos: verificar la fuente del dato decisivo; reformular una etiqueta como una proposición; nombrar la principal explicación rival; separar la gravedad de la probabilidad; registrar qué hará cambiar la conducta; y revisar después si la confianza estuvo bien calibrada. Ningún hábito elimina el error. Juntos construyen condiciones para reconocerlo antes y aprender de él después. El Apéndice C los convierte en un plan de tres meses para un servicio: el lenguaje primero, la pausa en la visita después, la ficha y el circuito de aprendizaje al final.
 
 La medicina necesita afirmaciones suficientemente firmes para coordinar acciones y suficientemente abiertas para admitir corrección. Esa doble exigencia no es una contradicción que deba resolverse eligiendo seguridad o duda, sino la forma propia del juicio clínico. La frase medular es valiosa porque condensa esa arquitectura: conserva el hecho, gradúa la inferencia, localiza la incertidumbre y hace visible la decisión.
 
@@ -156,13 +156,15 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 # Glosario
 
+Los términos marcados con ∗ son propuestas de este libro; los demás se toman de la literatura, con su autor entre paréntesis cuando corresponde.
+
 **Abducción.** Inferencia que propone la hipótesis que, de ser verdadera, volvería esperable lo observado. Descrita por Peirce (que la llamó primero «hipótesis»). Es el movimiento típico de la generación diagnóstica.
 
 **Anclaje.** Persistencia de una hipótesis inicial que conserva autoridad aun cuando la evidencia acumulada la ha degradado.
 
 **Calibración.** Correspondencia entre la confianza declarada y la proporción real de aciertos, evaluada sobre una serie de juicios.
 
-**Captura cognitiva.** Condicionamiento de la búsqueda de hipótesis, la lectura de los datos y la ponderación por una respuesta vista antes de razonar — típicamente la de un asistente de IA. No exige que la respuesta sea errónea: una hipótesis correcta entregada demasiado pronto también sustituye las operaciones que forman el juicio.
+**Captura cognitiva∗.** Condicionamiento de la búsqueda de hipótesis, la lectura de los datos y la ponderación por una respuesta vista antes de razonar — típicamente la de un asistente de IA. No exige que la respuesta sea errónea: una hipótesis correcta entregada demasiado pronto también sustituye las operaciones que forman el juicio.
 
 **Cierre prematuro.** Aceptación de un diagnóstico antes de haberlo verificado suficientemente, con suspensión de la búsqueda de alternativas.
 
@@ -174,7 +176,7 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Contrafactual.** Escenario comparativo implícito en toda afirmación causal: qué habría ocurrido sin la exposición o la intervención.
 
-**Creatividad clínica.** Momento generativo del juicio: conjeturar hipótesis (abducción), re-plantear el problema y crear opciones de manejo. Casi siempre es creatividad psicológica y exploratoria (Boden): nueva para el caso, no para la humanidad. Se ejerce en la generación y se corrige en la selección.
+**Creatividad clínica∗.** Momento generativo del juicio: conjeturar hipótesis (abducción), re-plantear el problema y crear opciones de manejo. Casi siempre es creatividad psicológica y exploratoria (Boden): nueva para el caso, no para la humanidad. Se ejerce en la generación y se corrige en la selección.
 
 **Cuatro tópicos (método de los).** Lista de verificación deliberativa de la ética clínica que ordena todo caso en indicaciones médicas, preferencias del paciente, calidad de vida y rasgos contextuales (Jonsen, Siegler y Winslade). Ningún cuadrante puede quedar vacío sin que la decisión quede incompleta.
 
@@ -182,7 +184,7 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Deliberación moral.** Método de la ética clínica para los conflictos de valores: identificar qué valores chocan, enumerar los cursos de acción extremos, buscar los intermedios y elegir el curso prudente y públicamente defendible (Gracia). Es a los valores lo que el diagnóstico diferencial a las hipótesis.
 
-**Densidad epistémica.** Propiedad de una formulación clínica que conserva los ejes que cambian la interpretación (tiempo, severidad, mecanismo, evidencia contraria, consecuencia) en lugar de sólo abreviar.
+**Densidad epistémica∗.** Propiedad de una formulación clínica que conserva los ejes que cambian la interpretación (tiempo, severidad, mecanismo, evidencia contraria, consecuencia) en lugar de sólo abreviar.
 
 **Deskilling / never-skilling / mis-skilling.** Tríada de riesgos formativos de la IA clínica: perder por desuso una competencia ya adquirida; no consolidarla nunca porque la herramienta ejecutó la tarea desde el inicio de la formación; o adquirirla mal, imitando salidas no auditadas (Abdulnour et al.). El segundo es el más difícil de detectar: no deja recuerdo de lo perdido.
 
@@ -198,19 +200,19 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Ética de la creencia.** Tesis de Clifford (1877) según la cual creer sin evidencia suficiente es en sí mismo reprochable, con independencia del desenlace; en clínica, fundamento del deber de pensar bien como parte de la ética primordial del médico y de la regla de que un buen desenlace no valida un proceso defectuoso.
 
-**Estado del razonador.** Condiciones en que se produce un juicio clínico —sueño, horas de turno, hora del día, ánimo, preocupaciones ajenas al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
+**Estado del razonador∗.** Condiciones en que se produce un juicio clínico —sueño, horas de turno, hora del día, ánimo, preocupaciones ajenas al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
 
-**Ficha de proceso.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; «Neumonía. Ceftriaxona» no conjuga ninguno.
+**Ficha de proceso∗.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; «Neumonía. Ceftriaxona» no conjuga ninguno.
 
 **Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho, no una impresión.
 
-**Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
+**Frase medular∗.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
 
 **Frecuencias naturales.** Presentación de probabilidades como conteos sobre una población de referencia («90 de cada 270 positivos»), que facilita el razonamiento bayesiano intuitivo (Gigerenzer).
 
 **Hindsight bias (sesgo retrospectivo).** Tendencia a percibir un desenlace conocido como si hubiera sido predecible, contaminando la evaluación de decisiones pasadas.
 
-**HII-D.** Heurística de escritura y deliberación que ordena el razonamiento en Hechos, Inferencias, Incertidumbre y Decisión, más un movimiento transversal de reevaluación. No validada como instrumento.
+**HII-D∗.** Heurística de escritura y deliberación que ordena el razonamiento en Hechos, Inferencias, Incertidumbre y Decisión, más un movimiento transversal de reevaluación. No validada como instrumento.
 
 **Humildad epistémica.** Atención y apropiación de las propias limitaciones cognitivas (Whitcomb et al.). No es timidez para afirmar: es la disposición que mantiene el caso abierto — permite seguir explorando, seguir aprendiendo y reubicar el foco y el manejo cuando la trayectoria contradice el mapa.
 
@@ -267,12 +269,12 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 **Validez externa / transportabilidad.** Grado en que un resultado de investigación puede aplicarse fuera del contexto en que fue producido; no es propiedad binaria del estudio sino relación entre evidencia y uso propuesto.
 
 # Índice analítico
-
 Los números remiten a capítulos (Int = introducción, Interludios I–III, CC = cuaderno de casos, C = conclusión, Ap = apéndices).
 
 - Abducción — 2; vigilada por la metacognición — 5; mantenida abierta por la humildad — 14
 - Actos de habla en la ficha (Austin) — 4
 - Anclaje — 7, 11, CC (viñeta 6)
+- Antipoesía como léxico de certeza (Parra) — 18
 - Atrofia de la pericia por asistencia de IA (deskilling) — 17
 - Ausencia de evidencia / evidencia de ausencia — 1, 4, Ap B
 - Autoridad revisable — 7, 13, 14
@@ -285,9 +287,9 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Comparación de HII-D con otros modelos (SOAP, scripts, reflexión deliberada) — 15
 - Comunicación de incertidumbre — 13, 14, CC (viñeta 5)
 - Conocimiento tácito — 6; saber hacer y quiebre (Varela) — 6
-- Conversaciones para la acción (Flores y Winograd) — 13
 - Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 15, Ap A
 - Contrafactuales — 11
+- Conversaciones para la acción (Flores y Winograd) — 13
 - Copiado de notas (fósil narrativo; magnitud medida) — 12, Ap C
 - Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2, 18
 - Cuatro tópicos (Jonsen, Siegler y Winslade) — 10, Ap A
@@ -301,10 +303,10 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Documentación defensiva — 14
 - Ensombrecimiento diagnóstico — CC (viñeta 8)
 - Errores asimétricos — 10, CC (viñeta 3)
-- Ética de la creencia (Clifford); pensar bien como deber primordial — 14, C
 - Escribas ambientales (regla «la capa H sí, la capa D no») — 17
 - Estado de verificación de un diagnóstico en la ficha electrónica — 12
 - Estado del razonador (esfuerzo, sueño, ánimo; turnos como condición epistémica) — 8, 16, Ap A
+- Ética de la creencia (Clifford); pensar bien como deber primordial — 14, C
 - Evidencia poblacional y particularización — 9
 - Falsabilidad del método HII-D — 15
 - Feedback diagnóstico — 5, 16, Ap C
@@ -313,13 +315,13 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Fichas clínicas y plantillas — 12, 16, Ap C; ficha electrónica pensada desde HII-D — 12
 - Formación clínica en la era de la IA (deskilling, never-skilling, mis-skilling) — 17
 - Fragilidad y funcionalidad como hechos clínicos — 10, 15, Ap A
-- Fuentes del hecho clínico (matriz de procedencia) — 1
 - Frase medular — 4, 12, C, CC (todas las viñetas); como argumento de Toulmin — 4
 - Frecuencias naturales — 2, 10
+- Fuentes del hecho clínico (matriz de procedencia) — 1
 - Grados de facticidad — 1
 - Hecho como estatus provisional (frontera hecho/inferencia) — 1
-- Hindsight bias — 8, 11, 16, CC (viñeta 6)
 - HII-D (método) — 12, 15, Ap A; auditoría de IA con — 17
+- Hindsight bias — 8, 11, 16, CC (viñeta 6)
 - Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
 - Illness scripts — 2, 6, 16
 - Improvisación y saber hacer (jazz; Limb y Braun) — 6
@@ -331,8 +333,8 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Léxico de certeza — 4, Ap B
 - Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 9
 - Medicina basada en evidencia — 9
-- Meta-d′ y medición de la metacognición — 5
 - Mente del principiante (Zen, shoshin) — 8
+- Meta-d′ y medición de la metacognición — 5
 - Metacognición: definición y niveles — Int, 5; monitoreo y control — 5; social (señales del equipo y del paciente) — 5, 13; sensibilidad vs. sesgo — Int, 5; auditoría de salidas de IA — 17
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
@@ -346,8 +348,9 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Phronesis — 6, 14
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pronóstico e incertidumbre de plazo — CC (viñeta 5)
-- Proteína C reactiva: cinética y lectura temporal — 11, 12
 - Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 5)
+- Proteína C reactiva: cinética y lectura temporal — 11, 12
+- Prueba de Parra (Taller 18) — 18
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III
 - Reglas de decisión clínica (PERC) y umbral — CC (viñeta 6)
@@ -365,9 +368,27 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Trayectoria y temporalidad — 11, Interludio I
 - Umbral y geografía (hospital insular, evacuación aeromédica) — 11
 - Umbrales de decisión — 10, Interludio III, CC (viñeta 3)
-- Validez del entorno e intuición (Kahneman y Klein) — 6
 - Validación local y monitoreo de herramientas de IA — 17
+- Validez del entorno e intuición (Kahneman y Klein) — 6
 - Verbos epistémicos — 4, Ap B
+
+# Lista de figuras
+
+- Figura 1. Mapa del libro (Cómo leer este libro).
+- Figura 2. Las cuatro capas del conocimiento clínico, la franja de incertidumbre que las atraviesa y el circuito de reevaluación que vuelve a la pregunta y a los hechos (Introducción).
+- Figura 3. Fuentes del hecho clínico (Capítulo 1).
+- Figura 4. Un mapa de la incertidumbre clínica (adaptado de la taxonomía de Han et al.) (Capítulo 3).
+- Figura 5. La frase medular como argumento de Toulmin (Capítulo 4).
+- Figura 6. El modelo de dos niveles de Nelson y Narens (Capítulo 5).
+- Figura 7. Curva de calibración (Capítulo 5).
+- Figura 8. El error como trayectoria (Capítulo 7).
+- Figura 9. Una década sobre un mismo dato (Capítulo 9).
+- Figura 10. El enfoque de umbrales de Pauker y Kassirer (Capítulo 10).
+- Figura 11. La línea de tiempo de Carmen y el umbral que se mueve (Capítulo 10).
+- Figura 12. El cálculo del Taller 10 en frecuencias naturales (Capítulo 10).
+- Figura 13. El viaje de una frase (Capítulo 12).
+- Figura 14. El método HII-D en una página (Capítulo 15).
+- Figura 15. Parentescos: cada riesgo de la IA clínica junto al sesgo que este libro ya había descrito (Capítulo 17).
 
 # Nota metodológica y estatuto de las afirmaciones
 
@@ -389,7 +410,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 
 Abdulnour, R.-E. E., Gin, B., & Boscardin, C. K. (2025). Educational strategies for clinical supervision of artificial intelligence use. *New England Journal of Medicine, 393*(8), 786–797.
 
-Abdulnour, R.-E. E., et al. (2026). Crew resource management — Navigating AI's automation paradox. *New England Journal of Medicine*. Publicado en línea el 22 de julio de 2026.
+Abdulnour, R.-E. E., Akbarialiabad, H., Haghighi, A., & Leachman, S. A. (2026). Crew resource management — Navigating AI's automation paradox. *New England Journal of Medicine, 395*(8), 731–734.
 
 Akram, A. R., Chalmers, J. D., Taylor, J. K., Rutherford, J., Singanayagam, A., & Hill, A. T. (2013). An evaluation of clinical stability criteria to predict hospital course in community-acquired pneumonia. *Clinical Microbiology and Infection, 19*(12), 1174–1180.
 
@@ -403,7 +424,7 @@ Barrows, H. S., & Feltovich, P. J. (1987). The clinical reasoning process. *Medi
 
 Berner, E. S., & Graber, M. L. (2008). Overconfidence as a cause of diagnostic error in medicine. *The American Journal of Medicine, 121*(5 Suppl), S2–S23.
 
-Biro, J., Handley, J. L., Cobb, N. K., Kottamasu, V., Collins, J., Krevat, S., & Ratwani, R. M. (2025). Accuracy and safety of AI-enabled scribe technology: Instrument validation study. *Journal of Medical Internet Research, 27*, e64993.
+Biro, J., Handley, J. L., Cobb, N. K., Kottamasu, V., Collins, J., Krevat, S.,, et al. (2025). Accuracy and safety of AI-enabled scribe technology: Instrument validation study. *Journal of Medical Internet Research, 27*, e64993.
 
 Boden, M. A. (2004). *The Creative Mind: Myths and Mechanisms* (2.ª ed.). Routledge.
 
@@ -415,7 +436,7 @@ Bordage, G. (1994). Elaborated knowledge: A key to successful diagnostic thinkin
 
 Bowen, J. L. (2006). Educational strategies to promote clinical diagnostic reasoning. *New England Journal of Medicine, 355*(21), 2217–2225.
 
-Budzyń, K., Romańczyk, M., Kitala, D., et al. (2025). Endoscopist deskilling risk after exposure to artificial intelligence in colonoscopy: A multicentre, observational study. *The Lancet Gastroenterology & Hepatology, 10*(10), 896–903.
+Budzyń, K., Romańczyk, M., Kitala, D., Kołodziej, P., Bugajski, M., Adami, H. O., et al. (2025). Endoscopist deskilling risk after exposure to artificial intelligence in colonoscopy: A multicentre, observational study. *The Lancet Gastroenterology & Hepatology, 10*(10), 896–903.
 
 Cabitza, F., Rasoini, R., & Gensini, G. F. (2017). Unintended consequences of machine learning in medicine. *JAMA, 318*(6), 517–518.
 
@@ -449,7 +470,7 @@ Croskerry, P., Singhal, G., & Mamede, S. (2013b). Cognitive debiasing 2: Impedim
 
 Custers, E. J. F. M. (2015). Thirty years of illness scripts: Theoretical origins and practical applications. *Medical Teacher, 37*(5), 457–462.
 
-Dequin, P.-F., Meziani, F., Quenot, J.-P., Kamel, T., Ricard, J.-D., Badie, J., Reignier, J., Heming, N., Plantefève, G., Souweine, B., Voiriot, G., Colin, G., Frat, J.-P., Mira, J.-P., Barbarot, N., François, B., Louis, G., Gibot, S., Guitton, C., … Le Gouge, A. (2023). Hydrocortisone in severe community-acquired pneumonia. *New England Journal of Medicine, 388*(21), 1931–1941.
+Dequin, P.-F., Meziani, F., Quenot, J.-P., Kamel, T., Ricard, J.-D., Badie, J., et al. (2023). Hydrocortisone in severe community-acquired pneumonia. *New England Journal of Medicine, 388*(21), 1931–1941.
 
 Djulbegovic, B., & Guyatt, G. H. (2017). Progress in evidence-based medicine: A quarter century on. *The Lancet, 390*(10092), 415–423.
 
@@ -499,7 +520,7 @@ Gigerenzer, G., Gaissmaier, W., Kurz-Milcke, E., Schwartz, L. M., & Woloshin, S.
 
 Goddard, K., Roudsari, A., & Wyatt, J. C. (2012). Automation bias: A systematic review of frequency, effect mediators, and mitigators. *Journal of the American Medical Informatics Association, 19*(1), 121–127.
 
-Goh, E., Gallo, R., Hom, J., et al. (2024). Large language model influence on diagnostic reasoning: A randomized clinical trial. *JAMA Network Open, 7*(10), e2440969.
+Goh, E., Gallo, R., Hom, J., Strong, E., Weng, Y., Kerman, H., et al. (2024). Large language model influence on diagnostic reasoning: A randomized clinical trial. *JAMA Network Open, 7*(10), e2440969.
 
 Graber, M. L., Franklin, N., & Gordon, R. (2005). Diagnostic error in internal medicine. *Archives of Internal Medicine, 165*(13), 1493–1499.
 
@@ -555,13 +576,13 @@ Knight, F. H. (1921). *Risk, Uncertainty and Profit*. Houghton Mifflin.
 
 Koriat, A. (1997). Monitoring one's own knowledge during study: A cue-utilization approach to judgments of learning. *Journal of Experimental Psychology: General, 126*(4), 349–370.
 
-Krasner, M. S., Epstein, R. M., Beckman, H., Suchman, A. L., Chapman, B., Mooney, C. J., & Quill, T. E. (2009). Association of an educational program in mindful communication with burnout, empathy, and attitudes among primary care physicians. *JAMA, 302*(12), 1284–1293.
+Krasner, M. S., Epstein, R. M., Beckman, H., Suchman, A. L., Chapman, B., Mooney, C. J.,, et al. (2009). Association of an educational program in mindful communication with burnout, empathy, and attitudes among primary care physicians. *JAMA, 302*(12), 1284–1293.
 
 Lackey, J. (2008). *Learning from Words: Testimony as a Source of Knowledge*. Oxford University Press.
 
 Lambe, K. A., O'Reilly, G., Kelly, B. D., & Curristan, S. (2016). Dual-process cognitive interventions to enhance diagnostic reasoning: A systematic review. *BMJ Quality & Safety, 25*(10), 808–820.
 
-Landrigan, C. P., Rothschild, J. M., Cronin, J. W., Kaushal, R., Burdick, E., Katz, J. T., Lilly, C. M., Stone, P. H., Lockley, S. W., Bates, D. W., & Czeisler, C. A. (2004). Effect of reducing interns' work hours on serious medical errors in intensive care units. *New England Journal of Medicine, 351*(18), 1838–1848.
+Landrigan, C. P., Rothschild, J. M., Cronin, J. W., Kaushal, R., Burdick, E., Katz, J. T., et al. (2004). Effect of reducing interns' work hours on serious medical errors in intensive care units. *New England Journal of Medicine, 351*(18), 1838–1848.
 
 Lee, P., Bubeck, S., & Petro, J. (2023). Benefits, limits, and risks of GPT-4 as an AI chatbot for medicine. *New England Journal of Medicine, 388*, 1233–1239.
 
@@ -569,11 +590,11 @@ Lifshitz, A. (2014). *La nueva clínica*. Academia Nacional de Medicina de Méxi
 
 Limb, C. J., & Braun, A. R. (2008). Neural substrates of spontaneous musical performance: An fMRI study of jazz improvisation. *PLoS ONE, 3*(2), e1679.
 
-Linder, J. A., Doctor, J. N., Friedberg, M. W., Reyes Nieva, H., Birks, C., Meeker, D., & Fox, C. R. (2014). Time of day and the decision to prescribe antibiotics. *JAMA Internal Medicine, 174*(12), 2029–2031.
+Linder, J. A., Doctor, J. N., Friedberg, M. W., Reyes Nieva, H., Birks, C., Meeker, D.,, et al. (2014). Time of day and the decision to prescribe antibiotics. *JAMA Internal Medicine, 174*(12), 2029–2031.
 
 Mamede, S., Schmidt, H. G., & Penaforte, J. C. (2008). Effects of reflective practice on the accuracy of medical diagnoses. *Medical Education, 42*(5), 468–475.
 
-Mamede, S., van Gog, T., van den Berge, K., Rikers, R. M. J. P., van Saase, J. L. C. M., van Guldener, C., & Schmidt, H. G. (2010). Effect of availability bias and reflective reasoning on diagnostic accuracy among internal medicine residents. *JAMA, 304*(11), 1198–1203.
+Mamede, S., van Gog, T., van den Berge, K., Rikers, R. M. J. P., van Saase, J. L. C. M., van Guldener, C.,, et al. (2010). Effect of availability bias and reflective reasoning on diagnostic accuracy among internal medicine residents. *JAMA, 304*(11), 1198–1203.
 
 Maniscalco, B., & Lau, H. (2012). A signal detection theoretic approach for estimating metacognitive sensitivity from confidence ratings. *Consciousness and Cognition, 21*(1), 422–430.
 
@@ -603,7 +624,7 @@ National Academies of Sciences, Engineering, and Medicine. (2015). *Improving Di
 
 Nelson, T. O., & Narens, L. (1990). Metamemory: A theoretical framework and new findings. In G. H. Bower (Ed.), *The Psychology of Learning and Motivation* (Vol. 26, pp. 125–173). Academic Press.
 
-Nicolle, L. E., Gupta, K., Bradley, S. F., Colgan, R., DeMuri, G. P., Drekonja, D., Eckert, L. O., Geerlings, S. E., Köves, B., Hooton, T. M., Juthani-Mehta, M., Knight, S. L., Saint, S., Schaeffer, A. J., Trautner, B., Wullt, B., & Siemieniuk, R. (2019). Clinical practice guideline for the management of asymptomatic bacteriuria: 2019 update by the Infectious Diseases Society of America. *Clinical Infectious Diseases, 68*(10), e83–e110.
+Nicolle, L. E., Gupta, K., Bradley, S. F., Colgan, R., DeMuri, G. P., Drekonja, D., et al. (2019). Clinical practice guideline for the management of asymptomatic bacteriuria: 2019 update by the Infectious Diseases Society of America. *Clinical Infectious Diseases, 68*(10), e83–e110.
 
 Norman, G. (2005). Research in clinical reasoning: Past history and current trends. *Medical Education, 39*(4), 418–427.
 
@@ -639,9 +660,9 @@ Qazi, I. A., Ali, A., Khawaja, A. U., Akhtar, M. J., Sheikh, A. Z., & Alizai, M.
 
 Rajkomar, A., & Blandford, A. (2012). Understanding infusion administration in the ICU through distributed cognition. *Journal of Biomedical Informatics, 45*(3), 580–590.
 
-Riquelme, A., Méndez, B., de la Fuente, P., Padilla, O., Benaglio, C., Sirhan, M., & Labarca, J. (2011). Desarrollo y validación de encuesta de percepción del portafolio en estudiantes de medicina de pregrado. *Revista Médica de Chile, 139*(1), 45–53.
+Riquelme, A., Méndez, B., de la Fuente, P., Padilla, O., Benaglio, C., Sirhan, M.,, et al. (2011). Desarrollo y validación de encuesta de percepción del portafolio en estudiantes de medicina de pregrado. *Revista Médica de Chile, 139*(1), 45–53.
 
-Rockwood, K., Song, X., MacKnight, C., Bergman, H., Hogan, D. B., McDowell, I., & Mitnitski, A. (2005). A global clinical measure of fitness and frailty in elderly people. *CMAJ, 173*(5), 489–495.
+Rockwood, K., Song, X., MacKnight, C., Bergman, H., Hogan, D. B., McDowell, I.,, et al. (2005). A global clinical measure of fitness and frailty in elderly people. *CMAJ, 173*(5), 489–495.
 
 Rouault, M., McWilliams, A., Allen, M., & Fleming, S. M. (2018). Human metacognition across domains: Insights from individual differences and neuroimaging. *Personality Neuroscience, 1*, e17.
 
@@ -673,7 +694,7 @@ Tajer, C. (2008). *El corazón enfermo: Puentes entre las emociones y el infarto
 
 Thornicroft, G. (2011). Physical health disparities and mental illness: The scandal of premature mortality. *British Journal of Psychiatry, 199*(6), 441–442.
 
-Tierney, A. A., Gayre, G., Hoberman, B., Mattern, B., Ballesca, M., Kipnis, P., Liu, V., & Lee, K. (2024). Ambient artificial intelligence scribes to alleviate the burden of clinical documentation. *NEJM Catalyst Innovations in Care Delivery, 5*(3), CAT.23.0404.
+Tierney, A. A., Gayre, G., Hoberman, B., Mattern, B., Ballesca, M., Kipnis, P., et al. (2024). Ambient artificial intelligence scribes to alleviate the burden of clinical documentation. *NEJM Catalyst Innovations in Care Delivery, 5*(3), CAT.23.0404.
 
 Tonelli, M. R. (1998). The philosophical limits of evidence-based medicine. *Academic Medicine, 73*(12), 1234–1240.
 
@@ -697,12 +718,12 @@ Winograd, T., & Flores, F. (1986). *Understanding Computers and Cognition: A New
 
 Wittgenstein, L. (2009). *Philosophical Investigations* (G. E. M. Anscombe, P. M. S. Hacker, & J. Schulte, Trans.; 4th ed.). Wiley-Blackwell. (Obra original publicada en 1953).
 
-Wong, A., Otles, E., Donnelly, J. P., et al. (2021). External validation of a widely implemented proprietary sepsis prediction model in hospitalized patients. *JAMA Internal Medicine, 181*(8), 1065–1070.
+Wong, A., Otles, E., Donnelly, J. P., Krumm, A., McCullough, J., DeTroyer-Cooley, O., et al. (2021). External validation of a widely implemented proprietary sepsis prediction model in hospitalized patients. *JAMA Internal Medicine, 181*(8), 1065–1070.
 
 World Health Organization. (2024). *Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models*. World Health Organization.
 
 Wu, A. W. (2000). Medical error: The second victim. The doctor who makes the mistake needs help too. *BMJ, 320*(7237), 726–727.
 
-Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., & Hooi, B. (2024). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. *Proceedings of ICLR 2024*.
+Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J.,, et al. (2024). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. *Proceedings of ICLR 2024*.
 
-Zampieri, F. G., Damiani, L. P., Bakker, J., Ospina-Tascón, G. A., Castro, R., Cavalcanti, A. B., & Hernández, G. (2020). Effects of a resuscitation strategy targeting peripheral perfusion status versus serum lactate levels among patients with septic shock: A Bayesian reanalysis of the ANDROMEDA-SHOCK trial. *American Journal of Respiratory and Critical Care Medicine, 201*(4), 423–429.
+Zampieri, F. G., Damiani, L. P., Bakker, J., Ospina-Tascón, G. A., Castro, R., Cavalcanti, A. B.,, et al. (2020). Effects of a resuscitation strategy targeting peripheral perfusion status versus serum lactate levels among patients with septic shock: A Bayesian reanalysis of the ANDROMEDA-SHOCK trial. *American Journal of Respiratory and Critical Care Medicine, 201*(4), 423–429.

@@ -89,7 +89,7 @@ HII-D organiza el razonamiento en cuatro dominios: hechos, inferencias, incertid
 
 Su principio es simple: cada afirmación importante debe poder ubicarse en una capa, y cada decisión debe mostrar cómo se relaciona con las otras. El método agrega un quinto movimiento transversal: reevaluación. Toda formulación es temporal.
 
-[FIGURA: fig08_hiid.png | Figura 15. El método HII-D en una página: cinco pasos, cuatro capas y un movimiento transversal de reevaluación que devuelve al mundo la capacidad de corregirnos.]
+[FIGURA: fig08_hiid.png | Figura 14. El método HII-D en una página: cinco pasos, cuatro capas y un movimiento transversal de reevaluación que devuelve al mundo la capacidad de corregirnos.]
 
 ### Qué añade frente a los modelos existentes
 
@@ -453,9 +453,9 @@ Los riesgos de la IA clínica ya no son especulación: tienen literatura propia,
 - **Sobreconfianza no calibrada.** La confianza verbalizada de los modelos tiende a la sobreconfianza sistemática (Kadavath et al., 2022; Xiong et al., 2024): el «estoy bastante seguro» del modelo es tono, no calibración — la sobreconfianza humana, sin siquiera un historial propio de errores que la eduque. Y cuando el modelo «critica» o «revisa» su propia respuesta, esa autocrítica puede ser otra generación entrenada para imitar la evaluación: la pregunta práctica no es si el sistema sabe que sabe, sino si sus señales de confianza están empíricamente calibradas.
 - **Degradación silenciosa.** Los modelos se despliegan sobre poblaciones que cambian: prevalencias, prácticas, codificaciones. El rendimiento decae sin anunciarse, porque el software no siente que está fallando. Sin monitoreo activo, la validación de ayer es la superstición de mañana.
 
-La columna vertebral del catálogo es una sola observación: la IA no introdujo errores nuevos en la medicina. Automatizó los que ya teníamos y les quitó los frenos naturales — la lentitud, la duda, el cansancio que a veces obligaba a pedir ayuda. La Figura 16 pone cada riesgo junto al sesgo que amplifica.
+La columna vertebral del catálogo es una sola observación: la IA no introdujo errores nuevos en la medicina. Automatizó los que ya teníamos y les quitó los frenos naturales — la lentitud, la duda, el cansancio que a veces obligaba a pedir ayuda. La Figura 15 pone cada riesgo junto al sesgo que amplifica.
 
-[FIGURA: fig15_parentescos_ia.png | Figura 16. Parentescos: cada riesgo de la IA clínica junto al sesgo que este libro ya había descrito y el capítulo donde vive. Ningún riesgo es nuevo; la novedad es el amplificador.]
+[FIGURA: fig15_parentescos_ia.png | Figura 15. Parentescos: cada riesgo de la IA clínica junto al sesgo que este libro ya había descrito y el capítulo donde vive. Ningún riesgo es nuevo; la novedad es el amplificador.]
 
 ### El riesgo de fondo: la formación del razonador
 

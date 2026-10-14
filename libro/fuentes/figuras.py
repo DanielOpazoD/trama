@@ -1,4 +1,4 @@
-"""Genera las 16 figuras del libro en estilo editorial sobrio (grises + un acento)."""
+"""Genera las 15 figuras del libro en estilo editorial sobrio (grises + un acento)."""
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -491,27 +491,5 @@ for r_t, r_s, s_t, s_s in pares:
 ax.text(5.4, -0.12, "Ningún riesgo es nuevo: la IA automatiza los errores que ya teníamos y les quita los frenos —\nla lentitud, la duda, el cansancio que obligaba a pedir ayuda",
         ha="center", va="center", fontsize=7.4, style="italic", color=GRIS, linespacing=1.25)
 guardar(fig, "fig15_parentescos_ia.png")
-
-# ------------------------------------------- fig16 aritmética del riesgo basal
-fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.6), sharey=True)
-for ax, titulo, sin, con, nota in [
-    (axes[0], "Población del ensayo (cifras ilustrativas)", 20, 10, "−10 puntos absolutos:\noperar a 10 para evitar 1 obstrucción"),
-    (axes[1], "Carmen (riesgo basal plausible)", 60, 30, "−30 puntos absolutos:\ncasi 1 de cada 3 evita el evento"),
-]:
-    ax.bar([0, 1], [sin, con], width=0.55, color=[GRIS, ACENTO], alpha=0.85)
-    ax.set_xticks([0, 1]); ax.set_xticklabels(["sin cirugía", "reparación electiva"], fontsize=8.4)
-    ax.set_ylim(0, 84)
-    for xx, v in [(0, sin), (1, con)]:
-        ax.text(xx, v + 1.5, f"{v}%", ha="center", fontsize=9, fontweight="bold", color=INK)
-    ax.set_title(titulo, fontsize=8.8, color=ACENTO2, fontweight="bold")
-    ax.text(0.5, 78, nota, ha="center", va="center", fontsize=7.6, color=ACENTO, style="italic")
-    ax.annotate("", xy=(1, con + 7), xytext=(0.3, sin + 7), arrowprops=dict(arrowstyle="-|>", color=ACENTO, lw=1.2, connectionstyle="arc3,rad=-0.2"))
-    ax.tick_params(labelsize=8)
-    for s in ["top", "right"]:
-        ax.spines[s].set_visible(False)
-axes[0].set_ylabel("Recurrencia obstructiva a dos años", fontsize=8.6)
-fig.text(0.5, -0.04, "La misma reducción relativa (50%) vale tres veces más en Carmen — pero su riesgo quirúrgico (EPOC, shock reciente, abdomen reoperado) también se aleja del promedio",
-         ha="center", fontsize=7.4, style="italic", color=GRIS)
-guardar(fig, "fig16_aritmetica.png")
 
 print("Figuras generadas en", OUT)
