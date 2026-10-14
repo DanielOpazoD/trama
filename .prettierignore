@@ -6,3 +6,5 @@ test-results
 .claude
 package-lock.json
 *.min.js
+# El libro es contenido editorial; prettier cambiaría el markdown de las fuentes.
+libro

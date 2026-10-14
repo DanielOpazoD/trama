@@ -36,6 +36,9 @@ export default tseslint.config(
       'test-results/**',
       // El bundle-size script es un .mjs node-only — sin tipos React.
       'scripts/check-bundle-size.mjs',
+      // El libro (libro/) es contenido editorial con su propio build
+      // (Python + un script CommonJS de node); no es código de la app.
+      'libro/**',
     ],
   },
   js.configs.recommended,
