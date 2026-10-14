@@ -307,13 +307,13 @@ Las visitas de sala pueden usar una pausa breve: ¿qué hechos nuevos cambian el
 
 ### Diseño para la corrección
 
-Un sistema seguro no depende de que cada individuo recuerde cuestionarlo todo. Diseña momentos y artefactos que facilitan detectar discordancias: tendencias visibles, alertas selectivas, listas de problemas actualizadas, criterios de reevaluación, acceso a datos fuente y roles claros para escalar preocupación. La National Academies conceptualizó el diagnóstico como un proceso de equipo y aprendizaje continuo, no como un acto aislado (National Academies of Sciences, Engineering, and Medicine, 2015).
+Un sistema seguro no depende de que cada individuo recuerde cuestionarlo todo. Diseña momentos y artefactos que facilitan detectar discordancias: tendencias visibles, alertas selectivas, listas de problemas actualizadas, criterios de reapertura, acceso a datos fuente y roles claros para escalar preocupación. La National Academies conceptualizó el diagnóstico como un proceso de equipo y aprendizaje continuo, no como un acto aislado (National Academies of Sciences, Engineering, and Medicine, 2015).
 
 La redundancia debe ser inteligente. Repetir información sin contraste aumenta ruido. La redundancia útil incorpora independencia parcial: una segunda lectura, una revisión por otro profesional o una comprobación contra datos primarios. Del mismo modo, la tecnología debe reducir carga sin convertir la automatización en autoridad incuestionada.
 
 ### Comunicar incertidumbre sin perder confianza
 
-Queda la conversación más difícil del equipo, que es con quien no pertenece a él: el paciente. Muchos clínicos temen que expresar incertidumbre debilite la confianza del paciente o del equipo. El resultado puede ser un lenguaje excesivamente categórico. El dilema es falso: la alternativa a la certeza no es la desorientación, sino una explicación estructurada de lo que se sabe, lo que se sospecha, lo que importa y qué se hará.
+Queda la conversación más difícil del equipo: la que sostiene con el paciente, que forma parte de la red y es quien más arriesga en ella. Muchos clínicos temen que expresar incertidumbre debilite la confianza del paciente o del equipo. El resultado puede ser un lenguaje excesivamente categórico. El dilema es falso: la alternativa a la certeza no es la desorientación, sino una explicación estructurada de lo que se sabe, lo que se sospecha, lo que importa y qué se hará.
 
 La confianza clínica no depende sólo de parecer seguro. Depende de competencia, honestidad, presencia y continuidad. Una frase como «no sabemos nada» abandona; «no puedo asegurar todavía la causa, pero hemos descartado las amenazas inmediatas más probables, vigilaremos estos cambios y repetiremos la evaluación en este plazo» transforma incertidumbre en plan.
 

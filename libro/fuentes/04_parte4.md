@@ -382,7 +382,7 @@ Un portafolio privado puede registrar: hipótesis principal, confianza aproximad
 
 ### Lenguaje institucional
 
-La tercera palanca es la ficha, y su primera forma es la plantilla. Las plantillas de ficha pueden apoyar o degradar el pensamiento. Campos obligatorios interminables producen copia; campos demasiado libres ocultan información crítica. Una plantilla equilibrada incluye problema, hechos nuevos, evaluación con grado de certeza, plan y criterios de reevaluación. La tecnología debería facilitar comparación temporal y procedencia de datos, no sólo acumular texto.
+La tercera palanca es la ficha, y su primera forma es la plantilla. Las plantillas de ficha pueden apoyar o degradar el pensamiento. Campos obligatorios interminables producen copia; campos demasiado libres ocultan información crítica. Una plantilla equilibrada incluye problema, hechos nuevos, evaluación con grado de certeza, plan y criterios de reapertura. La tecnología debería facilitar comparación temporal y procedencia de datos, no sólo acumular texto.
 
 La cultura importa. Un residente debe poder decir «no entiendo este dato» sin perder legitimidad; una enfermera debe poder señalar que la evolución no coincide con el diagnóstico; un especialista debe explicitar límites; un jefe debe corregirse en público. La revisabilidad se aprende por modelamiento.
 
