@@ -1,6 +1,6 @@
 # PARTE IV. Una epistemología operativa
 
-Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente a la responsabilidad —y el miedo— que ninguna herramienta puede delegar (capítulo 14). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 15), un cuaderno de diez casos para leer metacognitivamente —incluida la resolución de la historia de Carmen— y el problema de enseñar y organizar todo esto (capítulo 16). Cierran el libro dos espejos: la inteligencia artificial en el proceso diagnóstico y terapéutico —qué hace, qué arriesga, cómo se la enfrenta— (capítulo 17), y la poesía — porque el debate sobre lo que la palabra tiene derecho a hacer también se libró en verso, y en Chile (capítulo 18).
+Las tres primeras partes construyeron las herramientas; esta las pone a trabajar. Primero frente a la responsabilidad —y el miedo— que ninguna herramienta puede delegar (capítulo 14). Luego, el método HII-D en forma completa y en versión de sesenta segundos (capítulo 15), un cuaderno de ocho casos para leer metacognitivamente —incluida la resolución de la historia de Carmen— y el problema de enseñar y organizar todo esto (capítulo 16). Cierran el libro dos espejos: la inteligencia artificial en el proceso diagnóstico y terapéutico —qué hace, qué arriesga, cómo se la enfrenta— (capítulo 17), y la poesía — porque el debate sobre lo que la palabra tiene derecho a hacer también se libró en verso, y en Chile (capítulo 18).
 
 ## Capítulo 14. Humildad epistémica y responsabilidad clínica
 
@@ -205,7 +205,7 @@ Elija el caso más incómodo de su lista actual —el que genera discusión en c
 2. ¿Mi nota de hoy permite a otro médico reconstruir mis cuatro capas, o sólo mi conclusión?
 3. ¿Qué decisión de esta semana tomé sin criterio de reapertura, y todavía estoy a tiempo de escribirlo?
 
-## Cuaderno de casos. Diez viñetas para una lectura metacognitiva
+## Cuaderno de casos. Ocho viñetas para una lectura metacognitiva
 
 Las viñetas siguientes son composiciones docentes. Cada una se presenta con la estructura HII-D y una frase medular. No son casos "resueltos": son casos representados. La invitación es leer cada uno dos veces —primero como clínico, buscando la conducta; después como lector metacognitivo, observando qué hace cada capa.
 
@@ -241,35 +241,7 @@ Un paciente con lesión medular completa, vejiga neurogénica, sonda Foley y neo
 
 *Frase medular:* "Urocultivo positivo y piuria en usuario crónico de Foley, sin manifestaciones sistémicas nuevas que sostengan CAUTI; cuadro más compatible con bacteriuria asociada a catéter, con vigilancia reforzada por expresión sintomática limitada y antecedente de resistencia."
 
-### Viñeta 3. Globus y necesidad de una explicación no reductiva
-
-Una paciente refiere sensación persistente de cuerpo extraño faríngeo, sin disfagia progresiva, odinofagia, pérdida de peso ni alteración estructural en evaluación inicial. Los síntomas fluctúan con estrés y atención corporal. Solicita "un examen que muestre qué tiene".
-
-*Hechos:* sensación localizada; ausencia de signos de alarma; evaluación estructural no reveladora; variabilidad contextual.
-
-*Inferencia:* globus funcional es probable después de una evaluación apropiada. "Funcional" no significa inventado; describe alteración de percepción, atención, sensibilidad y regulación sin lesión estructural suficiente para explicarla.
-
-*Incertidumbre:* ningún examen elimina todo riesgo futuro; la conducta depende de evolución y aparición de banderas rojas. Puede coexistir reflujo, tensión muscular o factores afectivos sin causalidad única.
-
-*Decisión:* explicar el diagnóstico positivo, evitar escalamiento indiscriminado de pruebas, tratar factores contribuyentes seleccionados y usar estrategias cognitivo-conductuales orientadas a atención, interpretación y respuesta al síntoma.
-
-*Frase medular:* "Sensación de globus sin disfagia verdadera ni signos de alarma y con evaluación estructural negativa, compatible con trastorno funcional de percepción faríngea; se propone manejo positivo y seguimiento, no una búsqueda indefinida de lesión oculta."
-
-### Viñeta 4. Infiltrados pulmonares y causalidad múltiple
-
-Una persona mayor presenta insuficiencia respiratoria con infiltrados multifocales, derrame pequeño y signología obstructiva. Existe posibilidad de infección, congestión, aspiración y reacción inflamatoria farmacológica. Mejora con soporte, antibióticos, broncodilatación y ajuste terapéutico.
-
-*Hechos:* insuficiencia respiratoria; hallazgos radiológicos mixtos; marcadores inflamatorios; respuesta bajo intervenciones simultáneas.
-
-*Inferencia:* neumopatía multifactorial es una representación más fiel que atribuir todo a una causa. La mejoría no permite identificar qué intervención fue específica.
-
-*Incertidumbre:* peso relativo de infección, inflamación y congestión; causalidad farmacológica; riesgo de recurrencia.
-
-*Decisión:* completar una duración antibiótica proporcionada si la probabilidad inicial lo justifica, retirar la exposición sospechosa cuando el balance favorece hacerlo y documentar que la causalidad no está demostrada. El seguimiento debe buscar recurrencia tras reexposición y evolución radiológica.
-
-*Frase medular:* "Insuficiencia respiratoria por neumopatía multifocal probablemente mixta, con componentes infeccioso-inflamatorio y posible contribución farmacológica; evolución favorable bajo medidas concomitantes, sin posibilidad de atribución causal única."
-
-### Viñeta 5. Tres de la mañana: decidir con el reloj en contra
+### Viñeta 3. Tres de la mañana: decidir con el reloj en contra
 
 Urgencias, 3:10. Hombre de 54 años, dolor torácico opresivo de 40 minutos, sudoroso, con antecedente de tabaquismo. Electrocardiograma: alteraciones inespecíficas de la repolarización. Primera troponina: pendiente. Hay otros nueve pacientes esperando y una sola reanimación disponible. No hay tiempo para la plantilla completa; hay tiempo para los sesenta segundos.
 
@@ -285,7 +257,7 @@ Urgencias, 3:10. Hombre de 54 años, dolor torácico opresivo de 40 minutos, sud
 
 *Lectura metacognitiva.* La decisión correcta a las 3:10 no fue diagnóstica sino estratégica: comprar tiempo de vigilancia con intervenciones de bajo riesgo. El error clásico en este escenario no es intelectual, es logístico: la hipótesis correcta ("probable SCA") sin sistema de reevaluación (¿quién repite el ECG si la sala explota?). El criterio de reapertura con responsable es la mitad de la decisión.
 
-### Viñeta 6. La consulta ambulatoria y el chequeo reciente
+### Viñeta 4. La consulta ambulatoria y el chequeo reciente
 
 Atención primaria. Mujer de 47 años consulta por fatiga de tres meses. Trae exámenes "normales de hace poco": hemograma y perfil realizados cinco meses atrás, cuando la fatiga no existía. Refiere además sudoración nocturna ocasional que atribuye a "premenopausia" y ha perdido "dos o tres kilos, por comer menos". Agenda llena, doce minutos por paciente.
 
@@ -301,7 +273,7 @@ Atención primaria. Mujer de 47 años consulta por fatiga de tres meses. Trae ex
 
 *Lectura metacognitiva.* El riesgo ambulatorio típico es el cierre por evidencia caducada: "tiene exámenes normales" es un hecho cuya fecha lo vuelve casi irrelevante. La herramienta central de la atención primaria —el tiempo longitudinal— sólo funciona como prueba si tiene control programado y red de seguridad; sin ellos, es una espera que confía en la suerte.
 
-### Viñeta 7. Pronóstico incierto al final de la vida
+### Viñeta 5. Pronóstico incierto al final de la vida
 
 Hombre de 78 años con cáncer de páncreas metastásico, en tercera línea de tratamiento, ingresa por deterioro funcional rápido y una neumonía. La familia pregunta cuánto tiempo queda; una hija pide "que se haga todo"; el equipo de oncología sugiere que "podría haber una ventana para otra línea". El paciente, lúcido a ratos, dice que está cansado.
 
@@ -317,7 +289,7 @@ Hombre de 78 años con cáncer de páncreas metastásico, en tercera línea de t
 
 *Lectura metacognitiva.* El final de la vida concentra todos los temas del libro: la tentación de responder "¿cuánto queda?" con una cifra falsa (certeza retórica), la de esconderse en "no se puede saber" (abandono), y la confusión entre lo técnicamente posible y lo proporcionado — el juicio de proporcionalidad del capítulo 10, que aquí exige lo que más cuesta: un pronóstico honesto. Comunicar dirección y escenarios en vez de plazos, y anclar la decisión en las metas del enfermo, es la forma que toma aquí la incertidumbre bien gobernada.
 
-### Viñeta 8. Anatomía de un error consumado
+### Viñeta 6. Anatomía de un error consumado
 
 Esta viñeta analiza un error completo, con la disciplina de los capítulos 7 y 8: sin usar nombres de sesgos y sin dejar que el desenlace conocido juzgue lo que era razonable saber en cada momento.
 
@@ -333,7 +305,7 @@ Esta viñeta analiza un error completo, con la disciplina de los capítulos 7 y 
 
 *Lectura metacognitiva.* La frase que faltó no requería más conocimiento del que cualquier médico de urgencias ya tiene: requería que el antecedente psiquiátrico no descontara el valor de dos signos medidos. Esta viñeta es el capítulo 14 en su forma más silenciosa —la injusticia testimonial no le dijo a la paciente que no le creía; simplemente dejó de preguntar— y es también el capítulo 10: la regla PERC es un umbral explícito, y los umbrales explícitos sólo protegen a quien recuerda que hay una hipótesis que someterles. La disciplina de escritura habría bastado: separar el hecho (taquicardia persistente no explicada) de la etiqueta (pánico), conservar la incertidumbre y programar la reapertura.
 
-### Viñeta 9. "Lo veo raro": el testimonio de la madre
+### Viñeta 7. "Lo veo raro": el testimonio de la madre
 
 Un lactante de cinco meses llega a urgencias a las 22:30. Afebril tras paracetamol en casa, signos vitales dentro de rangos para la edad, examen segmentario sin foco. La madre insiste: "No es él. No se ríe, no me busca, está como apagado". La sala está llena y el registro de triage dice "lactante febril en buenas condiciones generales".
 
@@ -349,7 +321,7 @@ Un lactante de cinco meses llega a urgencias a las 22:30. Afebril tras paracetam
 
 *Lectura metacognitiva.* La pediatría radicaliza el capítulo 1: el paciente no habla, y el "hecho" más valioso es un testimonio de tercero sobre un basal que el equipo no conoce. Descartar la preocupación materna como ansiedad es el equivalente pediátrico de la injusticia testimonial del capítulo 14 — y además, simplemente, mala medicina: pocas fuentes de información tienen mejor razón señal-ruido que quien mira a ese niño todos los días.
 
-### Viñeta 10. El dolor abdominal de la paciente que "somatiza"
+### Viñeta 8. El dolor abdominal de la paciente que "somatiza"
 
 Una mujer de 34 años con esquizofrenia en tratamiento consulta por dolor abdominal de dos días. En el box, habla poco y evita la mirada; la nota de derivación dice "consultas frecuentes, quejas somáticas múltiples". Taquicardia de 110, abdomen difícil de evaluar — la paciente tolera mal la palpación y su tratamiento antipsicótico puede atenuar la expresión del dolor y enlentecer el tránsito.
 
@@ -365,7 +337,7 @@ Una mujer de 34 años con esquizofrenia en tratamiento consulta por dolor abdomi
 
 *Lectura metacognitiva.* Esta viñeta es el capítulo 14 con mortalidad: la injusticia testimonial —descontar el relato por quién lo dice— aquí no es sólo un agravio moral sino un mecanismo causal de la brecha de 15 a 20 años de vida. Nótese el movimiento epistémico central: cuando el testimonio y el examen valen menos de lo habitual, el estándar de estudio objetivo sube en compensación. El ensombrecimiento hace exactamente lo contrario — usa la dificultad como excusa para bajar el estándar — y por eso mata.
 
-### Lo común a las diez viñetas
+### Lo común a las ocho viñetas
 
 En cada caso, la buena formulación evita dos extremos: describir sin interpretar o interpretar como si se hubiera observado directamente. El hecho guía la hipótesis; la incertidumbre modula su fuerza; la consecuencia define la decisión; la evolución conserva el derecho a corregir. Y en todas —de la urgencia de las 3:00 al final de la vida, del lactante que no habla a la paciente a la que no se le cree— la decisión termina con la misma cláusula: qué la haría cambiar, quién lo detectará y cuándo.
 
@@ -405,7 +377,7 @@ El pase de turno debe transmitir tareas epistémicas, no sólo tratamientos. "Pe
 
 ### Conferencias de aprendizaje
 
-La morbimortalidad tradicional puede centrarse en quién se equivocó o en una secuencia factual sin análisis cognitivo. Una revisión más útil reconstruye la evolución de la representación: qué se pensó en cada punto, qué señales estaban disponibles, qué información faltó, qué condiciones favorecieron la inercia y qué barrera podría permitir corrección futura. La viñeta 8 del cuaderno de casos es un ejemplo del formato: capas, oportunidades y barreras, sin moralismo retrospectivo.
+La morbimortalidad tradicional puede centrarse en quién se equivocó o en una secuencia factual sin análisis cognitivo. Una revisión más útil reconstruye la evolución de la representación: qué se pensó en cada punto, qué señales estaban disponibles, qué información faltó, qué condiciones favorecieron la inercia y qué barrera podría permitir corrección futura. La viñeta 6 del cuaderno de casos es un ejemplo del formato: capas, oportunidades y barreras, sin moralismo retrospectivo.
 
 Debe evitarse el hindsight bias. El desenlace no convierte automáticamente en obvia una alternativa que tenía baja probabilidad inicial. El aprendizaje surge al identificar oportunidades razonables de actualización, no al exigir omnisciencia retrospectiva.
 
@@ -557,7 +529,7 @@ El parentesco es lógico antes que sentimental. Una metáfora es la hipótesis d
 
 En 1916, Vicente Huidobro escribió el manifiesto de una poesía que no quería describir el mundo sino aumentarlo: "Por qué cantáis la rosa, ¡oh Poetas! / Hacedla florecer en el poema". Y remató con la línea más citada del creacionismo: "El poeta es un pequeño Dios" (Huidobro, 1916). El poema no canta la rosa: la crea. Como programa poético es glorioso. Como descripción de lo que el lenguaje puede hacer, es exactamente el peligro contra el que este libro lleva diecisiete capítulos escribiendo.
 
-Porque la ficha clínica también hace florecer rosas. La "neumonía aspirativa" del prefacio —dos palabras limpias que crearon un antecedente que nadie observó— es creacionismo puro; el "somatiza" de la viñeta 10, también. El capítulo 12 mostró el mecanismo: la ficha produce lo visible, y sus criaturas verbales adquieren vida institucional. La diferencia con la poesía es brutal: las rosas de Huidobro viven en el poema; las nuestras reciben antibióticos, cirugías y altas. El lenguaje clínico descuidado es creacionista por defecto — y un servicio lleno de pequeños dioses es un lugar peligroso para estar enfermo.
+Porque la ficha clínica también hace florecer rosas. La "neumonía aspirativa" del prefacio —dos palabras limpias que crearon un antecedente que nadie observó— es creacionismo puro; el "somatiza" de la viñeta 8, también. El capítulo 12 mostró el mecanismo: la ficha produce lo visible, y sus criaturas verbales adquieren vida institucional. La diferencia con la poesía es brutal: las rosas de Huidobro viven en el poema; las nuestras reciben antibióticos, cirugías y altas. El lenguaje clínico descuidado es creacionista por defecto — y un servicio lleno de pequeños dioses es un lugar peligroso para estar enfermo.
 
 ### Parra, o la deflación
 

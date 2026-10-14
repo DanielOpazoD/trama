@@ -145,7 +145,7 @@ Esta guía condensa el capítulo 16 en un plan concreto para un servicio que qui
 
 ### Mes 3 en adelante: el circuito de aprendizaje
 
-- Reformatear una reunión de morbimortalidad al formato de la viñeta 8: reconstrucción por capas, con la información disponible en cada momento, sin nombres de sesgos como conclusión y con una barrera concreta como producto de cada sesión.
+- Reformatear una reunión de morbimortalidad al formato de la viñeta 6: reconstrucción por capas, con la información disponible en cada momento, sin nombres de sesgos como conclusión y con una barrera concreta como producto de cada sesión.
 - Ofrecer (voluntario, privado) el portafolio de calibración del Taller 5: hipótesis, confianza, alternativa, desenlace. Quien lo lleve tres meses tendrá el primer dato real sobre su propia calibración.
 - Cerrar el circuito de feedback más barato disponible: una vía sistemática para enterarse del desenlace de derivaciones y altas inciertas (interconsulta con respuesta obligatoria, revisión quincenal de reconsultas a urgencias).
 
@@ -255,18 +255,18 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 
 - Abducción — 2; vigilada por la metacognición — 5; mantenida abierta por la humildad — 14
 - Actos de habla en la ficha (Austin) — 4
-- Anclaje — 7, 11, CC (viñeta 8)
+- Anclaje — 7, 11, CC (viñeta 6)
 - Atrofia de la pericia por asistencia de IA (deskilling) — 17
 - Ausencia de evidencia / evidencia de ausencia — 1, 4, Ap B
 - Autoridad revisable — 7, 13, 14
-- Bioética y razonamiento clínico (cuatro tópicos, proporcionalidad, deliberación) — 10, 15, CC (viñeta 7), Ap A
+- Bioética y razonamiento clínico (cuatro tópicos, proporcionalidad, deliberación) — 10, 15, CC (viñeta 5), Ap A
 - Calibración — 5, 15, 16, Ap C
 - Captura cognitiva por IA (la respuesta antes que el caso) — 17
 - Carga teórica de la observación — 1
-- Cierre prematuro — 2, 7, CC (viñeta 8)
+- Cierre prematuro — 2, 7, CC (viñeta 6)
 - Cognición distribuida — 13
 - Comparación de HII-D con otros modelos (SOAP, scripts, reflexión deliberada) — 15
-- Comunicación de incertidumbre — 13, 14, CC (viñeta 7)
+- Comunicación de incertidumbre — 13, 14, CC (viñeta 5)
 - Conocimiento tácito — 6
 - Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 15, Ap A
 - Contrafactuales — 11
@@ -281,8 +281,8 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Desacuerdo clínico — 13, Interludio III
 - Doble proceso — 6
 - Documentación defensiva — 14
-- Ensombrecimiento diagnóstico — CC (viñeta 10)
-- Errores asimétricos — 10, CC (viñeta 5)
+- Ensombrecimiento diagnóstico — CC (viñeta 8)
+- Errores asimétricos — 10, CC (viñeta 3)
 - Evidencia poblacional y particularización — 9
 - Falsabilidad del método HII-D — 15
 - Feedback diagnóstico — 5, 16, Ap C
@@ -295,12 +295,12 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Frecuencias naturales — 2, 10
 - Grados de facticidad — 1
 - Hecho como estatus provisional (frontera hecho/inferencia) — 1
-- Hindsight bias — 8, 11, 16, CC (viñeta 8)
+- Hindsight bias — 8, 11, 16, CC (viñeta 6)
 - HII-D (método) — 12, 15, Ap A; auditoría de IA con — 17
 - Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
 - Illness scripts — 2, 6, 16
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
-- Injusticia epistémica — 14, CC (viñetas 8 y 10)
+- Injusticia epistémica — 14, CC (viñetas 6 y 8)
 - Inteligencia artificial: rol diagnóstico y terapéutico, catálogo de riesgos, defensas — 17
 - Intuición experta — 5, 6, Interludio II
 - Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 10
@@ -319,23 +319,23 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Pericia y práctica deliberada — 6
 - Phronesis — 6, 14
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
-- Pronóstico e incertidumbre de plazo — CC (viñeta 7)
-- Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 7)
+- Pronóstico e incertidumbre de plazo — CC (viñeta 5)
+- Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 5)
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III
-- Reglas de decisión clínica (PERC) y umbral — CC (viñeta 8)
+- Reglas de decisión clínica (PERC) y umbral — CC (viñeta 6)
 - Representación del problema — Int, 2, 8, 16
 - Riesgo inductivo (Rudner, Douglas) — 10
-- Safety-netting — 11, CC (viñetas 5, 6 y 9)
+- Safety-netting — 11, CC (viñetas 3, 4 y 7)
 - Segunda víctima — 14
 - Sesgo algorítmico (Obermeyer) — 17
 - Sesgo de automatización (Goddard) — 17
 - Sesgos cognitivos: alcance y límites del vocabulario — 7
 - Sobreconfianza — 5, 7
 - Sobreestudio e intervenciones innecesarias — 3
-- Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14; testimonio de terceros y cuidadores — CC (viñeta 9)
+- Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14; testimonio de terceros y cuidadores — CC (viñeta 7)
 - Trayectoria y temporalidad — 11, Interludio I
-- Umbrales de decisión — 10, Interludio III, CC (viñeta 5)
+- Umbrales de decisión — 10, Interludio III, CC (viñeta 3)
 - Validez del entorno e intuición (Kahneman y Klein) — 6
 - Validación local y monitoreo de herramientas de IA — 17
 - Verbos epistémicos — 4, Ap B
