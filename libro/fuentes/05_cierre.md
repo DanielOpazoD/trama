@@ -170,6 +170,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Conocimiento tácito.** Capacidad de reconocer o ejecutar más de lo que puede formularse explícitamente (Polanyi).
 
+**Conversaciones para la acción.** Gramática del trabajo coordinado descrita por Flores y Winograd: pedido, promesa con condiciones de satisfacción y plazo, y declaración de cumplimiento. Leída así, una entrega de turno distribuye compromisos, no sólo información; "está cubierto" es una promesa sin dueño.
+
 **Contrafactual.** Escenario comparativo implícito en toda afirmación causal: qué habría ocurrido sin la exposición o la intervención.
 
 **Creatividad clínica.** Momento generativo del juicio: conjeturar hipótesis (abducción), re-plantear el problema y crear opciones de manejo. Casi siempre es creatividad psicológica y exploratoria (Boden): nueva para el caso, no para la humanidad. Se ejerce en la generación y se corrige en la selección.
@@ -224,6 +226,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Modalidad epistémica.** Recursos del lenguaje que expresan el grado de certeza de una afirmación ("demostrado", "probable", "sin evidencia de").
 
+**Objetividad entre paréntesis.** Distinción de Maturana entre el que cree hablar de la realidad sin mediación y usa esa creencia para obligar (objetividad sin paréntesis) y el que admite que toda afirmación válida lo es dentro de condiciones que el observador puede declarar. En este libro, el fundamento de la trazabilidad: declarar al observador no vuelve relativa la observación, la vuelve auditable.
+
 **Observación activa.** Espera diseñada como intervención diagnóstica: con objetivo, plazo, variables vigiladas, responsable y criterios de salida en ambas direcciones; lo contrario de "control según evolución".
 
 **Paradoja de la automatización.** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es exactamente cuando más se las necesita (Abdulnour et al.).
@@ -235,6 +239,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 **Probabilidad pretest / postest.** Probabilidad de una condición antes y después de incorporar el resultado de una prueba; su relación depende del rendimiento de la prueba y de la prevalencia.
 
 **Proporcionalidad terapéutica.** Obligación moral de implementar sólo las medidas que guarden debida proporción entre los medios empleados y el resultado previsible, juzgada desde el pronóstico, las cargas y los fines del paciente (Taboada). Exige un pronóstico honesto: sin buen juicio epistémico no hay juicio de proporcionalidad.
+
+**Quiebre.** Momento en que la respuesta inmediata del experto falla o la situación no calza con lo aprendido, y la deliberación explícita entra en escena (Varela). Las pausas selectivas de este libro son quiebres puestos por diseño.
 
 **Representación del problema.** Formulación compacta que transforma los datos del caso en relaciones clínicamente significativas mediante calificadores semánticos.
 
@@ -274,7 +280,8 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Cognición distribuida — 13
 - Comparación de HII-D con otros modelos (SOAP, scripts, reflexión deliberada) — 15
 - Comunicación de incertidumbre — 13, 14, CC (viñeta 5)
-- Conocimiento tácito — 6
+- Conocimiento tácito — 6; saber hacer y quiebre (Varela) — 14
+- Conversaciones para la acción (Flores y Winograd) — 13
 - Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 15, Ap A
 - Contrafactuales — 11
 - Copiado de notas (fósil narrativo; magnitud medida) — 12, Ap C
@@ -324,6 +331,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
 - Nota clínica generada por IA (degradación del registro) — 17
 - Nota de enfermería como hecho de pleno derecho — 13
+- Objetividad entre paréntesis y observador (Maturana) — 1; emociones como dominio de acción — 8
 - Observación activa — 11
 - Paradoja de la automatización — 17
 - Pausa diagnóstica — 8, 16, Ap B, Ap C
@@ -548,6 +556,12 @@ Maniscalco, B., & Lau, H. (2012). A signal detection theoretic approach for esti
 
 Mann, K., Gordon, J., & MacLeod, A. (2009). Reflection and reflective practice in health professions education: A systematic review. *Advances in Health Sciences Education, 14*(4), 595–621.
 
+Maturana, H. (1990). *Emociones y lenguaje en educación y política*. Hachette / CED.
+
+Maturana, H. R. (1970). *Biology of cognition* (BCL Report 9.0). Biological Computer Laboratory, University of Illinois. Reimpreso en H. R. Maturana & F. J. Varela (1980), *Autopoiesis and Cognition: The Realization of the Living* (pp. 5–58). Reidel.
+
+Maturana, H., & Varela, F. (1984). *El árbol del conocimiento: Las bases biológicas del entendimiento humano*. Editorial Universitaria.
+
 McCoy, L. G., Manrai, A. K., & Rodman, A. (2024). Large language models and the degradation of the medical record. *New England Journal of Medicine, 391*(17), 1561–1564.
 
 Meyer, A. N. D., Payne, V. L., Meeks, D. W., Rao, R., & Singh, H. (2013). Physicians' diagnostic accuracy, confidence, and resource requests: A vignette study. *JAMA Internal Medicine, 173*(21), 1952–1958.
@@ -640,6 +654,8 @@ Tversky, A., & Kahneman, D. (1974). Judgment under uncertainty: Heuristics and b
 
 Van den Bruel, A., Thompson, M., Buntinx, F., & Mant, D. (2012). Clinicians' gut feeling about serious infections in children: Observational study. *BMJ, 345*, e6144.
 
+Varela, F. J. (1996). *Ética y acción*. Dolmen.
+
 Wang, M. D., Khanna, R., & Najafi, N. (2017). Characterizing the source of text in electronic health record progress notes. *JAMA Internal Medicine, 177*(8), 1212–1213.
 
 Weed, L. L. (1968a). Medical records that guide and teach. *New England Journal of Medicine, 278*(11), 593–600.
@@ -648,11 +664,13 @@ Weed, L. L. (1968b). Medical records that guide and teach. *New England Journal 
 
 Whitcomb, D., Battaly, H., Baehr, J., & Howard-Snyder, D. (2017). Intellectual humility: Owning our limitations. *Philosophy and Phenomenological Research, 94*(3), 509–539.
 
+Winograd, T., & Flores, F. (1986). *Understanding Computers and Cognition: A New Foundation for Design*. Ablex.
+
 Wittgenstein, L. (2009). *Philosophical Investigations* (G. E. M. Anscombe, P. M. S. Hacker, & J. Schulte, Trans.; 4th ed.). Wiley-Blackwell. (Obra original publicada en 1953).
 
-World Health Organization. (2024). *Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models*. World Health Organization.
-
 Wong, A., Otles, E., Donnelly, J. P., et al. (2021). External validation of a widely implemented proprietary sepsis prediction model in hospitalized patients. *JAMA Internal Medicine, 181*(8), 1065–1070.
+
+World Health Organization. (2024). *Ethics and Governance of Artificial Intelligence for Health: Guidance on Large Multi-Modal Models*. World Health Organization.
 
 Wu, A. W. (2000). Medical error: The second victim. The doctor who makes the mistake needs help too. *BMJ, 320*(7237), 726–727.
 

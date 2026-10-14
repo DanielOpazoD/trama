@@ -304,6 +304,8 @@ La decisión, además, no ocurre dentro de una distribución estadística sino e
 
 En las entregas de turno, la frase "está cubierto" suele ocultar supuestos. Es preferible nombrar quién verificará un resultado, qué diagnóstico no debe perderse y qué cambio exige avisar. La incertidumbre compartida se convierte en tarea distribuida.
 
+Hay una gramática para eso, y la escribió un chileno. Flores, con Winograd, describió el trabajo coordinado como una red de "conversaciones para la acción": alguien pide, alguien promete, la promesa tiene condiciones de satisfacción y un plazo, y se cierra con una declaración de cumplimiento o de incumplimiento (Winograd & Flores, 1986). Leída así, una entrega de turno no transfiere información: distribuye compromisos. "Está cubierto" es una promesa sin dueño ni condiciones; "el hemocultivo lo revisa la residente de noche a las 2:00 y avisa si crece un gramnegativo" es una promesa completa, con quién, qué, cuándo y cómo se sabrá que se cumplió. Es la pregunta de Austin del capítulo 4 —qué acaba de hacer esta oración— aplicada a la frase más frecuente del hospital. La incertidumbre no desaparece al entregarla; cambia de dueño, y la gramática de Flores obliga a decir a quién.
+
 Las jerarquías influyen. Si el médico más senior presenta una hipótesis como hecho, los demás pueden dejar de ofrecer datos discordantes. Una formulación como "mi impresión principal es X; me preocupa Y por esta razón; ¿qué dato no encaja?" conserva liderazgo y abre corrección.
 
 ### La ética de la fuerza verbal
