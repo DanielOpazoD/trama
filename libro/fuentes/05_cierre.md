@@ -363,6 +363,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14; testimonio de terceros y cuidadores — CC (viñeta 7)
 - Trayectoria del error (estaciones y barreras) — 7
 - Trayectoria y temporalidad — 11, Interludio I
+- Umbral y geografía (hospital insular, evacuación aeromédica) — 11
 - Umbrales de decisión — 10, Interludio III, CC (viñeta 3)
 - Validez del entorno e intuición (Kahneman y Klein) — 6
 - Validación local y monitoreo de herramientas de IA — 17
