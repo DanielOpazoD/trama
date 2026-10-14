@@ -6,7 +6,7 @@ Esta tensión no es un defecto que pueda eliminarse mediante mayor seguridad ret
 
 La metacognición permite sostener estas capas sin confundirlas. No ofrece una conciencia transparente de la propia mente. Ofrece una práctica de monitoreo y regulación: detectar conflicto, calibrar confianza, buscar feedback, cambiar de modo de pensamiento y diseñar criterios de revisión. Su virtud no es hacer al médico permanentemente dubitativo, sino permitirle ser categórico cuando la evidencia lo justifica y prudente cuando no.
 
-El lenguaje clínico es uno de sus instrumentos más poderosos. La frase medular no es la más breve ni la más elegante, sino aquella que conserva la estructura decisiva del evento, distingue dato y explicación, expresa el grado de certeza y muestra por qué una conducta es razonable. Una frase así puede orientar a un equipo, proteger contra la inercia y mantener abierta la posibilidad de corrección. La historia de Carmen, que acompañó todo este libro, empezó con la frase contraria —"cuadro habitual, manejo habitual"— y terminó con una frase que cargaba, palabra por palabra, el trabajo de distinguir, graduar, dudar y decidir. Entre ambas frases no cambió la medicina disponible; cambió la epistemología con que se usó.
+El lenguaje clínico es uno de sus instrumentos más poderosos. La frase medular no es la más breve ni la más elegante, sino aquella que conserva la estructura decisiva del evento, distingue dato y explicación, expresa el grado de certeza y muestra por qué una conducta es razonable. Una frase así puede orientar a un equipo, proteger contra la inercia y mantener abierta la posibilidad de corrección. La historia de Carmen, que acompañó todo este libro, empezó con la frase contraria —«cuadro habitual, manejo habitual»— y terminó con una frase que cargaba, palabra por palabra, el trabajo de distinguir, graduar, dudar y decidir. Entre ambas frases no cambió la medicina disponible; cambió la epistemología con que se usó.
 
 El mapa del comienzo (Figura 1) tendió tres hilos —las capas, el arco que va de la abducción a la humildad y el lenguaje que las conserva—; tres nudos de ese tejido quedan a la vista. El primero va de la abducción a la humildad. La conjetura que crea explicaciones, la vigilancia que la acompaña mientras trabaja y la disposición que la mantiene abierta cuando ya produjo una respuesta cómoda son tres momentos de una misma lealtad al caso; la prudencia práctica —la phronesis— es su nombre antiguo. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar. Por eso la inteligencia artificial, que produce la prosa fluida contra la que este libro entrena —hechos, inferencias e invenciones con la misma sintaxis—, no cambia la disciplina: la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
 
@@ -95,17 +95,17 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 
 | Término | Significa | Uso correcto | Uso incorrecto típico |
 |---|---|---|---|
-| **Demostrado / documentado** | Evidencia directa pertinente y suficiente | "Bacteriemia por E. coli documentada (2/2 hemocultivos)" | "Neumonía aspirativa documentada" (nadie presenció aspiración; la imagen no distingue mecanismo) |
-| **Altamente probable** | Convergencia fuerte; alternativas relevantes poco plausibles | "Foco abdominal altamente probable: secuencia temporal, microbiología y ausencia de foco alternativo" | Usarlo como cortesía retórica para una hipótesis única no contrastada |
-| **Probable** | Explicación principal con soporte significativo, no concluyente | "ITU asociada a catéter urinario permanente (CUP) probable si aparece fiebre sin otro foco" | "Probable" para rellenar donde falta la explicación ("dolor probablemente multifactorial") |
-| **Compatible con** | Los hallazgos encajan; no expresa por sí solo probabilidad alta | "Imagen compatible con neumonía; también con congestión" | Leer "compatible con X" como "es X" en la nota siguiente |
-| **Posible** | Merece consideración; soporte limitado o inespecífico | "Contribución farmacológica posible; se retira exposición" | Listas de "posibles" sin consecuencia para estudio ni vigilancia |
-| **No demostrado** | Hipótesis razonable sin evidencia suficiente para afirmarla | "Estrangulación no demostrada en imagen ni cirugía" | Confundirlo con "descartado" (ausencia de prueba ≠ prueba de ausencia) |
-| **Sin evidencia actual de** | El método empleado no mostró el fenómeno en ese momento | "Sin evidencia actual de isquemia en TAC" | "Sin evidencia de isquemia" citado días después como "isquemia descartada" |
-| **No evaluable** | Las condiciones no permiten determinar presencia o ausencia | "Síntomas urinarios no evaluables por lesión medular" | Registrar "niega disuria" en paciente que no puede percibirla |
-| **Menos probable** | Existe evidencia contraria o una explicación superior, sin exclusión | "TEP menos probable tras Doppler y dímero; no excluido" | Omitir qué evidencia lo degradó (queda como opinión) |
-| **Se descarta** | El método y el contexto realmente permiten excluir | "Se descarta embarazo (β-hCG negativa)" | "Se descarta abdomen agudo" tras un examen único en evolución temprana |
-| **Probabilidad suficientemente baja para no tratar/testear** | Decisión por umbral, no exclusión ontológica | "Probabilidad de SCA suficientemente baja para alta con control en 72 h" | Presentarla al paciente como "usted no tiene nada" |
+| **Demostrado / documentado** | Evidencia directa pertinente y suficiente | «Bacteriemia por E. coli documentada (2/2 hemocultivos)» | «Neumonía aspirativa documentada» (nadie presenció aspiración; la imagen no distingue mecanismo) |
+| **Altamente probable** | Convergencia fuerte; alternativas relevantes poco plausibles | «Foco abdominal altamente probable: secuencia temporal, microbiología y ausencia de foco alternativo» | Usarlo como cortesía retórica para una hipótesis única no contrastada |
+| **Probable** | Explicación principal con soporte significativo, no concluyente | «ITU asociada a catéter urinario permanente (CUP) probable si aparece fiebre sin otro foco» | «Probable» para rellenar donde falta la explicación («dolor probablemente multifactorial») |
+| **Compatible con** | Los hallazgos encajan; no expresa por sí solo probabilidad alta | «Imagen compatible con neumonía; también con congestión» | Leer «compatible con X» como «es X» en la nota siguiente |
+| **Posible** | Merece consideración; soporte limitado o inespecífico | «Contribución farmacológica posible; se retira exposición» | Listas de «posibles» sin consecuencia para estudio ni vigilancia |
+| **No demostrado** | Hipótesis razonable sin evidencia suficiente para afirmarla | «Estrangulación no demostrada en imagen ni cirugía» | Confundirlo con «descartado» (ausencia de prueba ≠ prueba de ausencia) |
+| **Sin evidencia actual de** | El método empleado no mostró el fenómeno en ese momento | «Sin evidencia actual de isquemia en TAC» | «Sin evidencia de isquemia» citado días después como «isquemia descartada» |
+| **No evaluable** | Las condiciones no permiten determinar presencia o ausencia | «Síntomas urinarios no evaluables por lesión medular» | Registrar «niega disuria» en paciente que no puede percibirla |
+| **Menos probable** | Existe evidencia contraria o una explicación superior, sin exclusión | «TEP menos probable tras Doppler y dímero; no excluido» | Omitir qué evidencia lo degradó (queda como opinión) |
+| **Se descarta** | El método y el contexto realmente permiten excluir | «Se descarta embarazo (β-hCG negativa)» | «Se descarta abdomen agudo» tras un examen único en evolución temprana |
+| **Probabilidad suficientemente baja para no tratar/testear** | Decisión por umbral, no exclusión ontológica | «Probabilidad de SCA suficientemente baja para alta con control en 72 h» | Presentarla al paciente como «usted no tiene nada» |
 
 ### Doce preguntas para una pausa diagnóstica
 
@@ -124,25 +124,25 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 
 # Apéndice C. Guía de implementación en un servicio clínico
 
-Esta guía condensa el capítulo 16 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 15, "Límites"); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la visita de sala— es también la más poderosa.
+Esta guía condensa el capítulo 16 en un plan concreto para un servicio que quiera adoptar el lenguaje y las prácticas del libro. Está pensada para un jefe de servicio, un programa de residencia o un grupo de clínicos con voluntad y poco tiempo. Tres advertencias previas: nada de esto está validado como tecnología (véase el capítulo 15, «Límites»); todo debe adaptarse al contexto local; y la palanca más barata —cómo se habla en la visita de sala— es también la más poderosa.
 
 ### Semana 1–2: instalar el lenguaje
 
 - Presentar el léxico de certeza (Apéndice B) en reunión clínica, con los ejemplos de uso incorrecto. Imprimirlo y dejarlo visible donde se escribe: junto a las estaciones de trabajo, no en un mural decorativo.
-- Acordar tres reglas mínimas de escritura, no negociables y auditables: (1) "se descarta" sólo con método que excluya; (2) todo hallazgo negativo con su límite ("sin evidencia de X en Y"); (3) toda decisión relevante con criterio de reapertura ("reevaluar si...").
+- Acordar tres reglas mínimas de escritura, no negociables y auditables: (1) «se descarta» sólo con método que excluya; (2) todo hallazgo negativo con su límite («sin evidencia de X en Y»); (3) toda decisión relevante con criterio de reapertura («reevaluar si...»).
 - No pedir todavía cambios de estructura en las notas. El vocabulario primero; la arquitectura después.
 
 ### Semana 3–4: la pausa en la visita de sala
 
-- Elegir un disparador objetivo para la pausa diagnóstica (no "cuando haya tiempo"): reconsulta, evolución discordante con el diagnóstico, traslado recibido de otro equipo, o caso sin discusión hace 72 horas.
+- Elegir un disparador objetivo para la pausa diagnóstica (no «cuando haya tiempo»): reconsulta, evolución discordante con el diagnóstico, traslado recibido de otro equipo, o caso sin discusión hace 72 horas.
 - Cuando se active, usar las cuatro preguntas de la versión de 60 segundos en voz alta. Duración objetivo: dos minutos por caso. Quien dirige la visita modela; no interroga.
-- Entrega de turno: agregar una línea obligatoria por paciente inestable o incierto: "qué vigilar, qué reabriría el caso, quién verifica el pendiente".
+- Entrega de turno: agregar una línea obligatoria por paciente inestable o incierto: «qué vigilar, qué reabriría el caso, quién verifica el pendiente».
 
 ### Mes 2: la ficha
 
 - Introducir la plantilla condensada HII-D (Apéndice A) para tres situaciones definidas: ingresos complejos, cambios de conducta mayores y altas con diagnóstico incierto. No para toda evolución diaria: la plantilla universal muere por fatiga.
-- Prohibición práctica del fósil: cada evolución debe contener al menos una línea que responda "¿qué cambió desde ayer?" (en hechos, interpretación, incertidumbre o plan). Si nada cambió, escribirlo es información.
-- Revisar las plantillas electrónicas existentes: eliminar campos que inducen copia, agregar un campo breve de "criterio de reevaluación".
+- Prohibición práctica del fósil: cada evolución debe contener al menos una línea que responda «¿qué cambió desde ayer?» (en hechos, interpretación, incertidumbre o plan). Si nada cambió, escribirlo es información.
+- Revisar las plantillas electrónicas existentes: eliminar campos que inducen copia, agregar un campo breve de «criterio de reevaluación».
 
 ### Mes 3 en adelante: el circuito de aprendizaje
 
@@ -152,11 +152,11 @@ Esta guía condensa el capítulo 16 en un plan concreto para un servicio que qui
 
 ### Qué medir (sin inflar métricas)
 
-Tres indicadores simples, auditables sobre una muestra mensual de fichas: proporción de "se descarta" usados con método excluyente; proporción de decisiones mayores con criterio de reapertura explícito; proporción de altas inciertas con instrucciones de reconsulta específicas. No miden pensamiento; miden las huellas que el pensamiento deja. Su valor es la tendencia, no la cifra.
+Tres indicadores simples, auditables sobre una muestra mensual de fichas: proporción de «se descarta» usados con método excluyente; proporción de decisiones mayores con criterio de reapertura explícito; proporción de altas inciertas con instrucciones de reconsulta específicas. No miden pensamiento; miden las huellas que el pensamiento deja. Su valor es la tendencia, no la cifra.
 
 # Glosario
 
-**Abducción.** Inferencia que propone la hipótesis que, de ser verdadera, volvería esperable lo observado. Descrita por Peirce (que la llamó primero "hipótesis"). Es el movimiento típico de la generación diagnóstica.
+**Abducción.** Inferencia que propone la hipótesis que, de ser verdadera, volvería esperable lo observado. Descrita por Peirce (que la llamó primero «hipótesis»). Es el movimiento típico de la generación diagnóstica.
 
 **Anclaje.** Persistencia de una hipótesis inicial que conserva autoridad aun cuando la evidencia acumulada la ha degradado.
 
@@ -170,7 +170,7 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Conocimiento tácito.** Capacidad de reconocer o ejecutar más de lo que puede formularse explícitamente (Polanyi).
 
-**Conversaciones para la acción.** Gramática del trabajo coordinado descrita por Flores y Winograd: pedido, promesa con condiciones de satisfacción y plazo, y declaración de cumplimiento. Leída así, una entrega de turno distribuye compromisos, no sólo información; "está cubierto" es una promesa sin dueño.
+**Conversaciones para la acción.** Gramática del trabajo coordinado descrita por Flores y Winograd: pedido, promesa con condiciones de satisfacción y plazo, y declaración de cumplimiento. Leída así, una entrega de turno distribuye compromisos, no sólo información; «está cubierto» es una promesa sin dueño.
 
 **Contrafactual.** Escenario comparativo implícito en toda afirmación causal: qué habría ocurrido sin la exposición o la intervención.
 
@@ -200,13 +200,13 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Estado del razonador.** Condiciones en que se produce un juicio clínico —sueño, horas de turno, hora del día, ánimo, preocupaciones ajenas al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
 
-**Ficha de proceso.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; "Neumonía. Ceftriaxona" no conjuga ninguno.
+**Ficha de proceso.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; «Neumonía. Ceftriaxona» no conjuga ninguno.
 
 **Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho, no una impresión.
 
 **Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
 
-**Frecuencias naturales.** Presentación de probabilidades como conteos sobre una población de referencia ("90 de cada 270 positivos"), que facilita el razonamiento bayesiano intuitivo (Gigerenzer).
+**Frecuencias naturales.** Presentación de probabilidades como conteos sobre una población de referencia («90 de cada 270 positivos»), que facilita el razonamiento bayesiano intuitivo (Gigerenzer).
 
 **Hindsight bias (sesgo retrospectivo).** Tendencia a percibir un desenlace conocido como si hubiera sido predecible, contaminando la evaluación de decisiones pasadas.
 
@@ -228,11 +228,11 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Meta-d′ / M-ratio.** Medida de sensibilidad metacognitiva basada en teoría de detección de señales: expresa cuánta de la información disponible para la decisión aprovecha el observador al evaluar sus propias respuestas; el cociente meta-d′/d′ (M-ratio) permite comparar entre personas y tareas (Maniscalco y Lau).
 
-**Modalidad epistémica.** Recursos del lenguaje que expresan el grado de certeza de una afirmación ("demostrado", "probable", "sin evidencia de").
+**Modalidad epistémica.** Recursos del lenguaje que expresan el grado de certeza de una afirmación («demostrado», «probable», «sin evidencia de»).
 
 **Objetividad entre paréntesis.** Distinción de Maturana entre el que cree hablar de la realidad sin mediación y usa esa creencia para obligar (objetividad sin paréntesis) y el que admite que toda afirmación válida lo es dentro de condiciones que el observador puede declarar. En este libro, el fundamento de la trazabilidad: declarar al observador no vuelve relativa la observación, la vuelve auditable.
 
-**Observación activa.** Espera diseñada como intervención diagnóstica: con objetivo, plazo, variables vigiladas, responsable y criterios de salida en ambas direcciones; lo contrario de "control según evolución".
+**Observación activa.** Espera diseñada como intervención diagnóstica: con objetivo, plazo, variables vigiladas, responsable y criterios de salida en ambas direcciones; lo contrario de «control según evolución».
 
 **Paradoja de la automatización.** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es cuando más se las necesita (Abdulnour et al.).
 
