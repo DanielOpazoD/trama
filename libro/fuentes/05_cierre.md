@@ -2,13 +2,13 @@
 
 La medicina habita una tensión permanente. Debe conocer con rigor y actuar antes de que el conocimiento esté completo. Su lenguaje intenta fijar un fenómeno que continúa evolucionando; sus decisiones cambian aquello que luego será observado; sus categorías científicas se aplican a personas que nunca son idénticas a una población de estudio.
 
-Esta tensión no es un defecto que pueda eliminarse mediante mayor seguridad retórica. Es la estructura del trabajo clínico. Los hechos llegan incompletos y situados. Las inferencias organizan su significado, pero tienen grados. La incertidumbre puede reducirse, clasificarse o tolerarse; no siempre desaparece. La decisión incorpora probabilidad y, además, consecuencias, tiempo, reversibilidad, valores y capacidad de vigilancia.
+Esta tensión no es un defecto que pueda eliminarse mediante mayor seguridad retórica, sino la estructura del trabajo clínico. Los hechos llegan incompletos y situados. Las inferencias organizan su significado, pero tienen grados. La incertidumbre puede reducirse, clasificarse o tolerarse; no siempre desaparece. La decisión incorpora probabilidad y, además, consecuencias, tiempo, reversibilidad, valores y capacidad de vigilancia.
 
 La metacognición permite sostener estas capas sin confundirlas. No ofrece una conciencia transparente de la propia mente. Ofrece una práctica de monitoreo y regulación: detectar conflicto, calibrar confianza, buscar feedback, cambiar de modo de pensamiento y diseñar criterios de revisión. Su virtud no es hacer al médico permanentemente dubitativo, sino permitirle ser categórico cuando la evidencia lo justifica y prudente cuando no.
 
-El lenguaje clínico es uno de sus instrumentos más poderosos. La frase medular no es la más breve ni la más elegante. Es aquella que conserva la estructura decisiva del evento, distingue dato y explicación, expresa el grado de certeza y muestra por qué una conducta es razonable. Una frase así puede orientar a un equipo, proteger contra la inercia y mantener abierta la posibilidad de corrección. La historia de Carmen, que acompañó todo este libro, empezó con la frase contraria —"cuadro habitual, manejo habitual"— y terminó con una frase que cargaba, palabra por palabra, el trabajo de distinguir, graduar, dudar y decidir. Entre ambas frases no cambió la medicina disponible; cambió la epistemología con que se usó.
+El lenguaje clínico es uno de sus instrumentos más poderosos. La frase medular no es la más breve ni la más elegante, sino aquella que conserva la estructura decisiva del evento, distingue dato y explicación, expresa el grado de certeza y muestra por qué una conducta es razonable. Una frase así puede orientar a un equipo, proteger contra la inercia y mantener abierta la posibilidad de corrección. La historia de Carmen, que acompañó todo este libro, empezó con la frase contraria —"cuadro habitual, manejo habitual"— y terminó con una frase que cargaba, palabra por palabra, el trabajo de distinguir, graduar, dudar y decidir. Entre ambas frases no cambió la medicina disponible; cambió la epistemología con que se usó.
 
-El mapa del comienzo (Figura 1) tendió tres hilos —las capas, el arco que va de la abducción a la humildad y el lenguaje que las conserva—; tres nudos de ese tejido conviene dejar a la vista. El primero va de la abducción a la humildad: la conjetura que crea explicaciones, la vigilancia que la acompaña mientras trabaja y la disposición que la mantiene abierta cuando ya produjo una respuesta cómoda son tres momentos de una misma lealtad al caso, y la prudencia práctica —la phronesis— es su nombre antiguo. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos de pleno derecho, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar, y por eso la inteligencia artificial —que produce exactamente la prosa fluida contra la que este libro entrena: hechos, inferencias e invenciones con la misma sintaxis— no cambia la disciplina, la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
+El mapa del comienzo (Figura 1) tendió tres hilos —las capas, el arco que va de la abducción a la humildad y el lenguaje que las conserva—; tres nudos de ese tejido quedan a la vista. El primero va de la abducción a la humildad: la conjetura que crea explicaciones, la vigilancia que la acompaña mientras trabaja y la disposición que la mantiene abierta cuando ya produjo una respuesta cómoda son tres momentos de una misma lealtad al caso, y la prudencia práctica —la phronesis— es su nombre antiguo. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar, y por eso la inteligencia artificial —que produce exactamente la prosa fluida contra la que este libro entrena: hechos, inferencias e invenciones con la misma sintaxis— no cambia la disciplina, la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
 
 HII-D resume una disciplina posible:
 
@@ -20,7 +20,7 @@ HII-D resume una disciplina posible:
 
 Esta secuencia no promete infalibilidad. Promete algo más realista: errores más visibles, dudas mejor formuladas, decisiones más trazables y aprendizaje más probable.
 
-> La lucidez clínica no consiste en ver la verdad completa. Consiste en no atribuir a nuestra representación más certeza de la que los hechos permiten, sin usar esa limitación como excusa para dejar de decidir.
+> La lucidez clínica no consiste en ver la verdad completa. Consiste en no atribuir a la propia representación más certeza de la que los hechos permiten, sin usar esa limitación como excusa para dejar de decidir.
 
 Una medicina científicamente seria y humanamente responsable no es la que nunca duda. Es la que sabe qué hacer con su duda. Y pensar bien —con la evidencia que hay, en el estado en que uno está, con los instrumentos que suplen lo que falta— no es un lujo de la medicina: es la primera de sus obligaciones, de la que parte todo lo demás.
 
@@ -28,7 +28,7 @@ Una medicina científicamente seria y humanamente responsable no es la que nunca
 
 La epistemología clínica puede parecer abstracta hasta que se traduce en hábitos: verificar la fuente del dato decisivo; reformular una etiqueta como una proposición; nombrar la principal explicación rival; separar la gravedad de la probabilidad; registrar qué hará cambiar la conducta; y revisar después si la confianza estuvo bien calibrada. Ningún hábito elimina el error. Juntos construyen condiciones para reconocerlo antes y aprender de él después.
 
-La medicina necesita afirmaciones suficientemente firmes para coordinar acciones y suficientemente abiertas para admitir corrección. Esa doble exigencia no es una contradicción que deba resolverse eligiendo seguridad o duda. Es la forma propia del juicio clínico. La frase medular es valiosa porque condensa esa arquitectura: conserva el hecho, gradúa la inferencia, localiza la incertidumbre y hace visible la decisión.
+La medicina necesita afirmaciones suficientemente firmes para coordinar acciones y suficientemente abiertas para admitir corrección. Esa doble exigencia no es una contradicción que deba resolverse eligiendo seguridad o duda, sino la forma propia del juicio clínico. La frase medular es valiosa porque condensa esa arquitectura: conserva el hecho, gradúa la inferencia, localiza la incertidumbre y hace visible la decisión.
 
 El ideal no es un médico que nunca se equivoca, sino uno cuyo razonamiento puede ser comprendido, discutido y revisado. Tampoco es un sistema que acumula datos, sino uno que preserva significado y distribuye oportunidades de corrección. La lucidez no se demuestra mediante tono categórico. Se demuestra en la correspondencia entre lo que se afirma, lo que se sabe y lo que se hace.
 
@@ -202,7 +202,7 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Ficha de proceso.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; "Neumonía. Ceftriaxona" no conjuga ninguno.
 
-**Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho de pleno derecho, no una impresión.
+**Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho, no una impresión.
 
 **Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
 
@@ -234,7 +234,7 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Observación activa.** Espera diseñada como intervención diagnóstica: con objetivo, plazo, variables vigiladas, responsable y criterios de salida en ambas direcciones; lo contrario de "control según evolución".
 
-**Paradoja de la automatización.** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es exactamente cuando más se las necesita (Abdulnour et al.).
+**Paradoja de la automatización.** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es cuando más se las necesita (Abdulnour et al.).
 
 **Pausa diagnóstica.** Interrupción breve y selectiva del flujo clínico, activada por disparadores definidos (reconsulta, evolución discordante, transferencia), para reformular el caso sin su etiqueta y localizar la incertidumbre peligrosa.
 
@@ -337,7 +337,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
 - Nota clínica generada por IA (degradación del registro) — 17
-- Nota de enfermería como hecho de pleno derecho — 13
+- Nota de enfermería como hecho clínico — 13
 - Objetividad entre paréntesis y observador (Maturana) — 1; emociones como dominio de acción — 8
 - Observación activa — 11
 - Paradoja de la automatización — 17
