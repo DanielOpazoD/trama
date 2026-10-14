@@ -91,7 +91,7 @@ El análisis depende del conocimiento disponible. Un médico puede pensar lentam
 
 ### Phronesis
 
-Aristóteles distinguió el conocimiento teórico de la prudencia práctica, o phronesis: la capacidad de deliberar bien acerca de lo que conviene hacer en situaciones particulares. La clínica comparte esta estructura. La regla general necesita ser aplicada a un caso con bienes en tensión, información incompleta y consecuencias asimétricas (Aristotle, 2009).
+Aristóteles distinguió el conocimiento teórico de la prudencia práctica, o phronesis: la capacidad de deliberar bien acerca de lo que conviene hacer en situaciones particulares. La clínica comparte esta estructura. La regla general necesita ser aplicada a un caso con bienes en tensión, información incompleta y consecuencias asimétricas (Aristóteles, 1985).
 
 Gadamer y Montgomery recuperaron esta idea para la medicina: el juicio no es una desviación de la ciencia, sino el modo en que la ciencia se vuelve acción en una persona concreta (Gadamer, 1996; Montgomery, 2006). La pericia madura integra conocimiento causal, reconocimiento, probabilidad, valores y temporalidad.
 

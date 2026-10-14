@@ -439,6 +439,12 @@ La medicina del futuro necesitará profesionales capaces de trabajar con informa
 
 Enseñar metacognición es enseñar una relación con el conocimiento: suficiente confianza para actuar, suficiente humildad para revisar y suficiente precisión para explicar por qué.
 
+#### Taller 16. Rediseñar la ronda
+
+Describa por escrito la ronda de su servicio tal como ocurre de verdad: minutos por paciente, quién habla, qué se pregunta siempre y qué no se pregunta nunca. Luego rediséñela con tres cambios como máximo —un disparador objetivo de pausa, una pregunta obligatoria por paciente inestable o incierto, una regla de pase de turno— y estime el costo en minutos por ronda.
+
+*Solución comentada.* A modo de ejemplo, una descripción honesta puede parecerse a esto: dos a cuatro minutos por paciente, habla quien presenta y decide quien dirige, se pregunta "¿cómo está?" y "¿qué le falta?", y casi nunca "¿qué nos haría cambiar?". El rediseño más barato es esa tercera pregunta, hecha sólo a los pacientes que cumplen un disparador (reconsulta, discordancia entre gravedad y diagnóstico, 72 horas sin discusión): cuesta alrededor de un minuto por caso seleccionado y produce, de inmediato, criterios de reapertura que antes no existían. Si el rediseño necesita más de tres cambios o más de diez minutos por ronda, probablemente está diseñando una reunión nueva en lugar de mejorar la que existe — y las reuniones nuevas mueren por inasistencia.
+
 **En una frase.** La metacognición clínica se enseña con representaciones y feedback, y se organiza con rondas, fichas y revisiones diseñadas para hacer visible el pensamiento — no se decreta.
 
 **Tres preguntas para la próxima visita.**

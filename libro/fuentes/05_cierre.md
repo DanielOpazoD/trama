@@ -168,6 +168,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Calibración.** Correspondencia entre la confianza declarada y la proporción real de aciertos, evaluada sobre una serie de juicios.
 
+**Captura cognitiva.** Condicionamiento de la búsqueda de hipótesis, la lectura de los datos y la ponderación por una respuesta vista antes de razonar — típicamente la de un asistente de IA. No exige que la respuesta sea errónea: una hipótesis correcta entregada demasiado pronto también sustituye las operaciones que forman el juicio.
+
 **Cierre prematuro.** Aceptación de un diagnóstico antes de haberlo verificado suficientemente, con suspensión de la búsqueda de alternativas.
 
 **Cognición distribuida.** Marco que estudia cómo el procesamiento de información se realiza a través de personas y artefactos coordinados, no sólo dentro de mentes individuales (Hutchins).
@@ -222,7 +224,11 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Modalidad epistémica.** Recursos del lenguaje que expresan el grado de certeza de una afirmación ("demostrado", "probable", "sin evidencia de").
 
+**Observación activa.** Espera diseñada como intervención diagnóstica: con objetivo, plazo, variables vigiladas, responsable y criterios de salida en ambas direcciones; lo contrario de "control según evolución".
+
 **Paradoja de la automatización.** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es exactamente cuando más se las necesita (Abdulnour et al.).
+
+**Pausa diagnóstica.** Interrupción breve y selectiva del flujo clínico, activada por disparadores definidos (reconsulta, evolución discordante, transferencia), para reformular el caso sin su etiqueta y localizar la incertidumbre peligrosa.
 
 **Phronesis.** Prudencia práctica aristotélica: la capacidad de deliberar bien sobre lo que conviene hacer en una situación particular.
 
@@ -271,7 +277,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Conocimiento tácito — 6
 - Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 15, Ap A
 - Contrafactuales — 11
-- Copiado de notas (fósil narrativo) — 12, Ap C
+- Copiado de notas (fósil narrativo; magnitud medida) — 12, Ap C
 - Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2, 18
 - Cuatro tópicos (Jonsen, Siegler y Winslade) — 10, Ap A
 - Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
@@ -295,6 +301,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Frase medular — 4, 12, C, CC (todas las viñetas); como argumento de Toulmin — 4
 - Frecuencias naturales — 2, 10, 13
 - Grados de facticidad — 1
+- Hecho como estatus provisional (frontera hecho/inferencia) — 1
 - Hindsight bias — 8, 11, 16, CC (viñeta 8)
 - HII-D (método) — 12, 15, Ap A; auditoría de IA con — 17
 - Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
@@ -312,12 +319,13 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
 - Nota clínica generada por IA (degradación del registro) — 17
+- Nota de enfermería como hecho de pleno derecho — 13
 - Observación activa — 11
 - Paradoja de la automatización — 17
 - Pausa diagnóstica — 8, 16, Ap B, Ap C
-- Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pericia y práctica deliberada — 6
 - Phronesis — 6, 14
+- Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pronóstico e incertidumbre de plazo — CC (viñeta 7)
 - Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 7)
 - Pruebas severas (Popper) — 2
@@ -361,7 +369,7 @@ Abdulnour, R.-E. E., et al. (2026). Crew resource management — Navigating AI's
 
 Alves de Lima, A. (2008). Devolución constructiva: Una estrategia para mejorar el aprendizaje. *Medicina (Buenos Aires), 68*(1), 88–92.
 
-Aristotle. (2009). *The Nicomachean Ethics* (D. Ross, Trans.; L. Brown, Rev.). Oxford University Press.
+Aristóteles. (1985). *Ética nicomáquea; Ética eudemia* (J. Pallí Bonet, Trad.; introd. E. Lledó). Gredos.
 
 Austin, J. L. (1962). *How to Do Things with Words*. Clarendon Press.
 
@@ -383,7 +391,7 @@ Budzyń, K., Romańczyk, M., Kitala, D., et al. (2025). Endoscopist deskilling r
 
 Cabitza, F., Rasoini, R., & Gensini, G. F. (2017). Unintended consequences of machine learning in medicine. *JAMA, 318*(6), 517–518.
 
-Canguilhem, G. (1991). *The Normal and the Pathological*. Zone Books.
+Canguilhem, G. (1971). *Lo normal y lo patológico* (R. Potschart, Trad.). Siglo XXI. (Obra original publicada en 1966).
 
 Carel, H., & Kidd, I. J. (2014). Epistemic injustice in healthcare: A philosophical analysis. *Medicine, Health Care and Philosophy, 17*(4), 529–540.
 
@@ -396,7 +404,6 @@ Charlin, B., Boshuizen, H. P. A., Custers, E. J. F. M., & Feltovich, P. J. (2007
 Charon, R. (2006). *Narrative Medicine: Honoring the Stories of Illness*. Oxford University Press.
 
 Coady, C. A. J. (1992). *Testimony: A Philosophical Study*. Clarendon Press.
-
 
 Croskerry, P. (2003). The importance of cognitive errors in diagnosis and strategies to minimize them. *Academic Medicine, 78*(8), 775–780.
 
@@ -411,7 +418,6 @@ Custers, E. J. F. M. (2015). Thirty years of illness scripts: Theoretical origin
 Djulbegovic, B., & Guyatt, G. H. (2017). Progress in evidence-based medicine: A quarter century on. *The Lancet, 390*(10092), 415–423.
 
 Douglas, H. (2000). Inductive risk and values in science. *Philosophy of Science, 67*(4), 559–579.
-
 
 Dunlosky, J., & Metcalfe, J. (2009). *Metacognition*. SAGE.
 
@@ -439,13 +445,13 @@ Fleming, S. M., & Dolan, R. J. (2012). The neural basis of metacognitive ability
 
 Fleming, S. M., & Lau, H. C. (2014). How to measure metacognition. *Frontiers in Human Neuroscience, 8*, 443.
 
-Foucault, M. (1973). *The Birth of the Clinic: An Archaeology of Medical Perception* (A. M. Sheridan Smith, Trans.). Vintage Books.
+Foucault, M. (1966). *El nacimiento de la clínica: Una arqueología de la mirada médica* (F. Perujo, Trad.). Siglo XXI. (Obra original publicada en 1963).
 
 Fox, R. C. (1980). The evolution of medical uncertainty. *Milbank Memorial Fund Quarterly: Health and Society, 58*(1), 1–49.
 
 Fricker, M. (2007). *Epistemic Injustice: Power and the Ethics of Knowing*. Oxford University Press.
 
-Gadamer, H.-G. (1996). *The Enigma of Health: The Art of Healing in a Scientific Age* (J. Gaiger & N. Walker, Trans.). Stanford University Press.
+Gadamer, H.-G. (1996). *El estado oculto de la salud* (N. Machaín, Trad.). Gedisa.
 
 Gérvas, J., & Pérez Fernández, M. (2013). *Sano y salvo (y libre de intervenciones médicas innecesarias)*. Los Libros del Lince.
 
@@ -463,12 +469,11 @@ Graber, M. L., Kissam, S., Payne, V. L., Meyer, A. N. D., Sorensen, A., Lenfeste
 
 Gracia, D. (2001). La deliberación moral: El método de la ética clínica. *Medicina Clínica, 117*(1), 18–23.
 
-Groopman, J. (2007). *How Doctors Think*. Houghton Mifflin.
-
-
 Greenhalgh, T., & Hurwitz, B. (Eds.). (1998). *Narrative Based Medicine: Dialogue and Discourse in Clinical Practice*. BMJ Books.
 
 Greenhalgh, T., Howick, J., & Maskrey, N. (2014). Evidence based medicine: A movement in crisis? *BMJ, 348*, g3725.
+
+Groopman, J. (2007). *How Doctors Think*. Houghton Mifflin.
 
 Han, P. K. J., Klein, W. M. P., & Arora, N. K. (2011). Varieties of uncertainty in health care: A conceptual taxonomy. *Medical Decision Making, 31*(6), 828–838.
 
@@ -494,10 +499,9 @@ Ji, Z., Lee, N., Frieske, R., Yu, T., Su, D., Xu, Y., et al. (2023). Survey of h
 
 Jonsen, A. R., Siegler, M., & Winslade, W. J. (2022). *Clinical Ethics: A Practical Approach to Ethical Decisions in Clinical Medicine* (9.ª ed.). McGraw-Hill. (1.ª ed., 1982).
 
-Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., et al. (2022). Language models (mostly) know what they know. *arXiv preprint*, arXiv:2207.05221.
-
-
 Jonsen, A. R., & Toulmin, S. (1988). *The Abuse of Casuistry: A History of Moral Reasoning*. University of California Press.
+
+Kadavath, S., Conerly, T., Askell, A., Henighan, T., Drain, D., Perez, E., et al. (2022). Language models (mostly) know what they know. *arXiv preprint*, arXiv:2207.05221.
 
 Kahneman, D. (2011). *Thinking, Fast and Slow*. Farrar, Straus and Giroux.
 
@@ -515,7 +519,6 @@ Koriat, A. (1997). Monitoring one's own knowledge during study: A cue-utilizatio
 
 Lackey, J. (2008). *Learning from Words: Testimony as a Source of Knowledge*. Oxford University Press.
 
-
 Lambe, K. A., O'Reilly, G., Kelly, B. D., & Curristan, S. (2016). Dual-process cognitive interventions to enhance diagnostic reasoning: A systematic review. *BMJ Quality & Safety, 25*(10), 808–820.
 
 Lee, P., Bubeck, S., & Petro, J. (2023). Benefits, limits, and risks of GPT-4 as an AI chatbot for medicine. *New England Journal of Medicine, 388*, 1233–1239.
@@ -528,7 +531,6 @@ Mamede, S., van Gog, T., van den Berge, K., Rikers, R. M. J. P., van Saase, J. L
 
 Maniscalco, B., & Lau, H. (2012). A signal detection theoretic approach for estimating metacognitive sensitivity from confidence ratings. *Consciousness and Cognition, 21*(1), 422–430.
 
-
 Mann, K., Gordon, J., & MacLeod, A. (2009). Reflection and reflective practice in health professions education: A systematic review. *Advances in Health Sciences Education, 14*(4), 595–621.
 
 McCoy, L. G., Manrai, A. K., & Rodman, A. (2024). Large language models and the degradation of the medical record. *New England Journal of Medicine, 391*(17), 1561–1564.
@@ -538,7 +540,6 @@ Meyer, A. N. D., Payne, V. L., Meeks, D. W., Rao, R., & Singh, H. (2013). Physic
 Monteiro, S., & Norman, G. (2013). Diagnostic reasoning: Where we've been, where we're going. *Teaching and Learning in Medicine, 25*(Suppl 1), S26–S32.
 
 Monteiro, S., Sherbino, J., Sibbald, M., & Norman, G. (2020). Critical thinking, biases and dual processing: The enduring myth of generalisable skills. *Medical Education, 54*(1), 66–73.
-
 
 Montgomery, K. (2006). *How Doctors Think: Clinical Judgment and the Practice of Medicine*. Oxford University Press.
 
@@ -585,7 +586,6 @@ Rockwood, K., Song, X., MacKnight, C., Bergman, H., Hogan, D. B., McDowell, I., 
 Rouault, M., McWilliams, A., Allen, M., & Fleming, S. M. (2018). Human metacognition across domains: Insights from individual differences and neuroimaging. *Personality Neuroscience, 1*, e17.
 
 Rudner, R. (1953). The scientist qua scientist makes value judgments. *Philosophy of Science, 20*(1), 1–6.
-
 
 Sackett, D. L., Rosenberg, W. M. C., Gray, J. A. M., Haynes, R. B., & Richardson, W. S. (1996). Evidence based medicine: What it is and what it isn't. *BMJ, 312*, 71–72.
 

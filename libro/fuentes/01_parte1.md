@@ -38,7 +38,7 @@ Carmen, por ejemplo, no dijo "dolor abdominal difuso": dijo que esta vez "la her
 
 ### Trazabilidad epistemológica
 
-Canguilhem mostró que la medicina no describe simplemente desviaciones estadísticas: juzga relaciones entre el organismo, sus normas y su capacidad de habitar un medio (Canguilhem, 1991). El hecho clínico adquiere relevancia dentro de esa relación. Una cifra fuera de rango puede ser irrelevante; una variación dentro del rango puede ser decisiva para ese paciente. La observación científica y la singularidad no son opuestas, pero deben articularse.
+Canguilhem mostró que la medicina no describe simplemente desviaciones estadísticas: juzga relaciones entre el organismo, sus normas y su capacidad de habitar un medio (Canguilhem, 1971). El hecho clínico adquiere relevancia dentro de esa relación. Una cifra fuera de rango puede ser irrelevante; una variación dentro del rango puede ser decisiva para ese paciente. La observación científica y la singularidad no son opuestas, pero deben articularse.
 
 Por ello, conviene escribir los hechos de modo trazable. Una formulación como "shock séptico abdominal" fusiona estado fisiológico, etiología y foco. Una versión más limpia separa: hipotensión con requerimiento de noradrenalina, hiperlactatemia y relleno capilar prolongado; hemocultivos con bacilos gramnegativos; episodio obstructivo por hernia incisional; sin perforación, isquemia ni estrangulación en tomografía. Recién después puede formularse el foco abdominal como hipótesis probable.
 
@@ -231,7 +231,7 @@ En el pase de sala, dos residentes presentan a la misma Carmen. Uno dice: "Pacie
 
 El lenguaje clínico no se limita a transportar un pensamiento previamente terminado. Ayuda a producirlo. Al elegir entre "dolor torácico", "dolor pleurítico" y "dolor opresivo de esfuerzo", el médico no sólo cambia palabras: delimita mecanismos, comparadores y preguntas. Al escribir "compatible con", "probable" o "demostrado", establece una relación entre evidencia y confianza.
 
-La filosofía hermenéutica recuerda que comprendemos desde un horizonte lingüístico e histórico. Gadamer sostuvo que el lenguaje es el medio en el que algo llega a ser comprendido; Foucault mostró que la mirada clínica moderna se organizó mediante formas específicas de describir, localizar y correlacionar signos (Foucault, 1973; Gadamer, 1996). Estas perspectivas no obligan a pensar que toda descripción sea relativa. Obligan a reconocer que las categorías hacen visible una parte de la realidad y pueden ocultar otra.
+La filosofía hermenéutica recuerda que comprendemos desde un horizonte lingüístico e histórico. Gadamer sostuvo que el lenguaje es el medio en el que algo llega a ser comprendido; Foucault mostró que la mirada clínica moderna se organizó mediante formas específicas de describir, localizar y correlacionar signos (Foucault, 1966; Gadamer, 1996). Estas perspectivas no obligan a pensar que toda descripción sea relativa. Obligan a reconocer que las categorías hacen visible una parte de la realidad y pueden ocultar otra.
 
 ### Compresión y pérdida
 
