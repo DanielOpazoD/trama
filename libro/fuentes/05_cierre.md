@@ -200,6 +200,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Estado del razonador.** Condiciones en que se produce un juicio clínico —sueño, horas de turno, hora del día, ánimo, preocupaciones ajenas al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
 
+**Ficha de proceso.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; "Neumonía. Ceftriaxona" no conjuga ninguno.
+
 **Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho de pleno derecho, no una impresión.
 
 **Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
@@ -219,6 +221,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 **Incertidumbre epistémica.** La que proviene de conocimiento insuficiente y puede, en principio, reducirse con información.
 
 **Injusticia epistémica.** Daño cometido contra alguien en su capacidad de sujeto de conocimiento: testimonial (credibilidad rebajada por prejuicio) o hermenéutica (falta de categorías para expresar la experiencia) (Fricker).
+
+**Mente del principiante (shoshin).** Disposición, tomada del Zen, a mirar lo conocido como si fuera la primera vez, sin que el nombre decida por adelantado. Presentar el caso sin la etiqueta es su versión clínica; no reemplaza al illness script, suspende la prisa con que cierra el caso.
 
 **Metacognición.** Conocimiento y regulación de los propios procesos cognitivos: monitorear la comprensión, valorar la confianza, decidir cambiar de estrategia (Flavell; Nelson y Narens).
 
@@ -305,6 +309,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Falsabilidad del método HII-D — 15
 - Feedback diagnóstico — 5, 16, Ap C
 - Ficha como dispositivo que produce lo visible (Foucault) — 12
+- Ficha de proceso vs. ficha de resultados (los verbos del razonamiento) — 12; Taller 12B
 - Fichas clínicas y plantillas — 12, 16, Ap C; ficha electrónica pensada desde HII-D — 12
 - Formación clínica en la era de la IA (deskilling, never-skilling, mis-skilling) — 17
 - Fragilidad y funcionalidad como hechos clínicos — 10, 15, Ap A
@@ -317,6 +322,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - HII-D (método) — 12, 15, Ap A; auditoría de IA con — 17
 - Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
 - Illness scripts — 2, 6, 16
+- Improvisación y saber hacer (jazz; Limb y Braun) — 14
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
 - Injusticia epistémica — 14, CC (viñetas 6 y 8)
 - Inteligencia artificial: rol diagnóstico y terapéutico, catálogo de riesgos, defensas — 17
@@ -326,6 +332,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 10
 - Medicina basada en evidencia — 9
 - Meta-d′ y medición de la metacognición — 5
+- Mente del principiante (Zen, shoshin) — 8
 - Metacognición: definición y niveles — Int, 5; monitoreo y control — 5; social (señales del equipo y del paciente) — 5, 13; sensibilidad vs. sesgo — Int, 5; auditoría de salidas de IA — 17
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
@@ -339,6 +346,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Phronesis — 6, 14
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pronóstico e incertidumbre de plazo — CC (viñeta 5)
+- Proteína C reactiva: cinética y lectura temporal — 12
 - Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 5)
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III
@@ -380,6 +388,8 @@ Abdulnour, R.-E. E., Gin, B., & Boscardin, C. K. (2025). Educational strategies 
 
 Abdulnour, R.-E. E., et al. (2026). Crew resource management — Navigating AI's automation paradox. *New England Journal of Medicine*. Publicado en línea el 22 de julio de 2026.
 
+Akram, A. R., Chalmers, J. D., Taylor, J. K., Rutherford, J., Singanayagam, A., & Hill, A. T. (2013). An evaluation of clinical stability criteria to predict hospital course in community-acquired pneumonia. *Clinical Microbiology and Infection, 19*(12), 1174–1180.
+
 Alves de Lima, A. (2008). Devolución constructiva: Una estrategia para mejorar el aprendizaje. *Medicina (Buenos Aires), 68*(1), 88–92.
 
 Aristóteles. (1985). *Ética nicomáquea; Ética eudemia* (J. Pallí Bonet, Trad.; introd. E. Lledó). Gredos.
@@ -414,6 +424,8 @@ Cartwright, N., & Hardie, J. (2012). *Evidence-Based Policy: A Practical Guide t
 
 Casscells, W., Schoenberger, A., & Graboys, T. B. (1978). Interpretation by physicians of clinical laboratory results. *New England Journal of Medicine, 299*(18), 999–1001.
 
+Chalmers, J. D., Singanayagam, A., & Hill, A. T. (2008). C-reactive protein is an independent predictor of severity in community-acquired pneumonia. *American Journal of Medicine, 121*(3), 219–225.
+
 Charlin, B., Boshuizen, H. P. A., Custers, E. J. F. M., & Feltovich, P. J. (2007). Scripts and medical diagnostic knowledge: Theory and applications for clinical reasoning instruction and research. *Academic Medicine, 82*(10), 967–974.
 
 Charon, R. (2006). *Narrative Medicine: Honoring the Stories of Illness*. Oxford University Press.
@@ -431,6 +443,8 @@ Croskerry, P., Singhal, G., & Mamede, S. (2013a). Cognitive debiasing 1: Origins
 Croskerry, P., Singhal, G., & Mamede, S. (2013b). Cognitive debiasing 2: Impediments to and strategies for change. *BMJ Quality & Safety, 22*(Suppl 2), ii65–ii72.
 
 Custers, E. J. F. M. (2015). Thirty years of illness scripts: Theoretical origins and practical applications. *Medical Teacher, 37*(5), 457–462.
+
+Dequin, P.-F., Meziani, F., Quenot, J.-P., Kamel, T., Ricard, J.-D., Badie, J., Reignier, J., Heming, N., Plantefève, G., Souweine, B., Voiriot, G., Colin, G., Frat, J.-P., Mira, J.-P., Barbarot, N., François, B., Louis, G., Gibot, S., Guitton, C., … Le Gouge, A. (2023). Hydrocortisone in severe community-acquired pneumonia. *New England Journal of Medicine, 388*(21), 1931–1941.
 
 Djulbegovic, B., & Guyatt, G. H. (2017). Progress in evidence-based medicine: A quarter century on. *The Lancet, 390*(10092), 415–423.
 
@@ -536,6 +550,8 @@ Knight, F. H. (1921). *Risk, Uncertainty and Profit*. Houghton Mifflin.
 
 Koriat, A. (1997). Monitoring one's own knowledge during study: A cue-utilization approach to judgments of learning. *Journal of Experimental Psychology: General, 126*(4), 349–370.
 
+Krasner, M. S., Epstein, R. M., Beckman, H., Suchman, A. L., Chapman, B., Mooney, C. J., & Quill, T. E. (2009). Association of an educational program in mindful communication with burnout, empathy, and attitudes among primary care physicians. *JAMA, 302*(12), 1284–1293.
+
 Lackey, J. (2008). *Learning from Words: Testimony as a Source of Knowledge*. Oxford University Press.
 
 Lambe, K. A., O'Reilly, G., Kelly, B. D., & Curristan, S. (2016). Dual-process cognitive interventions to enhance diagnostic reasoning: A systematic review. *BMJ Quality & Safety, 25*(10), 808–820.
@@ -545,6 +561,8 @@ Landrigan, C. P., Rothschild, J. M., Cronin, J. W., Kaushal, R., Burdick, E., Ka
 Lee, P., Bubeck, S., & Petro, J. (2023). Benefits, limits, and risks of GPT-4 as an AI chatbot for medicine. *New England Journal of Medicine, 388*, 1233–1239.
 
 Lifshitz, A. (2014). *La nueva clínica*. Academia Nacional de Medicina de México.
+
+Limb, C. J., & Braun, A. R. (2008). Neural substrates of spontaneous musical performance: An fMRI study of jazz improvisation. *PLoS ONE, 3*(2), e1679.
 
 Linder, J. A., Doctor, J. N., Friedberg, M. W., Reyes Nieva, H., Birks, C., Meeker, D., & Fox, C. R. (2014). Time of day and the decision to prescribe antibiotics. *JAMA Internal Medicine, 174*(12), 2029–2031.
 
@@ -602,6 +620,8 @@ Peirce, C. S. (1878). Deduction, induction, and hypothesis. *Popular Science Mon
 
 Pellegrino, E. D., & Thomasma, D. C. (1981). *A Philosophical Basis of Medical Practice: Toward a Philosophy and Ethic of the Healing Professions*. Oxford University Press.
 
+Pepys, M. B., & Hirschfield, G. M. (2003). C-reactive protein: A critical update. *Journal of Clinical Investigation, 111*(12), 1805–1812.
+
 Philibert, I. (2005). Sleep loss and performance in residents and nonphysicians: A meta-analytic examination. *Sleep, 28*(11), 1392–1402.
 
 Polanyi, M. (1966). *The Tacit Dimension*. University of Chicago Press.
@@ -637,6 +657,8 @@ Schön, D. A. (1983). *The Reflective Practitioner: How Professionals Think in A
 Simpkin, A. L., & Schwartzstein, R. M. (2016). Tolerating uncertainty — The next medical revolution? *New England Journal of Medicine, 375*, 1713–1715.
 
 Singhal, K., Azizi, S., Tu, T., Mahdavi, S. S., Wei, J., Chung, H. W., et al. (2023). Large language models encode clinical knowledge. *Nature, 620*, 172–180.
+
+Suzuki, S. (1970). *Zen Mind, Beginner's Mind*. Weatherhill. [Trad. esp.: *Mente zen, mente de principiante*.]
 
 Taboada, P. (2000). El derecho a morir con dignidad. *Acta Bioethica, 6*(1), 89–101.
 

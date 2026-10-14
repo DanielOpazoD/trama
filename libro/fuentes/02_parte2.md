@@ -222,6 +222,14 @@ Una estructura breve puede ser:
 
 La primera instrucción es especialmente poderosa, como muestra la escena que abre este capítulo. Al quitar la etiqueta, reaparecen datos que habían sido subordinados a ella. La nueva representación no resuelve, pero impide que el nombre decida por adelantado.
 
+### La mente del principiante
+
+Hay una tradición que lleva siglos entrenando exactamente la operación de esa primera instrucción, y conviene reconocerla aunque venga de lejos de la medicina. Suzuki abrió sus charlas sobre la práctica del Zen con una frase que cualquier residente podría tener pegada en la ficha: en la mente del principiante hay muchas posibilidades; en la del experto, pocas (Suzuki, 1970). *Shoshin*, la mente del principiante, no es ignorancia: es la disposición a mirar lo que ya se conoce como si fuera la primera vez, sin que el nombre decida por adelantado. Presentar el caso sin la etiqueta es *shoshin* vuelto procedimiento; el Taller 8 es una práctica contemplativa con disfraz de ejercicio clínico.
+
+Lo segundo que el Zen aporta es el "no saber" como disciplina y no como derrota: sostener la pregunta abierta sin precipitarse a cerrarla, que es el "no lo sé" del capítulo 14 y la cartografía del capítulo 3. Y lo tercero es la atención misma como práctica que se entrena. Epstein, cuyo concepto de práctica atenta este capítulo ya usó, lo trajo explícitamente de esa tradición (Epstein, 1999), y con Krasner mostró en setenta médicos de atención primaria que un programa de comunicación atenta se asoció con menos agotamiento y más empatía, aunque sin grupo control (Krasner et al., 2009). El estado del que piensa, tratado páginas atrás, tiene aquí su contraparte: si el ánimo y el cansancio son hechos, la atención es una habilidad, y las habilidades se practican.
+
+Dos límites, para que el préstamo no se vuelva decorado. Este libro toma del Zen una disciplina de la atención y una actitud ante el no saber, no una metafísica ni una terapéutica. Y la mente del principiante no reemplaza al *illness script*: el experto que mira como principiante sigue sabiendo lo que sabe; lo que suspende es la prisa con que ese saber cierra el caso. Varela, practicante budista que escribió desde esa experiencia, dirá en el capítulo 14 lo que la une con la pericia: el saber hacer responde sin deliberar, y la deliberación entra en el quiebre. La pausa de este capítulo es ese quiebre buscado a propósito: un respiro entre el patrón que se encendió y la frase que lo fija.
+
 ### Pausa diagnóstica y segundo lector
 
 Una pausa diagnóstica puede incorporarse a visitas de sala, altas y entregas de turno. No necesita preguntar por todas las enfermedades posibles. Debe focalizarse en riesgos: ¿qué podría estar pasando que no estamos tratando?, ¿qué supuesto no verificamos?, ¿qué explicación alternativa cambia el destino o el tiempo de intervención?
