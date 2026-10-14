@@ -381,6 +381,8 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 
 **Uso de inteligencia artificial.** Este manuscrito se desarrolló a partir de ideas y formulaciones del autor, con asistencia de inteligencia artificial en búsqueda inicial, organización, comparación bibliográfica, apoyo en redacción y edición. La IA no sustituyó la verificación de fuentes, el juicio clínico, la autoría ni la responsabilidad: las tesis, las decisiones de contenido y los errores pertenecen al autor. El libro intenta aplicar a su propia escritura la disciplina que su capítulo 17 recomienda.
 
+**Verificación de las referencias.** Cada referencia se cotejó contra su fuente primaria antes de citarse, y el registro de ese cotejo —cifra por cifra— acompaña a las fuentes del libro. Cuatro se verificaron sólo por metadatos o por fuentes secundarias, y el lector debe saberlo: Estrada, Isen y Young (1997), cuyo texto completo no estuvo accesible, por lo que el hallazgo se enuncia tal como lo formula el título y sin cifras; la frase de Maturana (1970), tomada de su reimpresión y de *El árbol del conocimiento*; la cita de Suzuki (1970), confirmada contra la edición y no contra una copia del prólogo; y la localización de la tesis de Clifford (1877), tomada de la *Stanford Encyclopedia of Philosophy* y no del volumen original de la *Contemporary Review*. Ninguna de ellas sostiene por sí sola una cifra ni una conducta. La distribución de citas es plana: de las 210 citas del cuerpo, ningún autor supera el 4%, y Croskerry, Norman y Kahneman —las voces dominantes de la literatura sobre razonamiento clínico— suman el 8%. Las referencias con siete o más autores listan los seis primeros seguidos de «et al.»; los ensayos firmados por un grupo conservan el nombre del grupo.
+
 **HII-D.** Es una heurística conceptual no validada. Sus compromisos de falsabilidad están en el capítulo 15 («Qué evidencia me haría abandonar este método»); su evaluación empírica — concordancia entre lectores, efecto sobre la reconstrucción del razonamiento y sobre conductas medibles, y costo en tiempo — es un programa pendiente, no un resultado.
 
 # Referencias
@@ -430,6 +432,8 @@ Chalmers, J. D., Singanayagam, A., & Hill, A. T. (2008). C-reactive protein is a
 Charlin, B., Boshuizen, H. P. A., Custers, E. J. F. M., & Feltovich, P. J. (2007). Scripts and medical diagnostic knowledge: Theory and applications for clinical reasoning instruction and research. *Academic Medicine, 82*(10), 967–974.
 
 Charon, R. (2006). *Narrative Medicine: Honoring the Stories of Illness*. Oxford University Press.
+
+Chaudhuri, D., Nei, A. M., Rochwerg, B., Balk, R. A., Asehnoune, K., Cadena, R., et al. (2024). 2024 focused update: Guidelines on use of corticosteroids in sepsis, acute respiratory distress syndrome, and community-acquired pneumonia. *Critical Care Medicine, 52*(5), e219–e233.
 
 Clifford, W. K. (1877). The ethics of belief. *Contemporary Review, 29*, 289–309.
 
@@ -582,6 +586,8 @@ Maturana, H. R. (1970). *Biology of cognition* (BCL Report 9.0). Biological Comp
 Maturana, H., & Varela, F. (1984). *El árbol del conocimiento: Las bases biológicas del entendimiento humano*. Editorial Universitaria.
 
 McCoy, L. G., Manrai, A. K., & Rodman, A. (2024). Large language models and the degradation of the medical record. *New England Journal of Medicine, 391*(17), 1561–1564.
+
+Metlay, J. P., Waterer, G. W., Long, A. C., Anzueto, A., Brozek, J., Crothers, K., et al. (2019). Diagnosis and treatment of adults with community-acquired pneumonia: An official clinical practice guideline of the American Thoracic Society and Infectious Diseases Society of America. *American Journal of Respiratory and Critical Care Medicine, 200*(7), e45–e67.
 
 Meyer, A. N. D., Payne, V. L., Meeks, D. W., Rao, R., & Singh, H. (2013). Physicians' diagnostic accuracy, confidence, and resource requests: A vignette study. *JAMA Internal Medicine, 173*(21), 1952–1958.
 
