@@ -136,7 +136,7 @@ Aquí se reconoce la diferencia entre «no sé la etiología exacta» y «no sé
 
 La decisión integra probabilidad, gravedad, tiempo, reversibilidad, capacidad de monitorización y valores — y el contexto global del paciente: funcionalidad basal, pronóstico de fondo, red de apoyo y fines declarados, los hechos que el capítulo 10 llamó de pleno derecho. Debe poder formularse: «aunque X no está demostrado, actúo porque…» o «aunque X es posible, no actúo todavía porque…». Esta frase obliga a distinguir compromiso práctico de certeza epistémica. Y ante intervenciones mayores, la pregunta de proporcionalidad cierra la capa: ¿esta medida guarda proporción con el pronóstico y con los fines de este enfermo?
 
-Toda decisión incluye un plan de reapertura: criterio clínico, examen pendiente, plazo o evento. Sin él, HII-D queda incompleto. Así quedó escrita la de Carmen: reparación electiva tras la recuperación, porque el costo esperado de un quinto episodio fuera del hospital supera el riesgo de una cirugía programada; reevaluar si aparece dolor desproporcionado, fiebre o íleo antes de pabellón; responsable, el equipo tratante. La plantilla condensada que recoge estas ocho líneas está en el Apéndice A, y el Interludio I es su primera versión completa.
+Toda decisión incluye un plan de reapertura: criterio clínico, resultado pendiente, plazo o evento. Sin él, HII-D queda incompleto. Así quedó escrita la de Carmen: reparación electiva tras la recuperación, porque el costo esperado de un quinto episodio fuera del hospital supera el riesgo de una cirugía programada; reevaluar si aparece dolor desproporcionado, fiebre o íleo antes de pabellón; responsable, el equipo tratante. La plantilla condensada que recoge estas ocho líneas está en el Apéndice A, y el Interludio I es su primera versión completa.
 
 #### Caja de herramientas. HII-D en sesenta segundos
 
@@ -145,7 +145,7 @@ La versión completa es para casos difíciles. Para el resto —el ingreso núme
 1. **¿Qué vi y qué me contaron?** (un hecho decisivo, con su fuente)
 2. **¿Qué creo y cuánto derecho tengo a creerlo?** (la inferencia principal, con su grado)
 3. **¿Qué daño importante podría producir si estoy equivocado?** (la incertidumbre peligrosa, no todas)
-4. **¿Qué hago, y qué me haría cambiar antes del próximo control?** (decisión con criterio de reapertura)
+4. **¿Qué hago y qué me haría cambiar antes del próximo control?** (decisión con criterio de reapertura)
 
 Sesenta segundos no producen una epistemología; producen algo más modesto y a veces suficiente: impiden que la frase «cuadro habitual, manejo habitual» se escriba sola. Si alguna de las cuatro respuestas incomoda —el hecho decisivo resulta heredado, la confianza no tiene fuente, la incertidumbre peligrosa no tiene vigilancia—, esa incomodidad es la indicación para la versión completa.
 
@@ -240,9 +240,9 @@ Servicio de urgencias, 03:10. Hombre de 54 años, tabáquico activo, consulta po
 
 *¿Qué creo y cuánto derecho tengo a creerlo? (Inferencia)* Síndrome coronario agudo (SCA) probable; la semiología isquémica típica y el perfil de riesgo tienen mayor peso pretest que un primer trazado electrocardiográfico no concluyente. Diagnóstico aún no demostrado.
 
-*¿Qué daño importante produciría si me equivoco? (Incertidumbre crítica)* Rotularlo como «dolor torácico atípico con ECG sin isquemia aguda» y enviarlo a esperar la troponina en una silla de la sala común mientras cursa una oclusión coronaria dinámica. La incertidumbre peligrosa no es la etiqueta nominal; es la ventana de tiempo de miocardio salvable.
+*¿Qué daño importante podría producir si estoy equivocado? (Incertidumbre crítica)* Rotularlo como «dolor torácico atípico con ECG sin isquemia aguda» y enviarlo a esperar la troponina en una silla de la sala común mientras cursa una oclusión coronaria dinámica. La incertidumbre peligrosa no es la etiqueta nominal; es la ventana de tiempo de miocardio salvable.
 
-*¿Qué hago ahora y qué me haría cambiar? (Decisión)* Cama monitorizada, vía venosa, antiagregación inicial según protocolo, ECG seriado cada 15–30 minutos y rescate rápido de la troponina. Activar hemodinamia de inmediato si el trazado evoluciona a supradesnivel o si el dolor se vuelve refractario. Queda escrito: «SCA en evolución, no demostrado; manejo y monitorización continua por asimetría de consecuencias ante el riesgo vital de omisión».
+*¿Qué hago y qué me haría cambiar antes del próximo control? (Decisión)* Cama monitorizada, vía venosa, antiagregación inicial según protocolo, ECG seriado cada 15–30 minutos y rescate rápido de la troponina. Activar hemodinamia de inmediato si el trazado evoluciona a supradesnivel o si el dolor se vuelve refractario. Queda escrito: «SCA en evolución, no demostrado; manejo y monitorización continua por asimetría de consecuencias ante el riesgo vital de omisión».
 
 *Frase medular:* «Dolor torácico de perfil anginoso con descarga adrenérgica y ECG inicial no concluyente: se maneja como SCA probable bajo monitorización continua, por asimetría de consecuencias, mientras la seriación electrocardiográfica y enzimática confirma o degrada la hipótesis.»
 

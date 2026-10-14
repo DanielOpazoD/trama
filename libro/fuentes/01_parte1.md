@@ -273,7 +273,7 @@ Puede distinguirse una escala práctica:
 - **Probable o compatible con**: la explicación organiza bien los hechos, pero persisten rivales o faltan elementos.
 - **Posible**: no contradice los datos y merece consideración, aunque el soporte es limitado.
 - **No demostrado**: la hipótesis puede ser razonable, pero el caso no aporta evidencia suficiente para afirmarla.
-- **Sin evidencia de**: el método empleado no mostró el fenómeno; la fuerza depende de su sensibilidad y oportunidad.
+- **Sin evidencia actual de**: el método empleado no mostró el fenómeno; la fuerza depende de su sensibilidad y oportunidad.
 
 «Se descarta» debería reservarse para situaciones en que el método y el contexto realmente permiten excluir. Con frecuencia es más exacto escribir «sin evidencia actual de» o «probabilidad suficientemente baja para no justificar». El Apéndice B desarrolla este léxico completo, con ejemplos de uso correcto e incorrecto de cada término.
 

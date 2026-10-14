@@ -224,7 +224,7 @@ Ejemplo:
 
 ### Frase medular
 
-Después de ordenar el caso, el paso siguiente es formular una frase medular. No reemplaza la evolución completa; ofrece una representación operativa. Debe incluir la naturaleza del evento, el elemento que cambia el riesgo y el límite principal de certeza.
+Después de ordenar el caso, el paso siguiente es formular una frase medular. No reemplaza la evolución completa; ofrece una representación operativa. Debe incluir la naturaleza del evento, la inferencia con su grado, la incertidumbre crítica —el límite principal de certeza, que suele ser el elemento que cambia el riesgo— y el efecto sobre la conducta.
 
 En el caso anterior: «Bacteriuria y piuria tras recambio de sonda Foley en paciente con vejiga neurogénica y antecedente de colonización multirresistente, sin signos sistémicos ni autonómicos que configuren infección activa; se difiere antibioterapia bajo vigilancia dirigida para evitar selección de resistencia.»
 

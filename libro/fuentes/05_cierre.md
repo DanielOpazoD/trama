@@ -80,7 +80,7 @@ El ideal no es un médico que nunca se equivoca, sino uno cuyo razonamiento pued
 
 **Frase medular final**
 
-Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, la incertidumbre crítica y el efecto sobre la conducta.
+Una o dos frases que expresen la naturaleza del evento, la inferencia con su grado, la incertidumbre crítica y el efecto sobre la conducta.
 
 **Plantilla condensada** (una línea por campo, para la nota difícil): pregunta operativa · hechos decisivos · inferencia principal y grado · alternativa que cambiaría la conducta · incertidumbre crítica · contexto global · decisión y razón · criterio de reapertura.
 
@@ -312,7 +312,7 @@ Los términos marcados con ∗ son propuestas de este libro; los demás se toman
 
 **Deliberación moral.** Método de la ética clínica para los conflictos de valores: identificar qué valores chocan, enumerar los cursos de acción extremos, buscar los intermedios y elegir el curso prudente y públicamente defendible (Gracia). Es a los valores lo que el diagnóstico diferencial a las hipótesis.
 
-**Densidad epistémica∗.** Propiedad de una formulación clínica que conserva los ejes que cambian la interpretación (tiempo, severidad, mecanismo, evidencia contraria, consecuencia) en lugar de sólo abreviar.
+**Densidad epistémica∗.** Propiedad de una formulación clínica que conserva lo que una frase pierde con más frecuencia —procedencia, temporalidad, transparencia inferencial, calibración modal, relevancia decisional y revisabilidad: las seis dimensiones de auditoría del capítulo 4— en lugar de sólo abreviar.
 
 **Deskilling / never-skilling / mis-skilling.** Tríada de riesgos formativos de la IA clínica: perder por desuso una competencia ya adquirida; no consolidarla nunca porque la herramienta ejecutó la tarea desde el inicio de la formación; o adquirirla mal, imitando salidas no auditadas (Abdulnour et al.). El segundo es el más difícil de detectar: no deja recuerdo de lo perdido.
 
@@ -328,19 +328,19 @@ Los términos marcados con ∗ son propuestas de este libro; los demás se toman
 
 **Ética de la creencia (ethics of belief).** Tesis de Clifford (1877) según la cual creer sin evidencia suficiente es en sí mismo reprochable, con independencia del desenlace; en clínica, fundamento del deber de pensar bien como parte de la ética primordial del médico y de la regla de que un buen desenlace no valida un proceso defectuoso.
 
-**Estado del razonador∗.** Condiciones en que se produce un juicio clínico —sueño, horas de turno, hora del día, ánimo, preocupaciones ajenas al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
+**Estado del razonador∗.** Condiciones en que se produce un juicio clínico —hora del día, horas de turno, sueño, ánimo, preocupación ajena al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
 
 **Ficha de proceso∗.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; «Neumonía. Ceftriaxona» no conjuga ninguno.
 
 **Fragilidad (frailty).** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho, no una impresión.
 
-**Frase medular∗.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
+**Frase medular∗.** Formulación breve que condensa la naturaleza del evento, la inferencia con su grado, la incertidumbre crítica y el efecto sobre la conducta: las cuatro capas de HII-D en una o dos frases.
 
 **Frecuencias naturales (natural frequencies).** Presentación de probabilidades como conteos sobre una población de referencia («90 de cada 270 positivos»), que facilita el razonamiento bayesiano intuitivo (Gigerenzer).
 
 **Hindsight bias (sesgo retrospectivo).** Tendencia a percibir un desenlace conocido como si hubiera sido predecible, contaminando la evaluación de decisiones pasadas.
 
-**HII-D∗.** Heurística de escritura y deliberación que ordena el razonamiento en Hechos, Inferencias, Incertidumbre y Decisión, más un movimiento transversal de reevaluación. No validada como instrumento.
+**HII-D∗.** Heurística de escritura y deliberación que, a partir de una pregunta operativa, ordena el razonamiento en Hechos, Inferencias, Incertidumbre y Decisión, más un movimiento transversal de reevaluación. No validada como instrumento.
 
 **Humildad epistémica (epistemic humility).** Atención y apropiación de las propias limitaciones cognitivas (Whitcomb et al., que hablan de intellectual humility). No es timidez para afirmar: es la disposición que mantiene el caso abierto — permite seguir explorando, seguir aprendiendo y reubicar el foco y el manejo cuando la trayectoria contradice el mapa.
 
@@ -368,7 +368,7 @@ Los términos marcados con ∗ son propuestas de este libro; los demás se toman
 
 **Paradoja de la automatización (automation paradox).** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es cuando más se las necesita (Abdulnour et al.).
 
-**Pausa diagnóstica (diagnostic time-out).** Interrupción breve y selectiva del flujo clínico, activada por disparadores definidos (reconsulta, evolución discordante, transferencia), para reformular el caso sin su etiqueta y localizar la incertidumbre peligrosa.
+**Pausa diagnóstica (diagnostic time-out).** Interrupción breve y selectiva del flujo clínico, activada por disparadores definidos (reconsulta, evolución inesperada o discordante con el diagnóstico, transición de cuidados, estado del razonador), para reformular el caso sin su etiqueta y localizar la incertidumbre peligrosa.
 
 **Phronesis.** Prudencia práctica aristotélica: la capacidad de deliberar bien sobre lo que conviene hacer en una situación particular.
 
