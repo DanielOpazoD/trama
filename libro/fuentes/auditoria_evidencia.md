@@ -1,6 +1,6 @@
 # Auditoría de evidencia — registro (Fase E de la pauta de edición final)
 
-Fecha de auditoría: 9 de agosto de 2026. Método: cada afirmación empírica del manuscrito se cotejó contra su fuente primaria (autoría, población, magnitud, dirección, año). Las referencias incorporadas durante las rondas 3.ª a 7.ª fueron verificadas contra fuente **antes** de entrar al texto (regla del proyecto); esta auditoría re-verificó además las cifras de mayor riesgo. Veredictos: **EXACTA** (la formulación del libro corresponde a la fuente), **AJUSTADA** (se corrigió la formulación), **REFORMULADA** (sin respaldo directo suficiente → convertida en formulación ilustrativa).
+Fecha de auditoría: 9 de agosto de 2026; ítem 27 agregado el 14 de octubre de 2026. Método: cada afirmación empírica del manuscrito se cotejó contra su fuente primaria (autoría, población, magnitud, dirección, año). Las referencias incorporadas durante las rondas 3.ª a 7.ª fueron verificadas contra fuente **antes** de entrar al texto (regla del proyecto); esta auditoría re-verificó además las cifras de mayor riesgo. Veredictos: **EXACTA** (la formulación del libro corresponde a la fuente), **AJUSTADA** (se corrigió la formulación), **REFORMULADA** (sin respaldo directo suficiente → convertida en formulación ilustrativa).
 
 | # | Afirmación en el libro (cap.) | Fuente | Cotejo | Veredicto |
 |---|---|---|---|---|
@@ -30,6 +30,7 @@ Fecha de auditoría: 9 de agosto de 2026. Método: cada afirmación empírica de
 | 24 | Toulmin y Jonsen defendieron juntos la casuística clínica (cap. 4, caja) | Jonsen & Toulmin, The Abuse of Casuistry, U. California Press, 1988 | Verificado antes de incorporar (esta edición) | EXACTA |
 | 25 | Ten pitfalls de la depuración de lactato (cap. 1) | Hernández, Bellomo & Bakker, Intensive Care Med 2019;45(1):82-85 | Verificada en 4.ª ronda | EXACTA |
 | 26 | Intuición confiable sólo con entorno de validez alta + oportunidad de aprender sus regularidades (cap. 6) | Kahneman & Klein, Am Psychol 2009;64(6):515-526 | Verificada antes de incorporar (esta edición); condiciones correctamente descritas | EXACTA |
+| 27 | El investigador principal de la saga ANDROMEDA escribe también poesía (cap. 18) | Catálogo ISBN Chile; entrevista CNN Chile (2019): «La estepa invernal» y «Cuadernos de Ismael» (2019); títulos previos 1996 y 2000 | Afirmación biográfica detectada sin auditar en la relectura de octubre de 2026; verificada contra dos fuentes independientes | EXACTA |
 
 ## Generalizaciones docentes intervenidas (regla de transformación de la pauta, §A4)
 
