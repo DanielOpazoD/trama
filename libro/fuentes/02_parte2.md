@@ -83,13 +83,11 @@ El carácter tácito no exime de evaluación. Una impresión global puede inicia
 
 Schön agregó el movimiento que a Polanyi le faltaba nombrar: el profesional competente no sólo actúa desde lo tácito — conversa con la situación y, cuando ésta responde con una sorpresa, reflexiona en plena acción (Schön, 1983). Ahí está la tensión productiva entre ambos: lo tácito es el modo normal de operar de la pericia, pero debe poder volverse explícito a demanda, porque sólo lo explícito puede ser interrogado, enseñado y corregido. Una intuición que no tolera la pregunta «¿qué estás viendo que yo no veo?» no es pericia madura: es autoridad con buena prensa. La intuición experta vale precisamente porque puede ser interrogada — y quien la despliega sin poder desempaquetarla está pidiendo fe, no ofreciendo juicio.
 
-### Dos procesos, no dos médicos
+### Dos procesos, no dos médicos: la phronesis
 
 Las teorías de doble proceso (dual-process theories) distinguen un modo rápido, asociativo y automático de otro más lento, analítico y controlado. En clínica han sido útiles para explicar reconocimiento de patrones y revisión deliberada (Croskerry, 2009; Norman, 2009). No deben interpretarse como dos sistemas anatómicos aislados ni como una oposición moral entre intuición mala y análisis bueno. Los procesos interactúan y ambos pueden acertar o errar (Evans & Stanovich, 2013).
 
 El análisis depende del conocimiento disponible. Un médico puede pensar lentamente y equivocarse por déficit conceptual. La intuición experta puede superar una lista analítica en un patrón familiar. Norman y colaboradores han insistido en que los errores atribuidos a sesgo frecuentemente incluyen conocimiento insuficiente y que enseñar sólo a «pensar despacio» no reemplaza la construcción de representaciones robustas (Norman et al., 2017).
-
-### Phronesis
 
 Hay una palabra antigua para la integración que ni el análisis ni la intuición logran por separado. Aristóteles distinguió el conocimiento teórico de la prudencia práctica, o phronesis: la capacidad de deliberar bien acerca de lo que conviene hacer en situaciones particulares. La clínica comparte esta estructura. La regla general necesita ser aplicada a un caso con bienes en tensión, información incompleta y consecuencias asimétricas (Aristóteles, 1985).
 
@@ -122,13 +120,11 @@ La excelencia no pertenece al médico que siempre analiza todo ni al que siempre
 
 Voy a contar un error mío. Una paciente de ochenta y dos años, traída por su hija por decaimiento hipoactivo de dos días y orina de mal olor. La hoja de atención de urgencias traía escrito «antecedente de ITU a repetición», el sedimento mostraba piuria y el urocultivo preliminar informó desarrollo bacteriano. Indiqué ceftriaxona, escribí «ITU baja/alta en anciana frágil, evolución favorable esperable» y pasé al siguiente ingreso de la tarde. Al tercer día la paciente seguía postrada e inapetente; al cuarto agregó fiebre alta, ictericia subclínica y defensa en el hipocondrio derecho: era una colecistitis aguda gangrenosa. Durante años conté este caso diciendo «me anclé en la ITU». Hoy entiendo que esa etiqueta psicológica, aunque cierta, era otra forma de cierre prematuro: bautizar el sesgo me ahorraba reconstruir la arquitectura real del fallo. Este capítulo trata de esa reconstrucción.
 
-### El atractivo de nombrar el sesgo
+### Del nombre del sesgo a la trayectoria del error
 
 La literatura sobre heurísticas y sesgos transformó la comprensión del juicio. Tversky y Kahneman mostraron que las personas estiman probabilidades mediante reglas rápidas que producen errores sistemáticos en determinadas condiciones (Tversky & Kahneman, 1974; Kahneman, 2011). En medicina, Croskerry y otros autores difundieron conceptos como anclaje, disponibilidad, confirmación, cierre prematuro y búsqueda satisfecha (Croskerry, 2003).
 
 El vocabulario es útil porque permite reconocer patrones. Pero también puede producir una explicación retrospectiva demasiado fácil. Después de un error, casi siempre es posible encontrar un sesgo que parezca describirlo. Etiquetar «anclaje» no demuestra el mecanismo ni explica por qué el anclaje ocurrió en ese momento, con ese equipo y bajo esas condiciones.
-
-### Error como trayectoria
 
 Los estudios de errores diagnósticos muestran combinaciones de fallas en historia, examen, interpretación, seguimiento y comunicación (Graber et al., 2005; Schiff et al., 2009). La National Academies definió el diagnóstico como un proceso iterativo y de equipo, no como un acto mental instantáneo (National Academies of Sciences, Engineering, and Medicine, 2015). El error debe reconstruirse como trayectoria: qué información existía, quién la recibió, cómo fue representada, qué decisiones se tomaron, qué feedback faltó y cuándo habría sido posible corregir.
 
@@ -138,13 +134,11 @@ Mi error con aquella colecistitis, analizado como trayectoria ecológica y no co
 
 El cierre prematuro, en general, puede surgir de una hipótesis inicial convincente, pero también de sobrecarga, interrupciones, fragmentación del registro, jerarquía, ausencia de acceso a exámenes previos o presión de camas.
 
-### Sesgo, conocimiento y señal
+### Sesgo, conocimiento y confianza
 
 Norman y colaboradores advirtieron que muchos errores no son fallas puras de proceso, sino déficits de conocimiento. No reconocer una enfermedad rara puede parecer disponibilidad, pero quizá el clínico nunca desarrolló un script adecuado. Un análisis excesivamente psicologizado puede recomendar una pausa cuando lo necesario es enseñar fisiopatología o ampliar experiencia (Norman et al., 2017).
 
 Las heurísticas tampoco son enemigas de la racionalidad. Gigerenzer ha mostrado que reglas simples pueden ser adaptativas cuando corresponden a la estructura del ambiente (Gigerenzer & Gaissmaier, 2011). El problema no es usar atajos, sino usarlos fuera de su ecología de validez. «Lo frecuente es frecuente» funciona como prior, no como veto a la evidencia discordante.
-
-### Sobreconfianza
 
 El prior tiene, sin embargo, una patología propia. La sobreconfianza ha sido vinculada al error diagnóstico, especialmente cuando impide buscar evidencia o revisar una conclusión (Berner & Graber, 2008). Sin embargo, medirla no es trivial. La confianza puede ser apropiada en casos fáciles y excesiva en casos difíciles. Meyer y colaboradores observaron que la relación entre confianza y exactitud es imperfecta, lo que refuerza la necesidad de calibración y feedback (Meyer et al., 2013).
 
@@ -185,13 +179,11 @@ Tome el error de la colecistitis narrado al inicio del capítulo (o, mejor, un e
 
 En la visita médica de las 8:30, el residente presenta la cama 12 en cuarenta segundos: «Pielonefritis aguda en su tercer día de tratamiento antibiótico, afebril, con buena respuesta clínica». La internista a cargo de la sala mira dos segundos la curva de signos vitales y los exámenes en pantalla y le pide: «Preséntamelo de nuevo, pero sin usar la palabra pielonefritis ni infección». El residente toma aire y reestructura: «Hombre con lesión medular completa y usuario crónico de sonda Foley; tras recambio traumático de sonda presentó orina turbia, piuria y urocultivo positivo, manteniéndose siempre afebril, hemodinámicamente estable y sin disuria ni dolor lumbar evaluables por su nivel lesional; cursa con PCR elevada estable y tiene un cáncer renal metastásico activo como causa inflamatoria concomitante...». Antes de terminar la tercera oración, ya nadie en la sala cree que el paciente tenga una pielonefritis. Ese es exactamente el punto de este capítulo.
 
-### Reflexionar no es rumiar
+### Reflexionar no es rumiar: cuándo desacelerar
 
 Schön describió al profesional reflexivo como alguien capaz de pensar durante y después de la acción, especialmente cuando la situación resiste las categorías habituales (Schön, 1983). En medicina, reflexión no significa prolongar indefinidamente cada decisión. Significa volver deliberadamente sobre la representación del problema, examinar supuestos y reorganizar la evidencia cuando existe una razón para hacerlo.
 
 La práctica atenta de Epstein añade una dimensión: curiosidad, presencia y capacidad de reconocer las propias respuestas emocionales y categorías (Epstein, 1999). La reflexión clínica eficaz es concreta. Tiene un objeto, un disparador y una consecuencia posible.
-
-### Cuándo desacelerar
 
 Moulton y colaboradores propusieron «desacelerar cuando se debe» como característica del juicio experto. Los profesionales alternan entre flujo automático y esfuerzo deliberado cuando detectan señales de dificultad, novedad o peligro (Moulton et al., 2007). La dificultad es que el momento de desacelerar también debe ser reconocido; si la metacognición falla, el clínico continúa con fluidez precisamente cuando debería detenerse.
 

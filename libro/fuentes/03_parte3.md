@@ -179,13 +179,11 @@ Esta estructura explicita los cuatro pilares que validan al tiempo como prueba d
 
 Abra la ficha clínica de cualquier paciente que lleve más de una semana hospitalizado y busque el párrafo que se repite intacto desde el ingreso. Casi siempre está ahí. Alguien lo redactó el primer día, otro lo copió y pegó el segundo, y desde entonces viaja en las evoluciones como un polizón: «paciente con antecedente de ITU a repetición», «en estudio por baja de peso», «se mantiene manejo habitual». Este capítulo aborda la ficha clínica como tecnología cognitiva: la diferencia entre un registro que sostiene el pensamiento y uno que lo fosiliza.
 
-### Registrar no es archivar
+### Registrar no es archivar: la ficha produce lo visible
 
 La ficha clínica suele entenderse como memoria legal y medio de comunicación. También puede ser un dispositivo cognitivo. Weed propuso el registro orientado por problemas para que la información guiara y enseñara, vinculando datos, evaluación y plan (Weed, 1968a, 1968b). La estructura del registro influye en lo que el equipo ve, recuerda y considera resuelto.
 
 Una nota extensa puede ser epistemológicamente pobre si copia datos sin jerarquía. Una nota breve puede ser peligrosa si sólo conserva conclusiones. El objetivo es trazabilidad: que otro lector pueda identificar qué se observó, qué se infirió, qué permanece incierto y por qué se decidió.
-
-### La ficha produce lo visible
 
 La trazabilidad tiene una consecuencia menos evidente: el formato del registro decide qué puede llegar a ser un hecho. Foucault sostuvo que la clínica moderna no nació simplemente de mirar mejor, sino de reorganizar qué era decible y registrable. El hospital, la autopsia y el registro crearon un espacio donde ciertos fenómenos pudieron convertirse en signos y otros ni siquiera podían formularse (Foucault, 1966). La ficha contemporánea hace hoy ese mismo trabajo, silenciosamente. Sus campos deciden qué existe institucionalmente: si la plantilla tiene casilla para «dolor EVA» pero no hay lugar para «esta vez el dolor era otro», la primera afirmación sobrevivirá en el registro y la segunda morirá en el pasillo. Lo que no cabe en el formulario no se pierde por descuido; se pierde por diseño.
 
@@ -201,7 +199,7 @@ El copiado automático amenaza esta función. Una formulación inicial se reprod
 
 [FIGURA: fig14_viaje_frase.png | Figura 13. El viaje de una frase: la conjetura del prefacio se convierte en antecedente y el antecedente en hecho sin que nadie mienta en ningún punto. Al pie, de qué está hecha una evolución típica según Wang, Khanna y Najafi (2017).]
 
-### La matriz HII-D
+### La matriz HII-D y la frase medular
 
 Puede aplicarse una secuencia simple:
 
@@ -221,8 +219,6 @@ Ejemplo:
 *Incertidumbre:* los síntomas urinarios bajos clásicos no son evaluables por su lesión medular; el riesgo es subestimar una infección incipiente de expresión atípica.
 
 *Decisión:* no iniciar antibióticos ahora. Mantener vigilancia clínica estrecha ante la aparición de fiebre, inestabilidad hemodinámica, aumento de espasticidad o disreflexia autonómica. El antecedente de colonización multirresistente —declarado en la capa de hechos— eleva el daño ecológico e individual de un tratamiento innecesario, y exige un umbral clínico estricto antes de prescribir.
-
-### Frase medular
 
 Después de ordenar el caso, el paso siguiente es formular una frase medular. No reemplaza la evolución completa; ofrece una representación operativa. Debe incluir la naturaleza del evento, la inferencia con su grado, la incertidumbre crítica —el límite principal de certeza, que suele ser el elemento que cambia el riesgo— y el efecto sobre la conducta.
 
@@ -297,7 +293,7 @@ Rajkomar y Blandford describieron cómo la administración de infusiones en UCI 
 
 La ficha clínica es uno de estos artefactos. Una nota bien estructurada conserva procedencia, temporalidad y grado de certeza para el siguiente lector. Una nota retórica transmite una conclusión sin las condiciones para revisarla. La calidad epistemológica del equipo depende de que las representaciones sean auditables.
 
-### El desacuerdo como instrumento
+### El desacuerdo como instrumento y el diseño para la corrección
 
 Los equipos suelen tratar la discrepancia como obstáculo que debe cerrarse rápido. Sin embargo, un desacuerdo bien formulado puede revelar supuestos diferentes, hechos omitidos o umbrales distintos de acción. La diversidad de perspectivas sólo mejora el juicio cuando existe posibilidad real de expresar y examinar la diferencia. Sin seguridad psicológica, la jerarquía convierte la convergencia aparente en silencio.
 
@@ -305,9 +301,7 @@ No todo desacuerdo tiene igual valor. Debe traducirse a proposiciones evaluables
 
 Las visitas de sala pueden usar una pausa breve: ¿qué hechos nuevos cambian el caso?, ¿cuál es la inferencia principal y su alternativa?, ¿qué incertidumbre domina el riesgo?, ¿qué conducta se propone y qué la hará cambiar? La estructura HII-D no reemplaza la discusión libre; crea un lenguaje común para localizar la diferencia.
 
-### Diseño para la corrección
-
-Un sistema seguro no depende de que cada individuo recuerde cuestionarlo todo. Diseña momentos y artefactos que facilitan detectar discordancias: tendencias visibles, alertas selectivas, listas de problemas actualizadas, criterios de reapertura, acceso a datos fuente y roles claros para escalar preocupación. La National Academies conceptualizó el diagnóstico como un proceso de equipo y aprendizaje continuo, no como un acto aislado (National Academies of Sciences, Engineering, and Medicine, 2015).
+Ese lenguaje común necesita un sistema que lo sostenga. Un sistema seguro no depende de que cada individuo recuerde cuestionarlo todo. Diseña momentos y artefactos que facilitan detectar discordancias: tendencias visibles, alertas selectivas, listas de problemas actualizadas, criterios de reapertura, acceso a datos fuente y roles claros para escalar preocupación. La National Academies conceptualizó el diagnóstico como un proceso de equipo y aprendizaje continuo, no como un acto aislado (National Academies of Sciences, Engineering, and Medicine, 2015).
 
 La redundancia debe ser inteligente. Repetir información sin contraste aumenta ruido. La redundancia útil incorpora independencia parcial: una segunda lectura, una revisión por otro profesional o una comprobación contra datos primarios. Del mismo modo, la tecnología debe reducir carga sin convertir la automatización en autoridad incuestionada.
 

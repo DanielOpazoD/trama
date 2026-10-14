@@ -285,15 +285,13 @@ El segundo es de Stephen Toulmin, que propuso la anatomía mínima de toda afirm
 
 [FIGURA: fig11_toulmin.png | Figura 5. La frase medular como argumento de Toulmin: dato, garantía, respaldo, calificador modal, conclusión y refutación, sobre una frase real de Carmen. Cada pieza corresponde a una capa del libro; la decisión es lo que la garantía autoriza.]
 
-### Verbos que ocultan
+### Verbos que ocultan, frases que operan
 
 Algunos verbos compactan causalidad sin mostrarla: «secundario a», «debido a», «complicado por», «en contexto de». Son útiles, pero pueden convertir correlación temporal en mecanismo. «En contexto de» es especialmente ambiguo: a veces significa coexistencia, otras causalidad probable y otras simple proximidad narrativa. La buena escritura especifica la relación cuando importa.
 
 También debe evitarse la autoridad retrospectiva. Una evolución favorable después de antibióticos no demuestra por sí sola etiología bacteriana; una respuesta a diuréticos no prueba que todo el cuadro fuera cardiogénico; la normalización espontánea no invalida la gravedad inicial. El relato clínico tiende a construir una historia coherente una vez conocido el desenlace. La nota contemporánea debe preservar qué se sabía en cada momento.
 
-### Frases operativas
-
-Una frase operativa actúa como un argumento de Toulmin comprimido: enlaza el dato observado con la acción a través de una garantía clínica explícita. No prescribe necesariamente una conducta única, pero transparenta por qué se desplaza el umbral terapéutico. «Cuarto episodio de suboclusión en doce meses» documenta aceleración de la frecuencia; «primer ingreso complicado con shock y bacteriemia» establece un cambio cualitativo en la severidad biológica. «Sin evidencia tomográfica de isquemia actual» acota la urgencia quirúrgica inmediata, y «alto riesgo de recurrencia grave fuera del hospital» fundamenta la indicación de reparación electiva pronta.
+Lo contrario del verbo que oculta es la frase que opera. Una frase operativa actúa como un argumento de Toulmin comprimido: enlaza el dato observado con la acción a través de una garantía clínica explícita. No prescribe necesariamente una conducta única, pero transparenta por qué se desplaza el umbral terapéutico. «Cuarto episodio de suboclusión en doce meses» documenta aceleración de la frecuencia; «primer ingreso complicado con shock y bacteriemia» establece un cambio cualitativo en la severidad biológica. «Sin evidencia tomográfica de isquemia actual» acota la urgencia quirúrgica inmediata, y «alto riesgo de recurrencia grave fuera del hospital» fundamenta la indicación de reparación electiva pronta.
 
 > La precisión clínica consiste en decir qué creemos, por qué lo creemos y cuánto derecho tenemos a creerlo.
 

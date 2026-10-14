@@ -149,13 +149,11 @@ La versión completa es para casos difíciles. Para el resto —el ingreso núme
 
 Sesenta segundos no producen una epistemología; producen algo más modesto y a veces suficiente: impiden que la frase «cuadro habitual, manejo habitual» se escriba sola. Si alguna de las cuatro respuestas incomoda —el hecho decisivo resulta heredado, la confianza no tiene fuente, la incertidumbre peligrosa no tiene vigilancia—, esa incomodidad es la indicación para la versión completa.
 
-### Uso en equipo
+### Uso en equipo, calibración y auditoría
 
 En una visita de sala, cada integrante puede desafiar una capa distinta. Enfermería aporta evolución y respuesta; radiología delimita lo que la imagen muestra y lo que no; microbiología precisa relevancia y contaminación; cirugía integra anatomía y oportunidad; el paciente aporta síntomas, preferencias y desenlaces que valora. El método no centraliza el conocimiento en una sola voz.
 
 También puede usarse para revisar una nota, un informe de alta o una respuesta de IA. La pregunta siempre es la misma: ¿la fuerza del lenguaje corresponde a la fuerza de la evidencia y la decisión corresponde a las consecuencias?
-
-### Calibración y auditoría del método
 
 HII-D puede usarse retrospectivamente para examinar decisiones. La pregunta no es sólo si el diagnóstico final coincidió, sino si los hechos fueron representados con fidelidad, si las inferencias recibieron una fuerza proporcional, si la incertidumbre relevante fue identificada y si la decisión era defendible con la información disponible. Este análisis evita confundir calidad del proceso con fortuna del desenlace.
 
@@ -362,25 +360,19 @@ Este libro toma posición en una controversia real de la educación médica, y l
 
 La posición es intermedia, pero no equidistante. Con los escépticos: no existe una habilidad general de «pensar bien» que flote por encima del conocimiento; la representación rica del problema —illness scripts, experiencia con feedback— es la condición de todo lo demás, y ningún método, HII-D incluido, compensa no saber medicina. Contra el escepticismo total: de esa evidencia no se sigue que la única intervención posible sea enseñar más contenido. Lo que se propone aquí no es vigilancia interna permanente ni listas universales, las versiones que la evidencia ha desinflado, sino artefactos externos y selectivos. Un lenguaje que obliga a graduar afirmaciones; una estructura de nota que conserva las capas; pausas activadas por disparadores definidos; circuitos de feedback que conviertan experiencia en calibración. Es una apuesta con compromisos observables (véase el capítulo 15): si estas herramientas no cambian conductas medibles, deben abandonarse como cualquier hipótesis mimada. Entre tanto, la controversia se enseña mejor de lo que se oculta: un residente que conoce el debate sabrá desconfiar por igual del catálogo de sesgos como solución universal y del nihilismo pedagógico como coartada.
 
-### Visitas de sala y entregas de turno
+### Tres palancas: la visita, la revisión de errores y la ficha
 
 Las tres palancas prometidas al inicio son, por orden de costo, la visita, la revisión de errores y la ficha. Una visita de sala puede incorporar una pausa breve en casos seleccionados, y no hace falta inventarle preguntas: las cuatro de la versión de sesenta segundos (capítulo 15) bastan, y el Apéndice C dice con qué disparadores instalarlas, en cuántas semanas y qué medir. Lo que este capítulo aporta es el porqué: la pausa en voz alta es el único momento en que el equipo entero mira la misma representación del problema, y quien dirige la visita la enseña modelándola, no interrogando.
 
 La entrega de turno debe transmitir tareas epistémicas, no sólo tratamientos. «Pendiente observar si…» y «si ocurre X, reabrir Y» son componentes de seguridad.
 
-### Conferencias de aprendizaje
-
-La morbimortalidad tradicional puede centrarse en quién se equivocó o en una secuencia factual sin análisis cognitivo. Una revisión más útil reconstruye la evolución de la representación: qué se pensó en cada punto, qué señales estaban disponibles, qué información faltó, qué condiciones favorecieron la inercia y qué barrera podría permitir corrección futura. La viñeta 6 del cuaderno de casos es un ejemplo del formato: capas, oportunidades y barreras, sin moralismo retrospectivo.
+La segunda palanca es la revisión de errores, y tiene una forma pública y otra privada. La morbimortalidad tradicional puede centrarse en quién se equivocó o en una secuencia factual sin análisis cognitivo. Una revisión más útil reconstruye la evolución de la representación: qué se pensó en cada punto, qué señales estaban disponibles, qué información faltó, qué condiciones favorecieron la inercia y qué barrera podría permitir corrección futura. La viñeta 6 del cuaderno de casos es un ejemplo del formato: capas, oportunidades y barreras, sin moralismo retrospectivo.
 
 Debe evitarse el hindsight bias. El desenlace no convierte automáticamente en obvia una alternativa que tenía baja probabilidad inicial. El aprendizaje surge al identificar oportunidades razonables de actualización, no al exigir omnisciencia retrospectiva.
 
-### Feedback diagnóstico
-
-Los médicos necesitan saber qué ocurrió con pacientes derivados, dados de alta o transferidos. Sistemas simples pueden devolver diagnósticos finales, resultados discrepantes, reconsultas y cambios terapéuticos. La calibración requiere series, no recuerdos aislados.
+La forma privada es el feedback diagnóstico: los médicos necesitan saber qué ocurrió con pacientes derivados, dados de alta o transferidos. Sistemas simples pueden devolver diagnósticos finales, resultados discrepantes, reconsultas y cambios terapéuticos. La calibración requiere series, no recuerdos aislados.
 
 Un portafolio privado puede registrar: hipótesis principal, confianza aproximada, alternativa relevante, desenlace y aprendizaje. No busca puntuar moralmente; busca detectar patrones: sobreconfianza en un dominio, subestimación de recurrencias, tendencia a tratar cultivos sin síndrome o dificultad para reconocer diagnósticos funcionales. El Taller 5 es su versión mínima. El portafolio como instrumento docente tiene además desarrollo propio en la educación médica latinoamericana, incluida la validación en español de instrumentos para evaluar su uso (Riquelme et al., 2011).
-
-### Lenguaje institucional
 
 La tercera palanca es la ficha, y su primera forma es la plantilla. Las plantillas de ficha pueden apoyar o degradar el pensamiento. Campos obligatorios interminables producen copia; campos demasiado libres ocultan información crítica. Una plantilla equilibrada incluye problema, hechos nuevos, evaluación con grado de certeza, plan y criterios de reapertura. La tecnología debería facilitar comparación temporal y procedencia de datos, no sólo acumular texto.
 
