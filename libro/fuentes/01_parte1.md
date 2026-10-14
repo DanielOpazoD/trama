@@ -4,7 +4,7 @@
 
 ## Capítulo 1. El hecho clínico: observación, medición y procedencia
 
-Son las 7:40 y el residente presenta a Carmen en el pase de visita: "Paciente séptica de foco abdominal, hernia complicada". El jefe de servicio mira la hoja de enfermería y hace una sola pregunta: "¿Qué de todo eso lo vio alguien y qué lo estamos suponiendo?". El silencio que sigue es el tema de este capítulo.
+Son las 7:40 de la mañana y, en la entrega de turno, el residente presenta a Carmen: "Paciente séptica de foco abdominal, con hernia complicada". El jefe de servicio mira la hoja de enfermería de urgencias y hace una sola pregunta: "¿Qué parte de esa frase la observó alguien directamente y qué parte la estamos suponiendo?". El silencio que sigue es el tema de este capítulo.
 
 ### Los datos no llegan desnudos
 
@@ -34,13 +34,13 @@ Los síntomas no son datos inferiores por ser subjetivos. Son evidencia de otra 
 
 El problema surge cuando el relato es traducido demasiado rápido a una categoría diagnóstica. "Opresión cervical" puede transformarse en "disfagia", "sensación de falta de aire" en "disnea" y "mareo" en "vértigo" sin haber preservado la descripción original. Cada traducción añade inferencia. Una buena nota conserva suficiente material fenomenológico para que otro clínico pueda reconstruir el paso.
 
-Carmen, por ejemplo, no dijo "dolor abdominal difuso": dijo que esta vez "la hernia no se dejó acomodar", que el dolor "era otro" y que por primera vez le dio miedo. Tres datos con forma de frase. La nota que los reduce a "dolor abdominal en paciente con hernia conocida" no ha mentido; ha destruido información.
+Carmen, por ejemplo, no dijo "dolor abdominal difuso": dijo que esta vez "la hernia no se dejó acomodar", que el dolor "era otro" y que por primera vez le dio miedo. No es folclor narrativo; son tres hallazgos semiológicos de alto valor: pérdida de reductibilidad aguda, cambio en el carácter del dolor —que sugiere sufrimiento parietal o vascular más allá de la distensión luminal— y percepción de amenaza vital. La nota que los aplana en "dolor abdominal en paciente con hernia conocida" no ha mentido: ha destruido evidencia diagnóstica primaria.
 
 ### Trazabilidad epistemológica
 
 Canguilhem mostró que la medicina no describe simplemente desviaciones estadísticas: juzga relaciones entre el organismo, sus normas y su capacidad de habitar un medio (Canguilhem, 1971). El hecho clínico adquiere relevancia dentro de esa relación. Una cifra fuera de rango puede ser irrelevante; una variación dentro del rango puede ser decisiva para ese paciente. La observación científica y la singularidad no son opuestas, pero deben articularse.
 
-Por ello, conviene escribir los hechos de modo trazable. Una formulación como "shock séptico abdominal" fusiona estado fisiológico, etiología y foco. Una versión más limpia separa: hipotensión con requerimiento de noradrenalina, hiperlactatemia y relleno capilar prolongado; hemocultivos con bacilos gramnegativos; episodio obstructivo por hernia incisional; sin perforación, isquemia ni estrangulación en tomografía. Recién después puede formularse el foco abdominal como hipótesis probable.
+Por ello, conviene registrar los hechos de modo trazable en el tiempo. Una etiqueta como "shock séptico abdominal" fusiona estado fisiológico, etiología microbiológica y foco anatómico en un solo bloque. Una formulación limpia separa las capas y sus momentos: al ingreso, hipotensión con requerimiento de noradrenalina, lactato de 6,0 mmol/L y llene capilar de 5 segundos; episodio obstructivo clínico sobre hernia incisional, sin signos tomográficos de perforación ni isquemia; y, a las 14 horas de incubación, hemocultivos periféricos positivos para bacilos gramnegativos. Recién sobre esa arquitectura de datos puede sostenerse el foco abdominal por translocación como hipótesis probable.
 
 > Un hecho clínico no es una verdad sin historia: es una observación con procedencia, oportunidad, método y límites.
 
@@ -72,13 +72,13 @@ Una práctica útil consiste en adjuntar mentalmente tres metadatos a cada hecho
 
 Clasifique cada afirmación según el gradiente de facticidad (medido / observado por profesional / relato / heredado / ausencia inferida) y reescriba la que considere más frágil:
 
-1. "Lactato 6,0 mmol/L (7:15, arterial)."
+1. "Lactato 6,0 mmol/L (04:15, arterial)."
 2. "Abdomen sin signos de irritación peritoneal."
 3. "Alérgica a penicilina."
 4. "Sin episodios previos de sangrado."
 5. "La hernia no se dejó acomodar y el dolor era distinto al de otras veces."
 
-*Solución comentada.* (1) Medido, con hora y método: el hecho más sólido de la lista. (2) Observación profesional: sólida, pero reproducible sólo si consigna quién y cuándo examinó; en un abdomen que evoluciona, el examen de las 3:00 no cubre las 9:00. (3) Casi siempre heredado: pocas fichas registran quién documentó la alergia, cuándo y con qué reacción; merece la reescritura "alergia a penicilina referida por la paciente (rash, según recuerda; sin registro del episodio)". (4) Ausencia inferida o relato, según cómo se obtuvo: "niega sangrados previos" (relato) no equivale a "sin sangrados documentados en ficha" (revisión de registro). (5) Relato del paciente con material fenomenológico intacto: frágil como medición, valiosísimo como señal de cambio; consérvelo textual.
+*Solución comentada.* (1) Dato medido, con hora, unidad y origen de la muestra: el hecho de mayor verificabilidad externa de la lista. (2) Observación profesional: útil, pero sujeta a variabilidad interobservador y caducidad rápida; en un abdomen agudo dinámico, el examen físico de las 04:00 no garantiza el estado peritoneal de las 09:00 si no consigna quién examinó y bajo qué analgesia. (3) Registro heredado: casi ninguna ficha especifica quién documentó la alergia ni con qué clínica; exige reescribirse como "alergia a penicilina referida por la paciente (exantema cutáneo en la juventud, sin registro clínico verificable)". (4) Silencio documental o relato, según su fuente: "niega sangrados previos" (anamnesis) no equivale a "sin episodios de sangrado consignados en fichas previas" (revisión de registro). (5) Testimonio de la paciente con su carga fenomenológica intacta: irreemplazable como marcador de cambio respecto de su basal; debe conservarse entre comillas.
 
 **En una frase.** Un hecho clínico vale lo que vale su procedencia: fuente, momento, método y límites deben viajar con la afirmación.
 
@@ -89,7 +89,7 @@ Clasifique cada afirmación según el gradiente de facticidad (medido / observad
 
 ## Capítulo 2. Inferir: del signo a la explicación
 
-En la carpeta de Carmen, la tomografía informa: "hernia incisional con asas dilatadas, sin signos de isquemia ni perforación". El residente escribe: "TAC descarta complicación". Son siete palabras que transforman un informe radiológico en una sentencia. Este capítulo trata del salto —inevitable, necesario, riesgoso— entre lo que vemos y lo que concluimos.
+En el registro de Carmen, el informe tomográfico concluye: "hernia incisional con asas de intestino delgado dilatadas, sin signos de isquemia ni perforación". En la evolución de ingreso, el residente transcribe: "TAC descarta complicación". Son tres palabras que transforman una descripción radiológica acotada en una sentencia clínica absoluta. Este capítulo trata del salto —inevitable, necesario y riesgoso— entre los signos que observamos y las explicaciones que conjeturamos.
 
 ### La medicina como razonamiento abductivo
 
@@ -101,7 +101,7 @@ La clínica combina los tres movimientos. El médico reconoce un patrón y propo
 
 Una representación del problema es una formulación breve que transforma datos particulares en relaciones clínicamente significativas. Utiliza calificadores como agudo o crónico, focal o difuso, progresivo o episódico, espontáneo o provocado. Bordage destacó que estas oposiciones semánticas ayudan a activar redes diagnósticas y a comparar el caso con estructuras de conocimiento elaboradas (Bordage, 1994).
 
-La compresión no debe confundirse con amputación. "Mujer de 60 años con dolor abdominal" tiene poco poder discriminativo. "Mujer de 60 años con hernia incisional y episodios recurrentes de suboclusión, que presenta obstrucción aguda asociada a shock, bacteriemia por gramnegativos y recuperación con soporte hemodinámico y antibióticos, sin signos tomográficos de isquemia o perforación" conserva temporalidad, recurrencia, gravedad, evidencia microbiológica y límites anatómicos.
+La compresión semántica no debe confundirse con la amputación de datos críticos. "Mujer de 61 años con dolor abdominal" carece de poder discriminativo para activar un illness script específico. En cambio, "mujer de 61 años con hernia incisional y suboclusiones recurrentes autolimitadas, que cursa con un cuarto episodio obstructivo agudo, esta vez complicado con shock séptico por bacilos gramnegativos rápidamente reversible con soporte vasoactivo y antibióticos, sin signos tomográficos actuales de estrangulación ni perforación" conserva los calificadores que guían el razonamiento: temporalidad, cambio de patrón, gravedad fisiológica, microbiología y límites anatómicos.
 
 Una buena representación permite que el conocimiento experto se aplique sin ocultar los hechos. Los illness scripts integran condiciones predisponentes, mecanismos fisiopatológicos y consecuencias clínicas (Charlin et al., 2007; Custers, 2015). Con la experiencia, el conocimiento biomédico se encapsula en conceptos clínicos más accesibles, pero puede ser desplegado nuevamente cuando el caso no encaja (Schmidt & Rikers, 2007).
 
@@ -131,7 +131,7 @@ Por eso a la generación le sigue, de inmediato, la prueba de resistencia: gener
 
 Un paciente con EPOC conocido consulta por disnea que no ha respondido a dos rondas de broncodilatadores en urgencias. La saturación es 89%, la auscultación muestra escasas sibilancias. Tome tres minutos y un papel: (a) genere al menos cinco hipótesis sin censurar ninguna, (b) escriba una reformulación del problema que no use la palabra "EPOC", (c) recién entonces pode con las cuatro preguntas de la prueba de resistencia.
 
-*Solución comentada.* Una lista generativa razonable: tromboembolismo pulmonar (el EPOC es factor de riesgo, y las sibilancias escasas no explican la hipoxemia), neumotórax sobre bulas, insuficiencia cardiaca izquierda, neumonía en evolución, anemia, arritmia, derrame pleural, crisis de pánico superpuesta. La reformulación clave suele ser: "disnea desproporcionada a la obstrucción auscultada" — un problema distinto de "EPOC descompensado que no responde", porque abre el espacio donde viven el TEP y el neumotórax en vez de invitar a subir la dosis de lo mismo. Nótese el orden deliberado: primero volumen sin censura —la censura temprana es el mecanismo íntimo del cierre prematuro—, después poda severa. Tres minutos de generación cuestan menos que un día de anclaje.
+*Solución comentada.* Una lista generativa sin censura inicial incluye: tromboembolismo pulmonar (el EPOC y la inmovilidad aumentan el riesgo, y la escasez de sibilancias no explica una saturación de 89%), neumotórax secundario a ruptura de bula, edema pulmonar cardiogénico, neumonía basal oculta, síndrome coronario agudo con equivalente disneico, anemia severa o fatiga muscular respiratoria. La reformulación que replantea el problema (problem setting) es: "insuficiencia respiratoria hipoxémica aguda desproporcionada al broncoespasmo auscultado". Ese giro lingüístico desactiva el reflejo de indicar una tercera tanda de nebulizaciones y abre el espacio mental donde viven el TEP y el neumotórax. Nótese la secuencia: primero volumen divergente sin filtro —pues la autocensura temprana es el motor del cierre prematuro— y recién después poda severa contra los datos del caso. Tres minutos de generación libre cuestan mucho menos que veinticuatro horas de anclaje.
 
 ### Explicaciones rivales y prueba de resistencia
 
@@ -157,7 +157,7 @@ Una inferencia gana calidad cuando produce compromisos observables: "si esta exp
 
 El informe dice: "hernia incisional con asas dilatadas, sin signos de isquemia ni perforación". El residente escribió: "TAC descarta complicación". Reescriba la frase para que conserve (a) lo que la imagen mostró, (b) lo que la imagen no puede mostrar, y (c) la inferencia que de verdad autoriza.
 
-*Solución comentada.* Una versión defendible: "TAC sin signos de isquemia, perforación ni estrangulación **en este momento**; no excluye isquemia incipiente ni predice recurrencia. Con clínica y laboratorio actuales, baja probabilidad de complicación anatómica que exija cirugía de emergencia." La diferencia no es cosmética: "descarta complicación" cierra la vigilancia; la reescritura define qué se vigila (deterioro clínico, nuevo dolor desproporcionado, lactato en ascenso) y qué autoriza (no operar de urgencia ahora, no "no operar nunca"). Nótese el patrón general: el hallazgo negativo se limita al rendimiento del método y al momento; la conducta se justifica por umbral, no por exclusión ontológica.
+*Solución comentada.* Una formulación epistemológicamente rigurosa: "TAC de abdomen confirma obstrucción en hernia incisional sin signos actuales de necrosis transmural, perforación ni sufrimiento vascular mesentérico; por sensibilidad del método, la imagen no excluye isquemia mucosa incipiente ni predice recurrencia a corto plazo. Con la estabilización hemodinámica actual, la probabilidad de estrangulación irreversible es suficientemente baja para diferir cirugía de emergencia y mantener vigilancia activa". La diferencia es operativa: "TAC descarta complicación" apaga las alarmas del equipo; la reescritura especifica qué amenaza sigue viva, qué parámetros obligan a reevaluar (reaparición del dolor, defensa abdominal, ascenso del lactato) y qué autoriza realmente el examen (no entrar a pabellón esta madrugada, no archivar el problema quirúrgico). Nótese el patrón general: el hallazgo negativo se limita al rendimiento del método y al momento; la conducta se justifica por umbral, no por exclusión ontológica.
 
 **En una frase.** Inferir es proponer la mejor explicación disponible sabiendo que es una apuesta graduada, no un hecho que la realidad ya entregó.
 
@@ -168,7 +168,7 @@ El informe dice: "hernia incisional con asas dilatadas, sin signos de isquemia n
 
 ## Capítulo 3. Incertidumbre: una condición estructural
 
-A las 48 horas, Carmen está estable, afebril, con la sonda en declive. La familia pregunta: "¿Ya saben qué tuvo?". El equipo sabe muchas cosas: que hubo obstrucción, que hubo shock, que los hemocultivos crecieron gramnegativos, que la imagen no mostró isquemia. Y no sabe otras: por qué esta vez fue tan grave, si la bacteriemia vino del abdomen, cuándo volverá a obstruirse. "¿Ya saben qué tuvo?" tiene, en rigor, varias respuestas simultáneas. Este capítulo trata de cómo nombrarlas sin mentir en ninguna dirección.
+A las 48 horas del ingreso, Carmen está hemodinámicamente estable, afebril y con la sonda nasogástrica aún a caída libre. En la visita, la familia hace la pregunta inevitable: "Doctor, ¿ya saben qué tuvo?". El equipo conoce varios hechos: que hubo una obstrucción intestinal mecánica, que desencadenó un shock grave, que en la sangre crecieron bacilos gramnegativos y que el escáner inicial no mostró intestino necrótico. Pero desconoce otras capas del mismo fenómeno: por qué este cuarto episodio escaló hasta el shock (incertidumbre fisiopatológica), si las bacterias cruzaron desde la pared intestinal inflamada (incertidumbre causal) y cuándo volverá a atascarse la hernia (incertidumbre pronóstica). "¿Ya saben qué tuvo?" exige, en rigor, varias respuestas simultáneas. Este capítulo trata de cómo cartografiarlas y nombrarlas sin mentir en ninguna dirección.
 
 ### Más que falta de información
 
@@ -190,7 +190,7 @@ La intolerancia puede expresarse como sobreestudio, sobretratamiento, cierre pre
 
 ### Incertidumbre precisa
 
-Decir "todo es incierto" no aporta. La incertidumbre útil es específica. Puede formularse así: el diagnóstico principal es probable, pero el mecanismo exacto no está demostrado; la infección parece poco probable, aunque no puede excluirse por ausencia de síntomas típicos; la imagen no muestra isquemia en este momento, pero no elimina el riesgo de recurrencia; la respuesta terapéutica apoya una hipótesis, sin ser específica de ella.
+Declarar que "en medicina todo es incierto" es una coartada retórica que no guía ninguna conducta. La incertidumbre clínicamente útil es localizada y específica. En lugar de una duda global, desglosa el límite de cada afirmación: el foco abdominal de la sepsis es altamente probable por secuencia clínica, pero el mecanismo exacto de translocación no es demostrable directamente; la tomografía excluye perforación actual, pero su normalidad vascular no garantiza que el asa no sufra en un próximo atascamiento; y, en otro dominio, en un paciente con vejiga neurogénica febril una infección urinaria no puede descartarse sólo por la ausencia de disuria. Nombrar qué parte exacta del modelo está abierta es lo que permite decidir qué se estudia con un examen y qué se gobierna con vigilancia.
 
 Una cartografía clínica de la incertidumbre puede distinguir:
 
@@ -214,7 +214,7 @@ Gadamer observó que la medicina es una praxis orientada a restablecer un equili
 
 Tome las cuatro dudas del equipo: (a) ¿por qué este episodio fue tan grave?, (b) ¿la bacteriemia vino del abdomen?, (c) ¿cuándo volverá a obstruirse?, (d) ¿resistirá una cirugía electiva? Clasifique cada una según la cartografía del capítulo (reducible con examen / dependiente de evolución / irrelevante para la conducta inmediata / peligrosa si está equivocada / dependiente de valores).
 
-*Solución comentada.* (a) Parcialmente reducible (revisar imagen, laboratorio, cronología) pero con residuo probablemente irreductible: puede quedar "no demostrado" sin bloquear ninguna decisión. (b) Reducible sólo en parte (cultivos, foco alternativo); importa porque cambia la duración antibiótica, no la conducta quirúrgica: incertidumbre tolerable con decisión robusta. (c) Irreductible por examen: sólo la evolución la aclarará; es la duda **peligrosa**, porque el error (esperar y que el próximo episodio sea peor) tiene el costo más alto. Domina la decisión. (d) Mixta: la evaluación preoperatoria la reduce; el resto es preferencia de Carmen —cuánto riesgo quirúrgico acepta hoy para evitar un riesgo obstructivo mañana—, es decir, valores. La clasificación no resuelve el caso: ordena qué se estudia, qué se vigila, qué se conversa y qué se tolera.
+*Solución comentada.* (a) Parcialmente reducible y retrospectiva: revisar la cronología y la imagen ayuda, pero quedará un residuo fisiopatológico no demostrable que no bloquea la toma de decisiones hoy. (b) Parcialmente reducible mediante descarte de focos alternativos (urocultivo, revisión de catéteres): no exige certeza absoluta para completar el esquema antibiótico, pero su alta plausibilidad refuerza que el shock fue consecuencia directa del episodio obstructivo. (c) Aleatoria e irreductible mediante exámenes: ningún test predice el día del quinto atascamiento; es la incertidumbre **peligrosa** y dominante del caso, porque el costo del error (esperar y que se obstruya en su casa) puede ser letal. (d) Mixta (epistémica y axiológica): la espirometría y la evaluación preoperatoria reducen la duda biológica, pero el resto depende de los valores de Carmen —cuánto riesgo quirúrgico programado está dispuesta a asumir hoy para evitar una urgencia vital mañana—. La cartografía no adivina el futuro: ordena qué se mide, qué se vigila, qué se tolera y qué se delibera con la enferma.
 
 **En una frase.** No hay una incertidumbre sino varias: distinguir cuál se reduce, cuál se vigila, cuál se tolera y cuál se conversa es parte del trabajo clínico, no su fracaso.
 
@@ -225,7 +225,7 @@ Tome las cuatro dudas del equipo: (a) ¿por qué este episodio fue tan grave?, (
 
 ## Capítulo 4. Lenguaje clínico y densidad epistémica
 
-En el pase de sala, dos residentes presentan a la misma Carmen. Uno dice: "Paciente con hernia y sepsis, actualmente mejor". La otra dice: "Episodio obstructivo recurrente por hernia incisional, esta vez asociado a bacteriemia por gramnegativos, shock e hipoperfusión grave, con resolución bajo soporte y antibióticos y sin signos tomográficos de isquemia o perforación; la mayor gravedad redefine el riesgo de una nueva estrategia expectante". Los dos dicen la verdad. Sólo una de las dos frases piensa.
+En la visita médica de la mañana, dos residentes resumen el caso de Carmen con los mismos datos sobre la mesa. El primero dice: "Paciente con hernia complicada y sepsis, actualmente mejor". La segunda presenta: "Cuarto episodio obstructivo en el año por hernia incisional, esta vez debutando con shock séptico y bacteriemia por bacilos gramnegativos, revertido con vasopresores y antibióticos, sin signos tomográficos de isquemia aguda; el salto cualitativo de gravedad modifica el riesgo de mantener una conducta expectante". Ambos dicen la verdad. Sólo una de las dos frases piensa.
 
 ### Nombrar es organizar
 
@@ -281,7 +281,7 @@ También debe evitarse la autoridad retrospectiva. Una evolución favorable desp
 
 ### Frases operativas
 
-Una frase operativa enlaza comprensión con acción. No prescribe necesariamente una conducta única, pero explica por qué cambia el umbral. "Tercer episodio de suboclusión" informa recurrencia; "primer episodio complicado por shock y bacteriemia" informa un cambio cualitativo; "sin evidencia de isquemia actual" limita la urgencia anatómica; "riesgo de nueva recurrencia potencialmente grave" informa la oportunidad de resolución electiva.
+Una frase operativa actúa como un argumento de Toulmin comprimido: enlaza el dato observado con la acción a través de una garantía clínica explícita. No prescribe necesariamente una conducta única, pero transparenta por qué se desplaza el umbral terapéutico. "Cuarto episodio de suboclusión en doce meses" documenta aceleración de la frecuencia; "primer ingreso complicado con shock y bacteriemia" establece un cambio cualitativo en la severidad biológica; "sin evidencia tomográfica de isquemia actual" acota la urgencia quirúrgica inmediata; y "alto riesgo de recurrencia grave fuera del hospital" fundamenta la indicación de reparación electiva pronta.
 
 > La precisión clínica consiste en decir qué creemos, por qué lo creemos y cuánto derecho tenemos a creerlo.
 
@@ -289,7 +289,7 @@ La buena prosa médica no busca sonar prudente ni categórica. Busca que la gram
 
 ### La sintaxis como registro de auditoría
 
-La estructura gramatical puede mostrar o esconder causalidad. "Shock séptico por hernia" comprime una cadena compleja en una preposición. "Shock con bacteriemia por gramnegativos, temporalmente asociado a obstrucción por hernia; foco abdominal probable, mecanismo exacto no demostrado" separa observación, asociación e inferencia causal. La segunda formulación es más larga, pero también más auditable.
+La sintaxis misma funciona como un registro de auditoría causal. Escribir "shock séptico por hernia incisional" esconde una cadena fisiopatológica incierta detrás de una preposición. En cambio, "shock séptico con bacteriemia por gramnegativos, temporalmente asociado a obstrucción mecánica en hernia incisional; foco abdominal altamente probable por translocación, mecanismo exacto no demostrado" separa el fenómeno medido, la asociación temporal y el calificador modal de la inferencia. La segunda versión ocupa dos líneas más, pero permite que cualquier miembro del equipo audite dónde termina el hecho y dónde empieza la hipótesis.
 
 Los verbos cumplen una función epistémica: "muestra" y "documenta" se reservan para evidencia directa; "apoya" expresa contribución; "sugiere" reconoce interpretación; "explica" compromete una relación más fuerte; "no excluye" delimita el rendimiento negativo. Los adverbios de certeza sólo son útiles si corresponden a criterios compartidos. Sin ellos, "probablemente" puede significar desde una intuición leve hasta una convicción casi definitiva.
 
@@ -305,7 +305,7 @@ Reescriba cada frase para que la fuerza del lenguaje corresponda a la fuerza de 
 4. "ITU en tratamiento" (paciente sondado, urocultivo positivo, afebril, sin síntomas nuevos).
 5. "Fracaso de manejo médico."
 
-*Solución comentada.* (1) "AngioTAC sin evidencia de TEP; probabilidad clínica pretest baja: no se justifica más estudio por ahora" —el método, su resultado y la decisión por umbral quedan separados. (2) "Infiltrado con mejoría clínica bajo antibióticos, soporte y kinesioterapia simultáneos; etiología bacteriana probable, no demostrada" —la respuesta terapéutica es un hecho; su atribución causal, una inferencia. (3) "Responde con monosílabos; refiere dolor 8/10 y no durmió; evaluación limitada por dolor no controlado" —el adjetivo moral se sustituye por observaciones y una causa verificable. (4) "Bacteriuria en usuario de sonda, sin síndrome clínico atribuible: no se trata; vigilancia según criterios explícitos" —la etiqueta "ITU" activaba antibióticos que los hechos no piden. (5) "Objetivo del manejo médico era X durante Y días; se alcanzó/no se alcanzó Z; el balance cambia por W" —"fracaso" sin objetivo, plazo ni desenlace es retórica, no evaluación.
+*Solución comentada.* (1) "AngioTAC de tórax sin defectos de llenado hasta arterias segmentarias; con probabilidad clínica pretest intermedia y estabilidad hemodinámica, el valor predictivo negativo supera el umbral para no anticoagular y mantener vigilancia clínica" —separa la técnica, su alcance anatómico y la decisión por umbral—. (2) "Opacidad alveolar basal con defervescencia y caída de parámetros inflamatorios tras 72 h de ceftriaxona, oxigenoterapia y kinesioterapia respiratoria; neumonía bacteriana probable, respuesta microbiológica directa no demostrada" —distingue el hecho de la mejoría temporal de la atribución causal a un solo factor—. (3) "Paciente responde con monosílabos, se queja de dolor 8/10 y cursó con insomnio; anamnesis y examen físico limitados por dolor agudo no controlado" —reemplaza una etiqueta moralizante por una barrera clínica modificable—. (4) "Bacteriuria y piuria asintomática en portador crónico de sonda Foley, afebril y sin respuesta inflamatoria sistémica nueva: colonización probable; se difiere antibiótico y se definen criterios de alarma" —desactiva el reflejo de tratar el papel del laboratorio—. (5) "El manejo médico con reposo intestinal y descompresión por sonda nasogástrica tenía como meta recuperar tránsito en 48 h; al persistir débito alto al tercer día, se cumple criterio de resolución quirúrgica" —sustituye la retórica de "fracaso" por el cumplimiento de un umbral predefinido—.
 
 **En una frase.** La gramática de la frase clínica debe corresponder a la arquitectura de la evidencia: eso la vuelve auditable y convierte la escritura en metacognición.
 
@@ -318,9 +318,9 @@ Reescriba cada frase para que la fuerza del lenguaje corresponda a la fuerza de 
 
 Al tercer día, la becada del servicio reescribe la evaluación de Carmen usando lo que esta parte del libro ha ido separando. Su versión:
 
-*Hechos.* Cuarto episodio obstructivo en doce meses en hernia incisional conocida (tres previos resueltos con manejo médico, según fichas de esos ingresos). Este episodio: hipotensión con requerimiento de noradrenalina por 36 horas, lactato máximo 6,0 (7:15 del ingreso, arterial), relleno capilar 5 segundos documentado por enfermería, hemocultivos 2/2 con bacilos gramnegativos (identificación pendiente), TAC de ingreso sin signos de isquemia, perforación ni estrangulación. Afebril y sin drogas vasoactivas desde hace 24 horas. Refiere, textual: "esta vez la hernia no se dejó acomodar, el dolor era otro".
+*Hechos.* Cuarto episodio obstructivo en doce meses sobre hernia incisional conocida (tres ingresos previos resueltos con manejo conservador según registro clínico). Episodio actual: ingresó de madrugada en shock con requerimiento de noradrenalina por 36 horas, lactato arterial máximo de 6,0 mmol/L (04:15 h del ingreso) y llene capilar de 5 segundos documentado por enfermería en urgencias. Hemocultivos periféricos 2/2 positivos a las 14 h para Escherichia coli multisensible. TAC de abdomen de ingreso con asas dilatadas en saco herniario, sin signos de isquemia, neumatosis ni perforación. Actualmente en su tercer día: afebril, sin vasoactivos hace 24 horas y con débito por sonda en descenso. Relato de ingreso textual: "esta vez la hernia no se dejó acomodar, el dolor era otro".
 
-*Inferencias.* Obstrucción intestinal por hernia incisional: demostrada. Foco abdominal de la bacteriemia: probable (secuencia temporal y microbiología compatible; sin foco alternativo evidente); mecanismo exacto —¿translocación?, ¿isquemia transitoria no captada?— no demostrado. Gravedad de este episodio: cualitativamente distinta de los previos (primer shock, primera bacteriemia).
+*Inferencias.* Obstrucción intestinal mecánica por hernia incisional: demostrada. Sepsis de foco abdominal por translocación bacteriana secundaria al atascamiento: altamente probable (concordancia temporal, aislamiento de enterobacteria comunitaria en sangre y ausencia de foco urinario o respiratorio); isquemia parietal transitoria ya resuelta como mecanismo subyacente: posible, no demostrada. Severidad del cuadro: cualitativamente superior a la serie histórica de la paciente.
 
 *Incertidumbre.* Probabilidad y momento de una nueva obstrucción: no estimables con precisión; la historia reciente (cuatro episodios en un año, el último grave) desplaza el riesgo hacia arriba. Aptitud quirúrgica tras la recuperación: por evaluar. La duda peligrosa no es etiológica sino pronóstica: un quinto episodio podría repetir o superar esta gravedad fuera del hospital.
 
