@@ -149,13 +149,6 @@ Esta guía condensa el capítulo 16 en un plan concreto para un servicio que qui
 - Ofrecer (voluntario, privado) el portafolio de calibración del Taller 5: hipótesis, confianza, alternativa, desenlace. Quien lo lleve tres meses tendrá el primer dato real sobre su propia calibración.
 - Cerrar el circuito de feedback más barato disponible: una vía sistemática para enterarse del desenlace de derivaciones y altas inciertas (interconsulta con respuesta obligatoria, revisión quincenal de reconsultas a urgencias).
 
-### Barreras esperables y respuestas
-
-- **"No hay tiempo."** La versión de 60 segundos existe para eso; la pausa es selectiva por disparador, no universal. El tiempo que consume se compara con el que consume un solo cierre prematuro no detectado.
-- **"Esto burocratiza."** La plantilla se usa en tres situaciones, no en todas. La regla es proporcionalidad: una línea para lo rutinario, estructura para lo grave, incierto o irreversible.
-- **"La ficha electrónica no lo permite."** El léxico y la pausa no requieren software. La plantilla cabe en texto libre.
-- **"El equipo no va a exponer sus dudas."** La seguridad psicológica se modela desde arriba: el primer "no lo sé, y esto es lo que haremos para saberlo" tiene que decirlo la jefatura.
-
 ### Qué medir (sin inflar métricas)
 
 Tres indicadores simples, auditables sobre una muestra mensual de fichas: proporción de "se descarta" usados con método excluyente; proporción de decisiones mayores con criterio de reapertura explícito; proporción de altas inciertas con instrucciones de reconsulta específicas. No miden pensamiento; miden las huellas que el pensamiento deja. Su valor es la tendencia, no la cifra.
@@ -281,7 +274,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2, 18
 - Cuatro tópicos (Jonsen, Siegler y Winslade) — 10, Ap A
 - Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
-- Decisión compartida — 13, 14, Interludio III
+- Decisión compartida — 14, Interludio III
 - Deliberación moral (Gracia) — 10
 - Densidad epistémica — 4; seis dimensiones de auditoría — 4, Ap B
 - Desaceleración selectiva — 8, Interludio II
@@ -299,7 +292,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Fragilidad y funcionalidad como hechos clínicos — 10, 15, Ap A
 - Fuentes del hecho clínico (matriz de procedencia) — 1
 - Frase medular — 4, 12, C, CC (todas las viñetas); como argumento de Toulmin — 4
-- Frecuencias naturales — 2, 10, 13
+- Frecuencias naturales — 2, 10
 - Grados de facticidad — 1
 - Hecho como estatus provisional (frontera hecho/inferencia) — 1
 - Hindsight bias — 8, 11, 16, CC (viñeta 8)

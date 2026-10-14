@@ -22,21 +22,13 @@ La validez externa no es una propiedad binaria del estudio. Es una relación ent
 
 En términos HII, un resultado de investigación es un hecho acerca de una población estudiada. Su aplicabilidad al caso es una inferencia. El grado de transportabilidad permanece incierto. La conducta surge al integrar esa incertidumbre con la magnitud del beneficio esperado, el daño posible, la reversibilidad y las preferencias. Confundir esas capas produce frases como "está indicado por evidencia" cuando lo demostrado es más limitado: "en pacientes comparables, esta estrategia redujo cierto desenlace; en esta paciente el beneficio absoluto probablemente sea menor y debe ponderarse frente a un riesgo adverso mayor".
 
-### La singularidad no autoriza la arbitrariedad
+### Singularidad sin arbitrariedad: evidencia externa, local y del propio caso
 
-La defensa del juicio clínico puede convertirse en excusa para ignorar datos incómodos. Que cada paciente sea singular no significa que toda decisión sea incomparable ni que la experiencia personal tenga igual fuerza que un estudio robusto. La singularidad clínica es una tarea de integración, no una licencia para abandonar estándares. Debe explicitar qué rasgo del caso modifica la inferencia poblacional y por qué.
+La defensa del juicio clínico puede convertirse en excusa para ignorar datos incómodos. Que cada paciente sea singular no significa que toda decisión sea incomparable ni que la experiencia personal tenga igual fuerza que un estudio robusto. La singularidad clínica es una tarea de integración, no una licencia para abandonar estándares: debe explicitar qué rasgo del caso modifica la inferencia poblacional y por qué. Esa exigencia evita dos excesos simétricos: el positivismo ingenuo que cree que el estudio decide por sí solo y el particularismo romántico que presenta la intuición del médico como conocimiento inaccesible a examen.
 
-Una formulación responsable podría distinguir: evidencia de eficacia; evidencia de seguridad; semejanza del paciente con la población; factores que aumentan o disminuyen el efecto esperado; preferencias; y condiciones locales de implementación. Esta separación evita dos excesos simétricos: el positivismo ingenuo que cree que el estudio decide por sí solo y el particularismo romántico que presenta la intuición del médico como conocimiento inaccesible a examen.
+La evidencia externa convive con dos fuentes más. La primera es el conocimiento local —epidemiología, perfiles de resistencia, disponibilidad diagnóstica, tiempos de traslado, experiencia técnica, capacidad de seguimiento—, que puede modificar la decisión sin contradecir ningún estudio, siempre que sea explícito y actualizable y no una tradición institucional. La segunda es el propio paciente, que genera evidencia longitudinal sobre sí mismo: respuestas previas, recurrencias, efectos adversos y preferencias estables, información relevante aunque no equivalga a un ensayo N-de-1 formal. El riesgo con ambas es la atribución causal fácil: la mejoría posterior a una intervención no demuestra que haya sido causada por ella cuando coexisten historia natural y tratamientos simultáneos.
 
-La medicina clínica utiliza además evidencia que no siempre ocupa la parte superior de una pirámide: evolución temporal, respuesta previa, patrones fisiopatológicos, datos locales, factibilidad y experiencia técnica. Su menor jerarquía para estimar causalidad poblacional no la vuelve irrelevante para una decisión individual. La pregunta correcta es qué función epistémica cumple cada fuente y qué error puede corregir o introducir.
-
-### Evidencia local y aprendizaje del caso
-
-La evidencia externa convive con conocimiento local: epidemiología, disponibilidad diagnóstica, tiempos de traslado, perfiles de resistencia, experiencia técnica y capacidad de seguimiento. Estos datos pueden modificar la decisión sin contradecir un estudio. Su legitimidad depende de que sean explícitos y actualizables, no simples tradiciones institucionales.
-
-El paciente también genera evidencia longitudinal sobre sí mismo. Respuestas previas, recurrencias, efectos adversos y preferencias estables constituyen información relevante, aunque no equivalgan a un ensayo N-of-1 formal. El desafío es evitar atribuciones causales fáciles: la mejoría posterior a una intervención no demuestra que haya sido causada por ella, especialmente cuando coexisten historia natural y tratamientos simultáneos.
-
-Una deliberación bien formulada puede declarar: qué proviene de estudios; qué se extrapola; qué aporta la historia individual; qué depende del contexto local; y qué permanece desconocido. Esa estratificación protege tanto contra la obediencia automática a la evidencia como contra su rechazo anecdótico. La competencia metacognitiva consiste en reconocer cuándo se está citando un resultado, cuándo se está extrapolando, cuándo se está suponiendo un mecanismo y cuándo una preferencia está inclinando la balanza. La pregunta final no es "¿existe evidencia?", sino "¿qué evidencia existe, para qué afirmación, con qué transportabilidad y con qué consecuencias para esta persona?".
+Una deliberación bien formulada declara, por eso, qué proviene de estudios, qué se extrapola, qué aporta la historia individual, qué depende del contexto local y qué permanece desconocido. La competencia metacognitiva consiste en reconocer cuándo se está citando un resultado, cuándo extrapolando, cuándo suponiendo un mecanismo y cuándo una preferencia está inclinando la balanza. La pregunta final no es "¿existe evidencia?", sino "¿qué evidencia existe, para qué afirmación, con qué transportabilidad y con qué consecuencias para esta persona?".
 
 > La evidencia no desciende intacta desde la población hacia el individuo: debe ser traducida, y esa traducción es una inferencia clínica sometida a incertidumbre.
 
@@ -298,13 +290,7 @@ Una comunicación útil incluye cuatro elementos:
 
 Este esquema reduce dos riesgos: transmitir falsa seguridad y trasladar al paciente una ambigüedad no elaborada.
 
-### Decisión compartida y narrativa
-
-La decisión compartida cobra especial importancia cuando existen varias opciones razonables y los valores modifican el balance. El modelo de Elwyn y colaboradores propone deliberación sobre opciones, preferencias y decisión, no una simple entrega de información (Elwyn et al., 2012). La incertidumbre debe comunicarse de forma que la persona pueda entender cómo afecta las alternativas.
-
-Los números ayudan cuando son confiables y comprensibles. Las frecuencias naturales —por ejemplo, "de 100 personas similares"— suelen ser más claras que probabilidades condicionales aisladas (Gigerenzer et al., 2007). Pero no todo puede cuantificarse. En esos casos se debe explicar la dirección y magnitud aproximada de la incertidumbre, evitando palabras vagas sin contexto.
-
-La medicina narrativa recuerda que una decisión no ocurre sólo dentro de una distribución estadística. Ocurre en una biografía (Greenhalgh & Hurwitz, 1998; Charon, 2006). El mismo riesgo puede ser aceptable para una persona y no para otra según responsabilidades, experiencias, temor, tolerancia al deterioro y concepción de calidad de vida. Escuchar la historia también corrige inferencias. Una conducta que parece "mala adherencia" puede ser imposibilidad económica; "rechazo" puede expresar una experiencia previa; "síntoma funcional" puede ser vivido como invalidación. El lenguaje del médico puede abrir o cerrar la posibilidad de conocimiento.
+La decisión, además, no ocurre dentro de una distribución estadística sino en una biografía (Greenhalgh & Hurwitz, 1998; Charon, 2006): el mismo riesgo es aceptable para una persona e inaceptable para otra según responsabilidades, experiencias previas y concepción de la calidad de vida, y escuchar la historia corrige inferencias — "mala adherencia" puede ser imposibilidad económica, "rechazo" una experiencia anterior, "síntoma funcional" una invalidación vivida. El lenguaje del médico abre o cierra esa posibilidad de conocimiento.
 
 ### Incertidumbre dentro del equipo
 
