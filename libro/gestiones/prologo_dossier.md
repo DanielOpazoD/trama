@@ -1,7 +1,7 @@
 # Hechos, inferencias e incertidumbre
 ## Metacognición, lenguaje y decisión clínica — dossier para prólogo
 
-**Autor:** Daniel Opazo · **Género:** ensayo médico-epistemológico con herramientas aplicadas · **Extensión:** ~32.400 palabras (110 páginas A4 en manuscrito) · **Estado:** edición de trabajo revisada, 2026 · **Público:** médicos clínicos y residentes; legible por todo profesional de la salud.
+**Autor:** Daniel Opazo · **Género:** ensayo médico-epistemológico con herramientas aplicadas · **Extensión:** ~53.600 palabras (158 páginas A4 en manuscrito; 18 capítulos, 16 figuras) · **Estado:** edición de trabajo revisada, 2026 · **Público:** médicos clínicos y residentes; legible por todo profesional de la salud.
 
 ### La tesis en tres frases
 
@@ -9,7 +9,7 @@ El conocimiento clínico está compuesto por hechos incompletos, inferencias gra
 
 ### Qué lo diferencia
 
-- **Es operativo, no contemplativo.** Cada capítulo termina en herramienta: un léxico de certeza con usos correctos e incorrectos, el método HII-D (hechos–inferencias–incertidumbre–decisión, con versión de 60 segundos), 12 talleres que reescriben notas clínicas reales, una guía de implementación para servicios.
+- **Es operativo, no contemplativo.** Cada capítulo termina en herramienta: un léxico de certeza con usos correctos e incorrectos, el método HII-D (hechos–inferencias–incertidumbre–decisión, con versión de 60 segundos), 18 talleres que reescriben notas clínicas reales, una guía de implementación para servicios.
 - **Está centrado en la escritura clínica**, un ángulo que Groopman, Croskerry y la literatura de sesgos no cubren: la evolución, la epicrisis y el pase de turno como tecnología del pensamiento colectivo.
 - **Toma posición en los debates vivos** — declara explícitamente su lugar en la controversia Croskerry vs. Norman/Monteiro sobre si puede enseñarse a "pensar mejor", y fundamenta los umbrales de decisión en el riesgo inductivo (Rudner, Douglas).
 - **Modela lo que predica:** presenta HII-D como heurística no validada, formula qué evidencia obligaría a abandonarlo, y declara el uso de asistencia de IA en su elaboración.
@@ -19,10 +19,10 @@ El conocimiento clínico está compuesto por hechos incompletos, inferencias gra
 ### Índice condensado
 
 - **Parte I. Las capas del conocimiento clínico** — el hecho y su procedencia; la inferencia abductiva; la taxonomía de la incertidumbre; lenguaje y densidad epistémica.
-- **Parte II. La mente que se observa** — metacognición y calibración; pericia e intuición; error como trayectoria (con un error del autor analizado); desaceleración selectiva.
-- **Parte III. Decidir en el tiempo y con otros** — evidencia poblacional y umbrales; temporalidad y contrafactuales; la ficha como instrumento de pensamiento; equipos, desacuerdo y comunicación de incertidumbre.
-- **Parte IV. Una epistemología operativa** — IA como espejo del razonamiento; humildad epistémica y responsabilidad; el método HII-D y su falsabilidad; cuaderno de ocho casos; enseñar y organizar la metacognición clínica.
-- Apéndices: hoja HII-D · léxico de certeza · guía de implementación en servicio · glosario · índice analítico · ~85 referencias (de Peirce y Polanyi a Fleming, Mamede y la calibración de modelos de lenguaje).
+- **Parte II. La mente que se observa** — metacognición y calibración; pericia e intuición (con el saber hacer de Varela); error como trayectoria (con un error del autor analizado); cuándo desacelerar, en qué estado y con qué mente.
+- **Parte III. Decidir en el tiempo y con otros** — la evidencia leída y traducida al caso singular; umbrales, valores y bioética; temporalidad y contrafactuales; la ficha como instrumento de pensamiento (de resultados y de proceso); equipos, desacuerdo y comunicación de incertidumbre.
+- **Parte IV. Una epistemología operativa** — humildad epistémica y responsabilidad (pensar bien como ética primordial); el método HII-D y su falsabilidad; cuaderno de ocho casos; enseñar y organizar la metacognición clínica; la inteligencia artificial en el proceso clínico (roles, riesgos y defensas); y un cierre desde la poesía chilena: Huidobro y Parra como los dos polos de la palabra clínica.
+- Apéndices: hoja HII-D · léxico de certeza · guía de implementación en servicio · glosario · índice analítico · ~158 referencias (de Peirce, Polanyi y Maturana a Fleming, Mamede y los ensayos sobre IA clínica).
 
 ### Qué se solicita
 

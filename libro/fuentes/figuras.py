@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import os
 
-OUT = os.path.join(os.path.dirname(__file__), "figs")
+OUT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "figs"))
 os.makedirs(OUT, exist_ok=True)
 
 INK = "#2b2b2b"

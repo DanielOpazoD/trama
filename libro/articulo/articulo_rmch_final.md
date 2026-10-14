@@ -83,11 +83,11 @@ La forma condensada de esta disciplina es lo que proponemos llamar *frase medula
 
 HII-D es una heurística de escritura y deliberación que ordena el razonamiento en cuatro capas y un movimiento transversal (Figura 1): **H**echos (¿qué se observó, con qué procedencia y límites?), **I**nferencias (¿qué explicación se propone y con qué grado?), **I**ncertidumbre (¿qué alternativa cambiaría la conducta, qué duda es reducible y cuál es el error de mayor consecuencia?) y **D**ecisión (¿por qué, bajo esta probabilidad y estas consecuencias, actuar supera a no actuar — integrando urgencia, reversibilidad, capacidad de vigilancia, contexto global y preferencias del paciente?), más **Reevaluación**: toda formulación incluye qué resultado, plazo o cambio clínico obliga a reabrir el caso. La incertidumbre, aunque ocupa una capa operativa, atraviesa en realidad todas las demás; la separación es funcional, no ontológica.
 
-![Figura 1. Las cuatro capas del conocimiento clínico, la franja de incertidumbre que las atraviesa y el circuito de reevaluación.](figs/fig01_capas.png)
+![Figura 1. Las cuatro capas del conocimiento clínico, la franja de incertidumbre que las atraviesa y el circuito de reevaluación.](../figs/fig01_capas.png)
 
 Para el trabajo corriente existe una versión mínima, pensada para decirse mentalmente en el pasillo: (1) ¿qué vi y qué me contaron? — un hecho decisivo, con fuente; (2) ¿qué creo y cuánto derecho tengo a creerlo? — la inferencia con su grado; (3) ¿qué daño importante podría producir si estoy equivocado? — la incertidumbre peligrosa, no todas; (4) ¿qué hago, y qué me haría cambiar antes del próximo control? — decisión con reapertura. Sesenta segundos no producen una epistemología; impiden, más modestamente, que la frase «cuadro habitual, manejo habitual» se escriba sola. La Figura 2 condensa el método completo en una página.
 
-![Figura 2. El método HII-D en una página: cinco pasos, cuatro capas y un movimiento transversal de reevaluación.](figs/fig08_hiid.png)
+![Figura 2. El método HII-D en una página: cinco pasos, cuatro capas y un movimiento transversal de reevaluación.](../figs/fig08_hiid.png)
 
 ### Qué añade frente a los marcos existentes
 

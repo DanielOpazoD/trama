@@ -32,7 +32,7 @@ Este protocolo se fija **antes** de recolectar datos, con regla de decisión y p
 - Si una opción gana la **elección forzada (pregunta 2)** con **≥ 60%** Y **no pierde** en credibilidad (ítem 4c, diferencia de medias < 0,5): **se adopta esa opción**.
 - Si la elección forzada queda entre 40% y 60% para ambas: **empate técnico** → decide la editorial cuando exista; mientras tanto se conserva la opción A (statu quo).
 - Si una opción gana la elección forzada pero pierde claramente en credibilidad (4c, diferencia ≥ 0,5 a favor de la otra): se revisan las respuestas abiertas (preguntas 1 y 5) antes de decidir, y la síntesis se escribe ANTES de saber cuál título favorecía el autor.
-- La pregunta 1 tiene veto: si ≥ 30% de los respondentes no logra inferir que el libro trata de razonamiento/decisión clínica con un título dado, ese título queda descartado aunque gane en atractivo.
+- La pregunta 1 tiene veto: si ≥ 30% de los respondentes no logra inferir que el libro trata de razonamiento/decisión clínica con un título dado, ese título queda descartado aunque gane en atractivo. Denominador pre-especificado: como cada respondente explica sólo la primera portada que ve, la comprensión de cada título se mide únicamente entre quienes recibieron la versión del formulario que lo muestra primero (la mitad de la muestra). El veto sólo se aplica con un mínimo de 10 respuestas válidas por título (20 en total); las respuestas abiertas se codifican como «infiere / no infiere» por una persona que no conoce qué título vio cada respondente, antes de calcular el porcentaje.
 
 ## Predicción del autor (completar ANTES de enviar el formulario — ejercicio de calibración del Taller 5 aplicado a uno mismo)
 

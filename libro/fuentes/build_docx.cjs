@@ -1,5 +1,7 @@
 // Construye el .docx del libro desde los md fuente.
-// Uso: node build_docx.js [--toc toc.json]  (toc.json: { "<texto heading>": <página lógica> })
+// Uso: node build_docx.cjs [--toc toc.json]  (toc.json: { "<texto heading>": <página lógica> })
+// Requiere el paquete docx (npm install --no-save docx@9, o NODE_PATH hacia una instalación global).
+// Lee las figuras de ../figs/ y escribe el .docx en ../ (o en $LIBRO_OUT); toc_keys.json queda junto al script.
 const fs = require("fs");
 const path = require("path");
 const {
@@ -10,7 +12,9 @@ const {
 } = require("docx");
 
 const DIR = __dirname;
-const FIGS = path.join(DIR, "figs");
+const LIBRO = path.resolve(DIR, "..");
+const FIGS = fs.existsSync(path.join(LIBRO, "figs")) ? path.join(LIBRO, "figs") : path.join(DIR, "figs");
+const OUT_DIR = process.env.LIBRO_OUT ? path.resolve(process.env.LIBRO_OUT) : LIBRO;
 const INK = "2B2B2B", ACENTO = "8C2F2F", ACENTO2 = "3D5A6C", GRIS = "8A8A8A", CLARO = "F2F0EC";
 const SERIF = "Georgia";
 
@@ -352,7 +356,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then(buf => {
-  const out = path.join(DIR, "Hechos_inferencias_incertidumbre_edicion_revisada.docx");
+  const out = path.join(OUT_DIR, "Hechos_inferencias_incertidumbre_edicion_revisada.docx");
   fs.writeFileSync(out, buf);
   fs.writeFileSync(path.join(DIR, "toc_keys.json"), JSON.stringify(tocEntries.map(e => e.key), null, 1));
   console.log("OK", out, `(${(buf.length / 1024).toFixed(0)} KB, ${tocEntries.length} entradas TOC)`);
