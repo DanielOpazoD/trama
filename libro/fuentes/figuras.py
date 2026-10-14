@@ -50,17 +50,17 @@ capas = [
     ("INCERTIDUMBRE", "lo que puede\ncambiar el modelo\no la conducta"),
     ("DECISIÓN", "umbrales y\nconsecuencias,\nno certeza"),
 ]
-w, h, gap, x0, y0 = 2.05, 1.9, 0.42, 0.25, 2.15
+w, h, gap, x0, y0 = 2.22, 1.9, 0.26, 0.2, 2.15
 for i, (t, s) in enumerate(capas):
     x = x0 + i * (w + gap)
     caja(ax, x, y0, w, h, "", fc="white", ec=INK, lw=1.4)
-    ax.text(x + w / 2, y0 + h - 0.42, t, ha="center", va="center", fontsize=10.5,
+    ax.text(x + w / 2, y0 + h - 0.42, t, ha="center", va="center", fontsize=9.0,
             fontweight="bold", color=ACENTO2)
     ax.text(x + w / 2, y0 + h / 2 - 0.28, s, ha="center", va="center", fontsize=8.6, color=INK)
     if i < 3:
         flecha(ax, x + w + 0.04, y0 + h / 2, x + w + gap - 0.04, y0 + h / 2)
 # franja transversal: la incertidumbre no es sólo una etapa
-caja(ax, 0.25, 1.28, 9.44, 0.5, "", fc=ACENTO, ec="none")
+caja(ax, 0.2, 1.28, 9.46, 0.5, "", fc=ACENTO, ec="none")
 ax.patches[-1].set_alpha(0.14)
 ax.text(5.0, 1.53, "LA INCERTIDUMBRE ATRAVIESA TODAS LAS CAPAS — no espera su turno",
         ha="center", va="center", fontsize=8.8, style="italic", color=ACENTO)
@@ -81,7 +81,7 @@ fig, ax = plt.subplots(figsize=(7.2, 4.4))
 ax.set_xlim(0, 10); ax.set_ylim(0, 6.2); ax.axis("off")
 niveles = [
     ("Dato medido y verificable", "«Lactato 6,0 mmol/L (04:15, arterial)»", 0.92),
-    ("Observación profesional reproducible", "«Relleno capilar 5 s, documentado por enfermería»", 0.74),
+    ("Observación profesional reproducible", "«Llene capilar 5 s, documentado por enfermería»", 0.74),
     ("Relato del paciente o de un tercero", "«Esta vez el dolor era otro»", 0.56),
     ("Dato heredado de una nota anterior", "«ITU a repetición» (origen no verificado)", 0.38),
     ("Ausencia inferida del registro", "«Sin episodios previos» = no consignados", 0.20),
@@ -118,8 +118,8 @@ ax.text(5.0, 5.25, "FUENTES de la incertidumbre (Han et al., 2011)", ha="center"
         fontsize=9.2, color=GRIS)
 caja(ax, 0.4, 1.55, 9.2, 0.85, "", fc=CLARO, ec=INK, lw=1.2)
 ax.text(5.0, 2.18, "OBJETOS sobre los que recae", ha="center", fontsize=9.2, color=GRIS)
-for i, o in enumerate(objetos):
-    ax.text(1.55 + i * 2.35, 1.97, o, ha="center", va="center", fontsize=9.6, fontweight="bold")
+for o, xo in zip(objetos, [1.45, 3.6, 5.8, 8.25]):
+    ax.text(xo, 1.97, o, ha="center", va="center", fontsize=9.2, fontweight="bold")
 ax.text(5.0, 0.85, "Cada combinación pide una respuesta distinta:", ha="center", fontsize=9, color=INK)
 ax.text(5.0, 0.42, "reducir con información  ·  aclarar con evolución  ·  tolerar con vigilancia  ·  conversar (valores)",
         ha="center", fontsize=9, color=ACENTO, style="italic")
@@ -149,14 +149,17 @@ fig, ax = plt.subplots(figsize=(5.6, 4.6))
 conf = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 sobre = [0.48, 0.54, 0.60, 0.66, 0.72, 0.78]
 ax.plot([0.5, 1.0], [0.5, 1.0], color=GRIS, lw=1.6, ls="--", label="Calibración perfecta")
-ax.plot(conf, sobre, color=ACENTO, lw=2.2, marker="o", ms=5, label="Sobreconfianza (típica)")
+ax.plot(conf, sobre, color=ACENTO, lw=2.2, marker="o", ms=5, label="Sobreconfianza (curva esquemática)")
 ax.fill_between([0.5, 1.0], [0.5, 1.0], [0.35, 0.35], color=ACENTO, alpha=0.05)
 ax.set_xlabel("Confianza declarada", fontsize=10)
 ax.set_ylabel("Proporción real de aciertos", fontsize=10)
 ax.set_xlim(0.48, 1.02); ax.set_ylim(0.35, 1.02)
 ax.set_xticks([0.5, 0.6, 0.7, 0.8, 0.9, 1.0]); ax.set_yticks([0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
 ax.tick_params(labelsize=8.5)
-ax.annotate('"90% seguro"\n→ 72% de aciertos', xy=(0.9, 0.72), xytext=(0.62, 0.86),
+from matplotlib.ticker import FuncFormatter
+coma = FuncFormatter(lambda v, p: f"{v:.1f}".replace(".", ","))
+ax.xaxis.set_major_formatter(coma); ax.yaxis.set_major_formatter(coma)
+ax.annotate('«90% seguro»\n→ 72% de aciertos', xy=(0.9, 0.72), xytext=(0.62, 0.86),
             fontsize=8.6, color=ACENTO,
             arrowprops=dict(arrowstyle="->", color=ACENTO, lw=1.2))
 ax.legend(fontsize=8.6, loc="lower right", frameon=False)
@@ -212,31 +215,31 @@ guardar(fig, "fig07_frecuencias.png")
 
 # --------------------------------------------------------------- fig08 hii-d
 fig, ax = plt.subplots(figsize=(7.4, 5.8))
-ax.set_xlim(0, 10.6); ax.set_ylim(-0.5, 7.9); ax.axis("off")
+ax.set_xlim(0, 10.6); ax.set_ylim(-1.3, 7.9); ax.axis("off")
 pasos = [
     ("0. PREGUNTA OPERATIVA", "¿qué decisión concreta debe resolverse ahora?", CLARO, INK),
     ("H — HECHOS", "datos decisivos con fuente, fecha, tendencia y límites", "white", ACENTO2),
-    ("I — INFERENCIAS", "representación principal y alternativas, con grado:\ndemostrado · altamente probable · probable · posible · no sustentado", "white", ACENTO2),
+    ("I — INFERENCIAS", "representación principal y alternativas, con grado:\ndemostrado · altamente probable · probable ·\nposible · no demostrado", "white", ACENTO2),
     ("I — INCERTIDUMBRE", "qué puede estar equivocado; priorizada por consecuencias,\nno por tamaño", "white", ACENTO2),
-    ("D — DECISIÓN", "por umbral y consecuencias: «aunque X no está demostrado,\nactúo porque…» + criterio de reapertura", "white", ACENTO2),
+    ("D — DECISIÓN", "por umbral y consecuencias:\n«aunque X no está demostrado, actúo porque…»\n+ criterio de reapertura", "white", ACENTO2),
 ]
 y = 6.75
 for i, (t, s, fc, ec) in enumerate(pasos):
-    hh = 1.0 if i in (2, 3, 4) else 0.82
-    caja(ax, 0.55, y - hh, 6.3, hh, "", fc=fc, ec=ec, lw=1.4)
-    ax.text(0.9, y - 0.3, t, ha="left", fontsize=9.6, fontweight="bold",
+    hh = 1.28 if i in (2, 4) else (1.0 if i == 3 else 0.82)
+    caja(ax, 0.55, y - hh, 6.75, hh, "", fc=fc, ec=ec, lw=1.4)
+    ax.text(0.9, y - 0.3, t, ha="left", fontsize=10.4, fontweight="bold",
             color=ACENTO2 if i else INK)
-    ax.text(0.9, y - hh + 0.3, s, ha="left", fontsize=7.4, color=INK, va="center")
+    ax.text(0.9, y - hh + (0.42 if hh > 1.2 else 0.3), s, ha="left", fontsize=8.2, color=INK, va="center", linespacing=1.3)
     if i < 4:
         flecha(ax, 3.7, y - hh - 0.02, 3.7, y - hh - 0.28)
     y -= hh + 0.32
-flecha(ax, 7.05, 1.35, 7.05, 6.3, color=ACENTO, lw=1.8, rad=0.42)
-ax.text(9.35, 3.85, "REEVALUACIÓN\nresultado pendiente,\nplazo, cambio que\nreabre, responsable",
-        ha="center", va="center", fontsize=8.2, color=ACENTO)
+flecha(ax, 7.5, 1.35, 7.5, 6.3, color=ACENTO, lw=1.8, rad=0.42)
+ax.text(9.55, 3.85, "REEVALUACIÓN\nresultado pendiente,\nplazo, cambio que\nreabre, responsable",
+        ha="center", va="center", fontsize=9.0, color=ACENTO)
 ax.text(5.3, 7.5, "Hechos sin inferencia son inventario; inferencias sin incertidumbre, dogma;\nincertidumbre sin decisión, parálisis; decisión sin reevaluación, inercia.",
         ha="center", fontsize=8.8, style="italic", color=GRIS)
-ax.text(5.3, -0.15, "Versión de 60 segundos:  ¿qué vi? · ¿qué creo y con qué derecho? ·\n¿qué dañaría al paciente si me equivoco? · ¿qué me haría cambiar?",
-        ha="center", fontsize=8.8, color=ACENTO2)
+ax.text(5.3, -0.62, "Versión de sesenta segundos:  ¿Qué vi y qué me contaron? ·\n¿Qué creo y cuánto derecho tengo a creerlo? ·\n¿Qué daño importante podría producir si estoy equivocado? ·\n¿Qué hago y qué me haría cambiar antes del próximo control?",
+        ha="center", va="center", fontsize=8.2, color=ACENTO2, linespacing=1.35)
 guardar(fig, "fig08_hiid.png")
 
 print("Figuras generadas en", OUT)
@@ -247,7 +250,7 @@ ax.set_xlim(0, 10.6); ax.set_ylim(0, 5.0); ax.axis("off")
 ax.annotate("", xy=(10.1, 2.5), xytext=(0.3, 2.5),
             arrowprops=dict(arrowstyle="-|>", color=INK, lw=2.0))
 hitos = [
-    (1.2, "2019", "ANDROMEDA-SHOCK\n(JAMA)", "relleno capilar vs. lactato:\n−8,5 pts de mortalidad,\np = 0,06 → \"negativo\"", ACENTO),
+    (1.2, "2019", "ANDROMEDA-SHOCK\n(JAMA)", "llene capilar vs. lactato:\n−8,5 pts de mortalidad,\np = 0,06 → «negativo»", ACENTO),
     (3.9, "2020", "Reanálisis bayesiano\n(AJRCCM)", "mismo dato, otro marco:\n>90% de probabilidad\nde beneficio", ACENTO2),
     (6.5, "2022–2025", "Refinamiento", "fenotipos hemodinámicos,\nalgoritmo personalizado:\nprueba más severa", GRIS),
     (9.3, "2025", "ANDROMEDA-SHOCK-2\n(JAMA)", "86 centros, 19 países:\nsuperior al cuidado\nhabitual", ACENTO),
@@ -259,7 +262,7 @@ for x, anio, titulo, detalle, color in hitos:
     ax.text(x, 1.55, detalle, ha="center", va="center", fontsize=7.2, color="#4a4a4a")
 ax.text(5.3, 4.75, "Un ensayo no se lee solo: el marco inferencial es parte de la lectura",
         ha="center", fontsize=9.2, style="italic", color=GRIS)
-ax.text(5.3, 0.35, "\"No significativo\" no significó \"sin efecto\": la hipótesis se refinó y se volvió a someter a prueba",
+ax.text(5.3, 0.35, "«No significativo» no significó «sin efecto»: la hipótesis se refinó y se volvió a someter a prueba",
         ha="center", fontsize=8.6, style="italic", color=ACENTO)
 guardar(fig, "fig09_andromeda.png")
 
@@ -393,7 +396,7 @@ hitos = [
     (3.0, "DÍA 1", "hemocultivos con\ngramnegativos;\n«¿95% seguros?»", GRIS),
     (5.1, "DÍA 3", "E. coli; sin vasoactivos;\nla ficha HII-D", GRIS),
     (7.2, "DÍA 7", "sin sonda, evaluación\npreoperatoria;\nla conversación", ACENTO),
-    (9.4, "SEMANA 6", "reparación\nprogramada", ACENTO2),
+    (9.4, "TRAS EL ALTA", "reparación\nprogramada", ACENTO2),
 ]
 for x, t, s, c in hitos:
     ax.plot([x], [5.0], marker="o", ms=9, color=c, zorder=3)
@@ -432,7 +435,7 @@ etapas = [
     ("07:00 · nota de turno", "«neumonía\naspirativa»", "conjetura del residente,\ntras doce horas de turno", 0.10),
     ("entrega de turno", "«neumonía\naspirativa»", "se presenta como\ndiagnóstico", 0.28),
     ("visita · evolución", "«neumonía\naspirativa en\ntratamiento»", "la respuesta al\nantibiótico la confirma", 0.46),
-    ("epicrisis", "«antecedente\nde neumonía\naspirativa»", "ya es historia\nclínica", 0.64),
+    ("epicrisis", "«antecedente\nde neumonía\naspirativa»", "ya es parte\nde la ficha", 0.64),
     ("ingreso siguiente", "«antecedente\nde neumonía\naspirativa»", "escrito por quien nunca\nvio al paciente vomitar", 0.85),
 ]
 w, gap, x = 1.86, 0.2, 0.25
@@ -476,20 +479,20 @@ pares = [
     ("Captura cognitiva", "la respuesta llega antes que el caso", "Cierre prematuro", "la primera hipótesis se queda con el caso (caps. 2 y 7)"),
     ("Degradación silenciosa", "el modelo decae sin avisar", "Experiencia sin feedback", "años que no se vuelven calibración (caps. 5 y 16)"),
 ]
-ax.text(2.2, 7.25, "RIESGO DE LA IA CLÍNICA", ha="center", fontsize=8.6, fontweight="bold", color=ACENTO)
-ax.text(8.0, 7.25, "SESGO QUE EL LIBRO YA DESCRIBIÓ", ha="center", fontsize=8.6, fontweight="bold", color=ACENTO2)
+ax.text(2.2, 7.25, "RIESGO DE LA IA CLÍNICA", ha="center", fontsize=9.4, fontweight="bold", color=ACENTO)
+ax.text(8.0, 7.25, "SESGO QUE EL LIBRO YA DESCRIBIÓ", ha="center", fontsize=9.4, fontweight="bold", color=ACENTO2)
 y = 6.75
 for r_t, r_s, s_t, s_s in pares:
     caja(ax, 0.3, y - 0.8, 3.8, 0.8, "", fc="white", ec=ACENTO, lw=1.1)
-    ax.text(0.45, y - 0.28, r_t, ha="left", fontsize=7.4, fontweight="bold", color=ACENTO)
-    ax.text(0.45, y - 0.6, r_s, ha="left", fontsize=6.2, color=INK)
+    ax.text(0.45, y - 0.28, r_t, ha="left", fontsize=8.2, fontweight="bold", color=ACENTO)
+    ax.text(0.45, y - 0.6, r_s, ha="left", fontsize=7.0, color=INK)
     caja(ax, 5.3, y - 0.8, 5.2, 0.8, "", fc="white", ec=ACENTO2, lw=1.1)
-    ax.text(5.45, y - 0.28, s_t, ha="left", fontsize=7.4, fontweight="bold", color=ACENTO2)
-    ax.text(5.45, y - 0.6, s_s, ha="left", fontsize=6.2, color=INK)
+    ax.text(5.45, y - 0.28, s_t, ha="left", fontsize=8.2, fontweight="bold", color=ACENTO2)
+    ax.text(5.45, y - 0.6, s_s, ha="left", fontsize=7.0, color=INK)
     flecha(ax, 4.15, y - 0.4, 5.25, y - 0.4, color=GRIS, lw=1.3, estilo="<|-|>")
     y -= 0.93
 ax.text(5.4, -0.12, "Ningún riesgo es nuevo: la IA automatiza los errores que ya teníamos y les quita los frenos —\nla lentitud, la duda, el cansancio que obligaba a pedir ayuda",
-        ha="center", va="center", fontsize=7.4, style="italic", color=GRIS, linespacing=1.25)
+        ha="center", va="center", fontsize=8.0, style="italic", color=GRIS, linespacing=1.25)
 guardar(fig, "fig15_parentescos_ia.png")
 
 print("Figuras generadas en", OUT)

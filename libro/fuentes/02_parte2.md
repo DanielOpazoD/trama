@@ -20,7 +20,7 @@ La confianza es una experiencia útil, pero no equivale a precisión. La investi
 
 La calibración compara confianza y desempeño a lo largo de múltiples decisiones. Es difícil obtenerla en clínica porque el desenlace puede tardar, permanecer ambiguo o no regresar al médico. La falta de retroalimentación favorece una ilusión de competencia: recordamos diagnósticos confirmados y perdemos de vista casos que evolucionaron en otro lugar. La National Academies destacó la necesidad de sistemas que entreguen feedback diagnóstico y permitan aprender de errores y casi errores (National Academies of Sciences, Engineering, and Medicine, 2015).
 
-[FIGURA: fig05_calibracion.png | Figura 7. Curva de calibración: la diagonal representa la correspondencia perfecta entre confianza y proporción de aciertos. La sobreconfianza vive debajo de la diagonal; el exceso de prudencia, encima. Sin registrar predicciones y desenlaces, nadie sabe en qué curva está.]
+[FIGURA: fig05_calibracion.png | Figura 7. Curva de calibración (esquema, no datos de un estudio): la diagonal representa la correspondencia perfecta entre confianza y proporción de aciertos. La sobreconfianza vive debajo de la diagonal; el exceso de prudencia, encima. Sin registrar predicciones y desenlaces, nadie sabe en qué curva está.]
 
 Eva y Regehr cuestionaron la idea de que la autoevaluación global sea suficiente para guiar el aprendizaje. Los profesionales no siempre identifican con precisión sus déficits y suelen necesitar datos externos, tareas específicas y comparación con estándares (Eva & Regehr, 2005). La metacognición madura no es introspección solitaria. Es un sistema que combina percepción interna, evidencia de desempeño y retroalimentación social.
 

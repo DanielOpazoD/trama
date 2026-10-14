@@ -520,7 +520,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Figura 4. Un mapa de la incertidumbre clínica (adaptado de la taxonomía de Han et al.) (Capítulo 3).
 - Figura 5. La frase medular como argumento de Toulmin (Capítulo 4).
 - Figura 6. El modelo de dos niveles de Nelson y Narens (Capítulo 5).
-- Figura 7. Curva de calibración (Capítulo 5).
+- Figura 7. Curva de calibración, esquemática (Capítulo 5).
 - Figura 8. El error como trayectoria (Capítulo 7).
 - Figura 9. Una década sobre un mismo dato (Capítulo 9).
 - Figura 10. El enfoque de umbrales de Pauker y Kassirer (Capítulo 10).
