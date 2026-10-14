@@ -49,6 +49,10 @@ Conviene leer con un caso propio en mente. Ante cada concepto, puede preguntarse
 
 No se propone reemplazar la intuición por análisis permanente. El objetivo es construir mecanismos para reconocer cuándo una intuición merece confianza y cuándo necesita ser desplegada. La metacognición útil no ocupa el centro de la escena todo el tiempo; aparece en puntos de cambio, discordancia, alto riesgo o baja familiaridad. Luego vuelve a retirarse, dejando una práctica mejor calibrada.
 
+La Figura 1 resume la arquitectura: tres hilos que atraviesan las cuatro partes, y un caso que los atraviesa a todos.
+
+[FIGURA: fig10_mapa_libro.png | Figura 1. Mapa del libro. Tres hilos —las capas del conocimiento, el arco que va de la abducción a la humildad y el lenguaje que conserva o borra las capas— recorren las cuatro partes; los números remiten a capítulos. Carmen los atraviesa todos.]
+
 # Introducción. La medicina como práctica de conocimiento incompleto
 
 Carmen tiene sesenta y un años y una cicatriz en la línea media que le cruza el abdomen desde una cirugía de hace una década. Sobre la cicatriz, una hernia incisional que ella conoce mejor que nadie: sabe qué comidas la distienden, sabe dormir de lado cuando "se le aprieta", sabe distinguir la molestia habitual del dolor que la obliga a ir a urgencias. Ha ingresado tres veces en el último año por episodios de suboclusión intestinal que cedieron con reposo digestivo y sonda nasogástrica. Esta madrugada llegó por cuarta vez, y algo es radicalmente distinto: está hipotensa, taquicárdica, con las rodillas moteadas y un lactato de 6 mmol/L. En la nota de ingreso, alguien escribió: "Paciente con hernia complicada conocida, cuadro habitual, se maneja de forma habitual".
@@ -61,7 +65,7 @@ Esta tensión no es nueva. Alvan Feinstein reclamaba ya en los años sesenta una
 
 La estructura más elemental de este trabajo puede dividirse en cuatro capas. La primera es lo observado: hechos clínicos con una fuente y una confiabilidad determinadas. La segunda es lo inferido: hipótesis diagnósticas, explicaciones causales, pronósticos y atribuciones de relevancia. La tercera es lo incierto: aquello que no se conoce, aquello que se conoce sólo probabilísticamente y aquello cuya propia formulación es ambigua. La cuarta es lo decidido: una acción que incorpora no sólo probabilidad, sino gravedad, oportunidad, reversibilidad, preferencias y costo de los errores.
 
-[FIGURA: fig01_capas.png | Figura 1. Las cuatro capas del conocimiento clínico, la franja de incertidumbre que las atraviesa y el circuito de reevaluación que vuelve a la pregunta y a los hechos. La separación es funcional y gradual; no representa compartimentos ontológicos puros.]
+[FIGURA: fig01_capas.png | Figura 2. Las cuatro capas del conocimiento clínico, la franja de incertidumbre que las atraviesa y el circuito de reevaluación que vuelve a la pregunta y a los hechos. La separación es funcional y gradual; no representa compartimentos ontológicos puros.]
 
 Estas capas se mezclan con facilidad. Una nota puede declarar "infección urinaria" ante bacteriuria en un paciente sondado sin evidencia clínica de infección; puede escribir "descompensación cardiaca" donde sólo hay edema y una radiografía congestiva; puede describir "fracaso del manejo conservador" sin explicitar cuál era el objetivo, durante cuánto tiempo fue intentado y qué desenlace cambió el balance. La frase parece resolver el problema, pero en realidad oculta el camino inferencial. La nota de ingreso de Carmen —"cuadro habitual, manejo habitual"— pertenece a esta familia.
 

@@ -191,6 +191,8 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Ensombrecimiento diagnóstico.** Atribución de síntomas físicos a la enfermedad mental de base, con el consiguiente subdiagnóstico somático; contribuye a la mortalidad prematura en salud mental (Thornicroft).
 
+**Escriba ambiental.** Sistema de IA que escucha la consulta y redacta la nota clínica. Puede automatizar la capa de hechos; no debería autocompletar la decisión ni la frase medular, porque escribirlas es parte de pensarlas, y tiende a aplanar la modalidad epistémica de lo dicho en voz alta.
+
 **Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho de pleno derecho, no una impresión.
 
 **Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
@@ -283,11 +285,13 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Documentación defensiva — 14
 - Ensombrecimiento diagnóstico — CC (viñeta 8)
 - Errores asimétricos — 10, CC (viñeta 3)
+- Escribas ambientales (regla «la capa H sí, la capa D no») — 17
+- Estado de verificación de un diagnóstico en la ficha electrónica — 12
 - Evidencia poblacional y particularización — 9
 - Falsabilidad del método HII-D — 15
 - Feedback diagnóstico — 5, 16, Ap C
 - Ficha como dispositivo que produce lo visible (Foucault) — 12
-- Fichas clínicas y plantillas — 12, 16, Ap C
+- Fichas clínicas y plantillas — 12, 16, Ap C; ficha electrónica pensada desde HII-D — 12
 - Formación clínica en la era de la IA (deskilling, never-skilling, mis-skilling) — 17
 - Fragilidad y funcionalidad como hechos clínicos — 10, 15, Ap A
 - Fuentes del hecho clínico (matriz de procedencia) — 1
@@ -334,6 +338,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Sobreconfianza — 5, 7
 - Sobreestudio e intervenciones innecesarias — 3
 - Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14; testimonio de terceros y cuidadores — CC (viñeta 7)
+- Trayectoria del error (estaciones y barreras) — 7
 - Trayectoria y temporalidad — 11, Interludio I
 - Umbrales de decisión — 10, Interludio III, CC (viñeta 3)
 - Validez del entorno e intuición (Kahneman y Klein) — 6
@@ -369,6 +374,8 @@ Austin, J. L. (1962). *How to Do Things with Words*. Clarendon Press.
 Barrows, H. S., & Feltovich, P. J. (1987). The clinical reasoning process. *Medical Education, 21*(2), 86–91.
 
 Berner, E. S., & Graber, M. L. (2008). Overconfidence as a cause of diagnostic error in medicine. *The American Journal of Medicine, 121*(5 Suppl), S2–S23.
+
+Biro, J., Handley, J. L., Cobb, N. K., Kottamasu, V., Collins, J., Krevat, S., & Ratwani, R. M. (2025). Accuracy and safety of AI-enabled scribe technology: Instrument validation study. *Journal of Medical Internet Research, 27*, e64993.
 
 Boden, M. A. (2004). *The Creative Mind: Myths and Mechanisms* (2.ª ed.). Routledge.
 
@@ -605,6 +612,8 @@ Taboada, P. (2000). El derecho a morir con dignidad. *Acta Bioethica, 6*(1), 89�
 Tajer, C. (2008). *El corazón enfermo: Puentes entre las emociones y el infarto*. Libros del Zorzal.
 
 Thornicroft, G. (2011). Physical health disparities and mental illness: The scandal of premature mortality. *British Journal of Psychiatry, 199*(6), 441–442.
+
+Tierney, A. A., Gayre, G., Hoberman, B., Mattern, B., Ballesca, M., Kipnis, P., Liu, V., & Lee, K. (2024). Ambient artificial intelligence scribes to alleviate the burden of clinical documentation. *NEJM Catalyst Innovations in Care Delivery, 5*(3), CAT.23.0404.
 
 Tonelli, M. R. (1998). The philosophical limits of evidence-based medicine. *Academic Medicine, 73*(12), 1234–1240.
 

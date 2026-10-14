@@ -1,4 +1,4 @@
-"""Genera las 8 figuras del libro en estilo editorial sobrio (grises + un acento)."""
+"""Genera las 16 figuras del libro en estilo editorial sobrio (grises + un acento)."""
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -262,3 +262,256 @@ ax.text(5.3, 4.75, "Un ensayo no se lee solo: el marco inferencial es parte de l
 ax.text(5.3, 0.35, "\"No significativo\" no significó \"sin efecto\": la hipótesis se refinó y se volvió a someter a prueba",
         ha="center", fontsize=8.6, style="italic", color=ACENTO)
 guardar(fig, "fig09_andromeda.png")
+
+# ======================================================================
+# Figuras relacionales (edición de octubre de 2026): muestran relaciones
+# entre capítulos que antes vivían en remisiones cruzadas.
+# ======================================================================
+
+
+def texto_caja(ax, x, y, w, h, titulo, cuerpo, fc="white", ec=INK, lw=1.2,
+               fs_t=8.6, fs_c=7.2, tc_t=ACENTO2, tc_c=INK, align="center"):
+    caja(ax, x, y, w, h, "", fc=fc, ec=ec, lw=lw)
+    if titulo:
+        ax.text(x + w / 2 if align == "center" else x + 0.18, y + h - 0.26, titulo,
+                ha=align, va="center", fontsize=fs_t, fontweight="bold", color=tc_t)
+    if cuerpo:
+        yc = y + (h - 0.42) / 2 if titulo else y + h / 2
+        ax.text(x + w / 2 if align == "center" else x + 0.18, yc, cuerpo,
+                ha=align, va="center", fontsize=fs_c, color=tc_c, linespacing=1.25)
+
+
+# --------------------------------------------------------- fig10 mapa del libro
+fig, ax = plt.subplots(figsize=(8.2, 5.0))
+ax.set_xlim(0, 11.4); ax.set_ylim(0, 6.9); ax.axis("off")
+partes = [("PARTE I", "Las capas del\nconocimiento"), ("PARTE II", "La mente que\nse observa"),
+          ("PARTE III", "Decidir en el tiempo\ny con otros"), ("PARTE IV", "Una epistemología\noperativa")]
+hilos = [
+    ("CAPAS\nH · I · I · D",
+     ["1 el hecho y su\n   procedencia\n2 inferir · 3 incertidumbre\n4 el lenguaje que\n   las conserva",
+      "7 el error como\n   trayectoria\n8 presentar sin\n   la etiqueta",
+      "9 del ensayo al caso\n10 umbral · 11 trayectoria\n12 la ficha que piensa\n   (matriz HII-D)",
+      "15 el método HII-D\nCuaderno de casos\nAp. A (hoja)\nAp. B (léxico)"]),
+    ("ABDUCCIÓN →\nMETACOGNICIÓN →\nHUMILDAD",
+     ["2 la conjetura que\n   crea explicaciones\n   (Peirce)",
+      "5 monitoreo y control\n6 intuición y su entorno\n7–8 error y pausa\n   selectiva",
+      "13 metacognición\n   de equipo\n   (cognición distribuida)",
+      "14 humildad como motor\n16 enseñarla y\n   organizarla\n17 razonar antes\n   de consultar"]),
+    ("LENGUAJE\ndensidad → léxico →\nfrase medular",
+     ["4 densidad epistémica\n   actos de habla\n   Toulmin",
+      "7 la frase heredada\n8 reformular sin\n   el diagnóstico",
+      "11 «está mejor»\n12 el fósil narrativo\n13 transferir es\n   transformar",
+      "15 frase medular\nAp. B léxico de certeza\n18 Parra, no Huidobro"]),
+]
+x0, wl, wc, gap = 0.25, 1.75, 2.2, 0.12
+xs = [x0 + wl + gap + i * (wc + gap) for i in range(4)]
+# cabecera
+for (p, s), x in zip(partes, xs):
+    caja(ax, x, 5.75, wc, 0.95, "", fc=ACENTO2, ec="none")
+    ax.text(x + wc / 2, 6.44, p, ha="center", va="center", fontsize=8.8, fontweight="bold", color="white")
+    ax.text(x + wc / 2, 6.03, s, ha="center", va="center", fontsize=7.0, color="white", linespacing=1.2)
+# filas
+y = 5.55
+hs = [1.45, 1.45, 1.45]
+for (nombre, celdas), h in zip(hilos, hs):
+    y -= h + 0.12
+    caja(ax, x0, y, wl, h, "", fc=CLARO, ec=INK, lw=1.1)
+    ax.text(x0 + wl / 2, y + h / 2, nombre, ha="center", va="center", fontsize=7.6,
+            fontweight="bold", color=ACENTO, linespacing=1.3)
+    for c, x in zip(celdas, xs):
+        caja(ax, x, y, wc, h, "", fc="white", ec=GRIS, lw=0.9)
+        ax.text(x + 0.1, y + h / 2, c, ha="left", va="center", fontsize=6.3, color=INK, linespacing=1.25)
+# hilo de Carmen
+ancho_total = wl + gap + 4 * wc + 3 * gap
+caja(ax, x0, 0.22, ancho_total, 0.55, "", fc=ACENTO, ec="none")
+ax.patches[-1].set_alpha(0.12)
+ax.text(x0 + ancho_total / 2, 0.5, "CARMEN atraviesa todo el libro:  Introducción → Interludio I (la ficha) → Interludio II (el equipo) → Interludio III (la decisión) → viñeta 1 (epílogo)",
+        ha="center", va="center", fontsize=7.0, color=ACENTO, style="italic")
+guardar(fig, "fig10_mapa_libro.png")
+
+# ------------------------------------------------- fig11 Toulmin y frase medular
+fig, ax = plt.subplots(figsize=(7.6, 5.0))
+ax.set_xlim(0, 10.6); ax.set_ylim(0, 6.9); ax.axis("off")
+texto_caja(ax, 0.3, 4.55, 3.3, 1.45, "DATO", "hemocultivos 2/2 con\nbacilos gramnegativos,\nen contexto de obstrucción\nmecánica por hernia incisional", ec=INK, lw=1.4)
+texto_caja(ax, 7.0, 4.55, 3.3, 1.45, "CONCLUSIÓN", "la bacteriemia tiene\nfoco abdominal\n(translocación desde\nel asa atascada)", ec=INK, lw=1.4)
+flecha(ax, 3.68, 5.27, 6.92, 5.27, lw=2.0)
+ax.text(5.3, 5.62, "CALIFICADOR MODAL", ha="center", fontsize=7.6, fontweight="bold", color=ACENTO)
+ax.text(5.3, 5.38, "«altamente probable»", ha="center", fontsize=8.4, style="italic", color=ACENTO)
+texto_caja(ax, 3.65, 2.85, 3.3, 1.3, "GARANTÍA", "una obstrucción con sufrimiento\nde pared permite el paso de\nenterobacterias a la sangre", ec=ACENTO2)
+flecha(ax, 6.75, 4.18, 6.75, 4.95, color=GRIS, lw=1.2, estilo="-")
+texto_caja(ax, 3.65, 1.35, 3.3, 1.2, "RESPALDO", "fisiopatología de la translocación ·\nsecuencia temporal · E. coli en sangre ·\nsin foco urinario ni respiratorio", ec=GRIS, fs_c=6.8)
+flecha(ax, 5.3, 2.58, 5.3, 2.82, color=GRIS, lw=1.2, estilo="-")
+texto_caja(ax, 7.0, 2.85, 3.3, 1.3, "REFUTACIÓN", "«salvo hallazgo alternativo»:\nurocultivo positivo, foco en\nimagen, catéter infectado", ec=ACENTO)
+flecha(ax, 10.1, 4.18, 10.1, 4.52, color=ACENTO, lw=1.2, estilo="-", ls=":")
+# capas HII-D
+for x, y, etq in [(0.3, 6.18, "H — hecho con procedencia"), (3.65, 4.3, "I — inferencia con su grado"),
+                  (7.0, 4.3, "I — incertidumbre crítica")]:
+    ax.text(x + 0.05, y, etq, ha="left", fontsize=7.4, fontweight="bold", color=ACENTO)
+texto_caja(ax, 0.3, 0.22, 10.0, 0.85, "", "", fc=CLARO, ec=INK)
+ax.text(0.5, 0.86, "D — lo que la garantía autoriza", ha="left", fontsize=7.4, fontweight="bold", color=ACENTO)
+ax.text(5.3, 0.5, "completar antibióticos según foco probable · no operar de urgencia hoy ·\nreevaluar si urocultivo positivo, nuevo dolor o fiebre",
+        ha="center", va="center", fontsize=7.0, color=INK, linespacing=1.25)
+ax.text(1.95, 2.3, "La frase medular es este\nargumento comprimido:\n«bacteriemia por gramnegativos\nen contexto de obstrucción:\nfoco abdominal altamente\nprobable, salvo hallazgo\nalternativo en imagen»",
+        ha="center", va="center", fontsize=7.0, style="italic", color=GRIS, linespacing=1.3)
+ax.text(5.3, 6.6, "Anatomía de una afirmación clínica (Toulmin, 1958) y su correspondencia con las capas del libro",
+        ha="center", fontsize=8.4, style="italic", color=GRIS)
+guardar(fig, "fig11_toulmin.png")
+
+# ------------------------------------------- fig12 trayectoria del error (cap. 7)
+fig, ax = plt.subplots(figsize=(8.2, 4.4))
+ax.set_xlim(0, 11.4); ax.set_ylim(0, 5.6); ax.axis("off")
+ax.annotate("", xy=(11.1, 3.1), xytext=(0.2, 3.1), arrowprops=dict(arrowstyle="-|>", color=INK, lw=2.0))
+estaciones = [
+    (1.0, "1 · URGENCIAS", "«ITU a repetición»:\nfrase heredada que\nentra como hecho"),
+    (3.1, "2 · UROCULTIVO", "positivo, sin disuria\nni dolor lumbar;\na los 82 años la\nbacteriuria ronda\nel 20%: confirma poco"),
+    (5.2, "3 · EXAMEN", "abdomen palpado\npor trámite:\nla hipótesis ya\nestaba cerrada"),
+    (7.3, "4 · 48 HORAS", "no responde:\n«los mayores tardan\nen prender» — la\nevolución se\nreinterpreta"),
+    (9.4, "5 · SIN SALIDA", "ningún criterio\nescrito, ninguna\npregunta: el caso\nno tiene reapertura"),
+]
+for x, t, s in estaciones:
+    ax.plot([x], [3.1], marker="o", ms=9, color=INK, zorder=3)
+    ax.text(x, 3.5, t, ha="center", fontsize=7.6, fontweight="bold", color=ACENTO2)
+    ax.text(x, 4.5, s, ha="center", va="center", fontsize=6.4, color=INK, linespacing=1.2)
+ax.text(11.1, 2.55, "día 4:\ncolecistitis\ngangrenosa", ha="right", va="center", fontsize=7.0, fontweight="bold", color=ACENTO)
+# barreras
+for x, t in [(4.15, "BARRERA 1 · al indicar el antibiótico\ncriterio de reapertura escrito:\n«si no recupera basal ni apetito\nen 48 h, reexaminar abdomen»"),
+             (7.3, "BARRERA 2 · en la visita de sala\npregunta de resistencia:\n«¿qué hallazgo no explica\nuna infección urinaria?»")]:
+    ax.plot([x, x], [1.95, 3.05], color=ACENTO, lw=1.8, ls="--")
+    ax.text(x, 1.15, t, ha="center", va="center", fontsize=6.4, color=ACENTO, linespacing=1.25)
+ax.text(5.7, 5.35, "El sesgo («anclaje») está en la estación 1; el error es la trayectoria completa — y la corrección es una barrera, no una virtud",
+        ha="center", fontsize=8.0, style="italic", color=GRIS)
+ax.text(5.7, 0.2, "Reconstruir así es también el formato de una reunión de morbimortalidad útil (cap. 16, Ap. C)",
+        ha="center", fontsize=7.4, style="italic", color=GRIS)
+guardar(fig, "fig12_trayectoria_error.png")
+
+# -------------------------------------- fig13 Carmen: el umbral que se mueve
+fig, ax = plt.subplots(figsize=(7.8, 4.9))
+ax.set_xlim(0, 10.8); ax.set_ylim(0, 6.4); ax.axis("off")
+ax.annotate("", xy=(10.55, 5.0), xytext=(0.2, 5.0), arrowprops=dict(arrowstyle="-|>", color=INK, lw=2.0))
+hitos = [
+    (0.9, "MADRUGADA\n04:15", "shock, lactato 6,0;\nTAC sin isquemia", ACENTO),
+    (3.0, "DÍA 1", "hemocultivos con\ngramnegativos;\n«¿95% seguros?»", GRIS),
+    (5.1, "DÍA 3", "E. coli; sin vasoactivos;\nla ficha HII-D", GRIS),
+    (7.2, "DÍA 7", "sin sonda, evaluación\npreoperatoria;\nla conversación", ACENTO),
+    (9.4, "SEMANA 6", "reparación\nprogramada", ACENTO2),
+]
+for x, t, s, c in hitos:
+    ax.plot([x], [5.0], marker="o", ms=9, color=c, zorder=3)
+    ax.text(x, 5.45, t, ha="center", va="center", fontsize=7.6, fontweight="bold", color=c)
+    ax.text(x, 4.35, s, ha="center", va="center", fontsize=6.8, color=INK, linespacing=1.25)
+
+
+def balanza(ax, x, titulo, a_t, a_h, b_t, b_h, veredicto):
+    caja(ax, x, 0.3, 4.6, 3.45, "", fc="white", ec=INK, lw=1.1)
+    ax.text(x + 2.3, 3.48, titulo, ha="center", fontsize=8.0, fontweight="bold", color=ACENTO2)
+    base = 2.05
+    for xb, t, h, c in [(x + 0.75, a_t, a_h, ACENTO), (x + 2.65, b_t, b_h, GRIS)]:
+        ax.add_patch(FancyBboxPatch((xb, base), 1.3, h, boxstyle="square,pad=0", fc=c, ec="none", alpha=0.75))
+        ax.text(xb + 0.65, base - 0.12, t, ha="center", va="top", fontsize=6.3, color=INK, linespacing=1.2)
+    ax.plot([x + 0.5, x + 4.3], [base, base], color=GRIS, lw=0.8)
+    ax.text(x + 0.42, base + 0.55, "daño\nesperado", ha="center", va="center", fontsize=5.6, color=GRIS, style="italic", rotation=90)
+    ax.text(x + 2.3, 0.62, veredicto, ha="center", va="center", fontsize=6.4, fontweight="bold", color=ACENTO)
+
+
+balanza(ax, 0.4, "Madrugada: ¿operar en shock?",
+        "OPERAR AHORA\n(pabellón con la\npaciente inestable)", 1.15,
+        "ESPERAR\n(SNG, antibióticos:\nel cuadro cede)", 0.4,
+        "umbral de cirugía de rescate: alto → no se cruza")
+balanza(ax, 5.8, "Día 7: ¿alta sin operar?",
+        "ALTA SIN OPERAR\n(quinto atascamiento\nen casa, con shock)", 1.15,
+        "OPERAR PROGRAMADA\n(riesgo perioperatorio\nmoderado)", 0.5,
+        "umbral de reparación electiva: bajo → se opera")
+ax.text(5.4, 6.2, "La anatomía radiológica es la misma en los dos momentos; lo que se desplaza es el costo del error de omisión",
+        ha="center", fontsize=8.0, style="italic", color=GRIS)
+guardar(fig, "fig13_carmen_umbral.png")
+
+# ----------------------------------------------- fig14 el viaje de una frase
+fig, ax = plt.subplots(figsize=(7.6, 4.3))
+ax.set_xlim(0, 10.6); ax.set_ylim(0, 5.6); ax.axis("off")
+etapas = [
+    ("07:00 · nota de turno", "«neumonía\naspirativa»", "conjetura del residente,\ntras doce horas de turno", 0.10),
+    ("entrega de turno", "«neumonía\naspirativa»", "se presenta como\ndiagnóstico", 0.28),
+    ("visita · evolución", "«neumonía\naspirativa en\ntratamiento»", "la respuesta al\nantibiótico la confirma", 0.46),
+    ("epicrisis", "«antecedente\nde neumonía\naspirativa»", "ya es historia\nclínica", 0.64),
+    ("ingreso siguiente", "«antecedente\nde neumonía\naspirativa»", "escrito por quien nunca\nvio al paciente vomitar", 0.85),
+]
+w, gap, x = 1.86, 0.2, 0.25
+for i, (t, frase, nota, a) in enumerate(etapas):
+    caja(ax, x, 2.75, w, 1.55, "", fc=ACENTO2, ec="none")
+    ax.patches[-1].set_alpha(a)
+    ax.text(x + w / 2, 4.55, t, ha="center", fontsize=7.2, fontweight="bold", color=ACENTO2)
+    ax.text(x + w / 2, 3.55, frase, ha="center", va="center", fontsize=7.4, fontweight="bold",
+            color="white" if a > 0.4 else INK, linespacing=1.2)
+    ax.text(x + w / 2, 2.3, nota, ha="center", va="center", fontsize=6.6, color=GRIS, linespacing=1.2)
+    if i < 4:
+        flecha(ax, x + w + 0.02, 3.52, x + w + gap - 0.02, 3.52, color=INK, lw=1.4)
+    x += w + gap
+ax.text(5.3, 5.3, "De conjetura a antecedente, y de antecedente a hecho: en ningún punto del trayecto alguien mintió",
+        ha="center", fontsize=8.2, style="italic", color=GRIS)
+ax.text(0.3, 1.8, "conjetura", ha="left", fontsize=7.4, color=ACENTO, style="italic")
+ax.text(10.3, 1.8, "«hecho»", ha="right", fontsize=7.4, color=ACENTO, style="italic")
+flecha(ax, 1.4, 1.85, 9.3, 1.85, color=ACENTO, lw=1.2)
+# barra de Wang 2017
+y0, hb = 0.55, 0.55
+partes_w = [(0.18, "18%\nescrito a mano", INK), (0.46, "46% copiado de notas previas", ACENTO2), (0.36, "36% importado automáticamente", GRIS)]
+xb = 0.3
+for p, t, c in partes_w:
+    ww = p * 10.0
+    ax.add_patch(FancyBboxPatch((xb, y0), ww, hb, boxstyle="square,pad=0", fc=c, ec="white", lw=1.0, alpha=0.85))
+    ax.text(xb + ww / 2, y0 + hb / 2, t, ha="center", va="center", fontsize=6.4, color="white", fontweight="bold", linespacing=1.1)
+    xb += ww
+ax.text(5.3, 0.25, "De qué está hecha una evolución típica: 23.630 notas hospitalarias con trazabilidad de cada carácter (Wang, Khanna & Najafi, 2017)",
+        ha="center", va="center", fontsize=6.8, color=GRIS, style="italic")
+guardar(fig, "fig14_viaje_frase.png")
+
+# ---------------------------------------- fig15 parentescos IA ↔ sesgos del libro
+fig, ax = plt.subplots(figsize=(7.8, 5.9))
+ax.set_xlim(0, 10.8); ax.set_ylim(-0.35, 7.6); ax.axis("off")
+pares = [
+    ("Confabulación", "lo inventado, con la sintaxis de un hecho", "Certeza retórica", "la inferencia escrita como hecho (caps. 4 y 14)"),
+    ("Sesgo de automatización", "aceptar la salida por venir de un sistema", "Anclaje + autoridad no interrogada", "la hipótesis que nadie contradice (caps. 7 y 13)"),
+    ("Atrofia de la pericia", "menos adenomas sin la máquina", "Validez del entorno", "la intuición vive de práctica y feedback (cap. 6)"),
+    ("Sesgo algorítmico", "gasto como sustituto de necesidad", "Carga teórica de la observación", "alguien decidió qué medir (cap. 1)"),
+    ("Sobreconfianza no calibrada", "«estoy bastante seguro» como tono", "Confianza ≠ exactitud", "calibración y sensibilidad metacognitiva (cap. 5)"),
+    ("Captura cognitiva", "la respuesta llega antes que el caso", "Cierre prematuro", "la primera hipótesis se queda con el caso (caps. 2 y 7)"),
+    ("Degradación silenciosa", "el modelo decae sin avisar", "Experiencia sin feedback", "años que no se vuelven calibración (caps. 5 y 16)"),
+]
+ax.text(2.2, 7.25, "RIESGO DE LA IA CLÍNICA", ha="center", fontsize=8.6, fontweight="bold", color=ACENTO)
+ax.text(8.0, 7.25, "SESGO QUE EL LIBRO YA DESCRIBIÓ", ha="center", fontsize=8.6, fontweight="bold", color=ACENTO2)
+y = 6.75
+for r_t, r_s, s_t, s_s in pares:
+    caja(ax, 0.3, y - 0.8, 3.8, 0.8, "", fc="white", ec=ACENTO, lw=1.1)
+    ax.text(0.45, y - 0.28, r_t, ha="left", fontsize=7.4, fontweight="bold", color=ACENTO)
+    ax.text(0.45, y - 0.6, r_s, ha="left", fontsize=6.2, color=INK)
+    caja(ax, 5.3, y - 0.8, 5.2, 0.8, "", fc="white", ec=ACENTO2, lw=1.1)
+    ax.text(5.45, y - 0.28, s_t, ha="left", fontsize=7.4, fontweight="bold", color=ACENTO2)
+    ax.text(5.45, y - 0.6, s_s, ha="left", fontsize=6.2, color=INK)
+    flecha(ax, 4.15, y - 0.4, 5.25, y - 0.4, color=GRIS, lw=1.3, estilo="<|-|>")
+    y -= 0.93
+ax.text(5.4, -0.12, "Ningún riesgo es nuevo: la IA automatiza los errores que ya teníamos y les quita los frenos —\nla lentitud, la duda, el cansancio que obligaba a pedir ayuda",
+        ha="center", va="center", fontsize=7.4, style="italic", color=GRIS, linespacing=1.25)
+guardar(fig, "fig15_parentescos_ia.png")
+
+# ------------------------------------------- fig16 aritmética del riesgo basal
+fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.6), sharey=True)
+for ax, titulo, sin, con, nota in [
+    (axes[0], "Población del ensayo (cifras ilustrativas)", 20, 10, "−10 puntos absolutos:\noperar a 10 para evitar 1 obstrucción"),
+    (axes[1], "Carmen (riesgo basal plausible)", 60, 30, "−30 puntos absolutos:\ncasi 1 de cada 3 evita el evento"),
+]:
+    ax.bar([0, 1], [sin, con], width=0.55, color=[GRIS, ACENTO], alpha=0.85)
+    ax.set_xticks([0, 1]); ax.set_xticklabels(["sin cirugía", "reparación electiva"], fontsize=8.4)
+    ax.set_ylim(0, 84)
+    for xx, v in [(0, sin), (1, con)]:
+        ax.text(xx, v + 1.5, f"{v}%", ha="center", fontsize=9, fontweight="bold", color=INK)
+    ax.set_title(titulo, fontsize=8.8, color=ACENTO2, fontweight="bold")
+    ax.text(0.5, 78, nota, ha="center", va="center", fontsize=7.6, color=ACENTO, style="italic")
+    ax.annotate("", xy=(1, con + 7), xytext=(0.3, sin + 7), arrowprops=dict(arrowstyle="-|>", color=ACENTO, lw=1.2, connectionstyle="arc3,rad=-0.2"))
+    ax.tick_params(labelsize=8)
+    for s in ["top", "right"]:
+        ax.spines[s].set_visible(False)
+axes[0].set_ylabel("Recurrencia obstructiva a dos años", fontsize=8.6)
+fig.text(0.5, -0.04, "La misma reducción relativa (50%) vale tres veces más en Carmen — pero su riesgo quirúrgico (EPOC, shock reciente, abdomen reoperado) también se aleja del promedio",
+         ha="center", fontsize=7.4, style="italic", color=GRIS)
+guardar(fig, "fig16_aritmetica.png")
+
+print("Figuras generadas en", OUT)
