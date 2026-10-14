@@ -542,6 +542,8 @@ National Academies of Sciences, Engineering, and Medicine. (2015). *Improving Di
 
 Nelson, T. O., & Narens, L. (1990). Metamemory: A theoretical framework and new findings. In G. H. Bower (Ed.), *The Psychology of Learning and Motivation* (Vol. 26, pp. 125–173). Academic Press.
 
+Nicolle, L. E., Gupta, K., Bradley, S. F., Colgan, R., DeMuri, G. P., Drekonja, D., Eckert, L. O., Geerlings, S. E., Köves, B., Hooton, T. M., Juthani-Mehta, M., Knight, S. L., Saint, S., Schaeffer, A. J., Trautner, B., Wullt, B., & Siemieniuk, R. (2019). Clinical practice guideline for the management of asymptomatic bacteriuria: 2019 update by the Infectious Diseases Society of America. *Clinical Infectious Diseases, 68*(10), e83–e110.
+
 Norman, G. (2005). Research in clinical reasoning: Past history and current trends. *Medical Education, 39*(4), 418–427.
 
 Norman, G. (2009). Dual processing and diagnostic errors. *Advances in Health Sciences Education, 14*(Suppl 1), 37–49.
