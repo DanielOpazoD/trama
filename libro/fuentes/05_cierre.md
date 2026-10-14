@@ -154,6 +154,136 @@ Esta guía condensa el capítulo 16 en un plan concreto para un servicio que qui
 
 Tres indicadores simples, auditables sobre una muestra mensual de fichas: proporción de «se descarta» usados con método excluyente; proporción de decisiones mayores con criterio de reapertura explícito; proporción de altas inciertas con instrucciones de reconsulta específicas. No miden pensamiento; miden las huellas que el pensamiento deja. Su valor es la tendencia, no la cifra.
 
+### Hoja de ruta para el docente
+
+Qué talleres usar con quién, en el orden en que rinden más. Cada uno cabe en una reunión de treinta minutos.
+
+- **Interno y residente de primer año**: Taller 1 (qué tan hecho es este hecho), Taller 2 (la sentencia del TAC), Taller 4 (cinco frases para reescribir), Taller 10 (frecuencias naturales), Taller 11 (la observación activa, por escrito) y Taller 12B (conjugue los verbos). Enseñan el léxico y las capas antes que el juicio.
+- **Residente de segundo año en adelante**: Taller 3 (el mapa de lo que no sabemos), Taller 5 (calibración personal, sostenido tres meses), Taller 7 (reconstruir una trayectoria), Taller 8 (presentar sin la etiqueta), Taller 12 (desfosilizar una evolución), Taller 13 (traducir un desacuerdo) y Taller 15 (su paciente, esta semana). Trabajan sobre el propio razonamiento y sobre pacientes reales.
+- **Jefe de servicio, docente y comité**: Taller 10B (las cuatro casillas), Taller 16 (rediseñar la visita de sala), Taller 17 (la autopsia de una respuesta de IA) y la reunión de morbimortalidad en el formato de la viñeta 6. Cambian el sistema, no sólo al que razona.
+- **Para todos, al cierre de un ciclo**: Taller 2B (cinco hipótesis en tres minutos) y Taller 18 (la prueba de Parra), que entrenan la generación y el oído.
+
+Secuencia mínima para un servicio que empieza, alineada con las fases de esta guía: Taller 4 en la semana 1, Taller 11 en la semana 3, Taller 8 en la visita de sala del mes 2 y Taller 12 en el mes 3; el resto, a demanda. Los «errores típicos» anotados en los Talleres 7, 8, 10 y 12B son lo que los grupos suelen responder primero; mostrarlos antes de la solución enseña por contraste.
+
+# Apéndice D. Las preguntas para la próxima visita
+
+Las 57 preguntas con que cierran la Introducción y los dieciocho capítulos, reunidas para la visita de sala, la entrega de turno o el portafolio de calibración del Taller 5. Tres por capítulo; una por semana basta. Ninguna pide más de dos minutos y todas se responden con un paciente concreto.
+
+**Introducción**
+
+- En la última nota que escribí, ¿qué afirmación era un dato y cuál era mi interpretación del dato?
+- ¿Qué frase de la ficha de mi paciente actual heredé de otra nota sin verificar su origen?
+- ¿Cuál es la decisión concreta que este caso me exige hoy, y qué me haría cambiarla?
+
+**Capítulo 1. El hecho clínico: observación, medición y procedencia**
+
+- ¿Cuál es el dato más decisivo de mi evaluación de hoy y quién lo produjo realmente?
+- ¿Qué «hallazgo negativo» estoy tratando como evidencia de ausencia sin preguntarme por la sensibilidad de la búsqueda?
+- ¿Qué dijo mi paciente con sus propias palabras que yo ya traduje a jerga?
+
+**Capítulo 2. Inferir: del signo a la explicación**
+
+- ¿Cuál es el dato más difícil de explicar con mi hipótesis principal?
+- ¿Qué explicación rival cambiaría mi conducta hoy, y qué me costaría buscarla?
+- ¿Qué predicción concreta hace mi diagnóstico para las próximas 24 horas?
+
+**Capítulo 3. Incertidumbre: una condición estructural**
+
+- De todo lo que no sé de este paciente, ¿qué duda cambiaría mi conducta si se resolviera?
+- ¿Cuál es la duda pequeña con consecuencia catastrófica que exige vigilancia explícita?
+- ¿Qué parte de mi plan depende de valores del paciente que aún no he preguntado?
+
+**Capítulo 4. Lenguaje clínico y densidad epistémica**
+
+- En mi última evolución, ¿qué verbo causal («secundario a», «por», «complicado por») no podría defender si me lo preguntaran?
+- ¿Escribí «se descarta» donde sólo tenía «sin evidencia actual de»?
+- Si otro médico leyera sólo mi frase final, ¿sabría qué vigilar y qué me haría cambiar?
+
+**Capítulo 5. Metacognición: monitorear y regular el propio juicio**
+
+- En mi diagnóstico más firme de hoy, ¿mi confianza viene de la evidencia o de la fluidez con que reconocí el patrón?
+- ¿Qué señal afectiva (prisa, irritación, alivio) está influyendo en mi evaluación de este caso?
+- ¿Cuál fue mi última predicción concreta —un cultivo, una imagen, una evolución— y la contrasté con el resultado cuando llegó, o sólo recuerdo las que acerté?
+
+**Capítulo 6. Pericia, intuición y conocimiento tácito**
+
+- ¿En qué dominio tengo suficiente experiencia con feedback real como para confiar en mi primera impresión?
+- La última vez que «vi» un diagnóstico al instante, ¿qué características lo activaron? ¿Puedo nombrarlas?
+- ¿Qué caso reciente forcé a encajar en un patrón conocido cuando algo no calzaba?
+
+**Capítulo 7. Error, sesgo y ecología del diagnóstico**
+
+- ¿Qué frase heredada estoy tratando como hecho en mi paciente más complejo?
+- ¿Qué dato «confirmatorio» de hoy confirmaría también la hipótesis rival?
+- ¿Qué evolución atípica estoy reinterpretando para no reabrir el caso?
+
+**Capítulo 8. Desacelerar: cuándo, en qué estado y con qué mente**
+
+- ¿Cuál de mis pacientes actuales cumple un disparador de desaceleración (evolución inesperada, discordancia gravedad-diagnóstico, reconsulta), y en qué condiciones estaba yo cuando lo evalué?
+- ¿Puedo presentar mi caso más complejo sin usar su etiqueta diagnóstica?
+- En mi última alta con diagnóstico incierto, ¿dejé escrito qué debería motivar reconsulta?
+
+**Capítulo 9. La evidencia y el caso singular**
+
+- Para mi indicación más importante de hoy: ¿qué demostró exactamente el estudio que la respalda, y en qué se parece mi paciente a esa población?
+- El último ensayo «negativo» que cité: ¿mostró ausencia de efecto o ausencia de significación — y traté esa diferencia como si no existiera?
+- ¿Qué conocimiento local (resistencias, tiempos, capacidad de seguimiento) está modificando mi decisión sin estar declarado en ninguna parte?
+
+**Capítulo 10. Decidir sin certeza: umbrales, valores y bioética**
+
+- ¿Cuál es el umbral implícito de mi decisión: qué probabilidad de estar equivocado la haría cambiar?
+- ¿Estoy exigiendo certeza diagnóstica donde bastaría compromiso práctico, o actuando para no tolerar una duda?
+- De mi paciente más grave de hoy: ¿sé cómo funcionaba antes de enfermar, con quién vive y qué espera del tratamiento — y está escrito en alguna parte?
+
+**Capítulo 11. Temporalidad, trayectoria y razonamiento contrafactual**
+
+- «Está mejor»: ¿mejor que cuándo, en qué variable y a qué velocidad?
+- ¿Qué predijo mi diagnóstico hace 48 horas, y la evolución lo confirmó o lo desmintió?
+- Mi «observación» de hoy, ¿tiene plazo, variables y criterio de salida, o es una espera sin diseño?
+
+**Capítulo 12. La ficha clínica como instrumento de pensamiento**
+
+- ¿Qué párrafo de mi evolución de hoy es copia de ayer, y sigue siendo verdad?
+- Si yo no estuviera mañana, ¿el médico que me reemplace sabría por mi nota qué vigilar y qué reabriría el caso?
+- ¿Mi lista de problemas distingue hechos, hipótesis, acciones pendientes e incertidumbres, o todo tiene el mismo estatus?
+
+**Capítulo 13. Pensar con otros: equipos, desacuerdo y comunicación de la incertidumbre**
+
+- ¿Qué observó enfermería en las últimas 24 horas que no pasó por mi evaluación?
+- En mi último desacuerdo clínico, ¿discrepábamos en hechos, inferencias, incertidumbre, valores o umbral?
+- ¿Mi paciente sabe qué sabemos, qué creemos, qué no sabemos aún y qué haremos —o sólo recibió una etiqueta?
+
+**Capítulo 14. Humildad epistémica y responsabilidad clínica**
+
+- ¿A qué paciente le estoy creyendo menos de lo que su testimonio merece, y por qué?
+- Mi última recomendación firme: ¿podría explicar qué hechos la sostienen, qué incertidumbres la modificarían y qué valores del paciente pesan?
+- ¿Hay en mis fichas una etiqueta («funcional», «no adherente», «poco colaborador») que esté distribuyendo credibilidad en lugar de información?
+
+**Capítulo 15. El método HII-D: una epistemología operativa**
+
+- ¿Cuál es la pregunta operativa de mi caso más difícil —la decisión real en juego, no «el diagnóstico»?
+- ¿Mi nota de hoy permite a otro médico reconstruir mis cuatro capas, o sólo mi conclusión?
+- ¿Qué decisión de esta semana tomé sin criterio de reapertura, y todavía estoy a tiempo de escribirlo?
+
+**Capítulo 16. Enseñar y organizar la metacognición clínica**
+
+- La última vez que enseñé un caso, ¿pedí el diagnóstico o pedí primero la representación del problema?
+- ¿Qué pasó con el último paciente que derivé o di de alta con diagnóstico incierto — y cómo podría enterarme sistemáticamente?
+- Si mañana dirigiera mi servicio, ¿cuál de las tres palancas (visita de sala, ficha, revisión de errores) cambiaría primero, y qué costaría?
+
+**Capítulo 17. La inteligencia artificial en el proceso clínico: roles, riesgos y defensas**
+
+- Si uso IA en este caso, ¿qué dato de su respuesta verifiqué contra una fuente primaria antes de actuar?
+- ¿Qué agregó el modelo que el caso no contenía?
+- ¿Estoy usando la herramienta para ampliar hipótesis o para confirmar rápido la que ya tenía?
+
+**Capítulo 18. La palabra exacta: lo que la poesía sabe del juicio clínico**
+
+- ¿Qué palabra de mi última nota está «haciendo florecer» algo que nadie observó?
+- El diagnóstico que más me satisface hoy: ¿me convence por la evidencia o por lo bien que cierra la historia?
+- ¿Cuándo fue la última vez que leí algo —un poema, una página— sólo para afinar el oído con el que después escucho pacientes?
+
+
 # Glosario
 
 Los términos marcados con ∗ son propuestas de este libro; los demás se toman de la literatura, con su autor entre paréntesis cuando corresponde.
@@ -303,6 +433,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Documentación defensiva — 14
 - Ensombrecimiento diagnóstico — CC (viñeta 8)
 - Errores asimétricos — 10, CC (viñeta 3)
+- Errores típicos en los talleres — 7, 8, 10, 12
 - Escribas ambientales (regla «la capa H sí, la capa D no») — 17
 - Estado de verificación de un diagnóstico en la ficha electrónica — 12
 - Estado del razonador (esfuerzo, sueño, ánimo; turnos como condición epistémica) — 8, 16, Ap A
@@ -322,6 +453,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Hecho como estatus provisional (frontera hecho/inferencia) — 1
 - HII-D (método) — 12, 15, Ap A; auditoría de IA con — 17
 - Hindsight bias — 8, 11, 16, CC (viñeta 6)
+- Hoja de ruta para el docente (talleres por nivel) — Ap C
 - Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
 - Illness scripts — 2, 6, 16
 - Improvisación y saber hacer (jazz; Limb y Braun) — 6
@@ -347,6 +479,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Pericia y práctica deliberada — 6
 - Phronesis — 6, 14
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
+- Preguntas para la próxima visita (reunidas) — Ap D
 - Pronóstico e incertidumbre de plazo — CC (viñeta 5)
 - Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 5)
 - Proteína C reactiva: cinética y lectura temporal — 11, 12
@@ -363,6 +496,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Sesgos cognitivos: alcance y límites del vocabulario — 7
 - Sobreconfianza — 5, 7
 - Sobreestudio e intervenciones innecesarias — 3
+- Tarjeta HII-D en sesenta segundos — última página
 - Testimonio del paciente — 1, 14; epistemología del testimonio (Coady, Lackey) — 14; testimonio de terceros y cuidadores — CC (viñeta 7)
 - Trayectoria del error (estaciones y barreras) — 7
 - Trayectoria y temporalidad — 11, Interludio I
@@ -424,7 +558,7 @@ Barrows, H. S., & Feltovich, P. J. (1987). The clinical reasoning process. *Medi
 
 Berner, E. S., & Graber, M. L. (2008). Overconfidence as a cause of diagnostic error in medicine. *The American Journal of Medicine, 121*(5 Suppl), S2–S23.
 
-Biro, J., Handley, J. L., Cobb, N. K., Kottamasu, V., Collins, J., Krevat, S.,, et al. (2025). Accuracy and safety of AI-enabled scribe technology: Instrument validation study. *Journal of Medical Internet Research, 27*, e64993.
+Biro, J., Handley, J. L., Cobb, N. K., Kottamasu, V., Collins, J., Krevat, S., et al. (2025). Accuracy and safety of AI-enabled scribe technology: Instrument validation study. *Journal of Medical Internet Research, 27*, e64993.
 
 Boden, M. A. (2004). *The Creative Mind: Myths and Mechanisms* (2.ª ed.). Routledge.
 
@@ -576,7 +710,7 @@ Knight, F. H. (1921). *Risk, Uncertainty and Profit*. Houghton Mifflin.
 
 Koriat, A. (1997). Monitoring one's own knowledge during study: A cue-utilization approach to judgments of learning. *Journal of Experimental Psychology: General, 126*(4), 349–370.
 
-Krasner, M. S., Epstein, R. M., Beckman, H., Suchman, A. L., Chapman, B., Mooney, C. J.,, et al. (2009). Association of an educational program in mindful communication with burnout, empathy, and attitudes among primary care physicians. *JAMA, 302*(12), 1284–1293.
+Krasner, M. S., Epstein, R. M., Beckman, H., Suchman, A. L., Chapman, B., Mooney, C. J., et al. (2009). Association of an educational program in mindful communication with burnout, empathy, and attitudes among primary care physicians. *JAMA, 302*(12), 1284–1293.
 
 Lackey, J. (2008). *Learning from Words: Testimony as a Source of Knowledge*. Oxford University Press.
 
@@ -590,11 +724,11 @@ Lifshitz, A. (2014). *La nueva clínica*. Academia Nacional de Medicina de Méxi
 
 Limb, C. J., & Braun, A. R. (2008). Neural substrates of spontaneous musical performance: An fMRI study of jazz improvisation. *PLoS ONE, 3*(2), e1679.
 
-Linder, J. A., Doctor, J. N., Friedberg, M. W., Reyes Nieva, H., Birks, C., Meeker, D.,, et al. (2014). Time of day and the decision to prescribe antibiotics. *JAMA Internal Medicine, 174*(12), 2029–2031.
+Linder, J. A., Doctor, J. N., Friedberg, M. W., Reyes Nieva, H., Birks, C., Meeker, D., et al. (2014). Time of day and the decision to prescribe antibiotics. *JAMA Internal Medicine, 174*(12), 2029–2031.
 
 Mamede, S., Schmidt, H. G., & Penaforte, J. C. (2008). Effects of reflective practice on the accuracy of medical diagnoses. *Medical Education, 42*(5), 468–475.
 
-Mamede, S., van Gog, T., van den Berge, K., Rikers, R. M. J. P., van Saase, J. L. C. M., van Guldener, C.,, et al. (2010). Effect of availability bias and reflective reasoning on diagnostic accuracy among internal medicine residents. *JAMA, 304*(11), 1198–1203.
+Mamede, S., van Gog, T., van den Berge, K., Rikers, R. M. J. P., van Saase, J. L. C. M., van Guldener, C., et al. (2010). Effect of availability bias and reflective reasoning on diagnostic accuracy among internal medicine residents. *JAMA, 304*(11), 1198–1203.
 
 Maniscalco, B., & Lau, H. (2012). A signal detection theoretic approach for estimating metacognitive sensitivity from confidence ratings. *Consciousness and Cognition, 21*(1), 422–430.
 
@@ -660,9 +794,9 @@ Qazi, I. A., Ali, A., Khawaja, A. U., Akhtar, M. J., Sheikh, A. Z., & Alizai, M.
 
 Rajkomar, A., & Blandford, A. (2012). Understanding infusion administration in the ICU through distributed cognition. *Journal of Biomedical Informatics, 45*(3), 580–590.
 
-Riquelme, A., Méndez, B., de la Fuente, P., Padilla, O., Benaglio, C., Sirhan, M.,, et al. (2011). Desarrollo y validación de encuesta de percepción del portafolio en estudiantes de medicina de pregrado. *Revista Médica de Chile, 139*(1), 45–53.
+Riquelme, A., Méndez, B., de la Fuente, P., Padilla, O., Benaglio, C., Sirhan, M., et al. (2011). Desarrollo y validación de encuesta de percepción del portafolio en estudiantes de medicina de pregrado. *Revista Médica de Chile, 139*(1), 45–53.
 
-Rockwood, K., Song, X., MacKnight, C., Bergman, H., Hogan, D. B., McDowell, I.,, et al. (2005). A global clinical measure of fitness and frailty in elderly people. *CMAJ, 173*(5), 489–495.
+Rockwood, K., Song, X., MacKnight, C., Bergman, H., Hogan, D. B., McDowell, I., et al. (2005). A global clinical measure of fitness and frailty in elderly people. *CMAJ, 173*(5), 489–495.
 
 Rouault, M., McWilliams, A., Allen, M., & Fleming, S. M. (2018). Human metacognition across domains: Insights from individual differences and neuroimaging. *Personality Neuroscience, 1*, e17.
 
@@ -724,6 +858,20 @@ World Health Organization. (2024). *Ethics and Governance of Artificial Intellig
 
 Wu, A. W. (2000). Medical error: The second victim. The doctor who makes the mistake needs help too. *BMJ, 320*(7237), 726–727.
 
-Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J.,, et al. (2024). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. *Proceedings of ICLR 2024*.
+Xiong, M., Hu, Z., Lu, X., Li, Y., Fu, J., He, J., et al. (2024). Can LLMs express their uncertainty? An empirical evaluation of confidence elicitation in LLMs. *Proceedings of ICLR 2024*.
 
-Zampieri, F. G., Damiani, L. P., Bakker, J., Ospina-Tascón, G. A., Castro, R., Cavalcanti, A. B.,, et al. (2020). Effects of a resuscitation strategy targeting peripheral perfusion status versus serum lactate levels among patients with septic shock: A Bayesian reanalysis of the ANDROMEDA-SHOCK trial. *American Journal of Respiratory and Critical Care Medicine, 201*(4), 423–429.
+Zampieri, F. G., Damiani, L. P., Bakker, J., Ospina-Tascón, G. A., Castro, R., Cavalcanti, A. B., et al. (2020). Effects of a resuscitation strategy targeting peripheral perfusion status versus serum lactate levels among patients with septic shock: A Bayesian reanalysis of the ANDROMEDA-SHOCK trial. *American Journal of Respiratory and Critical Care Medicine, 201*(4), 423–429.
+
+# Tarjeta: HII-D en sesenta segundos
+
+Para recortar y llevar en el bolsillo del delantal. Cuatro preguntas y una cláusula; en voz alta en la visita de sala o por escrito antes de firmar un alta. La versión completa está en el capítulo 15 y en el Apéndice A.
+
+| HII-D en sesenta segundos |
+|---|
+| **1. ¿Qué vi y qué me contaron?** Un hecho decisivo, con fuente, hora y método. |
+| **2. ¿Qué creo y cuánto derecho tengo a creerlo?** La inferencia con su grado: demostrado, altamente probable, probable, posible, no sustentado. |
+| **3. ¿Qué daño importante podría producir si estoy equivocado?** La incertidumbre peligrosa, no la lista completa de dudas. |
+| **4. ¿Qué hago y qué me haría cambiar antes del próximo control?** La decisión con su criterio de reapertura: qué cambio, quién lo detectará y cuándo. |
+| **Cláusula de cierre:** «Reevaluar si …; responsable: …; plazo: …». Y una pregunta sobre el instrumento: ¿en qué condiciones estoy pensando esto? |
+
+Léxico mínimo: demostrado · altamente probable · probable · posible · no sustentado · sin evidencia actual de · descartado, sólo con un método que excluya.

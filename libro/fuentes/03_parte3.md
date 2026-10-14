@@ -95,6 +95,8 @@ El lector encontrará este cruce ejecutado dos veces en este libro sin la palabr
 
 Suponga una condición con probabilidad pretest de 10%, y una prueba con sensibilidad 90% y especificidad 80%. El resultado llega positivo. Antes de calcular: ¿qué probabilidad le habría asignado intuitivamente al diagnóstico? Ahora calcule con frecuencias naturales sobre 1.000 pacientes.
 
+*Error típico.* En ejercicios docentes, la respuesta intuitiva se concentra entre 80% y 90%: se lee la sensibilidad de la prueba como si fuera la probabilidad de la enfermedad, y la prevalencia de 10% desaparece del cálculo. El segundo error es el inverso y más discreto: quien ya conoce la trampa responde «muy baja» sin calcular, y pasa de la sobreconfianza a la desconfianza sin pasar por el número. Las frecuencias naturales existen para que la respuesta sea 33% y no una actitud.
+
 *Solución comentada.* De 1.000 pacientes, 100 tienen la condición; de ellos, 90 dan positivo. De los 900 sin la condición, 180 dan positivo (20% de falsos positivos). Total de positivos: 270. Probabilidad postest = 90/270 = 33%. La estimación intuitiva suele quedar muy por encima. Cuando Casscells y colaboradores plantearon un problema análogo a médicos y estudiantes de Harvard, la respuesta más frecuente fue 95% donde la correcta rondaba el 2%: el error clásico de ignorar la probabilidad previa (Casscells et al., 1978; Hoffrage & Gigerenzer, 1998). La lección de umbral: con 33%, el caso probablemente queda en la zona de «seguir testeando», no en la de tratar —salvo que el daño de omitir sea catastrófico y el tratamiento, benigno. Repetir este cálculo con las probabilidades del propio hospital (¿qué proporción de los «urocultivos positivos» de su servicio son infección?) suele ser más correctivo que cualquier lectura teórica.
 
 [FIGURA: fig07_frecuencias.png | Figura 12. El cálculo del Taller 10 en frecuencias naturales: de 270 resultados positivos, sólo 90 corresponden a la enfermedad. La probabilidad postest (33%) queda lejos de la certeza que la intuición atribuye a una «prueba positiva».]
@@ -263,6 +265,8 @@ Nótese que la nota copiada durante cinco días no contenía mentiras literales 
 #### Taller 12B. Conjugue los verbos
 
 Tome su última evolución de una línea —«X en tratamiento, estable»— y escriba primero las preguntas que esconde (al menos seis). Después, reescríbala como ficha de proceso en no más de ocho líneas, con los verbos: sospecho, dudé, descarto, priorizo, infiero, realizo, comprobaré, repetiré, aprendí.
+
+*Error típico.* La ficha de proceso conjugada en pasiva y sin sujeto: «se sospechó», «se descartó», «se comprobará». Los verbos están, pero nadie los ejecuta, y «se comprobará» sin fecha ni responsable es «control según evolución» con mejor vocabulario. El segundo error es el inventario: nueve verbos usados una vez cada uno y en orden, como lista de asistencia, cuando el caso real necesitaba tres «dudé» y ningún «repetiré».
 
 *Solución comentada.* No hay solución única. El ejercicio suele mostrar tres cosas. La mitad de las preguntas escondidas nunca se formularon: nadie dudó de nada porque nadie preguntó. «Descarté» casi nunca viene con método. Y «comprobaré» es el verbo que más cuesta conjugar, porque obliga a predecir y a ponerle fecha a la predicción. Si la ficha de proceso no cabe en ocho líneas, está describiendo y no decidiendo: no es la historia clínica completa, es el esqueleto de las decisiones. Y si cabe en dos, probablemente faltan verbos: una nota sin «dudé» ni «comprobaré» es una ficha de resultados con otro formato.
 
