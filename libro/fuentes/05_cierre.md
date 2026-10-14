@@ -8,7 +8,7 @@ La metacognición permite sostener estas capas sin confundirlas. No ofrece una c
 
 El lenguaje clínico es uno de sus instrumentos más poderosos. La frase medular no es la más breve ni la más elegante. Es aquella que conserva la estructura decisiva del evento, distingue dato y explicación, expresa el grado de certeza y muestra por qué una conducta es razonable. Una frase así puede orientar a un equipo, proteger contra la inercia y mantener abierta la posibilidad de corrección. La historia de Carmen, que acompañó todo este libro, empezó con la frase contraria —"cuadro habitual, manejo habitual"— y terminó con una frase que cargaba, palabra por palabra, el trabajo de distinguir, graduar, dudar y decidir. Entre ambas frases no cambió la medicina disponible; cambió la epistemología con que se usó.
 
-La inteligencia artificial vuelve esta exigencia aún más visible. La plausibilidad verbal puede separarse de la verdad. Por ello, tanto ante una respuesta automática como ante nuestra propia narrativa, debemos preguntar qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
+Tres hilos de este libro conviene dejar anudados. El primero va de la abducción a la humildad: la conjetura que crea explicaciones, la vigilancia que la acompaña mientras trabaja y la disposición que la mantiene abierta cuando ya produjo una respuesta cómoda son tres momentos de una misma lealtad al caso, y la prudencia práctica —la phronesis— es su nombre antiguo. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos de pleno derecho, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar, y por eso la inteligencia artificial —que produce exactamente la prosa fluida contra la que este libro entrena: hechos, inferencias e invenciones con la misma sintaxis— no cambia la disciplina, la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
 
 HII-D resume una disciplina posible:
 
@@ -618,6 +618,8 @@ Toulmin, S. (1958). *The Uses of Argument*. Cambridge University Press.
 Tversky, A., & Kahneman, D. (1974). Judgment under uncertainty: Heuristics and biases. *Science, 185*(4157), 1124–1131.
 
 Van den Bruel, A., Thompson, M., Buntinx, F., & Mant, D. (2012). Clinicians' gut feeling about serious infections in children: Observational study. *BMJ, 345*, e6144.
+
+Wang, M. D., Khanna, R., & Najafi, N. (2017). Characterizing the source of text in electronic health record progress notes. *JAMA Internal Medicine, 177*(8), 1212–1213.
 
 Weed, L. L. (1968a). Medical records that guide and teach. *New England Journal of Medicine, 278*(11), 593–600.
 

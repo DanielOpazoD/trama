@@ -225,7 +225,7 @@ Mujer de 61 años con hernia incisional y tres ingresos por suboclusión resuelt
 
 *Frase medular:* "Obstrucción recurrente por hernia incisional, por primera vez asociada a shock y bacteriemia, sin complicación anatómica aguda en tomografía; el cambio cualitativo de gravedad justifica priorizar resolución electiva tras recuperación fisiológica."
 
-*Epílogo.* Carmen fue operada seis semanas después, en forma programada. La cirugía encontró adherencias firmes y un anillo herniario estrecho; no hubo complicaciones mayores. Nada de eso demuestra que la decisión fue correcta —un desenlace no valida un proceso—, pero el proceso era defendible antes de conocer el desenlace, que es lo único que puede pedírsele a una decisión clínica. La frase de su ingreso, "cuadro habitual, manejo habitual", quedó en la ficha como lo que era: la hipótesis rápida que el trabajo de tres semanas convirtió en otra cosa.
+*Epílogo.* Carmen fue operada seis semanas después, en forma programada. La cirugía encontró adherencias firmes y un anillo herniario estrecho; no hubo complicaciones mayores. En el control del mes, Carmen puso su propia frase medular: "Esta vez el dolor venía con explicación, y eso lo cambia todo". Nada de eso demuestra que la decisión fue correcta —un desenlace no valida un proceso—, pero el proceso era defendible antes de conocer el desenlace, que es lo único que puede pedírsele a una decisión clínica. La frase de su ingreso, "cuadro habitual, manejo habitual", quedó en la ficha como lo que era: la hipótesis rápida que el trabajo de tres semanas convirtió en otra cosa.
 
 ### Viñeta 2. Bacteriuria en paciente con sonda permanente
 
