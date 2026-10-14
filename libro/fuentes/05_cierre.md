@@ -8,7 +8,7 @@ La metacognición permite sostener estas capas sin confundirlas. No ofrece una c
 
 El lenguaje clínico es uno de sus instrumentos más poderosos. La frase medular no es la más breve ni la más elegante. Es aquella que conserva la estructura decisiva del evento, distingue dato y explicación, expresa el grado de certeza y muestra por qué una conducta es razonable. Una frase así puede orientar a un equipo, proteger contra la inercia y mantener abierta la posibilidad de corrección. La historia de Carmen, que acompañó todo este libro, empezó con la frase contraria —"cuadro habitual, manejo habitual"— y terminó con una frase que cargaba, palabra por palabra, el trabajo de distinguir, graduar, dudar y decidir. Entre ambas frases no cambió la medicina disponible; cambió la epistemología con que se usó.
 
-Tres hilos de este libro conviene dejar anudados. El primero va de la abducción a la humildad: la conjetura que crea explicaciones, la vigilancia que la acompaña mientras trabaja y la disposición que la mantiene abierta cuando ya produjo una respuesta cómoda son tres momentos de una misma lealtad al caso, y la prudencia práctica —la phronesis— es su nombre antiguo. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos de pleno derecho, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar, y por eso la inteligencia artificial —que produce exactamente la prosa fluida contra la que este libro entrena: hechos, inferencias e invenciones con la misma sintaxis— no cambia la disciplina, la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
+El mapa del comienzo (Figura 1) tendió tres hilos —las capas, el arco que va de la abducción a la humildad y el lenguaje que las conserva—; tres nudos de ese tejido conviene dejar a la vista. El primero va de la abducción a la humildad: la conjetura que crea explicaciones, la vigilancia que la acompaña mientras trabaja y la disposición que la mantiene abierta cuando ya produjo una respuesta cómoda son tres momentos de una misma lealtad al caso, y la prudencia práctica —la phronesis— es su nombre antiguo. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos de pleno derecho, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar, y por eso la inteligencia artificial —que produce exactamente la prosa fluida contra la que este libro entrena: hechos, inferencias e invenciones con la misma sintaxis— no cambia la disciplina, la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
 
 HII-D resume una disciplina posible:
 
@@ -284,7 +284,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Cognición distribuida — 13
 - Comparación de HII-D con otros modelos (SOAP, scripts, reflexión deliberada) — 15
 - Comunicación de incertidumbre — 13, 14, CC (viñeta 5)
-- Conocimiento tácito — 6; saber hacer y quiebre (Varela) — 14
+- Conocimiento tácito — 6; saber hacer y quiebre (Varela) — 6
 - Conversaciones para la acción (Flores y Winograd) — 13
 - Contexto global del paciente (funcionalidad, pronóstico de fondo, red de apoyo) — 10, 15, Ap A
 - Contrafactuales — 11
@@ -322,7 +322,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - HII-D (método) — 12, 15, Ap A; auditoría de IA con — 17
 - Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
 - Illness scripts — 2, 6, 16
-- Improvisación y saber hacer (jazz; Limb y Braun) — 14
+- Improvisación y saber hacer (jazz; Limb y Braun) — 6
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
 - Injusticia epistémica — 14, CC (viñetas 6 y 8)
 - Inteligencia artificial: rol diagnóstico y terapéutico, catálogo de riesgos, defensas — 17
@@ -346,7 +346,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Phronesis — 6, 14
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18
 - Pronóstico e incertidumbre de plazo — CC (viñeta 5)
-- Proteína C reactiva: cinética y lectura temporal — 12
+- Proteína C reactiva: cinética y lectura temporal — 11, 12
 - Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 5)
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III

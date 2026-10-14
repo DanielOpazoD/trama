@@ -324,7 +324,7 @@ Reescriba cada frase para que la fuerza del lenguaje corresponda a la fuerza de 
 
 ## Interludio I. La ficha de Carmen
 
-Al tercer día, la becada del servicio reescribe la evaluación de Carmen usando lo que esta parte del libro ha ido separando. Su versión:
+Tercer día, 7:00. Antes de la visita, la becada del servicio abre la ficha de Carmen para escribir la evolución y se detiene en la frase que viaja intacta desde la madrugada del ingreso: "cuadro habitual, manejo habitual". La tacha. No porque sea falsa —la hernia es la de siempre—, sino porque dice a la vez más y menos de lo que hoy se sabe: no separa lo demostrado de lo probable y deja fuera la única pregunta que importa esta mañana, qué pasa si vuelve a ocurrir. Reescribe la evaluación con lo que esta parte del libro ha ido separando. Su versión:
 
 *Hechos.* Cuarto episodio obstructivo en doce meses sobre hernia incisional conocida (tres ingresos previos resueltos con manejo conservador según registro clínico). Episodio actual: ingresó de madrugada en shock con requerimiento de noradrenalina por 36 horas, lactato arterial máximo de 6,0 mmol/L (04:15 h del ingreso) y llene capilar de 5 segundos documentado por enfermería en urgencias. Hemocultivos periféricos 2/2 positivos a las 14 h para Escherichia coli multisensible. TAC de abdomen de ingreso con asas dilatadas en saco herniario, sin signos de isquemia, neumatosis ni perforación. Actualmente en su tercer día: afebril, sin vasoactivos hace 24 horas y con débito por sonda en descenso. Relato de ingreso textual: "esta vez la hernia no se dejó acomodar, el dolor era otro".
 
