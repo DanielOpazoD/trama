@@ -22,7 +22,7 @@ Esta secuencia no promete infalibilidad. Promete algo más realista: errores má
 
 > La lucidez clínica no consiste en ver la verdad completa. Consiste en no atribuir a nuestra representación más certeza de la que los hechos permiten, sin usar esa limitación como excusa para dejar de decidir.
 
-Una medicina científicamente seria y humanamente responsable no es la que nunca duda. Es la que sabe qué hacer con su duda.
+Una medicina científicamente seria y humanamente responsable no es la que nunca duda. Es la que sabe qué hacer con su duda. Y pensar bien —con la evidencia que hay, en el estado en que uno está, con los instrumentos que suplen lo que falta— no es un lujo de la medicina: es la primera de sus obligaciones, de la que parte todo lo demás.
 
 ### Una disciplina cotidiana
 
@@ -45,6 +45,7 @@ El ideal no es un médico que nunca se equivoca, sino uno cuyo razonamiento pued
 - Hallazgos positivos y negativos.
 - Datos no evaluados o no disponibles.
 - Confiabilidad y límites del método.
+- Estado del razonador cuando pueda pesar: hora, horas de turno, sueño, ánimo, preocupación ajena al caso.
 
 **I — Inferencia principal**
 
@@ -193,6 +194,10 @@ Tres indicadores simples, auditables sobre una muestra mensual de fichas: propor
 
 **Escriba ambiental.** Sistema de IA que escucha la consulta y redacta la nota clínica. Puede automatizar la capa de hechos; no debería autocompletar la decisión ni la frase medular, porque escribirlas es parte de pensarlas, y tiende a aplanar la modalidad epistémica de lo dicho en voz alta.
 
+**Ética de la creencia.** Tesis de Clifford (1877) según la cual creer sin evidencia suficiente es en sí mismo reprochable, con independencia del desenlace; en clínica, fundamento del deber de pensar bien como parte de la ética primordial del médico y de la regla de que un buen desenlace no valida un proceso defectuoso.
+
+**Estado del razonador.** Condiciones en que se produce un juicio clínico —sueño, horas de turno, hora del día, ánimo, preocupaciones ajenas al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
+
 **Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho de pleno derecho, no una impresión.
 
 **Frase medular.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
@@ -279,14 +284,16 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Decisión compartida — 14, Interludio III
 - Deliberación moral (Gracia) — 10
 - Densidad epistémica — 4; seis dimensiones de auditoría — 4, Ap B
-- Desaceleración selectiva — 8, Interludio II
+- Desaceleración selectiva — 8, Interludio II; disparadores, incluido el estado del razonador — 8
 - Desacuerdo clínico — 13, Interludio III
 - Doble proceso — 6
 - Documentación defensiva — 14
 - Ensombrecimiento diagnóstico — CC (viñeta 8)
 - Errores asimétricos — 10, CC (viñeta 3)
+- Ética de la creencia (Clifford); pensar bien como deber primordial — 14, C
 - Escribas ambientales (regla «la capa H sí, la capa D no») — 17
 - Estado de verificación de un diagnóstico en la ficha electrónica — 12
+- Estado del razonador (esfuerzo, sueño, ánimo; turnos como condición epistémica) — 8, 16, Ap A
 - Evidencia poblacional y particularización — 9
 - Falsabilidad del método HII-D — 15
 - Feedback diagnóstico — 5, 16, Ap C
@@ -403,6 +410,8 @@ Charlin, B., Boshuizen, H. P. A., Custers, E. J. F. M., & Feltovich, P. J. (2007
 
 Charon, R. (2006). *Narrative Medicine: Honoring the Stories of Illness*. Oxford University Press.
 
+Clifford, W. K. (1877). The ethics of belief. *Contemporary Review, 29*, 289–309.
+
 Coady, C. A. J. (1992). *Testimony: A Philosophical Study*. Clarendon Press.
 
 Croskerry, P. (2003). The importance of cognitive errors in diagnosis and strategies to minimize them. *Academic Medicine, 78*(8), 775–780.
@@ -428,6 +437,8 @@ Elwyn, G., Frosch, D., Thomson, R., Joseph-Williams, N., Lloyd, A., Kinnersley, 
 Epstein, R. M. (1999). Mindful practice. *JAMA, 282*(9), 833–839.
 
 Ericsson, K. A., Krampe, R. T., & Tesch-Römer, C. (1993). The role of deliberate practice in the acquisition of expert performance. *Psychological Review, 100*(3), 363–406.
+
+Estrada, C. A., Isen, A. M., & Young, M. J. (1997). Positive affect facilitates integration of information and decreases anchoring in reasoning among physicians. *Organizational Behavior and Human Decision Processes, 72*(1), 117–135.
 
 Eva, K. W. (2005). What every teacher needs to know about clinical reasoning. *Medical Education, 39*(1), 98–106.
 
@@ -521,9 +532,13 @@ Lackey, J. (2008). *Learning from Words: Testimony as a Source of Knowledge*. Ox
 
 Lambe, K. A., O'Reilly, G., Kelly, B. D., & Curristan, S. (2016). Dual-process cognitive interventions to enhance diagnostic reasoning: A systematic review. *BMJ Quality & Safety, 25*(10), 808–820.
 
+Landrigan, C. P., Rothschild, J. M., Cronin, J. W., Kaushal, R., Burdick, E., Katz, J. T., Lilly, C. M., Stone, P. H., Lockley, S. W., Bates, D. W., & Czeisler, C. A. (2004). Effect of reducing interns' work hours on serious medical errors in intensive care units. *New England Journal of Medicine, 351*(18), 1838–1848.
+
 Lee, P., Bubeck, S., & Petro, J. (2023). Benefits, limits, and risks of GPT-4 as an AI chatbot for medicine. *New England Journal of Medicine, 388*, 1233–1239.
 
 Lifshitz, A. (2014). *La nueva clínica*. Academia Nacional de Medicina de México.
+
+Linder, J. A., Doctor, J. N., Friedberg, M. W., Reyes Nieva, H., Birks, C., Meeker, D., & Fox, C. R. (2014). Time of day and the decision to prescribe antibiotics. *JAMA Internal Medicine, 174*(12), 2029–2031.
 
 Mamede, S., Schmidt, H. G., & Penaforte, J. C. (2008). Effects of reflective practice on the accuracy of medical diagnoses. *Medical Education, 42*(5), 468–475.
 
@@ -572,6 +587,8 @@ Pearl, J., & Mackenzie, D. (2018). *The Book of Why: The New Science of Cause an
 Peirce, C. S. (1878). Deduction, induction, and hypothesis. *Popular Science Monthly, 13*, 470–482.
 
 Pellegrino, E. D., & Thomasma, D. C. (1981). *A Philosophical Basis of Medical Practice: Toward a Philosophy and Ethic of the Healing Professions*. Oxford University Press.
+
+Philibert, I. (2005). Sleep loss and performance in residents and nonphysicians: A meta-analytic examination. *Sleep, 28*(11), 1392–1402.
 
 Polanyi, M. (1966). *The Tacit Dimension*. University of Chicago Press.
 

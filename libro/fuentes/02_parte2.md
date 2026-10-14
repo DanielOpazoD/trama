@@ -189,7 +189,24 @@ La práctica atenta de Epstein añade una dimensión: curiosidad, presencia y ca
 
 Moulton y colaboradores propusieron "desacelerar cuando se debe" como característica del juicio experto. Los profesionales alternan entre flujo automático y esfuerzo deliberado cuando detectan señales de dificultad, novedad o peligro (Moulton et al., 2007). La dificultad es que el momento de desacelerar también debe ser reconocido; si la metacognición falla, el clínico continúa con fluidez precisamente cuando debería detenerse.
 
-Disparadores razonables incluyen: evolución inesperada; reconsulta; falta de respuesta; discrepancia entre el diagnóstico y la gravedad; datos incompatibles; transición de cuidados; presión emocional; caso raro en un dominio poco familiar; y decisión irreversible con evidencia débil. La desaceleración debe ser proporcional. Puede durar treinta segundos o requerir una discusión formal.
+Disparadores razonables incluyen: evolución inesperada; reconsulta; falta de respuesta; discrepancia entre el diagnóstico y la gravedad; datos incompatibles; transición de cuidados; presión emocional; caso raro en un dominio poco familiar; decisión irreversible con evidencia débil; y el estado del propio razonador —hora, horas de turno, ánimo, preocupación ajena al caso—, que la sección siguiente desarrolla. La desaceleración debe ser proporcional. Puede durar treinta segundos o requerir una discusión formal.
+
+### El estado del que piensa: esfuerzo, sueño y ánimo
+
+Hay un supuesto silencioso en todo lo anterior: que quien debe desacelerar dispone de la energía para hacerlo. Pensar cuesta. La deliberación consume recursos que el reconocimiento de patrones no gasta, y la mente obedece una ley del menor esfuerzo: cuando puede no pensar, no piensa (Kahneman, 2011). Descartar en modo automático no es una falla ocasional; es el estado por defecto, y pensar de verdad es una decisión que se toma contra él. Este libro ha hablado de disposiciones —humildad, curiosidad, lealtad al caso— como si estuvieran siempre disponibles. No lo están. Dependen de tres cosas que ningún modelo del razonamiento clínico incluye y que cualquier médico de turno conoce: cuánto durmió, cómo está de ánimo y qué otra cosa lo preocupa.
+
+La evidencia es más dura de lo que la cultura hospitalaria admite. Un metaanálisis de sesenta estudios estimó que menos de treinta horas sin dormir reducen el desempeño cognitivo general de los médicos en cerca de una desviación estándar, y el desempeño clínico en más de una y media (Philibert, 2005): el médico de las cuatro de la mañana no es el mismo instrumento que el de las nueve. Cuando se asignó al azar a internos de cuidados intensivos a turnos tradicionales de más de veinticuatro horas o a turnos acotados a dieciséis, los turnos largos produjeron un 36% más de errores graves, y los errores diagnósticos graves se multiplicaron por más de cinco (Landrigan et al., 2004). El efecto no exige noches: en más de 21.000 consultas por infección respiratoria, la probabilidad de salir con un antibiótico subió hora a hora dentro de la misma sesión de policlínico, con independencia del paciente y del diagnóstico, hasta unas chances un 26% mayores en la cuarta hora que en la primera (Linder et al., 2014). Nadie decidió prescribir peor a las cuatro de la tarde; el umbral se movió solo, con el cansancio. Y el ánimo tampoco es neutro: en un experimento clásico, los médicos a quienes se indujo un afecto positivo integraron antes la información de un caso y se anclaron menos en su primera hipótesis (Estrada, Isen & Young, 1997). El estado afectivo no acompaña al razonamiento; lo configura.
+
+¿Qué hacer con esto, si no se puede decretar el descanso ni el buen ánimo? Tres cosas, todas coherentes con el resto del libro.
+
+Primero, tratar el propio estado como un hecho de la capa H. "¿En qué condiciones estoy pensando esto?" es una pregunta con respuesta observable —la hora, las horas de turno, lo dormido, el ánimo, la preocupación ajena al caso que ocupa la mitad de la atención—, y esa respuesta es un dato sobre la confiabilidad del instrumento que está produciendo las inferencias, tan pertinente como la calibración de un gasómetro. Reconocerlo no es debilidad: es la trazabilidad que el capítulo 1 exige a cualquier observación, aplicada al observador. Por eso la lista de disparadores de esta sección tiene un ítem más: el estado del razonador. Turno largo, madrugada, ánimo alterado o una preocupación que no es el paciente son condiciones que, por sí solas, justifican la pausa breve o el segundo lector, aunque el caso parezca fácil. Sobre todo si parece fácil.
+
+Segundo, no apostar a la voluntad. Las herramientas de este libro que más valen a las cuatro de la mañana son las que no necesitan energía para activarse: el criterio de reapertura escrito cuando todavía había lucidez, la pregunta fija de la entrega de turno, la regla de ocho ítems al lado de la camilla, la versión de sesenta segundos. Son prótesis del esfuerzo: trasladan el pensamiento desde el momento en que no está disponible hacia el momento en que lo estuvo, o hacia otra persona. El diseño reemplaza al ánimo porque el ánimo no es confiable, y esa es exactamente la razón para diseñar.
+
+Tercero, usar el relevo. La entrega de turno no es sólo transferencia de información: es el momento en que un cerebro descansado revisa lo que decidió uno cansado, y eso cambia qué se entrega. "Lo vi a las cinco, con doce horas encima; la hipótesis es X y no alcancé a pensar en Y" es una frase que un equipo maduro puede decir sin vergüenza, y vale más que "sin novedades". El capítulo 13 desarrolla la mitad colectiva de esta idea; el capítulo 16, su mitad institucional, porque los turnos y el descanso son condiciones epistémicas antes que laborales.
+
+Nada de esto convierte al clínico cansado en lúcido. Lo convierte en alguien que sabe en qué estado está pensando y organiza el trabajo para que su juicio sea revisado por un instrumento mejor calibrado: una regla, una nota escrita antes, un colega que acaba de llegar.
+
 
 ### Reflexión estructurada
 
@@ -230,7 +247,7 @@ Elija al paciente hospitalizado de su lista actual cuyo diagnóstico de ingreso 
 **En una frase.** La reflexión clínica eficaz es selectiva: se activa por disparadores definidos, tiene estructura breve y termina en una consecuencia concreta —confirmar, vigilar o reabrir.
 
 **Tres preguntas para la próxima visita.**
-1. ¿Cuál de mis pacientes actuales cumple un disparador de desaceleración (evolución inesperada, discordancia gravedad-diagnóstico, reconsulta)?
+1. ¿Cuál de mis pacientes actuales cumple un disparador de desaceleración (evolución inesperada, discordancia gravedad-diagnóstico, reconsulta), y en qué condiciones estaba yo cuando lo evalué?
 2. ¿Puedo presentar mi caso más complejo sin usar su etiqueta diagnóstica?
 3. En mi última alta con diagnóstico incierto, ¿dejé escrito qué debería motivar reconsulta?
 
