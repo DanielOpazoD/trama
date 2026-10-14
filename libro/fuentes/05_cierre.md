@@ -282,31 +282,33 @@ Las 57 preguntas con que cierran la Introducción y los dieciocho capítulos, re
 
 # Glosario
 
-Los términos marcados con ∗ son propuestas de este libro; los demás se toman de la literatura, con su autor entre paréntesis cuando corresponde.
+Los términos marcados con ∗ son propuestas de este libro; los demás se toman de la literatura, con su autor entre paréntesis cuando corresponde. Cuando el concepto tiene un nombre establecido en inglés, va entre paréntesis para que pueda buscarse en la literatura.
 
-**Abducción.** Inferencia que propone la hipótesis que, de ser verdadera, volvería esperable lo observado. Descrita por Peirce (que la llamó primero «hipótesis»). Es el movimiento típico de la generación diagnóstica.
+**Abducción (abduction).** Inferencia que propone la hipótesis que, de ser verdadera, volvería esperable lo observado. Descrita por Peirce (que la llamó primero «hipótesis»). Es el movimiento típico de la generación diagnóstica.
 
-**Anclaje.** Persistencia de una hipótesis inicial que conserva autoridad aun cuando la evidencia acumulada la ha degradado.
+**Anclaje (anchoring).** Persistencia de una hipótesis inicial que conserva autoridad aun cuando la evidencia acumulada la ha degradado.
 
-**Calibración.** Correspondencia entre la confianza declarada y la proporción real de aciertos, evaluada sobre una serie de juicios.
+**Calibración (calibration).** Correspondencia entre la confianza declarada y la proporción real de aciertos, evaluada sobre una serie de juicios.
 
 **Captura cognitiva∗.** Condicionamiento de la búsqueda de hipótesis, la lectura de los datos y la ponderación por una respuesta vista antes de razonar — típicamente la de un asistente de IA. No exige que la respuesta sea errónea: una hipótesis correcta entregada demasiado pronto también sustituye las operaciones que forman el juicio.
 
-**Cierre prematuro.** Aceptación de un diagnóstico antes de haberlo verificado suficientemente, con suspensión de la búsqueda de alternativas.
+**Cierre prematuro (premature closure).** Aceptación de un diagnóstico antes de haberlo verificado suficientemente, con suspensión de la búsqueda de alternativas.
 
-**Cognición distribuida.** Marco que estudia cómo el procesamiento de información se realiza a través de personas y artefactos coordinados, no sólo dentro de mentes individuales (Hutchins).
+**Cognición distribuida (distributed cognition).** Marco que estudia cómo el procesamiento de información se realiza a través de personas y artefactos coordinados, no sólo dentro de mentes individuales (Hutchins).
 
-**Conocimiento tácito.** Capacidad de reconocer o ejecutar más de lo que puede formularse explícitamente (Polanyi).
+**Conocimiento tácito (tacit knowledge).** Capacidad de reconocer o ejecutar más de lo que puede formularse explícitamente (Polanyi).
 
-**Conversaciones para la acción.** Gramática del trabajo coordinado descrita por Flores y Winograd: pedido, promesa con condiciones de satisfacción y plazo, y declaración de cumplimiento. Leída así, una entrega de turno distribuye compromisos, no sólo información; «está cubierto» es una promesa sin dueño.
+**Conversaciones para la acción (conversation for action).** Gramática del trabajo coordinado descrita por Flores y Winograd: pedido, promesa con condiciones de satisfacción y plazo, y declaración de cumplimiento. Leída así, una entrega de turno distribuye compromisos, no sólo información; «está cubierto» es una promesa sin dueño.
 
-**Contrafactual.** Escenario comparativo implícito en toda afirmación causal: qué habría ocurrido sin la exposición o la intervención.
+**Contrafactual (counterfactual).** Escenario comparativo implícito en toda afirmación causal: qué habría ocurrido sin la exposición o la intervención.
 
 **Creatividad clínica∗.** Momento generativo del juicio: conjeturar hipótesis (abducción), re-plantear el problema y crear opciones de manejo. Casi siempre es creatividad psicológica y exploratoria (Boden): nueva para el caso, no para la humanidad. Se ejerce en la generación y se corrige en la selección.
 
-**Cuatro tópicos (método de los).** Lista de verificación deliberativa de la ética clínica que ordena todo caso en indicaciones médicas, preferencias del paciente, calidad de vida y rasgos contextuales (Jonsen, Siegler y Winslade). Ningún cuadrante puede quedar vacío sin que la decisión quede incompleta.
+**Criterio de reapertura∗.** Cambio clínico, resultado pendiente, plazo o evento que, escrito antes de cerrar el caso y con un responsable, obliga a reabrirlo («reevaluar si…; responsable: …; plazo: …»). Es la reevaluación de HII-D vuelta cláusula concreta y el compromiso del equipo, distinto de la red de seguridad, que es lo que el paciente vigila en su casa. Sin él, la decisión queda sin fecha de vencimiento.
 
-**Decisión compartida.** Proceso de deliberación entre profesional y paciente sobre opciones, evidencia y preferencias, distinto de la mera entrega de información (Elwyn).
+**Cuatro tópicos (método de los; four topics).** Lista de verificación deliberativa de la ética clínica que ordena todo caso en indicaciones médicas, preferencias del paciente, calidad de vida y rasgos contextuales (Jonsen, Siegler y Winslade). Ningún cuadrante puede quedar vacío sin que la decisión quede incompleta.
+
+**Decisión compartida (shared decision-making).** Proceso de deliberación entre profesional y paciente sobre opciones, evidencia y preferencias, distinto de la mera entrega de información (Elwyn).
 
 **Deliberación moral.** Método de la ética clínica para los conflictos de valores: identificar qué valores chocan, enumerar los cursos de acción extremos, buscar los intermedios y elegir el curso prudente y públicamente defendible (Gracia). Es a los valores lo que el diagnóstico diferencial a las hipótesis.
 
@@ -314,85 +316,91 @@ Los términos marcados con ∗ son propuestas de este libro; los demás se toman
 
 **Deskilling / never-skilling / mis-skilling.** Tríada de riesgos formativos de la IA clínica: perder por desuso una competencia ya adquirida; no consolidarla nunca porque la herramienta ejecutó la tarea desde el inicio de la formación; o adquirirla mal, imitando salidas no auditadas (Abdulnour et al.). El segundo es el más difícil de detectar: no deja recuerdo de lo perdido.
 
-**Doble proceso.** Familia de teorías que distingue procesamiento rápido, asociativo y automático de procesamiento lento, analítico y controlado; ambos pueden acertar o errar.
+**Doble proceso (dual-process theories).** Familia de teorías que distingue procesamiento rápido, asociativo y automático de procesamiento lento, analítico y controlado; ambos pueden acertar o errar.
 
 **Documentación defensiva.** Escritura clínica orientada a un lector jurídico imaginario y no al siguiente clínico: omite dudas, multiplica constancias y prefiere la vaguedad. Corruptor epistémico que, además, protege menos que la trazabilidad honesta.
 
-**Encapsulación.** Compresión del conocimiento biomédico en conceptos clínicos de nivel superior, característica del desarrollo de la pericia (Schmidt y Rikers).
+**Encapsulación (knowledge encapsulation).** Compresión del conocimiento biomédico en conceptos clínicos de nivel superior, característica del desarrollo de la pericia (Schmidt y Rikers).
 
-**Ensombrecimiento diagnóstico.** Atribución de síntomas físicos a la enfermedad mental de base, con el consiguiente subdiagnóstico somático; contribuye a la mortalidad prematura en salud mental (Thornicroft).
+**Ensombrecimiento diagnóstico (diagnostic overshadowing).** Atribución de síntomas físicos a la enfermedad mental de base, con el consiguiente subdiagnóstico somático; contribuye a la mortalidad prematura en salud mental (Thornicroft).
 
-**Escriba ambiental.** Sistema de IA que escucha la consulta y redacta la nota clínica. Puede automatizar la capa de hechos; no debería autocompletar la decisión ni la frase medular, porque escribirlas es parte de pensarlas, y tiende a aplanar la modalidad epistémica de lo dicho en voz alta.
+**Escriba ambiental (ambient scribe).** Sistema de IA que escucha la consulta y redacta la nota clínica. Puede automatizar la capa de hechos; no debería autocompletar la decisión ni la frase medular, porque escribirlas es parte de pensarlas, y tiende a aplanar la modalidad epistémica de lo dicho en voz alta.
 
-**Ética de la creencia.** Tesis de Clifford (1877) según la cual creer sin evidencia suficiente es en sí mismo reprochable, con independencia del desenlace; en clínica, fundamento del deber de pensar bien como parte de la ética primordial del médico y de la regla de que un buen desenlace no valida un proceso defectuoso.
+**Ética de la creencia (ethics of belief).** Tesis de Clifford (1877) según la cual creer sin evidencia suficiente es en sí mismo reprochable, con independencia del desenlace; en clínica, fundamento del deber de pensar bien como parte de la ética primordial del médico y de la regla de que un buen desenlace no valida un proceso defectuoso.
 
 **Estado del razonador∗.** Condiciones en que se produce un juicio clínico —sueño, horas de turno, hora del día, ánimo, preocupaciones ajenas al caso—, tratadas como un hecho de la capa H sobre la confiabilidad del instrumento que infiere y como disparador de pausa o de segundo lector. Pensar cuesta, y el costo no es constante.
 
 **Ficha de proceso∗.** Registro que, además de conclusiones y acciones (ficha de resultados), conjuga los verbos del razonamiento: sospechado, dudado, descartado, priorizado, inferido, realizado, repetido, comprobado, aprendido. Cada verbo cae en una capa de HII-D; «Neumonía. Ceftriaxona» no conjuga ninguno.
 
-**Fragilidad.** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho, no una impresión.
+**Fragilidad (frailty).** Estado de vulnerabilidad fisiológica multisistémica que predice desenlaces con independencia de la edad y del diagnóstico de ingreso; evaluable clínicamente en minutos (Rockwood et al.). En la decisión terapéutica es un hecho, no una impresión.
 
 **Frase medular∗.** Formulación breve que condensa la naturaleza del evento, el elemento que cambia el riesgo, el límite principal de certeza y su efecto sobre la conducta.
 
-**Frecuencias naturales.** Presentación de probabilidades como conteos sobre una población de referencia («90 de cada 270 positivos»), que facilita el razonamiento bayesiano intuitivo (Gigerenzer).
+**Frecuencias naturales (natural frequencies).** Presentación de probabilidades como conteos sobre una población de referencia («90 de cada 270 positivos»), que facilita el razonamiento bayesiano intuitivo (Gigerenzer).
 
 **Hindsight bias (sesgo retrospectivo).** Tendencia a percibir un desenlace conocido como si hubiera sido predecible, contaminando la evaluación de decisiones pasadas.
 
 **HII-D∗.** Heurística de escritura y deliberación que ordena el razonamiento en Hechos, Inferencias, Incertidumbre y Decisión, más un movimiento transversal de reevaluación. No validada como instrumento.
 
-**Humildad epistémica.** Atención y apropiación de las propias limitaciones cognitivas (Whitcomb et al.). No es timidez para afirmar: es la disposición que mantiene el caso abierto — permite seguir explorando, seguir aprendiendo y reubicar el foco y el manejo cuando la trayectoria contradice el mapa.
+**Humildad epistémica (epistemic humility).** Atención y apropiación de las propias limitaciones cognitivas (Whitcomb et al., que hablan de intellectual humility). No es timidez para afirmar: es la disposición que mantiene el caso abierto — permite seguir explorando, seguir aprendiendo y reubicar el foco y el manejo cuando la trayectoria contradice el mapa.
 
 **Illness script.** Estructura de conocimiento que integra condiciones predisponentes, mecanismo fisiopatológico y consecuencias clínicas de una enfermedad, y permite el reconocimiento rápido de patrones.
 
-**Incertidumbre aleatoria.** La que proviene de variabilidad o contingencia que persiste aun con conocimiento completo del sistema.
+**Incertidumbre aleatoria (aleatory uncertainty).** La que proviene de variabilidad o contingencia que persiste aun con conocimiento completo del sistema.
 
-**Incertidumbre epistémica.** La que proviene de conocimiento insuficiente y puede, en principio, reducirse con información.
+**Incertidumbre epistémica (epistemic uncertainty).** La que proviene de conocimiento insuficiente y puede, en principio, reducirse con información.
 
-**Injusticia epistémica.** Daño cometido contra alguien en su capacidad de sujeto de conocimiento: testimonial (credibilidad rebajada por prejuicio) o hermenéutica (falta de categorías para expresar la experiencia) (Fricker).
+**Injusticia epistémica (epistemic injustice).** Daño cometido contra alguien en su capacidad de sujeto de conocimiento: testimonial (credibilidad rebajada por prejuicio) o hermenéutica (falta de categorías para expresar la experiencia) (Fricker).
 
-**Mente del principiante (shoshin).** Disposición, tomada del Zen, a mirar lo conocido como si fuera la primera vez, sin que el nombre decida por adelantado. Presentar el caso sin la etiqueta es su versión clínica; no reemplaza al illness script, suspende la prisa con que cierra el caso.
+**Léxico de certeza∗.** Escala verbal de cinco grados —demostrado, altamente probable, probable, posible, no sustentado— con la que toda inferencia escrita declara cuánto derecho tiene a afirmarse (Apéndice B). Es un caso particular de la modalidad epistémica, fijado para que el equipo use las mismas palabras con el mismo significado.
 
-**Metacognición.** Conocimiento y regulación de los propios procesos cognitivos: monitorear la comprensión, valorar la confianza, decidir cambiar de estrategia (Flavell; Nelson y Narens).
+**Mente del principiante (shoshin, beginner's mind).** Disposición, tomada del Zen, a mirar lo conocido como si fuera la primera vez, sin que el nombre decida por adelantado. Presentar el caso sin la etiqueta es su versión clínica; no reemplaza al illness script, suspende la prisa con que cierra el caso.
+
+**Metacognición (metacognition).** Conocimiento y regulación de los propios procesos cognitivos: monitorear la comprensión, valorar la confianza, decidir cambiar de estrategia (Flavell; Nelson y Narens).
 
 **Meta-d′ / M-ratio.** Medida de sensibilidad metacognitiva basada en teoría de detección de señales: expresa cuánta de la información disponible para la decisión aprovecha el observador al evaluar sus propias respuestas; el cociente meta-d′/d′ (M-ratio) permite comparar entre personas y tareas (Maniscalco y Lau).
 
-**Modalidad epistémica.** Recursos del lenguaje que expresan el grado de certeza de una afirmación («demostrado», «probable», «sin evidencia de»).
+**Modalidad epistémica (epistemic modality).** Recursos del lenguaje que expresan el grado de certeza de una afirmación («demostrado», «probable», «sin evidencia de»).
 
 **Objetividad entre paréntesis.** Distinción de Maturana entre el que cree hablar de la realidad sin mediación y usa esa creencia para obligar (objetividad sin paréntesis) y el que admite que toda afirmación válida lo es dentro de condiciones que el observador puede declarar. En este libro, el fundamento de la trazabilidad: declarar al observador no vuelve relativa la observación, la vuelve auditable.
 
 **Observación activa.** Espera diseñada como intervención diagnóstica: con objetivo, plazo, variables vigiladas, responsable y criterios de salida en ambas direcciones; lo contrario de «control según evolución».
 
-**Paradoja de la automatización.** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es cuando más se las necesita (Abdulnour et al.).
+**Paradoja de la automatización (automation paradox).** Cuanto más competente es un sistema automatizado, menos ejercita el humano las habilidades necesarias para detectar sus fallas — que es cuando más se las necesita (Abdulnour et al.).
 
-**Pausa diagnóstica.** Interrupción breve y selectiva del flujo clínico, activada por disparadores definidos (reconsulta, evolución discordante, transferencia), para reformular el caso sin su etiqueta y localizar la incertidumbre peligrosa.
+**Pausa diagnóstica (diagnostic time-out).** Interrupción breve y selectiva del flujo clínico, activada por disparadores definidos (reconsulta, evolución discordante, transferencia), para reformular el caso sin su etiqueta y localizar la incertidumbre peligrosa.
 
 **Phronesis.** Prudencia práctica aristotélica: la capacidad de deliberar bien sobre lo que conviene hacer en una situación particular.
 
-**Probabilidad pretest / postest.** Probabilidad de una condición antes y después de incorporar el resultado de una prueba; su relación depende del rendimiento de la prueba y de la prevalencia.
+**Probabilidad pretest / postest (pre-test / post-test probability).** Probabilidad de una condición antes y después de incorporar el resultado de una prueba; su relación depende del rendimiento de la prueba y de la prevalencia.
 
 **Proporcionalidad terapéutica.** Obligación moral de implementar sólo las medidas que guarden debida proporción entre los medios empleados y el resultado previsible, juzgada desde el pronóstico, las cargas y los fines del paciente (Taboada). Exige un pronóstico honesto: sin buen juicio epistémico no hay juicio de proporcionalidad.
 
-**Quiebre.** Momento en que la respuesta inmediata del experto falla o la situación no calza con lo aprendido, y la deliberación explícita entra en escena (Varela). Las pausas selectivas de este libro son quiebres puestos por diseño.
+**Quiebre (breakdown).** Momento en que la respuesta inmediata del experto falla o la situación no calza con lo aprendido, y la deliberación explícita entra en escena (Varela). Las pausas selectivas de este libro son quiebres puestos por diseño.
 
-**Representación del problema.** Formulación compacta que transforma los datos del caso en relaciones clínicamente significativas mediante calificadores semánticos.
+**Red de seguridad (safety-netting).** Instrucciones explícitas de reconsulta y vigilancia que acompañan una decisión tomada bajo incertidumbre, especialmente en ambulatorio: lo que el paciente y su familia vigilan en la casa. El criterio de reapertura es su contraparte dentro del equipo.
 
-**Riesgo inductivo.** Tesis de que aceptar o rechazar una hipótesis exige decidir cuánta evidencia es suficiente, y de que esa decisión depende del costo de cada error posible; fundamenta filosóficamente los umbrales de decisión clínica (Rudner; Douglas).
+**Representación del problema (problem representation).** Formulación compacta que transforma los datos del caso en relaciones clínicamente significativas mediante calificadores semánticos.
 
-**Safety-netting (red de seguridad).** Instrucciones explícitas de reconsulta y vigilancia que acompañan una decisión tomada bajo incertidumbre, especialmente en ambulatorio.
+**Riesgo inductivo (inductive risk).** Tesis de que aceptar o rechazar una hipótesis exige decidir cuánta evidencia es suficiente, y de que esa decisión depende del costo de cada error posible; fundamenta filosóficamente los umbrales de decisión clínica (Rudner; Douglas).
 
-**Segunda víctima.** El clínico dañado por su propio error —culpa, vergüenza, aislamiento— (Wu). Su cuidado no es indulgencia: sin él no hay análisis de trayectoria ni aprendizaje del error.
+**Segunda víctima (second victim).** El clínico dañado por su propio error —culpa, vergüenza, aislamiento— (Wu). Su cuidado no es indulgencia: sin él no hay análisis de trayectoria ni aprendizaje del error.
 
-**Sensibilidad metacognitiva.** Capacidad de discriminar los propios aciertos de los propios errores mediante la confianza; distinta del sesgo metacognitivo (tendencia global a confiar mucho o poco).
+**Segundo lector∗.** Otro médico, un especialista, un equipo interdisciplinario o una herramienta de apoyo que revisa el juicio antes de que se fije y aporta una representación distinta del mismo caso. Lo activan disparadores clínicos (reconsulta, evolución discordante, transferencia) y también el estado del razonador: turno largo, madrugada, ánimo alterado. No sustituye a la segunda opinión formal; la precede y cuesta menos.
 
-**Sesgo de automatización.** Tendencia a aceptar la recomendación de un sistema automatizado por encima de la propia evidencia o el propio juicio; los apoyos a la decisión corrigen errores humanos e introducen errores nuevos por deferencia (Goddard et al.). Pariente del anclaje, con interfaz.
+**Sensibilidad metacognitiva (metacognitive sensitivity).** Capacidad de discriminar los propios aciertos de los propios errores mediante la confianza; distinta del sesgo metacognitivo (tendencia global a confiar mucho o poco).
 
-**Testimonio (epistemología del).** Estudio del conocimiento obtenido mediante informes de otros. Coady defendió la confianza por defecto como condición de todo conocimiento compartido; Lackey añadió la vigilancia activa del oyente. La anamnesis es su caso clínico paradigmático.
+**Sesgo de automatización (automation bias).** Tendencia a aceptar la recomendación de un sistema automatizado por encima de la propia evidencia o el propio juicio; los apoyos a la decisión corrigen errores humanos e introducen errores nuevos por deferencia (Goddard et al.). Pariente del anclaje, con interfaz.
 
-**Umbral de decisión.** Nivel de probabilidad sobre el cual una conducta (testear, tratar) supera a sus alternativas, dado el balance de daños y beneficios (Pauker y Kassirer).
+**Sobreconfianza (overconfidence).** Confianza declarada mayor que la exactitud real; falla de calibración asociada al error diagnóstico porque impide buscar evidencia o revisar una conclusión (Berner y Graber). Medirla no es trivial: la confianza puede ser apropiada en los casos fáciles y excesiva en los difíciles.
 
-**Validez del entorno.** Grado en que un ambiente de práctica ofrece regularidades estables entre señales y desenlaces, junto a oportunidad de aprenderlas con feedback oportuno; condición para que la intuición experta sea confiable (Kahneman y Klein).
+**Testimonio (epistemología del; epistemology of testimony).** Estudio del conocimiento obtenido mediante informes de otros. Coady defendió la confianza por defecto como condición de todo conocimiento compartido; Lackey añadió la vigilancia activa del oyente. La anamnesis es su caso clínico paradigmático.
 
-**Validez externa / transportabilidad.** Grado en que un resultado de investigación puede aplicarse fuera del contexto en que fue producido; no es propiedad binaria del estudio sino relación entre evidencia y uso propuesto.
+**Umbral de decisión (decision threshold).** Nivel de probabilidad sobre el cual una conducta (testear, tratar) supera a sus alternativas, dado el balance de daños y beneficios (Pauker y Kassirer).
+
+**Validez del entorno (high-validity environment).** Grado en que un ambiente de práctica ofrece regularidades estables entre señales y desenlaces, junto a oportunidad de aprenderlas con feedback oportuno; condición para que la intuición experta sea confiable (Kahneman y Klein).
+
+**Validez externa / transportabilidad (external validity / transportability).** Grado en que un resultado de investigación puede aplicarse fuera del contexto en que fue producido; no es propiedad binaria del estudio sino relación entre evidencia y uso propuesto.
 
 # Índice analítico
 Los números remiten a capítulos (Int = introducción, Interludios I–III, CC = cuaderno de casos, C = conclusión, Ap = apéndices).
@@ -418,6 +426,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Conversaciones para la acción (Flores y Winograd) — 13
 - Copiado de notas (fósil narrativo; magnitud medida) — 12, Ap C
 - Creatividad en el juicio clínico (abducción, problem setting, tercera opción) — 2, 18
+- Criterio de reapertura — 8, 12, 15, Interludio III, CC (viñeta 6), Ap A, Ap C
 - Cuatro tópicos (Jonsen, Siegler y Winslade) — 10, Ap A
 - Debate sobre la enseñanza del razonamiento (Croskerry vs. Norman/Monteiro) — 16
 - Decisión compartida — 14, Interludio III
@@ -482,11 +491,12 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Prueba de Parra (Taller 18) — 18
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III
+- Red de seguridad (safety-netting) — 11, CC (viñetas 3, 4 y 7)
 - Reglas de decisión clínica (PERC) y umbral — CC (viñeta 6)
 - Representación del problema — Int, 2, 8, 16
 - Riesgo inductivo (Rudner, Douglas) — 10
-- Safety-netting — 11, CC (viñetas 3, 4 y 7)
 - Segunda víctima — 14
+- Segundo lector — 5, 8, 17
 - Sesgo algorítmico (Obermeyer) — 17
 - Sesgo de automatización (Goddard) — 17
 - Sesgos cognitivos: alcance y límites del vocabulario — 7
