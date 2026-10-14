@@ -8,7 +8,7 @@ La metacognición permite sostener estas capas sin confundirlas. No ofrece una c
 
 El lenguaje clínico es uno de sus instrumentos más poderosos. La frase medular no es la más breve ni la más elegante, sino aquella que conserva la estructura decisiva del evento, distingue dato y explicación, expresa el grado de certeza y muestra por qué una conducta es razonable. Una frase así puede orientar a un equipo, proteger contra la inercia y mantener abierta la posibilidad de corrección. La historia de Carmen, que acompañó todo este libro, empezó con la frase contraria —«cuadro habitual, manejo habitual»— y terminó con una frase que cargaba, palabra por palabra, el trabajo de distinguir, graduar, dudar y decidir. Entre ambas frases no cambió la medicina disponible; cambió la epistemología con que se usó.
 
-El mapa del comienzo (Figura 1) tendió tres hilos —las capas, el arco que va de la abducción a la humildad y el lenguaje que las conserva—; tres nudos de ese tejido quedan a la vista. El primero va de la abducción a la humildad. La conjetura que crea explicaciones, la vigilancia que la acompaña mientras trabaja y la disposición que la mantiene abierta cuando ya produjo una respuesta cómoda son tres momentos de una misma lealtad al caso; la prudencia práctica —la phronesis— es su nombre antiguo. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar. Por eso la inteligencia artificial, que produce la prosa fluida contra la que este libro entrena —hechos, inferencias e invenciones con la misma sintaxis—, no cambia la disciplina: la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
+El mapa del comienzo (Figura 1) prometió tres hilos: las capas del conocimiento, el camino de la conjetura a la humildad y la lengua que conserva o borra las capas. Tres nudos de ese tejido quedan a la vista. El primero va de la abducción a la humildad. Conjeturar, vigilar la conjetura y no cerrarla antes de tiempo son tres momentos de un mismo gesto, y el capítulo 14 le dio su nombre antiguo, phronesis. Lo que puede agregarse aquí es el orden de los fracasos: sin conjetura no hay diagnóstico; sin vigilancia, el diagnóstico se vuelve certeza; sin humildad, la certeza se vuelve ficha. El segundo va del dato al contexto: la funcionalidad, el pronóstico de fondo y la red de apoyo son hechos clínicos, y una decisión que los omitió no es más objetiva sino más incompleta. El tercero va de la ficha al razonador: escribir la nota es parte de pensar. Por eso la inteligencia artificial, que produce la prosa fluida contra la que entrena cada capítulo —hechos, inferencias e invenciones con la misma sintaxis—, no cambia la disciplina: la vuelve urgente, sobre todo para quien todavía está formando el juicio que la herramienta ofrece reemplazar. Ante una respuesta automática como ante la propia narrativa, la pregunta es la misma: qué proviene del caso, qué fue inferido, qué permanece incierto y qué responsabilidad implica actuar.
 
 HII-D resume una disciplina posible:
 
@@ -28,7 +28,7 @@ Una medicina científicamente seria y humanamente responsable no es la que nunca
 
 La epistemología clínica puede parecer abstracta hasta que se traduce en hábitos: verificar la fuente del dato decisivo; reformular una etiqueta como una proposición; nombrar la principal explicación rival; separar la gravedad de la probabilidad; registrar qué hará cambiar la conducta; y revisar después si la confianza estuvo bien calibrada. Ningún hábito elimina el error. Juntos construyen condiciones para reconocerlo antes y aprender de él después. El Apéndice C los convierte en un plan de tres meses para un servicio: el lenguaje primero, la pausa en la visita después, la ficha y el circuito de aprendizaje al final.
 
-La medicina necesita afirmaciones suficientemente firmes para coordinar acciones y suficientemente abiertas para admitir corrección. Esa doble exigencia no es una contradicción que deba resolverse eligiendo seguridad o duda, sino la forma propia del juicio clínico. La frase medular es valiosa porque condensa esa arquitectura: conserva el hecho, gradúa la inferencia, localiza la incertidumbre y hace visible la decisión.
+La medicina necesita afirmaciones suficientemente firmes para coordinar acciones y suficientemente abiertas para admitir corrección. Esa doble exigencia no es una contradicción que deba resolverse eligiendo seguridad o duda, sino la forma propia del juicio clínico.
 
 El ideal no es un médico que nunca se equivoca, sino uno cuyo razonamiento puede ser comprendido, discutido y revisado. Tampoco es un sistema que acumula datos, sino uno que preserva significado y distribuye oportunidades de corrección. La lucidez no se demuestra mediante tono categórico. Se demuestra en la correspondencia entre lo que se afirma, lo que se sabe y lo que se hace.
 
@@ -82,12 +82,9 @@ El ideal no es un médico que nunca se equivoca, sino uno cuyo razonamiento pued
 
 Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, la incertidumbre crítica y el efecto sobre la conducta.
 
-**Versión de 60 segundos** (para casos de rutina o alta presión de tiempo)
+**Plantilla condensada** (una línea por campo, para la nota difícil): pregunta operativa · hechos decisivos · inferencia principal y grado · alternativa que cambiaría la conducta · incertidumbre crítica · contexto global · decisión y razón · criterio de reapertura.
 
-1. ¿Qué vi y qué me contaron? (un hecho decisivo, con fuente)
-2. ¿Qué creo y cuánto derecho tengo a creerlo? (inferencia con grado)
-3. ¿Qué daño importante podría producir si estoy equivocado? (la incertidumbre peligrosa)
-4. ¿Qué hago y qué me haría cambiar antes del próximo control? (decisión con reapertura)
+**Versión de sesenta segundos** (para casos de rutina o alta presión de tiempo): las cuatro preguntas de la caja del capítulo 15, reproducidas en la tarjeta de la última página.
 
 # Apéndice B. Léxico de certeza y pausa diagnóstica
 
@@ -135,14 +132,14 @@ Esta guía condensa el capítulo 16 en un plan concreto para un servicio que qui
 ### Semana 3–4: la pausa en la visita de sala
 
 - Elegir un disparador objetivo para la pausa diagnóstica (no «cuando haya tiempo»): reconsulta, evolución discordante con el diagnóstico, traslado recibido de otro equipo, o caso sin discusión hace 72 horas.
-- Cuando se active, usar las cuatro preguntas de la versión de 60 segundos en voz alta. Duración objetivo: dos minutos por caso. Quien dirige la visita modela; no interroga.
+- Cuando se active, usar las cuatro preguntas de la versión de sesenta segundos en voz alta. Duración objetivo: dos minutos por caso. Quien dirige la visita modela; no interroga.
 - Entrega de turno: agregar una línea obligatoria por paciente inestable o incierto: «qué vigilar, qué reabriría el caso, quién verifica el pendiente».
 
 ### Mes 2: la ficha
 
 - Introducir la plantilla condensada HII-D (Apéndice A) para tres situaciones definidas: ingresos complejos, cambios de conducta mayores y altas con diagnóstico incierto. No para toda evolución diaria: la plantilla universal muere por fatiga.
 - Prohibición práctica del fósil: cada evolución debe contener al menos una línea que responda «¿qué cambió desde ayer?» (en hechos, interpretación, incertidumbre o plan). Si nada cambió, escribirlo es información.
-- Revisar las plantillas electrónicas existentes: eliminar campos que inducen copia, agregar un campo breve de «criterio de reevaluación».
+- Revisar las plantillas electrónicas existentes: eliminar campos que inducen copia, agregar un campo breve de «criterio de reapertura».
 
 ### Mes 3 en adelante: el circuito de aprendizaje
 
@@ -282,7 +279,6 @@ Las 57 preguntas con que cierran la Introducción y los dieciocho capítulos, re
 - ¿Qué palabra de mi última nota está «haciendo florecer» algo que nadie observó?
 - El diagnóstico que más me satisface hoy: ¿me convence por la evidencia o por lo bien que cierra la historia?
 - ¿Cuándo fue la última vez que leí algo —un poema, una página— sólo para afinar el oído con el que después escucho pacientes?
-
 
 # Glosario
 
@@ -522,7 +518,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Figura 12. El cálculo del Taller 10 en frecuencias naturales (Capítulo 10).
 - Figura 13. El viaje de una frase (Capítulo 12).
 - Figura 14. El método HII-D en una página (Capítulo 15).
-- Figura 15. Parentescos: cada riesgo de la IA clínica junto al sesgo que este libro ya había descrito (Capítulo 17).
+- Figura 15. Parentescos: cada riesgo de la IA clínica junto al sesgo ya descrito (Capítulo 17).
 
 # Nota metodológica y estatuto de las afirmaciones
 
@@ -864,7 +860,7 @@ Zampieri, F. G., Damiani, L. P., Bakker, J., Ospina-Tascón, G. A., Castro, R., 
 
 # Tarjeta: HII-D en sesenta segundos
 
-Para recortar y llevar en el bolsillo del delantal. Cuatro preguntas y una cláusula; en voz alta en la visita de sala o por escrito antes de firmar un alta. La versión completa está en el capítulo 15 y en el Apéndice A.
+Para recortar y llevar en el bolsillo del delantal. Cuatro preguntas y un criterio de reapertura; en voz alta en la visita de sala o por escrito antes de firmar un alta. La versión completa está en el capítulo 15 y en el Apéndice A.
 
 | HII-D en sesenta segundos |
 |---|
@@ -872,6 +868,6 @@ Para recortar y llevar en el bolsillo del delantal. Cuatro preguntas y una cláu
 | **2. ¿Qué creo y cuánto derecho tengo a creerlo?** La inferencia con su grado: demostrado, altamente probable, probable, posible, no sustentado. |
 | **3. ¿Qué daño importante podría producir si estoy equivocado?** La incertidumbre peligrosa, no la lista completa de dudas. |
 | **4. ¿Qué hago y qué me haría cambiar antes del próximo control?** La decisión con su criterio de reapertura: qué cambio, quién lo detectará y cuándo. |
-| **Cláusula de cierre:** «Reevaluar si …; responsable: …; plazo: …». Y una pregunta sobre el instrumento: ¿en qué condiciones estoy pensando esto? |
+| **Criterio de reapertura:** «Reevaluar si …; responsable: …; plazo: …». Y una pregunta sobre el instrumento: ¿en qué condiciones estoy pensando esto? |
 
 Léxico mínimo: demostrado · altamente probable · probable · posible · no sustentado · sin evidencia actual de · descartado, sólo con un método que excluya.
