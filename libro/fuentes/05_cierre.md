@@ -96,7 +96,7 @@ Una o dos frases que expresen la naturaleza del evento, el grado de inferencia, 
 |---|---|---|---|
 | **Demostrado / documentado** | Evidencia directa pertinente y suficiente | "Bacteriemia por E. coli documentada (2/2 hemocultivos)" | "Neumonía aspirativa documentada" (nadie presenció aspiración; la imagen no distingue mecanismo) |
 | **Altamente probable** | Convergencia fuerte; alternativas relevantes poco plausibles | "Foco abdominal altamente probable: secuencia temporal, microbiología y ausencia de foco alternativo" | Usarlo como cortesía retórica para una hipótesis única no contrastada |
-| **Probable** | Explicación principal con soporte significativo, no concluyente | "ITU asociada a CUP probable si aparece fiebre sin otro foco" | "Probable" para rellenar donde falta la explicación ("dolor probablemente multifactorial") |
+| **Probable** | Explicación principal con soporte significativo, no concluyente | "ITU asociada a catéter urinario permanente (CUP) probable si aparece fiebre sin otro foco" | "Probable" para rellenar donde falta la explicación ("dolor probablemente multifactorial") |
 | **Compatible con** | Los hallazgos encajan; no expresa por sí solo probabilidad alta | "Imagen compatible con neumonía; también con congestión" | Leer "compatible con X" como "es X" en la nota siguiente |
 | **Posible** | Merece consideración; soporte limitado o inespecífico | "Contribución farmacológica posible; se retira exposición" | Listas de "posibles" sin consecuencia para estudio ni vigilancia |
 | **No demostrado** | Hipótesis razonable sin evidencia suficiente para afirmarla | "Estrangulación no demostrada en imagen ni cirugía" | Confundirlo con "descartado" (ausencia de prueba ≠ prueba de ausencia) |
@@ -308,7 +308,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Marcador y enfermedad (lactato, perfusión, ANDROMEDA-SHOCK) — 1, 10
 - Medicina basada en evidencia — 9
 - Meta-d′ y medición de la metacognición — 5
-- Metacognición: definición y niveles — Int, 5; monitoreo y control — 5; social (señales del equipo y del paciente) — 5, 13; sensibilidad vs. sesgo — Int, 5; artificial — 17
+- Metacognición: definición y niveles — Int, 5; monitoreo y control — 5; social (señales del equipo y del paciente) — 5, 13; sensibilidad vs. sesgo — Int, 5; auditoría de salidas de IA — 17
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
 - Nota clínica generada por IA (degradación del registro) — 17
@@ -344,7 +344,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 
 **Naturaleza de la obra.** Este libro es un ensayo académico de integración científico-filosófica dirigido a profesionales clínicos. No es una revisión sistemática, ni una guía clínica, ni contiene instrumentos validados.
 
-**Estrategia bibliográfica.** Las fuentes provienen de tres cuerpos: investigación biomédica y de razonamiento clínico, filosofía de la ciencia y epistemología, y educación médica. Se privilegiaron fuentes primarias y revisiones reconocidas; el período cubierto llega hasta el cierre bibliográfico, en agosto de 2026. Durante la redacción se aplicó una regla fija: ninguna referencia entró al manuscrito sin verificación previa contra su fuente — autoría, año, revista y resultado. No se pretende exhaustividad sistemática: la selección sirve al argumento y se declara como tal.
+**Estrategia bibliográfica.** Las fuentes provienen de tres cuerpos: investigación biomédica y de razonamiento clínico, filosofía de la ciencia y epistemología, y educación médica. Se privilegiaron fuentes primarias y revisiones reconocidas; el período cubierto llega hasta el cierre bibliográfico, en octubre de 2026. Durante la redacción se aplicó una regla fija: ninguna referencia entró al manuscrito sin verificación previa contra su fuente — autoría, año, revista y resultado. No se pretende exhaustividad sistemática: la selección sirve al argumento y se declara como tal.
 
 **Estatuto de las afirmaciones.** El lector encontrará seis clases de enunciados, y el texto procura que cada uno se presente como lo que es: resultados verificados de fuentes primarias, citados con autor y año; conclusiones de revisiones o consensos; argumentos filosóficos, atribuidos a sus autores; experiencia autoral, narrada en primera persona; ejemplos docentes construidos, señalados como tales («en ejercicios docentes suele observarse…»); y propuestas originales del libro — la densidad epistémica, la frase medular y el método HII-D —, que no deben leerse como hallazgos sino como hipótesis de trabajo.
 
