@@ -50,7 +50,7 @@ El ideal no es un médico que nunca se equivoca, sino uno cuyo razonamiento pued
 **I — Inferencia principal**
 
 - Representación del problema en una frase.
-- Grado de certeza: demostrado / altamente probable / probable / posible / no sustentado.
+- Grado de certeza: demostrado / altamente probable / probable / posible / no demostrado.
 - Mecanismo causal propuesto y qué parte no fue observada.
 - Evidencia convergente y dato discordante.
 
@@ -352,7 +352,7 @@ Los términos marcados con ∗ son propuestas de este libro; los demás se toman
 
 **Injusticia epistémica (epistemic injustice).** Daño cometido contra alguien en su capacidad de sujeto de conocimiento: testimonial (credibilidad rebajada por prejuicio) o hermenéutica (falta de categorías para expresar la experiencia) (Fricker).
 
-**Léxico de certeza∗.** Escala verbal de cinco grados —demostrado, altamente probable, probable, posible, no sustentado— con la que toda inferencia escrita declara cuánto derecho tiene a afirmarse (Apéndice B). Es un caso particular de la modalidad epistémica, fijado para que el equipo use las mismas palabras con el mismo significado.
+**Léxico de certeza∗.** Escala verbal con la que toda inferencia escrita declara cuánto derecho tiene a afirmarse —demostrado, altamente probable, probable, posible, no demostrado—, junto a las expresiones de ausencia y de exclusión que no deben confundirse con ella (sin evidencia actual de, no evaluable, se descarta), definidas en el Apéndice B. Es un caso particular de la modalidad epistémica, fijado para que el equipo use las mismas palabras con el mismo significado.
 
 **Mente del principiante (shoshin, beginner's mind).** Disposición, tomada del Zen, a mirar lo conocido como si fuera la primera vez, sin que el nombre decida por adelantado. Presentar el caso sin la etiqueta es su versión clínica; no reemplaza al illness script, suspende la prisa con que cierra el caso.
 
@@ -875,9 +875,9 @@ Para recortar y llevar en el bolsillo del delantal. Cuatro preguntas y un criter
 | HII-D en sesenta segundos |
 |---|
 | **1. ¿Qué vi y qué me contaron?** Un hecho decisivo, con fuente, hora y método. |
-| **2. ¿Qué creo y cuánto derecho tengo a creerlo?** La inferencia con su grado: demostrado, altamente probable, probable, posible, no sustentado. |
+| **2. ¿Qué creo y cuánto derecho tengo a creerlo?** La inferencia con su grado: demostrado, altamente probable, probable, posible, no demostrado. |
 | **3. ¿Qué daño importante podría producir si estoy equivocado?** La incertidumbre peligrosa, no la lista completa de dudas. |
 | **4. ¿Qué hago y qué me haría cambiar antes del próximo control?** La decisión con su criterio de reapertura: qué cambio, quién lo detectará y cuándo. |
 | **Criterio de reapertura:** «Reevaluar si …; responsable: …; plazo: …». Y una pregunta sobre el instrumento: ¿en qué condiciones estoy pensando esto? |
 
-Léxico mínimo: demostrado · altamente probable · probable · posible · no sustentado · sin evidencia actual de · descartado, sólo con un método que excluya.
+Léxico mínimo: demostrado · altamente probable · probable · posible · no demostrado · sin evidencia actual de · descartado, sólo con un método que excluya.

@@ -122,7 +122,7 @@ Una técnica útil es escribir primero sin diagnósticos: edad y contexto; tempo
 
 ### Paso 3. Formular inferencias graduadas
 
-Se propone una representación principal y, si importa, alternativas. Cada inferencia se acompaña de una fuerza verbal proporcional: demostrado, altamente probable, probable, posible o no sustentado. Deben explicitarse los enlaces causales no observados.
+Se propone una representación principal y, si importa, alternativas. Cada inferencia se acompaña de una fuerza verbal proporcional: demostrado, altamente probable, probable, posible o no demostrado. Deben explicitarse los enlaces causales no observados.
 
 Una inferencia clínica útil explica por qué los hechos se agrupan y qué predice. Si no cambia comprensión, conducta o vigilancia, quizá sea sólo un nombre. En Carmen, tres inferencias con tres grados: obstrucción mecánica, demostrada; sepsis de foco abdominal, altamente probable; isquemia parietal transitoria, posible. Una nota apurada las habría escrito con el mismo verbo.
 
