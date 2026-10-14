@@ -211,7 +211,7 @@ El segundo lector —otro médico, un especialista, un equipo interdisciplinario
 
 ### Reflexión después del desenlace
 
-La revisión retrospectiva corre riesgo de hindsight bias: una vez conocido el desenlace, parece que las señales eran evidentes. El análisis debe reconstruir qué era razonable con la información disponible en cada momento. Una decisión puede haber sido racional y terminar mal; otra puede haber sido irracional y terminar bien. Aprender exige separar calidad del proceso y suerte del resultado.
+La revisión retrospectiva corre riesgo de hindsight bias: una vez conocido el desenlace, parece que las señales eran evidentes. El análisis debe reconstruir qué era razonable con la información disponible en cada momento. Una decisión puede haber sido racional y terminar mal; otra puede haber sido irracional y terminar bien. Aprender exige separar calidad del proceso y suerte del resultado — y la calidad del proceso tiene componentes nombrables: representación, alternativas consideradas, estimación de consecuencias, comunicación, seguimiento y revisabilidad.
 
 Los portafolios de calibración, conferencias de morbimortalidad y seguimiento de diagnósticos pendientes pueden transformar la experiencia en aprendizaje. Sin feedback, la repetición no es práctica deliberada. Mann, Gordon y MacLeod encontraron que la reflexión en educación sanitaria es valorada, pero su enseñanza requiere estructura, contexto y apoyo (Mann et al., 2009).
 

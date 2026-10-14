@@ -312,7 +312,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Miedo y decisión (documentación defensiva, sobreestudio) — 3, 14
 - Modelo de Toulmin (dato, garantía, calificador, refutación) — 4
 - Nota clínica generada por IA (degradación del registro) — 17
-- Observación activa — 10, 11
+- Observación activa — 11
 - Paradoja de la automatización — 17
 - Pausa diagnóstica — 8, 16, Ap B, Ap C
 - Poesía y juicio clínico (Huidobro, Parra; belleza como señal y trampa) — 18

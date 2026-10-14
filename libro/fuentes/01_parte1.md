@@ -60,7 +60,7 @@ Cada fuente conviene leerla por lo que sólo ella ofrece y por dónde suele fall
 | Registro heredado | Trayectoria longitudinal | Pérdida de procedencia y copia | Autor, fecha y grado de verificación |
 | Silencio documental | Ningún acceso positivo | Confundir «no consignado» con «ausente» | «No consignado» o «no evaluado» |
 
-Los hallazgos negativos exigen especial cautela. "Sin peritonismo" puede significar examen dirigido negativo; "sin evidencia de isquemia en TAC" limita la conclusión al rendimiento de una técnica y a un momento; "no refiere dolor" depende de capacidad comunicativa, neuroanatomía y contexto. El lenguaje debe impedir que ausencia de evidencia se transforme automáticamente en evidencia de ausencia.
+Los hallazgos negativos exigen especial cautela. "Sin peritonismo" puede significar examen dirigido negativo; "sin evidencia de isquemia en TAC" limita la conclusión al rendimiento de una técnica y a un momento; "no refiere dolor" depende de capacidad comunicativa, neuroanatomía y contexto.
 
 #### Caja de herramientas. Tres metadatos por hecho decisivo
 
@@ -207,8 +207,6 @@ Kassirer criticó la búsqueda obstinada de certeza diagnóstica porque puede ge
 Gadamer observó que la medicina es una praxis orientada a restablecer un equilibrio, no una mera aplicación técnica de conocimiento universal (Gadamer, 1996). La decisión se completa en la situación. Su racionalidad incluye aquello que todavía no puede saberse y la obligación de vigilar cómo evoluciona.
 
 > La incertidumbre no es el espacio vacío entre los hechos y la decisión; es una dimensión positiva del caso que debe describirse y gobernarse.
-
-Una medicina lúcida no promete eliminar toda incertidumbre. Promete distinguir sus fuentes, comunicar su alcance, proteger al paciente de sus consecuencias y revisar la conducta cuando el mundo entregue nueva información.
 
 #### Taller 3. El mapa de lo que no sabemos de Carmen
 

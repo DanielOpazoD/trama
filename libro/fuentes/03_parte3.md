@@ -16,6 +16,8 @@ Sackett y colaboradores definieron la medicina basada en evidencia como la integ
 
 La particularización exige varias operaciones inferenciales. Primero, establecer si el paciente se parece de manera relevante a la población estudiada. La semejanza no depende sólo de edad o diagnóstico: incluye severidad, fase de enfermedad, tratamientos concomitantes, capacidad funcional, adherencia posible y desenlaces que realmente importan. Segundo, estimar el riesgo basal. Una reducción relativa idéntica produce beneficios absolutos muy diferentes en pacientes con riesgos iniciales distintos. Tercero, considerar modificación del efecto, riesgos competitivos y tiempo necesario para obtener beneficio.
 
+Conviene hacer la aritmética con Carmen, con cifras inventadas para el ejercicio. Supongamos que un ensayo de reparación electiva frente a manejo expectante mostró una reducción relativa de 50% en la recurrencia obstructiva a dos años, con un riesgo basal de 20% en la población estudiada: diez puntos absolutos, uno de cada diez pacientes operados evita una recurrencia. Carmen no es esa población: con cuatro episodios en doce meses y el último con shock, su riesgo basal plausible es mucho mayor — digamos 60% —, y la misma reducción relativa vale entonces treinta puntos absolutos, casi uno de cada tres. Pero su riesgo quirúrgico también se aleja del promedio del ensayo: EPOC, un shock reciente, un abdomen reoperado. El daño absoluto escala junto con el beneficio. La aritmética no decide por nadie; muestra qué hay que estimar antes de decidir — dos riesgos basales, no uno — y por qué "está indicado por evidencia" es una frase que esconde ambas estimaciones.
+
 La validez externa no es una propiedad binaria del estudio. Es una relación entre una evidencia y un uso propuesto. Tonelli sostuvo que el conocimiento clínico incorpora fuentes heterogéneas y que la individualidad del paciente no puede derivarse por completo de resultados poblacionales (Tonelli, 1998). La crítica no invalida la evidencia; impide exigirle aquello para lo cual no fue diseñada. Cartwright y Hardie expresan una dificultad paralela: saber que una intervención funcionó en un contexto no garantiza que funcione aquí, porque el efecto depende de una red de condiciones de apoyo (Cartwright & Hardie, 2012).
 
 En términos HII, un resultado de investigación es un hecho acerca de una población estudiada. Su aplicabilidad al caso es una inferencia. El grado de transportabilidad permanece incierto. La conducta surge al integrar esa incertidumbre con la magnitud del beneficio esperado, el daño posible, la reversibilidad y las preferencias. Confundir esas capas produce frases como "está indicado por evidencia" cuando lo demostrado es más limitado: "en pacientes comparables, esta estrategia redujo cierto desenlace; en esta paciente el beneficio absoluto probablemente sea menor y debe ponderarse frente a un riesgo adverso mayor".
@@ -79,18 +81,6 @@ La respuesta madura del propio grupo no fue proclamar victoria ni acatar el vere
 
 [FIGURA: fig09_andromeda.png | Figura 7. Una década sobre un mismo dato: la saga ANDROMEDA. El mismo programa de investigación atraviesa un ensayo "negativo", su relectura bayesiana y una segunda prueba más severa — la trayectoria completa que este capítulo propone como modelo de lectura de la evidencia.]
 
-### Tiempo y reversibilidad
-
-La misma probabilidad conduce a decisiones distintas según el tiempo. Cuando el daño progresa rápidamente, el valor de esperar información disminuye. Cuando la conducta es reversible, puede iniciarse con un umbral menor y reevaluarse. Cuando es irreversible, la deliberación debe ser más exigente.
-
-Una forma práctica de pensar incluye cinco dimensiones: probabilidad, magnitud del daño, velocidad de evolución, reversibilidad de la intervención y capacidad de vigilancia. La observación activa no es "no hacer nada" si incluye objetivos, plazos y criterios de escalamiento. Del mismo modo, iniciar tratamiento empírico no significa declarar certeza etiológica.
-
-### Decisiones correctas con desenlaces adversos
-
-Evaluar una decisión sólo por su resultado produce sesgo. Un médico puede actuar racionalmente con la información disponible y enfrentar un desenlace improbable. También puede tomar una decisión débil y obtener buen resultado por evolución favorable. La calidad debe juzgarse por proceso: representación, alternativas, estimación de consecuencias, comunicación, seguimiento y revisabilidad.
-
-Esto tiene implicancias éticas. Reconocer incertidumbre no disminuye responsabilidad; la hace más precisa. El médico es responsable de buscar la información razonablemente accesible, interpretar con competencia, comunicar límites y establecer una estrategia de reevaluación. No es responsable de volver determinista un mundo que no lo es.
-
 ### El cruce con la bioética: el contexto global del paciente como hecho clínico
 
 Hasta aquí, este capítulo pudo leerse como si decidir fuera un problema de dos variables: probabilidad y consecuencias. La bioética obliga a hacer explícita la pregunta que esa fórmula esconde: ¿consecuencias para quién, medidas en qué moneda? Una intervención terapéutica no actúa sobre una enfermedad; actúa sobre una persona que, además de la enfermedad, tiene una funcionalidad previa, una trayectoria de fondo, una red que la sostiene —o no— y fines propios que nadie puede presumir desde el pasillo. Por eso el razonamiento médico y la bioética no se cruzan al final del proceso, cuando alguien convoca al comité de ética: se cruzan en la premisa, en la decisión previa de qué cuenta como hecho relevante del caso.
@@ -108,6 +98,8 @@ El lector encontrará este cruce ejecutado dos veces en este libro sin la palabr
 ### Certeza epistémica y compromiso práctico
 
 Puede existir alta incertidumbre epistémica y fuerte compromiso práctico. "No conocemos el foco con certeza, pero el cuadro exige antibióticos y control de fuente mientras se investiga." También puede existir alta certeza diagnóstica y decisión expectante. Confundir ambos planos lleva a tratar para demostrar convicción o a retrasar una acción porque el nombre no está completo.
+
+Reconocer incertidumbre no disminuye la responsabilidad; la hace más precisa. El médico responde por buscar la información razonablemente accesible, interpretar con competencia, comunicar límites y establecer una estrategia de reevaluación — no por volver determinista un mundo que no lo es.
 
 > La decisión clínica no exige convertir una probabilidad en certeza; exige justificar por qué, bajo esa probabilidad y esas consecuencias, actuar supera a no actuar.
 
@@ -149,6 +141,12 @@ La evolución puede funcionar como prueba diagnóstica. La aparición de un sign
 El tiempo también selecciona qué incertidumbres pueden tolerarse. En un paciente estable, observar puede producir información con bajo costo. En una amenaza tiempo-dependiente, esperar puede destruir la oportunidad terapéutica. "Esperar y observar" no es ausencia de conducta: es una intervención diagnóstica con condiciones de seguridad, variables de vigilancia y criterios de salida. Debe formularse qué se espera aprender, durante cuánto tiempo y qué cambio obligará a actuar.
 
 La temporalidad modifica además la probabilidad previa. Una enfermedad puede ser plausible al inicio y mucho menos plausible tras una evolución discordante. El anclaje aparece cuando la hipótesis inicial conserva autoridad aun después de perder capacidad explicativa. Una revisión temporal útil pregunta: ¿qué hechos nuevos surgieron desde la formulación anterior?, ¿qué predijo correctamente?, ¿qué no explicó?, ¿la conducta sigue siendo razonable con la información actual?
+
+### Tiempo, reversibilidad y umbral
+
+La misma probabilidad conduce a decisiones distintas según el tiempo: el umbral del capítulo anterior no está fijo en el eje temporal. Cuando el daño progresa rápidamente, el valor de esperar información disminuye. Cuando la conducta es reversible, puede iniciarse con un umbral menor y reevaluarse. Cuando es irreversible, la deliberación debe ser más exigente — y el tiempo que se compra con una medida reversible es, a menudo, la mejor inversión diagnóstica disponible.
+
+Una forma práctica de pensar incluye cinco dimensiones: probabilidad, magnitud del daño, velocidad de evolución, reversibilidad de la intervención y capacidad de vigilancia. Iniciar un tratamiento empírico no declara certeza etiológica; declara que, con esta velocidad y esta reversibilidad, actuar supera a esperar. El taller de este capítulo pone la alternativa —esperar con diseño— por escrito.
 
 ### Causalidad y contrafactuales
 
@@ -237,8 +235,6 @@ La nota clínica debe preservar el tiempo. "Actualmente estable" no borra shock 
 También debe registrar qué haría cambiar. "Reevaluar si fiebre o deterioro" es mejor que "control evolutivo", porque define el mecanismo de revisión. Una decisión sin criterio de reapertura se vuelve inercia.
 
 > Una ficha de calidad no sólo cuenta lo que el equipo piensa; permite examinar cómo llegó a pensarlo y en qué condiciones debería dejar de pensarlo.
-
-Escribir bien no es cosmética. Es una intervención sobre el razonamiento colectivo. La frase que mezcla capas puede perpetuar error; la que las distingue crea una oportunidad de corrección.
 
 #### Taller 12. Desfosilizar una evolución
 
