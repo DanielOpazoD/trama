@@ -300,7 +300,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Humildad epistémica como motor (explorar, aprender, reenfocar) — 14
 - Illness scripts — 2, 6, 16
 - Incertidumbre: taxonomía y cartografía — 3; epistémica y aleatoria — 3; knightiana — 3
-- Injusticia epistémica — 14, CC (viñeta 10)
+- Injusticia epistémica — 14, CC (viñetas 8 y 10)
 - Inteligencia artificial: rol diagnóstico y terapéutico, catálogo de riesgos, defensas — 17
 - Intuición experta — 5, 6, Interludio II
 - Lectura de ensayos clínicos (significación, reanálisis bayesiano, saga ANDROMEDA) — 10
@@ -322,6 +322,7 @@ Los números remiten a capítulos (Int = introducción, Interludios I–III, CC 
 - Proporcionalidad terapéutica (Taboada) — 10, 15, CC (viñeta 7)
 - Pruebas severas (Popper) — 2
 - Puntos de inflexión — 11, Interludio III
+- Reglas de decisión clínica (PERC) y umbral — CC (viñeta 8)
 - Representación del problema — Int, 2, 8, 16
 - Riesgo inductivo (Rudner, Douglas) — 10
 - Safety-netting — 11, CC (viñetas 5, 6 y 9)
@@ -505,6 +506,8 @@ Kahneman, D., & Klein, G. (2009). Conditions for intuitive expertise: A failure 
 Kassirer, J. P. (1989). Our stubborn quest for diagnostic certainty. *New England Journal of Medicine, 320*(22), 1489–1491.
 
 Kidd, I. J., & Carel, H. (2017). Epistemic injustice and illness. *Journal of Applied Philosophy, 34*(2), 172–190.
+
+Kline, J. A., Mitchell, A. M., Kabrhel, C., Richman, P. B., & Courtney, D. M. (2004). Clinical criteria to prevent unnecessary diagnostic testing in emergency department patients with suspected pulmonary embolism. *Journal of Thrombosis and Haemostasis, 2*(8), 1247–1255.
 
 Knight, F. H. (1921). *Risk, Uncertainty and Profit*. Houghton Mifflin.
 
