@@ -219,6 +219,8 @@ def main():
         "paginas_fisicas": n,
         "desfase_paginas": desfase,
         "inicio": "prefacio",
+        # clave de localStorage de la primera versión de la página: sus anotaciones se migran al cargar
+        "claves_anteriores": ["lector-hiid-anotaciones"],
         "secciones": secciones,
     }
     json.dump(libro, open(OUT, "w", encoding="utf-8"), ensure_ascii=False)
