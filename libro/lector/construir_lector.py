@@ -6,6 +6,9 @@ en las fuentes y la página del PDF donde cae (la numeración impresa, que es la
 PDF). Con eso, una anotación hecha en el lector se puede volcar a las fuentes sin ambigüedad.
 
 Uso: python3 construir_lector.py  (desde libro/lector/; lee ../fuentes/0*.md y ../Hechos_..._revisada.pdf)
+
+index.html es una copia de la página genérica del repositorio DanielOpazoD/lector-anotaciones (web/index.html);
+este script es la versión mínima, atada a este libro, de `lector-anotaciones construir`.
 """
 import glob
 import html
@@ -207,12 +210,15 @@ def main():
     secciones = parse()
     desfase, n = asignar_paginas(secciones)
     libro = {
+        "formato": 1,
+        "id": "hechos-inferencias-e-incertidumbre",
         "titulo": "Hechos, inferencias e incertidumbre",
         "subtitulo": "Metacognición, lenguaje y decisión clínica",
         "autor": "Daniel Opazo",
         "generado": date.today().isoformat(),
         "paginas_fisicas": n,
         "desfase_paginas": desfase,
+        "inicio": "prefacio",
         "secciones": secciones,
     }
     json.dump(libro, open(OUT, "w", encoding="utf-8"), ensure_ascii=False)
