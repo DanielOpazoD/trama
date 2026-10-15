@@ -28,6 +28,7 @@ try:
 except ImportError:
     sys.exit("Falta el paquete lector-anotaciones: pip install git+https://github.com/DanielOpazoD/lector-anotaciones")
 
+sys.dont_write_bytecode = True  # no dejar __pycache__ en fuentes/ al importar el cotejo
 sys.path.insert(0, FUENTES)
 from cotejo_figuras import RETIRADAS  # noqa: E402  (la lista canónica de variantes retiradas del léxico)
 
