@@ -100,8 +100,8 @@ Ambiente de lectura y edición del libro, publicado como página privada en clau
 
 Las anotaciones se guardan en la base compartida de la página (colección `anotaciones`, un documento por anotación), de modo que Claude las lee directamente en la siguiente sesión y las vuelca a las fuentes: cada anotación lleva el id del bloque, el archivo y la línea de origen (`03_parte_iii.md:412`), la página impresa, la cita exacta y su contexto.
 
-- `construir_lector.py` — genera `libro.json` desde `../fuentes/0*.md` y el PDF (asigna a cada bloque su página impresa con pdftotext). Hay que volver a ejecutarlo después de cada cambio en las fuentes y republicar la página con `libro.json` y `../figs/*.png`.
-- `index.html` — la aplicación (sin dependencias de compilación; funciona también sin la base, guardando en el navegador).
+- `construir_lector.py` — genera `libro.json` con el paquete `lector-anotaciones` (`pip install git+https://github.com/DanielOpazoD/lector-anotaciones`): fuentes `0*.md` y PDF (página impresa de cada bloque), huella por bloque, comparación con la salida anterior (qué cambió), capas editoriales con los términos retirados de `cotejo_figuras.py`. Hay que volver a ejecutarlo después de cada cambio en las fuentes y republicar la página con `libro.json` y `../figs/*.png`.
+- `index.html` — la aplicación, copia de `web/index.html` del repositorio `lector-anotaciones` (versión 0.2.0: respuesta en cada ficha, qué cambió entre versiones, capas editoriales, lectores con identidad, progreso, concentración y atajos; funciona también sin la base, guardando en el navegador).
 - `libro.json` — el libro en bloques con ids estables; versionado para que las anotaciones sean trazables al estado exacto del texto.
 
 La versión genérica de la herramienta (parametrizable para cualquier libro en Markdown, con pruebas e integración continua) vive en su propio repositorio: `DanielOpazoD/lector-anotaciones`.
