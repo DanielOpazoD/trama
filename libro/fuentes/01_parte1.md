@@ -20,7 +20,7 @@ Esta posición tiene un antecedente chileno que pide reconocerse con la precisi�
 
 ### Hechos incompletos
 
-Los hechos clínicos son incompletos por diseño. Ninguna anamnesis recoge toda la experiencia del paciente, ningún examen físico agota el cuerpo y ningún panel de laboratorio representa la totalidad del proceso biológico. La historia clínica es una muestra orientada por preguntas. Lo que no se pregunta puede quedar inexistente en el registro, aunque haya estado presente en la realidad.
+Los hechos clínicos son incompletos por diseño. Ninguna anamnesis recoge toda la experiencia del paciente, ningún examen físico agota el cuerpo y ningún panel de laboratorio representa la totalidad del proceso biológico. La ficha clínica es una muestra orientada por preguntas. Lo que no se pregunta puede quedar inexistente en el registro, aunque haya estado presente en la realidad.
 
 La ausencia de un dato tampoco es equivalente a un hallazgo negativo. «No consignado» significa que el registro no permite saber; «no evaluado» indica que la observación no se realizó; «ausente» supone una búsqueda adecuada; «sin evidencia de» añade el límite del método. Confundir estas expresiones crea certezas retrospectivas. En seguridad diagnóstica, la distinción entre ausencia de evidencia y evidencia de ausencia es fundamental; los capítulos siguientes vuelven a ella cada vez que un hallazgo negativo amenace con decidir demasiado.
 
