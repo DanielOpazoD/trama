@@ -90,6 +90,22 @@ También revisar el nombre «Carmen» y los detalles del caso longitudinal.
 
 - `Articulo_RevMedChile_HIID.pdf` / `.docx` — manuscrito tipo Artículo Especial (Educación Médica) para Revista Médica de Chile: «Hechos, inferencias e incertidumbre: una heurística metacognitiva para la escritura y la decisión clínica (HII-D)». Selección del núcleo original del libro (capas del conocimiento clínico, léxico de certeza, riesgo inductivo, saga ANDROMEDA como lección de lectura, frase medular, HII-D con versión de 60 segundos y tabla comparativa, limitaciones y programa de evaluación; IA solo como nota de discusión). ~3.300 palabras, resumen bilingüe, 31 referencias Vancouver numeradas por orden de aparición, 3 tablas y 2 figuras. Fuente: `articulo_rmch.md` (con claves de cita) → `articulo_rmch_final.md` (numerado) → pandoc → docx → PDF. Pendiente del autor: afiliación institucional, y ajustar a las instrucciones vigentes de la revista antes de enviar.
 
+## Lector de anotaciones (`lector/`)
+
+Ambiente de lectura y edición del libro, publicado como página privada en claude.ai (enlace en la conversación de trabajo). Muestra el libro completo por secciones con la numeración de página del PDF al margen, y permite al autor:
+
+- **Destacar** un pasaje (una o varias líneas, incluso varios párrafos) con uno de cuatro colores que significan algo: revisar (ámbar), cortar (rojo), duda (violeta), conservar (verde); cada destacado puede llevar una nota.
+- **Dejar notas por página** (clic en el número de página del margen), **por sección** («+ Nota de la sección») y **generales**.
+- Filtrar, buscar y marcar como resueltas las anotaciones; copiar todas como JSON o como Markdown de respaldo.
+
+Las anotaciones se guardan en la base compartida de la página (colección `anotaciones`, un documento por anotación), de modo que Claude las lee directamente en la siguiente sesión y las vuelca a las fuentes: cada anotación lleva el id del bloque, el archivo y la línea de origen (`03_parte_iii.md:412`), la página impresa, la cita exacta y su contexto.
+
+- `construir_lector.py` — genera `libro.json` desde `../fuentes/0*.md` y el PDF (asigna a cada bloque su página impresa con pdftotext). Hay que volver a ejecutarlo después de cada cambio en las fuentes y republicar la página con `libro.json` y `../figs/*.png`.
+- `index.html` — la aplicación (sin dependencias de compilación; funciona también sin la base, guardando en el navegador).
+- `libro.json` — el libro en bloques con ids estables; versionado para que las anotaciones sean trazables al estado exacto del texto.
+
+La versión genérica de la herramienta (parametrizable para cualquier libro en Markdown, con pruebas e integración continua) vive en su propio repositorio: `DanielOpazoD/lector-anotaciones`.
+
 ## Gestiones externas (`gestiones/`)
 
 - **Prólogo invitado**: `prologo_candidatos.md` (9 candidatos en 3 niveles, con racional, canales y estrategia secuencial de abordaje — verificar vigencia y correos antes de escribir), `prologo_carta.md` (plantilla de solicitud; ya cargada como borrador en el Gmail del autor) y `prologo_dossier.pdf` (dossier de 2 páginas para adjuntar).
