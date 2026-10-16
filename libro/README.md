@@ -9,7 +9,7 @@ Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta 
 - `Hechos_inferencias_incertidumbre.epub` — edición digital para Kindle/KDP (EPUB 3 con portada, navegación por capítulos, figuras y tablas embebidas; Amazon acepta EPUB directamente y Send-to-Kindle lo convierte).
 - `portada_kindle.jpg` — portada 1600×2560 px (especificación KDP): título, subtítulo único, motivo HIID con franja de incertidumbre y arco de reevaluación.
 
-## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~57.000)
+## Qué cambió respecto de la edición de trabajo original (~17.200 palabras → ~58.000)
 
 Registro histórico, del más antiguo al más reciente: lo que dice cada punto valía en su momento y un punto posterior puede corregirlo (el 37 retira el techo de 140 páginas de los puntos 32 y 36). Las reglas vigentes están en `AGENTS.md`; el estado, en `ESTADO.md`. Los hashes citados son de la rama `claude/medical-thinking-book-review-nlnth9` de `DanielOpazoD/trama`, donde se hizo este trabajo.
 
