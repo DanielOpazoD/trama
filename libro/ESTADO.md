@@ -1,5 +1,7 @@
 # Estado del libro
 
+> **Archivo.** El libro se mudó el 16 de octubre de 2026 a su propio repo, `DanielOpazoD/DanielOpazoD-hechos-inferencias-incertidumbre` (privado), que importó esta carpeta tal cual en 4926b92. No se edita aquí: el trabajo sigue allá. Esta rama se conserva por su historia.
+
 Al 16 de octubre de 2026. Para retomar el trabajo sin la conversación en que se hizo: qué hay, qué funciona, qué
 espera al autor y qué quedó decidido. Las reglas para trabajar están en `AGENTS.md`. Actualiza este archivo cuando
 cambie el estado o se tome una decisión.

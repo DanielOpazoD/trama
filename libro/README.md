@@ -1,5 +1,7 @@
 # Hechos, inferencias e incertidumbre — edición de trabajo revisada
 
+> **Archivo.** El libro se mudó el 16 de octubre de 2026 a su propio repo, `DanielOpazoD/DanielOpazoD-hechos-inferencias-incertidumbre` (privado), que importó esta carpeta tal cual en 4926b92. No se edita aquí: el trabajo sigue allá. Esta rama se conserva por su historia.
+
 Manuscrito revisado del libro de Daniel Opazo con las mejoras de prioridad alta del informe editorial aplicadas. Esta carpeta es autocontenida y no toca el código de la app Trama.
 
 ## Entregables

@@ -1,5 +1,7 @@
 # Reglas para trabajar en el libro
 
+> **Archivo.** El libro se mudó el 16 de octubre de 2026 a su propio repo, `DanielOpazoD/DanielOpazoD-hechos-inferencias-incertidumbre` (privado), que importó esta carpeta tal cual en 4926b92. No se edita aquí: el trabajo sigue allá. Esta rama se conserva por su historia.
+
 «Hechos, inferencias e incertidumbre» (Daniel Opazo). Este archivo reúne lo que antes sólo estaba en las
 conversaciones de trabajo: léelo entero antes de tocar las fuentes, las figuras, el lector o los entregables. El estado
 del libro y lo pendiente están en `ESTADO.md`; la estructura de carpetas y la construcción, en `README.md`. Las rutas son
