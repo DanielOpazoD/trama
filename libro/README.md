@@ -70,21 +70,11 @@ También revisar el nombre «Carmen» y los detalles del caso longitudinal.
 - `00_preliminares.md` … `05_cierre.md` — texto fuente por partes.
 - `figuras.py` — genera las 15 figuras (matplotlib) en `../figs/`.
 - `cotejo_figuras.py` — comprueba que el texto de las figuras (que no está en las fuentes Markdown) no contenga variantes retiradas del léxico, comillas rectas, decimales con punto ni otra redacción de las cuatro preguntas, y que cada `[FIGURA: …]` del cuerpo tenga su archivo; sale con error si encuentra algo.
-- `build_docx.cjs` — construye el .docx (docx-js; extensión `.cjs` porque la raíz del repo es ESM). Requiere el paquete `docx` (`npm install --no-save docx@9` en la raíz, o `NODE_PATH` hacia una instalación global). Lee las figuras de `../figs/` y escribe el .docx en `../` (o en `$LIBRO_OUT`); el PDF sale de LibreOffice. El TOC usa dos pasadas: construir sin `--toc`, convertir a PDF, extraer páginas reales con `toc_extract.py`, reconstruir con `--toc`.
+- `build_docx.cjs` — construye el .docx (docx-js; extensión `.cjs` porque la raíz del repo es ESM). Requiere el paquete `docx` (`npm install` en la raíz del libro; `package.json` fija la versión). Lee las figuras de `../figs/` y escribe el .docx en `../` (o en `$LIBRO_OUT`); el PDF sale de LibreOffice. El TOC usa dos pasadas: construir sin `--toc`, convertir a PDF, extraer páginas reales con `toc_extract.py`, reconstruir con `--toc`.
 - `toc_extract.py` — lee el PDF de la primera pasada (pdftotext) y `toc_keys.json` y escribe `toc.json` con las páginas reales de las 37 entradas.
 - `build_epub.py` — construye el EPUB para Kindle desde las mismas fuentes (preprocesa portada/legal/figuras/«En una frase» y llama a pandoc con `--split-level=2`, `../figs/` como resource-path y `../portada_kindle.jpg` como portada); escribe en `../` (o en `$LIBRO_OUT`).
-- Reconstrucción completa, desde `libro/fuentes/`:
-
-  ```bash
-  python3 cotejo_figuras.py               # el texto de las figuras contra el léxico canónico (falla si hay deriva)
-  python3 figuras.py                      # regenera ../figs/*.png (matplotlib)
-  node build_docx.cjs                     # pasada 1 → ../Hechos_..._edicion_revisada.docx
-  soffice --headless --convert-to pdf --outdir .. ../Hechos_inferencias_incertidumbre_edicion_revisada.docx
-  python3 toc_extract.py                  # → toc.json con páginas reales
-  node build_docx.cjs --toc toc.json      # pasada 2
-  soffice --headless --convert-to pdf --outdir .. ../Hechos_inferencias_incertidumbre_edicion_revisada.docx
-  python3 build_epub.py                   # → ../Hechos_inferencias_incertidumbre.epub
-  ```
+- `comprobar.py` — lo que se comprueba sin mirar: cada referencia citada y cada cita con su referencia (apellido y año), figuras numeradas sin saltos, TOC con todas sus entradas y cero comillas rectas en el PDF; sale con error si algo falla.
+- Reconstrucción completa: `./construir.sh` desde la raíz del libro (`./construir.sh --figuras` regenera además las figuras). Corre el cotejo de las figuras, las dos pasadas del DOCX con el PDF de LibreOffice en medio, verifica que el TOC quede estable entre pasadas, construye el EPUB y termina con `comprobar.py`; los entregables quedan en la raíz del libro (o en `$LIBRO_OUT`). Dependencias: `npm install` (fija `docx` 9.7.1), `pip install -r requirements.txt` (matplotlib y el paquete del lector, fijados), LibreOffice, poppler (`pdftotext`, `pdfinfo`) y pandoc.
 - `portada_kindle.py` — genera `portada_kindle.jpg` (1600×2560, JPEG) con la identidad visual del interior.
 
 ## Artículo para revista (`articulo/`)

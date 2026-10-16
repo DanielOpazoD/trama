@@ -1,0 +1,4 @@
+# Python para construir el libro (figuras) y su lector. Además: LibreOffice, poppler (pdftotext, pdfinfo) y pandoc.
+matplotlib==3.11.2
+# lector/construir_lector.py: el paquete del lector, fijado al commit de la 0.6.1 (la página lector/index.html es su web/index.html)
+lector-anotaciones @ git+https://github.com/DanielOpazoD/lector-anotaciones@7b079b78786151e683fea8b6616fc6e61cff3180

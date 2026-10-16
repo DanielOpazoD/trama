@@ -1,6 +1,6 @@
 // Construye el .docx del libro desde los md fuente.
 // Uso: node build_docx.cjs [--toc toc.json]  (toc.json: { "<texto heading>": <página lógica> })
-// Requiere el paquete docx (npm install --no-save docx@9, o NODE_PATH hacia una instalación global).
+// Requiere el paquete docx: `npm install` en la raíz del libro (package.json lo fija). Lo normal es correr ../construir.sh.
 // Lee las figuras de ../figs/ y escribe el .docx en ../ (o en $LIBRO_OUT); toc_keys.json queda junto al script.
 const fs = require("fs");
 const path = require("path");

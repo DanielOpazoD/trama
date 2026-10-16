@@ -1,0 +1,8 @@
+{
+  "name": "hechos-inferencias-incertidumbre",
+  "private": true,
+  "description": "Dependencias de node para construir el libro (fuentes/build_docx.cjs). Ver construir.sh.",
+  "dependencies": {
+    "docx": "9.7.1"
+  }
+}
