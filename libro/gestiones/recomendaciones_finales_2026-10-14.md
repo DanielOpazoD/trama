@@ -4,7 +4,7 @@ Estado al que se refieren: 156 páginas (152 de cuerpo), ~53.800 palabras, 18 ca
 
 ## A. Economía: la palanca principal
 
-1. [A] Fijar un techo y respetarlo: 140 páginas de cuerpo. Desde ahora, ninguna sección entra sin que otra salga.
+1. [A] ~~Fijar un techo y respetarlo: 140 páginas de cuerpo. Desde ahora, ninguna sección entra sin que otra salga.~~ **Retirado por decisión del autor** (README, punto 37): la extensión se juzga por lo que cada página aporta, no por una cifra.
 2. [A] Cap. 10 sigue sobrecargado (umbrales, dos momentos de Carmen, riesgo inductivo, ANDROMEDA, bioética, certeza práctica, dos talleres, tres figuras). Mover «Una década sobre un mismo dato: la saga ANDROMEDA» al cap. 9, donde se habla de leer la evidencia, y dejar el cap. 10 en umbrales, valores y bioética.
 3. [A] Fundir «Certeza epistémica y compromiso práctico» (cap. 10) con «La certeza práctica» (cap. 3): dicen lo mismo con Kassirer y Gadamer de un lado y Rudner del otro.
 4. [A] Auditar de nuevo los 18 «En una frase» tras las adiciones: donde repiten el párrafo anterior, borrar el párrafo.

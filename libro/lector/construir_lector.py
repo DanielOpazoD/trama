@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Construye libro.json para el lector de anotaciones de este libro.
 
-Usa el paquete genérico `lector-anotaciones` (https://github.com/DanielOpazoD/lector-anotaciones):
+Usa el paquete genérico `lector-anotaciones` (https://github.com/DanielOpazoD/lector-anotaciones), fijado en el
+commit de la página que se publica:
 
-    pip install git+https://github.com/DanielOpazoD/lector-anotaciones
+    pip install -r ../requirements.txt
 
 y le pasa lo que es propio de este libro: las fuentes `0*.md`, el PDF maquetado (para la página impresa
 de cada bloque), la marca de la página 1, la clave de respaldo de la primera versión de la página, los
 términos retirados del léxico (los mismos de `cotejo_figuras.py`) y la salida anterior, para que la
 página marque qué bloques cambiaron. index.html es copia de web/index.html de ese repositorio.
 
-Uso: python3 construir_lector.py   (desde libro/lector/)
+Uso: python3 construir_lector.py   (desde la carpeta lector/)
 """
 
 import glob
@@ -26,7 +27,7 @@ try:
     from lector_anotaciones.capas import ConfigCapas
     from lector_anotaciones.construir import cargar_anterior, construir, escribir, resumen, validar
 except ImportError:
-    sys.exit("Falta el paquete lector-anotaciones: pip install git+https://github.com/DanielOpazoD/lector-anotaciones")
+    sys.exit("Falta el paquete lector-anotaciones: pip install -r ../requirements.txt")
 
 sys.dont_write_bytecode = True  # no dejar __pycache__ en fuentes/ al importar el cotejo
 sys.path.insert(0, FUENTES)
